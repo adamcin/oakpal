@@ -35,20 +35,20 @@
         <version>7</version>
     </parent>
 
-    <groupId>net.adamcin.opal</groupId>
-    <artifactId>opal</artifactId>
+    <groupId>net.adamcin.oakpal</groupId>
+    <artifactId>oakpal</artifactId>
     <version>0.1.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <inceptionYear>2017</inceptionYear>
-    <name>Opal Parent</name>
+    <name>OakPAL - Parent</name>
     <description>Oak Package Acceptance Library</description>
-    <url>http://adamcin.net/net.adamcin.opal</url>
+    <url>http://adamcin.net/${project.groupId}</url>
 
     <scm>
-        <url>https://github.com/adamcin/net.adamcin.opal</url>
-        <developerConnection>scm:git:git@github.com:adamcin/net.adamcin.opal.git</developerConnection>
-        <connection>scm:git://github.com/adamcin/net.adamcin.opal.git</connection>
+        <url>https://github.com/adamcin/${project.groupId}</url>
+        <developerConnection>scm:git:git@github.com:adamcin/${project.groupId}.git</developerConnection>
+        <connection>scm:git://github.com/adamcin/${project.groupId}.git</connection>
       <tag>HEAD</tag>
   </scm>
 
@@ -73,7 +73,7 @@
 
     <issueManagement>
         <system>github</system>
-        <url>http://github.com/adamcin/net.adamcin.opal/issues/</url>
+        <url>http://github.com/adamcin/${project.groupId}/issues/</url>
     </issueManagement>
 
     <developers>
@@ -93,9 +93,9 @@
 
     <licenses>
         <license>
-            <name>Public Domain (Unlicense)</name>
+            <name>Apache License, Version 2.0</name>
+            <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
             <distribution>repo</distribution>
-            <url>http://unlicense.org/UNLICENSE</url>
         </license>
     </licenses>
 
@@ -236,8 +236,8 @@
     <dependencyManagement>
         <dependencies>
             <dependency>
-                <groupId>net.adamcin.opal</groupId>
-                <artifactId>opal-core</artifactId>
+                <groupId>net.adamcin.oakpal</groupId>
+                <artifactId>oakpal-core</artifactId>
                 <version>0.1.0-SNAPSHOT</version>
             </dependency>
             <dependency>

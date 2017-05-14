@@ -30,29 +30,34 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>net.adamcin.opal</groupId>
-        <artifactId>opal</artifactId>
+        <groupId>net.adamcin.oakpal</groupId>
+        <artifactId>oakpal</artifactId>
         <version>0.1.0-SNAPSHOT</version>
         <relativePath>..</relativePath>
     </parent>
 
-    <artifactId>opal-maven-plugin</artifactId>
+    <artifactId>oakpal-maven-plugin</artifactId>
     <packaging>maven-plugin</packaging>
 
     <inceptionYear>2017</inceptionYear>
 
-    <name>Opal Maven Plugin</name>
+    <name>OakPAL - OakPAL Maven Plugin</name>
     <description>
     </description>
 
     <scm>
-        <url>https://github.com/adamcin/net.adamcin.opal</url>
-        <developerConnection>scm:git:git@github.com:adamcin/net.adamcin.opal.git</developerConnection>
-        <connection>scm:git://github.com/adamcin/net.adamcin.opal.git</connection>
+        <url>https://github.com/adamcin/${project.groupId}</url>
+        <developerConnection>scm:git:git@github.com:adamcin/${project.groupId}.git</developerConnection>
+        <connection>scm:git://github.com/adamcin/${project.groupId}.git</connection>
     </scm>
 
     <properties>
         <maven.version>3.3.9</maven.version>
+        <scala.version.major>2.12</scala.version.major>
+        <scala.version>2.12.2</scala.version>
+        <scalamojo.version>1.1.0</scalamojo.version>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
         <encoding>UTF-8</encoding>
     </properties>
 
@@ -69,6 +74,34 @@
         </resources>
         <plugins>
             <plugin>
+                <groupId>net.alchim31.maven</groupId>
+                <artifactId>scala-maven-plugin</artifactId>
+                <version>3.2.2</version>
+                <configuration>
+                    <args>
+                        <arg>-target:jvm-1.8</arg>
+                        <arg>-no-specialization</arg>
+                        <arg>-deprecation</arg>
+                    </args>
+                    <recompileMode>incremental</recompileMode>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>add-source</goal>
+                            <goal>compile</goal>
+                            <goal>testCompile</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>attach-javadocs</id>
+                        <goals>
+                            <goal>doc-jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
                 <groupId>org.codehaus.plexus</groupId>
                 <artifactId>plexus-component-metadata</artifactId>
                 <version>1.7</version>
@@ -84,6 +117,12 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-plugin-plugin</artifactId>
                 <version>3.4</version>
+                <configuration>
+                    <skipErrorNoDescriptorsFound>true</skipErrorNoDescriptorsFound>
+                    <extractors>
+                        <extractor>java-annotations-and-scaladoc</extractor>
+                    </extractors>
+                </configuration>
                 <executions>
                     <execution>
                         <goals>
@@ -92,6 +131,13 @@
                         </goals>
                     </execution>
                 </executions>
+                <dependencies>
+                    <dependency>
+                        <groupId>net.adamcin</groupId>
+                        <artifactId>scalamojo-maven-plugin</artifactId>
+                        <version>${scalamojo.version}</version>
+                    </dependency>
+                </dependencies>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -118,7 +164,7 @@
                     <message>Creating site for ${project.artifactId} ${project.version}</message>
                     <noJekyll>true</noJekyll>
                     <repositoryOwner>adamcin</repositoryOwner>
-                    <repositoryName>net.adamcin.opal</repositoryName>
+                    <repositoryName>net.adamcin.oakpal</repositoryName>
                     <path>${project.artifactId}</path>
                     <merge>true</merge>
                 </configuration>
@@ -134,11 +180,42 @@
         </plugins>
     </build>
 
+    <reporting>
+        <plugins>
+            <plugin>
+                <groupId>net.adamcin</groupId>
+                <artifactId>scalamojo-maven-plugin</artifactId>
+                <version>${scalamojo.version}</version>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-project-info-reports-plugin</artifactId>
+                <version>2.9</version>
+            </plugin>
+        </plugins>
+    </reporting>
+
     <dependencies>
+
         <dependency>
-            <groupId>org.apache.jackrabbit.vault</groupId>
-            <artifactId>org.apache.jackrabbit.vault</artifactId>
-            <version>${vault.version}</version>
+            <groupId>org.scala-lang</groupId>
+            <artifactId>scala-library</artifactId>
+            <version>${scala.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.scala-lang</groupId>
+            <artifactId>scala-compiler</artifactId>
+            <version>${scala.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.scala-lang</groupId>
+            <artifactId>scala-reflect</artifactId>
+            <version>${scala.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>net.adamcin.oakpal</groupId>
+            <artifactId>oakpal-core</artifactId>
         </dependency>
 
         <!-- Override 3rd-party logging -->

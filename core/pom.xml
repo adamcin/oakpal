@@ -30,24 +30,24 @@
     <modelVersion>4.0.0</modelVersion>
 
 	<parent>
-        <groupId>net.adamcin.opal</groupId>
-        <artifactId>opal</artifactId>
+        <groupId>net.adamcin.oakpal</groupId>
+        <artifactId>oakpal</artifactId>
         <version>0.1.0-SNAPSHOT</version>
         <relativePath>..</relativePath>
     </parent>
 
-    <artifactId>opal-core</artifactId>
+    <artifactId>oakpal-core</artifactId>
     <packaging>jar</packaging>
 
-    <name>${project.artifactId}</name>
-    <description></description>
+    <name>OakPAL - Core</name>
+    <description>OakPAL Core Implementation</description>
 
     <inceptionYear>2017</inceptionYear>
 
     <scm>
-        <url>https://github.com/adamcin/net.adamcin.opal</url>
-        <developerConnection>scm:git:git@github.com:adamcin/net.adamcin.opal.git</developerConnection>
-        <connection>scm:git://github.com/adamcin/net.adamcin.opal.git</connection>
+        <url>https://github.com/adamcin/${project.groupId}</url>
+        <developerConnection>scm:git:git@github.com:adamcin/${project.groupId}.git</developerConnection>
+        <connection>scm:git://github.com/adamcin/${project.groupId}.git</connection>
       <tag>HEAD</tag>
   </scm>
 
@@ -116,7 +116,7 @@
                     <message>Creating site for ${project.artifactId} ${project.version}</message>
                     <noJekyll>true</noJekyll>
                     <repositoryOwner>adamcin</repositoryOwner>
-                    <repositoryName>net.adamcin.opal</repositoryName>
+                    <repositoryName>net.adamcin.oakpal</repositoryName>
                     <path>${project.artifactId}</path>
                     <merge>true</merge>
                 </configuration>
@@ -129,6 +129,11 @@
         <dependency>
             <groupId>org.apache.jackrabbit.vault</groupId>
             <artifactId>org.apache.jackrabbit.vault</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.json</groupId>
+            <artifactId>json</artifactId>
+            <version>20160807</version>
         </dependency>
 
         <dependency>

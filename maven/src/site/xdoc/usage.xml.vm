@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document>
+    <properties>
+        <title>Using ${project.artifactId}</title>
+    </properties>
+    <body>
+        <h1>Using ${project.artifactId}</h1>
+
+    </body>
+</document>

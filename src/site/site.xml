@@ -1,0 +1,74 @@
+<!--
+  ~ Copyright 2017 Mark Adamcin
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<project name="Recap">
+    <skin>
+        <groupId>org.apache.maven.skins</groupId>
+        <artifactId>maven-fluido-skin</artifactId>
+        <version>1.5</version>
+    </skin>
+    <googleAnalyticsAccountId>UA-37073514-1</googleAnalyticsAccountId>
+    <custom>
+        <fluidoSkin>
+            <facebookLike />
+            <googlePlusOne />
+            <!--
+            <gitHub>
+                <projectId>adamcin/scalamojo-maven-plugin</projectId>
+                <ribbonColor>black</ribbonColor>
+            </gitHub>
+            -->
+        </fluidoSkin>
+    </custom>
+
+    <bannerLeft>
+        <name>OakPAL - Oak Package Acceptance Library</name>
+        <href>http://adamcin.net/net.adamcin.oakpal/index.html</href>
+    </bannerLeft>
+
+    <!--
+    <bannerRight>
+        <src>http://adamcin.net/net.adamcin.oakpal/recap-graniteui/images/recap_package_thumbnail.png</src>
+    </bannerRight>
+    -->
+
+    <publishDate position="left" format="yyyy-MM-dd HH:mm" />
+    <version position="left"/>
+    <poweredBy>
+        <logo name="Build with Maven" href="http://maven.apache.org" img="http://maven.apache.org/images/logos/maven-feather.png" />
+    </poweredBy>
+
+    <body>
+        <links>
+            <item name="Wiki" href="http://wiki.github.com/adamcin/net.adamcin.oakpal/"/>
+            <item name="FAQ" href="http://wiki.github.com/adamcin/net.adamcin.oakpal/frequently-asked-questions"/>
+        </links>
+        <menu name="Overview">
+            <item name="Introduction" href="index.html" />
+        </menu>
+        <menu ref="modules" inherit="bottom"/>
+        <menu name="Resources @ Github" inherit="bottom">
+            <item name="Get the Source" href="https://github.com/adamcin/net.adamcin.oakpal"/>
+            <item name="Report Issues" href="https://github.com/adamcin/net.adamcin.oakpal/issues"/>
+        </menu>
+        <menu ref="reports" inherit="bottom"/>
+        <menu name="Projects @ adamcin.net" inherit="bottom">
+            <item name="Scala Mojo Maven Plugin" href="http://adamcin.net/scalamojo-maven-plugin"/>
+            <item name="VLT Pack Maven Plugin" href="http://adamcin.net/vltpack-maven-plugin"/>
+            <item name="Snag Jar Maven Plugin" href="http://adamcin.net/snagjar-maven-plugin"/>
+        </menu>
+    </body>
+</project>

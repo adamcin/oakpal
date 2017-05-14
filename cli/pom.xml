@@ -30,23 +30,23 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>net.adamcin.opal</groupId>
-        <artifactId>opal</artifactId>
+        <groupId>net.adamcin.oakpal</groupId>
+        <artifactId>oakpal</artifactId>
         <version>0.1.0-SNAPSHOT</version>
         <relativePath>..</relativePath>
     </parent>
 
-    <artifactId>opal-cli</artifactId>
+    <artifactId>oakpal-cli</artifactId>
     <packaging>bundle</packaging>
 
-    <name>Opal OSGi Bundle and CLI</name>
+    <name>OakPAL - OakPAL CLI</name>
 
     <inceptionYear>2017</inceptionYear>
 
     <scm>
-        <url>https://github.com/adamcin/net.adamcin.opal</url>
-        <developerConnection>scm:git:git@github.com:adamcin/net.adamcin.opal.git</developerConnection>
-        <connection>scm:git://github.com/adamcin/net.adamcin.opal.git</connection>
+        <url>https://github.com/adamcin/${project.groupId}</url>
+        <developerConnection>scm:git:git@github.com:adamcin/${project.groupId}.git</developerConnection>
+        <connection>scm:git://github.com/adamcin/${project.groupId}.git</connection>
       <tag>HEAD</tag>
   </scm>
 
@@ -68,10 +68,7 @@
                     <instructions>
                         <Embed-Dependency>*;scope=compile|runtime</Embed-Dependency>
                         <Bundle-SymbolicName>${project.artifactId}</Bundle-SymbolicName>
-                        <Export-Package>
-                            net.adamcin.opal.core
-                        </Export-Package>
-                        <Main-Class>net.adamcin.opal.cli.Main</Main-Class>
+                        <Main-Class>net.adamcin.oakpal.cli.Main</Main-Class>
                     </instructions>
                 </configuration>
             </plugin>
@@ -82,7 +79,7 @@
                     <message>Creating site for ${project.artifactId} ${project.version}</message>
                     <noJekyll>true</noJekyll>
                     <repositoryOwner>adamcin</repositoryOwner>
-                    <repositoryName>net.adamcin.opal</repositoryName>
+                    <repositoryName>${project.groupId}</repositoryName>
                     <path>${project.artifactId}</path>
                     <merge>true</merge>
                 </configuration>
@@ -118,8 +115,8 @@
 
     <dependencies>
         <dependency>
-            <groupId>net.adamcin.opal</groupId>
-            <artifactId>opal-core</artifactId>
+            <groupId>net.adamcin.oakpal</groupId>
+            <artifactId>oakpal-core</artifactId>
         </dependency>
         <dependency>
             <groupId>biz.aQute.bnd</groupId>
