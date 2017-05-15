@@ -212,7 +212,7 @@
                     <noJekyll>true</noJekyll>
                     <merge>true</merge>
                     <repositoryOwner>adamcin</repositoryOwner>
-                    <repositoryName>httpsig-java</repositoryName>
+                    <repositoryName>${project.groupId}</repositoryName>
                 </configuration>
             </plugin>
         </plugins>
