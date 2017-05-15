@@ -54,7 +54,6 @@
 
     <modules>
         <module>core</module>
-        <module>cli</module>
         <module>maven</module>
     </modules>
 
@@ -157,7 +156,7 @@
                 <plugin>
                     <groupId>com.github.github</groupId>
                     <artifactId>site-maven-plugin</artifactId>
-                    <version>0.12</version>
+                    <version>0.13.0.OSS-M1</version>
                     <executions>
                         <execution>
                             <id>github-site-deploy</id>
@@ -232,6 +231,21 @@
             </plugin>
         </plugins>
     </reporting>
+
+    <pluginRepositories>
+        <pluginRepository>
+            <id>oss-github-maven-plugins</id>
+            <url>https://raw.github.com/home1-oss/maven-plugins/mvn-repo</url>
+            <name>Forked github-maven-plugins that upload faster</name>
+            <layout>default</layout>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+        </pluginRepository>
+    </pluginRepositories>
 
     <dependencyManagement>
         <dependencies>

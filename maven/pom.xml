@@ -158,13 +158,11 @@
             <plugin>
                 <groupId>com.github.github</groupId>
                 <artifactId>site-maven-plugin</artifactId>
-                <version>0.12</version>
                 <configuration>
-                    <server>github</server>
                     <message>Creating site for ${project.artifactId} ${project.version}</message>
                     <noJekyll>true</noJekyll>
                     <repositoryOwner>adamcin</repositoryOwner>
-                    <repositoryName>net.adamcin.oakpal</repositoryName>
+                    <repositoryName>${project.groupId}</repositoryName>
                     <path>${project.artifactId}</path>
                     <merge>true</merge>
                 </configuration>

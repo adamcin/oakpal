@@ -28,12 +28,12 @@ import org.apache.jackrabbit.vault.packaging.PackageId;
 public class DefaultErrorListener extends AbstractViolationReporter implements ErrorListener {
 
     @Override
-    public void onBeginScan() {
+    public void startedScan() {
 
     }
 
     @Override
-    public void onEndScan() {
+    public void finishedScan() {
 
     }
 

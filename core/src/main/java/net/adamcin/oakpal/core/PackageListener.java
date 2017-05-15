@@ -41,15 +41,15 @@ public interface PackageListener extends ScanListener {
      * @param packageId the package ID of the newly opened package
      * @param file      the package file that will be opened
      */
-    void onBeginPackage(PackageId packageId, File file);
+    void identifyPackage(PackageId packageId, File file);
 
     /**
      * Called after each subpackage is opened. Track subsequent events using the package ID provided to this method.
      *
      * @param packageId the package ID of the newly opened subpackage
-     * @param parentId the package ID of the parent package.
+     * @param parentId  the package ID of the parent package.
      */
-    void onBeginSubpackage(PackageId packageId, PackageId parentId);
+    void identifySubpackage(PackageId packageId, PackageId parentId);
 
     /**
      * Called for each package before it is extracted.
@@ -59,25 +59,26 @@ public interface PackageListener extends ScanListener {
      * @param metaInf           the package meta information
      * @param subpackages       extracted subpackages
      */
-    void onOpen(PackageId packageId, PackageProperties packageProperties,
-                MetaInf metaInf, List<PackageId> subpackages);
+    void beforeExtract(PackageId packageId, PackageProperties packageProperties,
+                       MetaInf metaInf, List<PackageId> subpackages);
 
     /**
      * Notified when package importer adds, modifies, or leaves a node untouched.
      *
      * @param packageId the current package
-     * @param node the imported node
+     * @param path      the imported path
+     * @param node      the imported node
      * @throws RepositoryException for obvious reasons
      */
-    void onImportPath(PackageId packageId, String path, Node node) throws RepositoryException;
+    void importedPath(PackageId packageId, String path, Node node) throws RepositoryException;
 
     /**
      * Notified when package importer deletes an existing node.
      *
      * @param packageId the current package
-     * @param path deleted path
+     * @param path      deleted path
      */
-    void onDeletePath(PackageId packageId, String path);
+    void deletedPath(PackageId packageId, String path);
 
     /**
      * Provides an opportunity to inspect repository state between packages.
@@ -86,6 +87,6 @@ public interface PackageListener extends ScanListener {
      * @param inspectSession session providing access to repository state
      * @throws RepositoryException for obvious reasons
      */
-    void onClose(PackageId packageId, Session inspectSession) throws RepositoryException;
+    void afterExtract(PackageId packageId, Session inspectSession) throws RepositoryException;
 
 }

@@ -19,17 +19,13 @@ package net.adamcin.oakpal.core;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Enumeration;
 import java.util.List;
 import java.util.Properties;
-import java.util.jar.Manifest;
 import java.util.stream.Collectors;
 import javax.jcr.Node;
 import javax.jcr.Repository;
@@ -59,7 +55,6 @@ import org.apache.jackrabbit.vault.fs.io.ImportOptions;
 import org.apache.jackrabbit.vault.fs.spi.CNDReader;
 import org.apache.jackrabbit.vault.fs.spi.DefaultNodeTypeSet;
 import org.apache.jackrabbit.vault.fs.spi.NodeTypeInstaller;
-import org.apache.jackrabbit.vault.fs.spi.ProgressTracker;
 import org.apache.jackrabbit.vault.fs.spi.ServiceProviderFactory;
 import org.apache.jackrabbit.vault.packaging.DependencyHandling;
 import org.apache.jackrabbit.vault.packaging.JcrPackage;
@@ -196,8 +191,8 @@ public final class PackageScanner {
         Session admin = null;
         Repository scanRepo = null;
         try {
-            getErrorListener().onBeginScan();
-            packageListeners.forEach(PackageListener::onBeginScan);
+            getErrorListener().startedScan();
+            packageListeners.forEach(PackageListener::startedScan);
 
             scanRepo = initRepository();
             admin = loginAdmin(scanRepo);
@@ -246,8 +241,8 @@ public final class PackageScanner {
             }
             shutdownRepository(scanRepo);
 
-            packageListeners.forEach(PackageListener::onEndScan);
-            getErrorListener().onEndScan();
+            packageListeners.forEach(PackageListener::finishedScan);
+            getErrorListener().finishedScan();
         }
 
         List<ViolationReport> reports = new ArrayList<>();
@@ -281,7 +276,7 @@ public final class PackageScanner {
 
         final VaultPackage vaultPackage = jcrPackage.getPackage();
 
-        packageListeners.forEach(handler -> handler.onOpen(packageId,
+        packageListeners.forEach(handler -> handler.beforeExtract(packageId,
                 vaultPackage.getProperties(), vaultPackage.getMetaInf(), subpacks));
 
         jcrPackage.extract(options);
@@ -290,7 +285,7 @@ public final class PackageScanner {
 
         packageListeners.forEach(handler -> {
             try {
-                handler.onClose(packageId, inspectSession);
+                handler.afterExtract(packageId, inspectSession);
             } catch (RepositoryException e) {
                 errorListener.onListenerException(e, handler, packageId);
             }
@@ -306,7 +301,7 @@ public final class PackageScanner {
         try {
             jcrPackage = manager.open(packageId);
 
-            packageListeners.forEach(handler -> handler.onBeginSubpackage(packageId, parentId));
+            packageListeners.forEach(handler -> handler.identifySubpackage(packageId, parentId));
 
             processPackage(admin, manager, jcrPackage, preInstall);
 
@@ -329,7 +324,7 @@ public final class PackageScanner {
             if (!preInstall) {
                 packageListeners.forEach(handler -> {
                     try {
-                        handler.onBeginPackage(packageId, file);
+                        handler.identifyPackage(packageId, file);
                     } catch (Exception e) {
                         getErrorListener().onListenerException(e, handler, packageId);
                     }
@@ -403,13 +398,13 @@ public final class PackageScanner {
             }
             if (path != null && path.startsWith("/")) {
                 if ("D".equals(action) || "!".equals(action)) {
-                    handlers.forEach(handler -> handler.onDeletePath(packageId, path));
+                    handlers.forEach(handler -> handler.deletedPath(packageId, path));
                 } else {
                     try {
                         Node node = session.getNode(path);
                         handlers.forEach(handler -> {
                             try {
-                                handler.onImportPath(packageId, path, node);
+                                handler.importedPath(packageId, path, node);
                             } catch (Exception e) {
                                 PackageScanner.this.getErrorListener().onListenerPathException(e, handler, packageId, path);
                             }

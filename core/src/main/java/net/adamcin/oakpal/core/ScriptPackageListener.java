@@ -44,14 +44,14 @@ import org.apache.jackrabbit.vault.packaging.PackageProperties;
  */
 @ProviderType
 public class ScriptPackageListener implements PackageListener, ViolationReporter {
-    public static final String INVOKE_ON_BEGIN_SCAN = "onBeginScan";
-    public static final String INVOKE_ON_BEGIN_PACKAGE = "onBeginPackage";
-    public static final String INVOKE_ON_BEGIN_SUBPACKAGE = "onBeginSubpackage";
-    public static final String INVOKE_ON_OPEN = "onOpen";
-    public static final String INVOKE_ON_IMPORT_PATH = "onImportPath";
-    public static final String INVOKE_ON_DELETE_PATH = "onDeletePath";
-    public static final String INVOKE_ON_CLOSE = "onClose";
-    public static final String INVOKE_ON_END_SCAN = "onEndScan";
+    public static final String INVOKE_ON_BEGIN_SCAN = "startedScan";
+    public static final String INVOKE_ON_BEGIN_PACKAGE = "identifyPackage";
+    public static final String INVOKE_ON_BEGIN_SUBPACKAGE = "identifySubpackage";
+    public static final String INVOKE_ON_OPEN = "beforeExtract";
+    public static final String INVOKE_ON_IMPORT_PATH = "importedPath";
+    public static final String INVOKE_ON_DELETE_PATH = "deletedPath";
+    public static final String INVOKE_ON_CLOSE = "afterExtract";
+    public static final String INVOKE_ON_END_SCAN = "finishedScan";
 
     private final Invocable script;
     private final ScriptViolationReporter reporter;
@@ -67,7 +67,7 @@ public class ScriptPackageListener implements PackageListener, ViolationReporter
     }
 
     @Override
-    public void onBeginScan() {
+    public void startedScan() {
         try {
             this.script.invokeFunction(INVOKE_ON_BEGIN_SCAN);
         } catch (NoSuchMethodException ignored) {
@@ -77,7 +77,7 @@ public class ScriptPackageListener implements PackageListener, ViolationReporter
     }
 
     @Override
-    public void onBeginPackage(PackageId packageId, File file) {
+    public void identifyPackage(PackageId packageId, File file) {
         try {
             this.script.invokeFunction(INVOKE_ON_BEGIN_PACKAGE, packageId, file);
         } catch (NoSuchMethodException ignored) {
@@ -87,7 +87,7 @@ public class ScriptPackageListener implements PackageListener, ViolationReporter
     }
 
     @Override
-    public void onBeginSubpackage(PackageId packageId, PackageId parentId) {
+    public void identifySubpackage(PackageId packageId, PackageId parentId) {
         try {
             this.script.invokeFunction(INVOKE_ON_BEGIN_SUBPACKAGE, packageId, parentId);
         } catch (NoSuchMethodException ignored) {
@@ -97,9 +97,10 @@ public class ScriptPackageListener implements PackageListener, ViolationReporter
     }
 
     @Override
-    public void onOpen(PackageId packageId, PackageProperties packageProperties, MetaInf metaInf, List<PackageId> subpackages) {
+    public void beforeExtract(PackageId packageId, PackageProperties packageProperties, MetaInf metaInf, List<PackageId> subpackages) {
         try {
-            this.script.invokeFunction(INVOKE_ON_OPEN, packageId, packageProperties, metaInf, subpackages);
+            this.script.invokeFunction(INVOKE_ON_OPEN, packageId, packageProperties,
+                    metaInf, subpackages.toArray(new PackageId[subpackages.size()]));
         } catch (NoSuchMethodException ignored) {
         } catch (ScriptException e) {
             throw new RuntimeException(e);
@@ -107,7 +108,7 @@ public class ScriptPackageListener implements PackageListener, ViolationReporter
     }
 
     @Override
-    public void onImportPath(PackageId packageId, String path, Node node) throws RepositoryException {
+    public void importedPath(PackageId packageId, String path, Node node) throws RepositoryException {
         try {
             this.script.invokeFunction(INVOKE_ON_IMPORT_PATH, packageId, path, node);
         } catch (NoSuchMethodException ignored) {
@@ -120,7 +121,7 @@ public class ScriptPackageListener implements PackageListener, ViolationReporter
     }
 
     @Override
-    public void onDeletePath(PackageId packageId, String path) {
+    public void deletedPath(PackageId packageId, String path) {
         try {
             this.script.invokeFunction(INVOKE_ON_DELETE_PATH, packageId, path);
         } catch (NoSuchMethodException ignored) {
@@ -130,7 +131,7 @@ public class ScriptPackageListener implements PackageListener, ViolationReporter
     }
 
     @Override
-    public void onClose(PackageId packageId, Session inspectSession) throws RepositoryException {
+    public void afterExtract(PackageId packageId, Session inspectSession) throws RepositoryException {
         try {
             this.script.invokeFunction(INVOKE_ON_CLOSE, packageId, inspectSession);
         } catch (NoSuchMethodException ignored) {
@@ -143,7 +144,7 @@ public class ScriptPackageListener implements PackageListener, ViolationReporter
     }
 
     @Override
-    public void onEndScan() {
+    public void finishedScan() {
         try {
             this.script.invokeFunction(INVOKE_ON_END_SCAN);
         } catch (NoSuchMethodException ignored) {

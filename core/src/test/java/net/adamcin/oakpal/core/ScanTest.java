@@ -52,11 +52,11 @@ public class ScanTest {
                 PackageListener listener = new DefaultPackageListener() {
 
                     @Override
-                    public void onOpen(PackageId packageId, PackageProperties packageProperties, MetaInf metaInf, List<PackageId> subpackages) {
+                    public void beforeExtract(PackageId packageId, PackageProperties packageProperties, MetaInf metaInf, List<PackageId> subpackages) {
                     }
 
                     @Override
-                    public void onClose(PackageId packageId, Session inspectSession) {
+                    public void afterExtract(PackageId packageId, Session inspectSession) {
                         LOGGER.info("My userId is {}", inspectSession.getUserID());
                     }
                 };
@@ -79,13 +79,13 @@ public class ScanTest {
                 PackageListener handler = new DefaultPackageListener() {
 
                     @Override
-                    public void onImportPath(PackageId packageId, String path, Node node) throws RepositoryException {
+                    public void importedPath(PackageId packageId, String path, Node node) throws RepositoryException {
                         importedPaths.add(node.getPath());
                         LOGGER.info("imported path: {}", node.getPath());
                     }
 
                     @Override
-                    public void onClose(PackageId packageId, Session inspectSession) throws RepositoryException {
+                    public void afterExtract(PackageId packageId, Session inspectSession) throws RepositoryException {
                         QueryManager qm = inspectSession.getWorkspace().getQueryManager();
                         Query q = qm.createQuery("//element(*, vlt:FullCoverage)", "xpath");
                         QueryResult r = q.execute();

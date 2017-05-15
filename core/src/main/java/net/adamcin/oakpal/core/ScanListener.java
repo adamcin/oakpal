@@ -25,10 +25,10 @@ public interface ScanListener {
     /**
      * Called once at the beginning of the scan to notify for re-initialization of listener state.
      */
-    void onBeginScan();
+    void startedScan();
 
     /**
      * Called once at the end of the scan to notify for cleanup of resources.
      */
-    void onEndScan();
+    void finishedScan();
 }

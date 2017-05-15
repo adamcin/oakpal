@@ -32,42 +32,42 @@ import org.apache.jackrabbit.vault.packaging.PackageProperties;
 public class DefaultPackageListener extends AbstractViolationReporter implements PackageListener {
 
     @Override
-    public void onBeginScan() {
+    public void startedScan() {
 
     }
 
     @Override
-    public void onEndScan() {
+    public void finishedScan() {
 
     }
 
     @Override
-    public void onBeginPackage(PackageId packageId, File file) {
+    public void identifyPackage(PackageId packageId, File file) {
 
     }
 
     @Override
-    public void onBeginSubpackage(PackageId packageId, PackageId parentId) {
+    public void identifySubpackage(PackageId packageId, PackageId parentId) {
 
     }
 
     @Override
-    public void onOpen(PackageId packageId, PackageProperties packageProperties, MetaInf metaInf, List<PackageId> subpackages) {
+    public void beforeExtract(PackageId packageId, PackageProperties packageProperties, MetaInf metaInf, List<PackageId> subpackages) {
 
     }
 
     @Override
-    public void onImportPath(PackageId packageId, String path, Node node) throws RepositoryException {
+    public void importedPath(PackageId packageId, String path, Node node) throws RepositoryException {
 
     }
 
     @Override
-    public void onDeletePath(PackageId packageId, String path) {
+    public void deletedPath(PackageId packageId, String path) {
 
     }
 
     @Override
-    public void onClose(PackageId packageId, Session inspectSession) throws RepositoryException {
+    public void afterExtract(PackageId packageId, Session inspectSession) throws RepositoryException {
 
     }
 

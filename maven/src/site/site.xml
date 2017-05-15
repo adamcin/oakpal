@@ -48,13 +48,14 @@
 
     <body>
         <links>
-            <item name="Wiki" href="http://wiki.github.com/adamcin/snagjar-maven-plugin/"/>
-            <item name="FAQ" href="http://wiki.github.com/adamcin/snagjar-maven-plugin/frequently-asked-questions"/>
+            <item name="Wiki" href="http://wiki.github.com/adamcin/${project.groupId}/"/>
+            <item name="FAQ" href="http://wiki.github.com/adamcin/${project.groupId}/frequently-asked-questions"/>
         </links>
         <menu name="Overview">
             <item name="Introduction" href="index.html" />
             <item name="Goals" href="plugin-info.html" />
             <item name="Usage" href="usage.html" />
+            <item name="Writing a Script Reporter" href="writing-a-script-reporter.html" />
             <item name="ScalaDocs" href="scaladocs/index.html" />
         </menu>
         <menu ref="reports" />

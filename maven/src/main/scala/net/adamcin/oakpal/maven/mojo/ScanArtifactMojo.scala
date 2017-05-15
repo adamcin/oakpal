@@ -17,12 +17,12 @@
 package net.adamcin.oakpal.maven.mojo
 
 import net.adamcin.oakpal.core.JsonUtil
-import net.adamcin.oakpal.core.Violation.Severity
 import net.adamcin.oakpal.maven.{InitsPackageScanner, ReportsViolations}
 import org.apache.maven.plugins.annotations.{LifecyclePhase, Mojo, Parameter}
 
 /**
-  * Scans the main project artifact, assuming it is of packaging type 'content-package'.
+  * Scans the main project artifact by simulating package installation and listening for violations reported by the
+  * configured {@code scriptReporters}.
   */
 @Mojo(name = "scan",
   defaultPhase = LifecyclePhase.INTEGRATION_TEST)
@@ -31,10 +31,8 @@ class ScanArtifactMojo extends BaseITMojo with InitsPackageScanner with ReportsV
   @Parameter(property = "oakpal.skip.scan")
   var skip = false
 
-
   override def execute(): Unit = {
     super.execute()
-
 
     skipWithTestsOrExecute(skip) {
       val reports = builder().build().scanPackages(project.getArtifact.getFile)

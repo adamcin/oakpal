@@ -35,23 +35,34 @@ class VerifyMojo extends BaseITMojo with ReportsViolations {
   var skip = false
 
   @Parameter
-  val ignoreBelowSeverity: Severity = Severity.MAJOR
+  val failOnSeverity: Severity = Severity.MAJOR
 
   override def execute(): Unit = {
     skipWithTestsOrExecute(skip) {
+      val errorMessage = s"Violations were reported at or above severity: $failOnSeverity"
       if (reportFile.exists()) {
         val reports = JavaConverters.collectionAsScalaIterable(JsonUtil.readFromFile(reportFile))
-        val nonEmptyReports = reports.filterNot(_.getViolations(ignoreBelowSeverity).isEmpty)
+        val nonEmptyReports = reports.filterNot(_.getViolations().isEmpty)
+        val shouldFail = !nonEmptyReports.forall { r => r.getViolations(failOnSeverity).isEmpty }
         if (nonEmptyReports.nonEmpty) {
           nonEmptyReports.foreach { r =>
-            getLog.error(s"Reporter: ${r.getReporterUrl}")
-            val viols = JavaConverters.collectionAsScalaIterable(r.getViolations(ignoreBelowSeverity))
-            viols.foreach { v => getLog.error(s"[${v.getSeverity}] ${v.getDescription}")}
+            getLog.info(s"OakPAL Reporter: ${r.getReporterUrl}")
+            val viols = JavaConverters.collectionAsScalaIterable(r.getViolations())
+            viols.foreach { v =>
+              if (v.getSeverity.isLessSevereThan(failOnSeverity)) {
+                getLog.info(v.getDescription)
+              } else {
+                getLog.error(v.getDescription)
+              }
+            }
           }
-          throw new MojoFailureException("Found violations!")
+        }
+
+        if (shouldFail) {
+          getLog.error(errorMessage)
+          throw new MojoFailureException(errorMessage)
         }
       }
-
     }
   }
 }
