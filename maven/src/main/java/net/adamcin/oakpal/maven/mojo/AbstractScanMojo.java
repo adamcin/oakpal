@@ -64,27 +64,125 @@ abstract class AbstractScanMojo extends AbstractMojo {
     @Component
     private RepositorySystem repositorySystem;
 
+    /**
+     * Specify a list of content-package artifacts to download and pre-install before the scanned packages.
+     *
+     * For example:
+     *
+     * <pre>
+     * &lt;preInstallArtifacts&gt;
+     *   &lt;preInstallArtifact&gt;
+     *     &lt;groupId&gt;com.adobe.acs&lt;/groupId&gt;
+     *     &lt;artifactId&gt;acs-aem-commons-content&lt;/artifactId&gt;
+     *     &lt;version&gt;3.9.0&lt;/version&gt;
+     *     &lt;type&gt;zip&lt;/type&gt;
+     *   &lt;/preInstallArtifact&gt;
+     * &lt;/preInstallArtifacts&gt;
+     * </pre>
+     *
+     * @since 0.2.0
+     */
     @Parameter(name = "preInstallArtifacts")
     protected List<Dependency> preInstallArtifacts = new ArrayList<>();
 
+    /**
+     * Specify a list of content package files by path to pre-install, which have already been built or downloaded in a
+     * previous phase.
+     * @since 0.2.0
+     */
     @Parameter(name = "preInstallFiles")
     protected List<File> preInstallFiles = new ArrayList<>();
 
+    /**
+     * Specify a list of Compact NodeType Definition (CND) files to import before any packages are installed during the
+     * scan. This is usually necessary for proprietary CRX applications like AEM. Use "Tools - Export Node Type" in
+     * CRX/de lite to export all nodetypes and save it to a file in your project code base.
+     *
+     * @since 0.1.0
+     */
     @Parameter(name = "cndFiles")
     protected List<File> cndFiles = new ArrayList<>();
 
+    /**
+     * Specify a list of additional JCR namespaces to register before installing any packages for the scan.
+     *
+     * For example:
+     *
+     * <pre>
+     * &lt;jcrNamespaces&gt;
+     *   &lt;jcrNamespace&gt;
+     *     &lt;prefix&gt;crx&lt;/prefix&gt;
+     *     &lt;uri&gt;http://www.day.com/crx/1.0&lt;/uri&gt;
+     *   &lt;/jcrNamespace&gt;
+     * &lt;/jcrNamespaces&gt;
+     * </pre>
+     *
+     * @since 0.2.0
+     */
     @Parameter(name = "jcrNamespaces")
     protected List<JcrNs> jcrNamespaces = new ArrayList<>();
 
+    /**
+     * Specify a list of additional JCR privileges to register before installing any packages for the scan.
+     *
+     * For example:
+     *
+     * <pre>
+     * &lt;jcrPrivileges&gt;
+     *   &lt;jcrPrivilege&gt;crx:replicate&lt;/jcrPrivilege&gt;
+     * &lt;/jcrPrivileges&gt;
+     * </pre>
+     *
+     * @since 0.2.0
+     */
     @Parameter(name = "jcrPrivileges")
     protected List<String> jcrPrivileges = new ArrayList<>();
 
+    /**
+     * Specify a list of paths with associated primaryType and mixinTypes values to create in the repository before
+     * installing any packages for the scan. This should only be necessary for packages that you are pre-installing
+     * and do not have the ability to adjust to ensure that they contain the necessary DocView XML files to ensure
+     * content structure nodetype dependencies are self-contained in the package that depends on them.
+     *
+     * For example, to ensure that /home/users/system is created as a rep:AuthorizableFolder, you would add a
+     * forcedRoot element with a path of "/home/users/system" and a primaryType of "rep:AuthorizableFolder".
+     *
+     * <pre>
+     * &lt;forcedRoots&gt;
+     *   &lt;forcedRoot&gt;
+     *     &lt;path&gt;/home/users/system&lt;/path&gt;
+     *     &lt;primaryType&gt;rep:AuthorizableFolder&lt;/primaryType&gt;
+     *     &lt;mixinTypes&gt;
+     *       &lt;mixinType&gt;rep:AccessControllable&lt;/mixinType&gt;
+     *     &lt;/mixinTypes&gt;
+     *   &lt;/forcedRoot&gt;
+     * &lt;/forcedRoots&gt;
+     * </pre>
+     *
+     * @since 0.2.0
+     */
     @Parameter(name = "forcedRoots")
     protected List<PackageScanner.ForcedRoot> forcedRoots = new ArrayList<>();
 
+    /**
+     * Specify a list of javascript files implementing the {@link PackageListener} functions that will receive events
+     * for each scanned package.
+     *
+     * @since 0.1.0
+     */
     @Parameter(name = "scriptReporters")
     protected List<File> scriptReporters = new ArrayList<>();
 
+    /**
+     * Specify the minimum violation severity level that will trigger plugin execution failure. Valid options are
+     * {@link net.adamcin.oakpal.core.Violation.Severity#MINOR},
+     * {@link net.adamcin.oakpal.core.Violation.Severity#MAJOR}, and
+     * {@link net.adamcin.oakpal.core.Violation.Severity#SEVERE}.
+     *
+     * FYI: FileVault Importer errors are reported as MAJOR by default.
+     *
+     * @since 0.1.0
+     */
     @Parameter(defaultValue = "MAJOR")
     protected Violation.Severity failOnSeverity = Violation.Severity.MAJOR;
 

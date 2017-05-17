@@ -47,6 +47,7 @@
     </poweredBy>
 
     <body>
+        <!--
         <links>
             <item name="Wiki" href="http://wiki.github.com/adamcin/${project.groupId}/"/>
             <item name="FAQ" href="http://wiki.github.com/adamcin/${project.groupId}/frequently-asked-questions"/>
@@ -65,5 +66,6 @@
             <item name="VLT Pack Maven Plugin" href="http://adamcin.net/vltpack-maven-plugin"/>
             <item name="Snag Jar Maven Plugin" href="http://adamcin.net/snagjar-maven-plugin"/>
         </menu>
+        -->
     </body>
 </project>

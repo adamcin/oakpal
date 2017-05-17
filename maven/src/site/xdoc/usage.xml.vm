@@ -26,7 +26,7 @@
 </pre>
             </div>
         </section>
-        <section name="3. Export your platform nodetypes">
+        <section name="2. Export your platform nodetypes">
             <p>To properly prepare the scan for your code package, you might first need to export the Compact NodeType
                 Definition (CND) from your Commercial Oak-based Product and make it available to the plugin.
             </p>

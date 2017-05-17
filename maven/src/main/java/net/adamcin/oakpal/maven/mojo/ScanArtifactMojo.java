@@ -37,7 +37,10 @@ import org.apache.maven.plugins.annotations.Parameter;
   defaultPhase = LifecyclePhase.INTEGRATION_TEST)
 public class ScanArtifactMojo extends AbstractScanMojo {
 
-    @Parameter(property = "oakpal.skip.scan")
+    /**
+     * Specifically skip this plugin's execution.
+     */
+    @Parameter(property = "oakpal.scan.skip")
     public boolean skip;
 
     @Override

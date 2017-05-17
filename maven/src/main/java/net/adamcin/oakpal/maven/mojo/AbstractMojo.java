@@ -50,9 +50,15 @@ abstract class AbstractMojo extends org.apache.maven.plugin.AbstractMojo {
     @Parameter(defaultValue = "${project}", readonly = true, required = false)
     protected MavenProject project;
 
+    /**
+     * Conventional switch to skip integration-test phase goals.
+     */
     @Parameter(property = "skipITs")
     protected boolean skipITs;
 
+    /**
+     * Conventional switch to skip test and integration-test phase goals.
+     */
     @Parameter(property = "skipTests")
     protected boolean skipTests;
 
