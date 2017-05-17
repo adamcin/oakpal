@@ -184,7 +184,7 @@ public class ScriptPackageListener implements PackageListener, ViolationReporter
 
     }
 
-    public static ScriptPackageListener createScriptHandler(String engineName, URL scriptUrl) throws Exception {
+    public static ScriptPackageListener createScriptListener(String engineName, URL scriptUrl) throws Exception {
         ScriptViolationReporter reporter = new ScriptViolationReporter(scriptUrl);
 
         InputStream is = null;

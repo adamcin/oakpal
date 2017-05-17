@@ -49,7 +49,7 @@
         <url>https://github.com/adamcin/${project.groupId}</url>
         <developerConnection>scm:git:git@github.com:adamcin/${project.groupId}.git</developerConnection>
         <connection>scm:git://github.com/adamcin/${project.groupId}.git</connection>
-      <tag>oakpal-0.1.0</tag>
+        <tag>HEAD</tag>
   </scm>
 
     <properties>
@@ -75,34 +75,6 @@
         </resources>
         <plugins>
             <plugin>
-                <groupId>net.alchim31.maven</groupId>
-                <artifactId>scala-maven-plugin</artifactId>
-                <version>3.2.2</version>
-                <configuration>
-                    <args>
-                        <arg>-target:jvm-1.8</arg>
-                        <arg>-no-specialization</arg>
-                        <arg>-deprecation</arg>
-                    </args>
-                    <recompileMode>incremental</recompileMode>
-                </configuration>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>add-source</goal>
-                            <goal>compile</goal>
-                            <goal>testCompile</goal>
-                        </goals>
-                    </execution>
-                    <execution>
-                        <id>attach-javadocs</id>
-                        <goals>
-                            <goal>doc-jar</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
                 <groupId>org.codehaus.plexus</groupId>
                 <artifactId>plexus-component-metadata</artifactId>
                 <version>1.7</version>
@@ -117,13 +89,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-plugin-plugin</artifactId>
-                <version>3.4</version>
-                <configuration>
-                    <skipErrorNoDescriptorsFound>true</skipErrorNoDescriptorsFound>
-                    <extractors>
-                        <extractor>java-annotations-and-scaladoc</extractor>
-                    </extractors>
-                </configuration>
+                <version>3.5</version>
                 <executions>
                     <execution>
                         <goals>
@@ -132,13 +98,6 @@
                         </goals>
                     </execution>
                 </executions>
-                <dependencies>
-                    <dependency>
-                        <groupId>net.adamcin</groupId>
-                        <artifactId>scalamojo-maven-plugin</artifactId>
-                        <version>${scalamojo.version}</version>
-                    </dependency>
-                </dependencies>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -174,9 +133,9 @@
     <reporting>
         <plugins>
             <plugin>
-                <groupId>net.adamcin</groupId>
-                <artifactId>scalamojo-maven-plugin</artifactId>
-                <version>${scalamojo.version}</version>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-plugin-plugin</artifactId>
+                <version>3.5</version>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -187,22 +146,6 @@
     </reporting>
 
     <dependencies>
-
-        <dependency>
-            <groupId>org.scala-lang</groupId>
-            <artifactId>scala-library</artifactId>
-            <version>${scala.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.scala-lang</groupId>
-            <artifactId>scala-compiler</artifactId>
-            <version>${scala.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.scala-lang</groupId>
-            <artifactId>scala-reflect</artifactId>
-            <version>${scala.version}</version>
-        </dependency>
 
         <dependency>
             <groupId>net.adamcin.oakpal</groupId>
@@ -250,7 +193,7 @@
         <dependency>
             <groupId>org.apache.maven.plugin-tools</groupId>
             <artifactId>maven-plugin-annotations</artifactId>
-            <version>3.4</version>
+            <version>3.5</version>
             <scope>provided</scope>
         </dependency>
         <dependency>

@@ -12,14 +12,13 @@
     &lt;plugin&gt;
         &lt;groupId&gt;net.adamcin.oakpal&lt;/groupId&gt;
         &lt;artifactId&gt;oakpal-maven-plugin&lt;/artifactId&gt;
-        &lt;version&gt;0.1.0&lt;/version&gt;
+        &lt;version&gt;0.2.0&lt;/version&gt;
         &lt;configuration&gt;
         &lt;/configuration&gt;
         &lt;executions&gt;
             &lt;execution&gt;
                 &lt;goals&gt;
                     &lt;goal&gt;scan&lt;/goal&gt;
-                    &lt;goal&gt;verify&lt;/goal&gt;
                 &lt;/goals&gt;
             &lt;/execution&gt;
         &lt;/executions&gt;
@@ -88,7 +87,7 @@
     &lt;plugin&gt;
         &lt;groupId&gt;net.adamcin.oakpal&lt;/groupId&gt;
         &lt;artifactId&gt;oakpal-maven-plugin&lt;/artifactId&gt;
-        &lt;version&gt;0.1.0&lt;/version&gt;
+        &lt;version&gt;0.2.0&lt;/version&gt;
         &lt;configuration&gt;
             &lt;cndFiles&gt;
                 &lt;cndFile&gt;src/test/resources/[your-cnd-filename]&lt;/cndFile&gt;
@@ -98,7 +97,6 @@
             &lt;execution&gt;
                 &lt;goals&gt;
                     &lt;goal&gt;scan&lt;/goal&gt;
-                    &lt;goal&gt;verify&lt;/goal&gt;
                 &lt;/goals&gt;
             &lt;/execution&gt;
         &lt;/executions&gt;

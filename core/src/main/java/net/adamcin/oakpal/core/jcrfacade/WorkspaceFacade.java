@@ -30,9 +30,9 @@ import javax.jcr.version.Version;
 import javax.jcr.version.VersionManager;
 
 import net.adamcin.oakpal.core.ListenerReadOnlyException;
+import net.adamcin.oakpal.core.jcrfacade.lock.LockManagerFacade;
 import net.adamcin.oakpal.core.jcrfacade.nodetype.NodeTypeManagerFacade;
 import net.adamcin.oakpal.core.jcrfacade.observation.ObservationManagerFacade;
-import net.adamcin.oakpal.core.jcrfacade.lock.LockManagerFacade;
 import net.adamcin.oakpal.core.jcrfacade.query.QueryManagerFacade;
 import net.adamcin.oakpal.core.jcrfacade.version.VersionManagerFacade;
 import org.xml.sax.ContentHandler;

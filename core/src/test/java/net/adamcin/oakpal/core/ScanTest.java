@@ -49,7 +49,7 @@ public class ScanTest {
             protected void execute() throws Exception {
                 File package10 = TestPackageUtil.prepareTestPackage("package_1.0.zip");
 
-                PackageListener listener = new DefaultPackageListener() {
+                PackageListener listener = new PackageListener() {
 
                     @Override
                     public void beforeExtract(PackageId packageId, PackageProperties packageProperties, MetaInf metaInf, List<PackageId> subpackages) {
@@ -61,7 +61,7 @@ public class ScanTest {
                     }
                 };
 
-                new PackageScanner.Builder().withPackageListeners(listener).build().scanPackages(package10);
+                new PackageScanner.Builder().withPackageListener(listener).build().scanPackage(package10);
             }
         });
     }
@@ -76,7 +76,7 @@ public class ScanTest {
                 final List<String> importedPaths = new ArrayList<>();
                 final List<String> queriedPaths = new ArrayList<>();
 
-                PackageListener handler = new DefaultPackageListener() {
+                PackageListener handler = new PackageListener() {
 
                     @Override
                     public void importedPath(PackageId packageId, String path, Node node) throws RepositoryException {
@@ -99,7 +99,7 @@ public class ScanTest {
                     }
                 };
 
-                new PackageScanner.Builder().withPackageListeners(handler).build().scanPackages(fullcoverage);
+                new PackageScanner.Builder().withPackageListener(handler).build().scanPackage(fullcoverage);
             }
         });
     }
@@ -111,11 +111,11 @@ public class ScanTest {
             protected void execute() throws Exception {
                 File fullcoverage = TestPackageUtil.prepareTestPackage("fullcoverage.zip");
 
-                PackageListener handler = ScriptPackageListener.createScriptHandler("nashorn",
+                PackageListener handler = ScriptPackageListener.createScriptListener("nashorn",
                         getClass().getResource("/simpleHandler.js"));
 
-                new PackageScanner.Builder().withPackageListeners(handler)
-                        .build().scanPackages(fullcoverage).stream()
+                new PackageScanner.Builder().withPackageListener(handler)
+                        .build().scanPackage(fullcoverage).stream()
                         .flatMap(r -> r.getViolations().stream())
                         .forEach(violation -> LOGGER.info("[{} violation] {}", violation.getSeverity(), violation.getDescription()));
             }

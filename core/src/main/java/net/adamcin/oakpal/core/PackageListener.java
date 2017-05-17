@@ -36,12 +36,14 @@ public interface PackageListener extends ScanListener {
     /**
      * Called after the package is uploaded to the package manager at the beginning of the scan. Track subsequent
      * events using the package ID provided to this method. This method will only be called once for each package
-     * provided to {@link PackageScanner#scanPackages(File...)}.
+     * provided to {@link PackageScanner#scanPackage(File...)}.
      *
      * @param packageId the package ID of the newly opened package
      * @param file      the package file that will be opened
      */
-    void identifyPackage(PackageId packageId, File file);
+    default void identifyPackage(PackageId packageId, File file) {
+
+    }
 
     /**
      * Called after each subpackage is opened. Track subsequent events using the package ID provided to this method.
@@ -49,7 +51,9 @@ public interface PackageListener extends ScanListener {
      * @param packageId the package ID of the newly opened subpackage
      * @param parentId  the package ID of the parent package.
      */
-    void identifySubpackage(PackageId packageId, PackageId parentId);
+    default void identifySubpackage(PackageId packageId, PackageId parentId) {
+
+    }
 
     /**
      * Called for each package before it is extracted.
@@ -59,8 +63,10 @@ public interface PackageListener extends ScanListener {
      * @param metaInf           the package meta information
      * @param subpackages       extracted subpackages
      */
-    void beforeExtract(PackageId packageId, PackageProperties packageProperties,
-                       MetaInf metaInf, List<PackageId> subpackages);
+    default void beforeExtract(PackageId packageId, PackageProperties packageProperties,
+                       MetaInf metaInf, List<PackageId> subpackages) {
+
+    }
 
     /**
      * Notified when package importer adds, modifies, or leaves a node untouched.
@@ -70,7 +76,9 @@ public interface PackageListener extends ScanListener {
      * @param node      the imported node
      * @throws RepositoryException for obvious reasons
      */
-    void importedPath(PackageId packageId, String path, Node node) throws RepositoryException;
+    default void importedPath(PackageId packageId, String path, Node node) throws RepositoryException {
+
+    }
 
     /**
      * Notified when package importer deletes an existing node.
@@ -78,7 +86,9 @@ public interface PackageListener extends ScanListener {
      * @param packageId the current package
      * @param path      deleted path
      */
-    void deletedPath(PackageId packageId, String path);
+    default void deletedPath(PackageId packageId, String path) {
+
+    }
 
     /**
      * Provides an opportunity to inspect repository state between packages.
@@ -87,6 +97,7 @@ public interface PackageListener extends ScanListener {
      * @param inspectSession session providing access to repository state
      * @throws RepositoryException for obvious reasons
      */
-    void afterExtract(PackageId packageId, Session inspectSession) throws RepositoryException;
+    default void afterExtract(PackageId packageId, Session inspectSession) throws RepositoryException {
 
+    }
 }

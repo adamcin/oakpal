@@ -16,23 +16,27 @@
 
 package net.adamcin.oakpal.core;
 
+import java.io.File;
+import java.util.Optional;
+
 /**
- * Defines listener notifications for beginning and end of scan common to {@link ErrorListener} and
- * {@link PackageListener}.
+ * Represents an error that causes a package scan to abort without notifying the {@link ErrorListener}.
  */
-public interface ScanListener {
+public class AbortedScanException extends Exception {
 
-    /**
-     * Called once at the beginning of the scan to notify for re-initialization of listener state.
-     */
-    default void startedScan() {
+    private final Optional<File> currentPackageFile;
 
+    public AbortedScanException(Throwable cause, File currentPackageFile) {
+        super(cause);
+        this.currentPackageFile = Optional.ofNullable(currentPackageFile);
     }
 
-    /**
-     * Called once at the end of the scan to notify for cleanup of resources.
-     */
-    default void finishedScan() {
+    public AbortedScanException(Throwable cause) {
+        super(cause);
+        this.currentPackageFile = Optional.empty();
+    }
 
+    public Optional<File> getCurrentPackageFile() {
+        return currentPackageFile;
     }
 }

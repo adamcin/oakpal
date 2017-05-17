@@ -49,6 +49,7 @@
         <url>https://github.com/adamcin/${project.groupId}</url>
         <developerConnection>scm:git:git@github.com:adamcin/${project.groupId}.git</developerConnection>
         <connection>scm:git://github.com/adamcin/${project.groupId}.git</connection>
+        <tag>HEAD</tag>
   </scm>
 
     <modules>

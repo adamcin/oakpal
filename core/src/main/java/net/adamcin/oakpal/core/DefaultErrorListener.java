@@ -16,44 +16,29 @@
 
 package net.adamcin.oakpal.core;
 
-import java.io.File;
-
 import javax.jcr.PathNotFoundException;
 
 import org.apache.jackrabbit.vault.packaging.PackageId;
 
 /**
- * Default implementation.
+ * Default implementation which reports all exceptions as violations.
  */
 public class DefaultErrorListener extends AbstractViolationReporter implements ErrorListener {
 
     @Override
-    public void startedScan() {
-
-    }
-
-    @Override
-    public void finishedScan() {
-
-    }
-
-    @Override
     public void onListenerException(Exception e, PackageListener listener, PackageId packageId) {
-        e.printStackTrace(System.err);
-    }
-
-    @Override
-    public void onPackageException(Exception e, File file) {
-
-        e.printStackTrace(System.err);
-    }
-
-    @Override
-    public void onPackageException(Exception e, PackageId packageId) {
         reportViolation(
                 new SimpleViolation(Violation.Severity.MAJOR,
-                        String.format("Package error: %s \"%s\"", e.getClass().getName(), e.getMessage()),
-                        packageId));
+                        String.format("Listener error (%s): %s \"%s\"",
+                                listener.getClass().getName(), e.getClass().getName(), e.getMessage()), packageId));
+    }
+
+    @Override
+    public void onSubpackageException(Exception e, PackageId packageId) {
+        reportViolation(
+                new SimpleViolation(Violation.Severity.MAJOR,
+                        String.format("Package error: %s \"%s\"",
+                                e.getClass().getName(), e.getMessage()), packageId));
     }
 
     @Override
@@ -73,11 +58,6 @@ public class DefaultErrorListener extends AbstractViolationReporter implements E
                 new SimpleViolation(Violation.Severity.MAJOR,
                         String.format("%s - Listener error: %s \"%s\"", path, e.getClass().getName(), e.getMessage()),
                         packageId));
-    }
-
-    @Override
-    public void onFatalError(Throwable e) {
-        e.printStackTrace(System.err);
     }
 
 }

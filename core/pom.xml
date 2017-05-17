@@ -48,7 +48,7 @@
         <url>https://github.com/adamcin/${project.groupId}</url>
         <developerConnection>scm:git:git@github.com:adamcin/${project.groupId}.git</developerConnection>
         <connection>scm:git://github.com/adamcin/${project.groupId}.git</connection>
-      <tag>oakpal-0.1.0</tag>
+        <tag>HEAD</tag>
   </scm>
 
     <properties>

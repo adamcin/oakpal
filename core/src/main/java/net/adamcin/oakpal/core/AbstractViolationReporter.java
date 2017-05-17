@@ -23,7 +23,7 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- *
+ * Base class implementing common or default methods of {@link ViolationReporter}.
  */
 public abstract class AbstractViolationReporter implements ViolationReporter {
     private final List<Violation> violations = new ArrayList<>();
@@ -35,7 +35,7 @@ public abstract class AbstractViolationReporter implements ViolationReporter {
     @Override
     public URL getReporterUrl() {
         Class<?> clazz = getClass();
-        return clazz.getResource(clazz.getName() + ".class");
+        return clazz.getResource(clazz.getSimpleName() + ".class");
     }
 
     @Override
