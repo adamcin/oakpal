@@ -37,7 +37,7 @@
 
     <groupId>net.adamcin.oakpal</groupId>
     <artifactId>oakpal</artifactId>
-    <version>0.2.0-SNAPSHOT</version>
+    <version>0.2.0</version>
     <packaging>pom</packaging>
 
     <inceptionYear>2017</inceptionYear>
@@ -49,7 +49,7 @@
         <url>https://github.com/adamcin/${project.groupId}</url>
         <developerConnection>scm:git:git@github.com:adamcin/${project.groupId}.git</developerConnection>
         <connection>scm:git://github.com/adamcin/${project.groupId}.git</connection>
-        <tag>HEAD</tag>
+        <tag>oakpal-0.2.0</tag>
   </scm>
 
     <modules>
@@ -257,7 +257,7 @@
             <dependency>
                 <groupId>net.adamcin.oakpal</groupId>
                 <artifactId>oakpal-core</artifactId>
-                <version>0.2.0-SNAPSHOT</version>
+                <version>0.2.0</version>
             </dependency>
             <dependency>
                 <groupId>javax.jcr</groupId>
