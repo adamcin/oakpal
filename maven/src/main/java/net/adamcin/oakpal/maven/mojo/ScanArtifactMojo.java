@@ -30,9 +30,11 @@ import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 
 /**
-  * Scans the main project artifact by simulating package installation and listening for violations reported by the
-  * configured {@code scriptReporters}.
-  */
+ * Scans the main project artifact by simulating package installation and listening for violations reported by the
+ * configured {@code scriptReporters}.
+ *
+ * @since 0.1.0
+ */
 @Mojo(name = "scan",
   defaultPhase = LifecyclePhase.INTEGRATION_TEST)
 public class ScanArtifactMojo extends AbstractScanMojo {
@@ -53,39 +55,19 @@ public class ScanArtifactMojo extends AbstractScanMojo {
         Optional<File> packageArtifact = getProject()
                 .flatMap(p -> Optional.ofNullable(p.getArtifact()))
                 .flatMap(a -> Optional.ofNullable(a.getFile()));
-        if (packageArtifact.isPresent()) {
+        if (packageArtifact.isPresent() && packageArtifact.get().exists()) {
             try {
-                String errorMessage = String.format("** Violations were reported at or above severity: %s **", failOnSeverity);
+
                 List<ViolationReport> reports = getBuilder().build().scanPackage(packageArtifact.get());
-                List<ViolationReport> nonEmptyReports = reports.stream()
-                        .filter(r -> !r.getViolations().isEmpty())
-                        .collect(Collectors.toList());
-                boolean shouldFail = nonEmptyReports.stream().anyMatch(r -> !r.getViolations(failOnSeverity).isEmpty());
-
-                nonEmptyReports.forEach(r -> {
-                    getLog().info("");
-                    getLog().info(String.format(" OakPAL Reporter: %s", String.valueOf(r.getReporterUrl())));
-                    r.getViolations().forEach(v -> {
-                        String violLog = String.format("  +- <%s> %s", v.getSeverity(), v.getDescription());
-                        if (v.getSeverity().isLessSevereThan(failOnSeverity)) {
-                            getLog().info(" " + violLog);
-                        } else {
-                            getLog().error(violLog);
-                        }
-                    });
-                });
-
-                if (shouldFail) {
-                    getLog().error("");
-                    getLog().error(errorMessage);
-                    throw new MojoFailureException(errorMessage);
-                }
+                reactToReports(reports, false);
 
             } catch (AbortedScanException e) {
                 String currentFilePath = e.getCurrentPackageFile()
                         .map(f -> "Failed package: " + f.getAbsolutePath()).orElse("");
                 throw new MojoExecutionException("Failed to execute package scan. " + currentFilePath, e);
             }
+        } else {
+            throw new MojoExecutionException("Failed to resolve file for project artifact.");
         }
     }
 }

@@ -18,19 +18,25 @@ package net.adamcin.oakpal.maven.mojo;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import net.adamcin.oakpal.core.PackageListener;
 import net.adamcin.oakpal.core.PackageScanner;
 import net.adamcin.oakpal.core.ScriptPackageListener;
 import net.adamcin.oakpal.core.Violation;
+import net.adamcin.oakpal.core.ViolationReport;
+import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.artifact.repository.DefaultRepositoryRequest;
 import org.apache.maven.artifact.repository.RepositoryRequest;
 import org.apache.maven.artifact.resolver.ArtifactResolutionRequest;
 import org.apache.maven.model.Dependency;
+import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.repository.RepositorySystem;
@@ -186,7 +192,7 @@ abstract class AbstractScanMojo extends AbstractMojo {
     @Parameter(defaultValue = "MAJOR")
     protected Violation.Severity failOnSeverity = Violation.Severity.MAJOR;
 
-    private Artifact depToArtifact(Dependency dependency, RepositoryRequest baseRequest) {
+    protected Artifact depToArtifact(Dependency dependency, RepositoryRequest baseRequest) {
         Artifact artifact = repositorySystem.createDependencyArtifact(dependency);
         ArtifactResolutionRequest request = new ArtifactResolutionRequest(baseRequest);
         request.setArtifact(artifact);
@@ -194,7 +200,38 @@ abstract class AbstractScanMojo extends AbstractMojo {
         return artifact;
     }
 
-    protected PackageScanner.Builder getBuilder() {
+    protected void reactToReports(List<ViolationReport> reports, boolean logPackageId) throws MojoFailureException {
+        String errorMessage = String.format("** Violations were reported at or above severity: %s **", failOnSeverity);
+
+        List<ViolationReport> nonEmptyReports = reports.stream()
+                .filter(r -> !r.getViolations().isEmpty())
+                .collect(Collectors.toList());
+        boolean shouldFail = nonEmptyReports.stream().anyMatch(r -> !r.getViolations(failOnSeverity).isEmpty());
+
+        nonEmptyReports.forEach(r -> {
+            getLog().info("");
+            getLog().info(String.format(" OakPAL Reporter: %s", String.valueOf(r.getReporterUrl())));
+            r.getViolations().forEach(v -> {
+                Set<PackageId> packageIds = new LinkedHashSet<>(v.getPackages());
+                String violLog = logPackageId && !packageIds.isEmpty()
+                        ? String.format("  +- <%s> %s %s", v.getSeverity(), v.getDescription(), packageIds)
+                        : String.format("  +- <%s> %s", v.getSeverity(), v.getDescription());
+                if (v.getSeverity().isLessSevereThan(failOnSeverity)) {
+                    getLog().info(" " + violLog);
+                } else {
+                    getLog().error(violLog);
+                }
+            });
+        });
+
+        if (shouldFail) {
+            getLog().error("");
+            getLog().error(errorMessage);
+            throw new MojoFailureException(errorMessage);
+        }
+    }
+
+    protected PackageScanner.Builder getBuilder() throws MojoExecutionException {
 
         final List<PackageListener> listeners = new ArrayList<>();
 
@@ -216,12 +253,24 @@ abstract class AbstractScanMojo extends AbstractMojo {
         if (preInstallArtifacts != null && !preInstallArtifacts.isEmpty()) {
             RepositoryRequest baseRequest = DefaultRepositoryRequest.getRepositoryRequest(session, project);
 
-            List<File> preInstallResolved = preInstallArtifacts.stream()
-                    .map(d -> depToArtifact(d, baseRequest))
-                    .map(a -> Optional.ofNullable(a.getFile()))
-                    .filter(Optional::isPresent)
-                    .map(Optional::get)
-                    .filter(File::exists).collect(Collectors.toList());
+            List<Artifact> preResolved = preInstallArtifacts.stream()
+                    .map(d -> depToArtifact(d, baseRequest)).collect(Collectors.toList());
+
+            Optional<Artifact> unresolvedArtifact = preResolved.stream()
+                    .filter(a -> a.getFile() == null || !a.getFile().exists())
+                    .findFirst();
+
+            if (unresolvedArtifact.isPresent()) {
+                Artifact a = unresolvedArtifact.get();
+                throw new MojoExecutionException(String.format("Failed to resolve file for artifact: %s:%s:%s",
+                        a.getGroupId(), a.getArtifactId(), a.getVersion()));
+            }
+
+            List<File> preInstallResolved = preResolved.stream()
+                    .map(Artifact::getFile)
+                    .filter(File::exists)
+                    .collect(Collectors.toList());
+
             preInstall.addAll(preInstallResolved);
         }
 
