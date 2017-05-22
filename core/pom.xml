@@ -32,7 +32,7 @@
 	<parent>
         <groupId>net.adamcin.oakpal</groupId>
         <artifactId>oakpal</artifactId>
-        <version>0.3.0-SNAPSHOT</version>
+        <version>0.3.0</version>
         <relativePath>..</relativePath>
     </parent>
 
@@ -48,7 +48,7 @@
         <url>https://github.com/adamcin/${project.groupId}</url>
         <developerConnection>scm:git:git@github.com:adamcin/${project.groupId}.git</developerConnection>
         <connection>scm:git://github.com/adamcin/${project.groupId}.git</connection>
-        <tag>HEAD</tag>
+        <tag>oakpal-0.3.0</tag>
   </scm>
 
     <properties>
