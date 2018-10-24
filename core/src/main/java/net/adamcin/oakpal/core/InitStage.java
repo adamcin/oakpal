@@ -36,6 +36,9 @@ import org.apache.jackrabbit.api.JackrabbitWorkspace;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.commons.JcrUtils;
 
+/**
+ * Encapsulation of JCR initialization parameters for multistage inits.
+ */
 public final class InitStage {
 
     private final List<URL> unorderedCndUrls;
@@ -163,8 +166,10 @@ public final class InitStage {
         }
 
         /**
-         * @param forcedRoots
-         * @return
+         * Force the creation of the described root path prior to the scan.
+         *
+         * @param forcedRoots the described root path
+         * @return my builder self
          */
         public Builder withForcedRoots(List<ForcedRoot> forcedRoots) {
             if (forcedRoots != null) {

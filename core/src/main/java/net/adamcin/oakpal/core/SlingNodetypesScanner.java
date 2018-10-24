@@ -46,6 +46,7 @@ public final class SlingNodetypesScanner {
      * is not deterministic and may not be correct according to the dependencies between the node type definitions.
      *
      * @return List of node type definition class paths
+     * @throws IOException for I/O Errors
      */
     public static List<URL> findNodeTypeDefinitions() throws IOException {
         return findNodeTypeDefinitions(SlingNodetypesScanner.class.getClassLoader());
@@ -57,7 +58,9 @@ public final class SlingNodetypesScanner {
      * The order of the paths from each entry is preserved, but the overall order when multiple bundles define such an entry
      * is not deterministic and may not be correct according to the dependencies between the node type definitions.
      *
+     * @param classLoader classloader to scan
      * @return List of node type definition class paths
+     * @throws IOException for I/O Errors
      */
     public static List<URL> findNodeTypeDefinitions(final ClassLoader classLoader) throws IOException {
         List<String> resourceNames = new ArrayList<>();
@@ -79,7 +82,9 @@ public final class SlingNodetypesScanner {
      * The order of the paths from each entry is preserved, but the overall order when multiple bundles define such an entry
      * is not deterministic and may not be correct according to the dependencies between the node type definitions.
      *
+     * @param zipFiles list of files representing classpath elements like jars and directories
      * @return List of node type definition class paths
+     * @throws IOException for I/O Errors
      */
     public static List<URL> findNodeTypeDefinitions(final List<File> zipFiles) throws IOException {
         List<String> resourceNames = new ArrayList<>();

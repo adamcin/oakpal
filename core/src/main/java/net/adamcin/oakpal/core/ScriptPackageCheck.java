@@ -42,8 +42,9 @@ import org.apache.jackrabbit.vault.packaging.PackageProperties;
 /**
  * The {@link ScriptPackageCheck} uses the {@link Invocable} interface from JSR223 to listen for scan events and optionally
  * report check violations.
- * <p/>
+ * <p>
  * You may implement only the methods you need to enforce your package check rules.
+ * </p>
  * <dl>
  *     <dt>getCheckName()</dt>
  *     <dd>{@link PackageCheck#getCheckName()}</dd>
@@ -64,8 +65,9 @@ import org.apache.jackrabbit.vault.packaging.PackageProperties;
  *     <dt>finishedScan()</dt>
  *     <dd>{@link PackageCheck#finishedScan()}</dd>
  * </dl>
- * <p/>
+ * <p>
  * To report package violations, a {@link ScriptHelper} is bound to the global variable "oakpal".
+ * </p>
  *
  */
 @ProviderType
