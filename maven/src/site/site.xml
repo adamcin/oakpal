@@ -57,7 +57,7 @@
             <item name="Introduction" href="index.html" />
             <item name="Goals" href="plugin-info.html" />
             <item name="Usage" href="usage.html" />
-            <item name="Writing a Script Reporter" href="writing-a-script-reporter.html" />
+            <item name="Writing a Script Check" href="writing-a-script-check.html" />
             <item name="JavaDocs" href="apidocs/index.html" />
         </menu>
         <!--

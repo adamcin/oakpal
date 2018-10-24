@@ -17,6 +17,7 @@
 package net.adamcin.oakpal.core;
 
 import java.io.File;
+import java.util.Collection;
 import java.util.List;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
@@ -31,7 +32,16 @@ import org.apache.jackrabbit.vault.packaging.PackageProperties;
  * Primary point of customization for the OakPAL framework.
  */
 @ConsumerType
-public interface PackageListener extends ScanListener {
+public interface PackageCheck extends ScanListener, ViolationReporter {
+
+    /**
+     * Return an optional label for displaying reports made by this reporter.
+     *
+     * @return an optional display label for this reporter.
+     */
+    default String getCheckName() {
+        return getClass().getSimpleName();
+    }
 
     /**
      * Called after the package is uploaded to the package manager at the beginning of the scan. Track subsequent
@@ -64,7 +74,7 @@ public interface PackageListener extends ScanListener {
      * @param subpackages       extracted subpackages
      */
     default void beforeExtract(PackageId packageId, PackageProperties packageProperties,
-                       MetaInf metaInf, List<PackageId> subpackages) {
+                               MetaInf metaInf, List<PackageId> subpackages) {
 
     }
 

@@ -71,29 +71,9 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-dependency-plugin</artifactId>
-                <version>3.0.0</version>
                 <executions>
                     <execution>
-                        <id>unpack</id>
-                        <phase>generate-test-resources</phase>
-                        <goals>
-                            <goal>unpack</goal>
-                        </goals>
-                        <configuration>
-                            <artifactItems>
-                                <artifactItem>
-                                    <groupId>org.apache.jackrabbit.vault</groupId>
-                                    <artifactId>jackrabbit-filevault</artifactId>
-                                    <version>${vault.version}</version>
-                                    <classifier>src</classifier>
-                                    <type>zip</type>
-                                    <overWrite>true</overWrite>
-                                    <destFileName>test-packages</destFileName>
-                                    <outputDirectory>${project.build.testOutputDirectory}</outputDirectory>
-                                    <includes>*/vault-core/src/test/resources/org/apache/jackrabbit/vault/packaging/integration/testpackages/*</includes>
-                                </artifactItem>
-                            </artifactItems>
-                        </configuration>
+                        <id>unpack-test-packages</id>
                     </execution>
                 </executions>
             </plugin>
@@ -130,10 +110,10 @@
             <groupId>org.apache.jackrabbit.vault</groupId>
             <artifactId>org.apache.jackrabbit.vault</artifactId>
         </dependency>
+
         <dependency>
             <groupId>org.json</groupId>
             <artifactId>json</artifactId>
-            <version>20160807</version>
         </dependency>
 
         <dependency>
@@ -169,6 +149,11 @@
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>net.adamcin.oakpal</groupId>
+            <artifactId>oakpal-testing</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>

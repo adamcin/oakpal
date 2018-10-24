@@ -16,27 +16,27 @@
 
 package net.adamcin.oakpal.core;
 
-import java.net.URL;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
- * Simple POJO implementing a {@link ViolationReport}, used for deserialization.
+ * Simple POJO implementing a {@link CheckReport}, used for deserialization.
  */
-public class SimpleViolationReport implements ViolationReport {
+public class SimpleReport implements CheckReport {
 
-    private final URL reporterUrl;
+    private final String checkName;
     private final Collection<Violation> violations;
 
-    public SimpleViolationReport(URL reporterUrl, Collection<Violation> violations) {
-        this.reporterUrl = reporterUrl;
+    public SimpleReport(final String checkName, Collection<Violation> violations) {
+        this.checkName = checkName;
         this.violations = Collections.unmodifiableCollection(violations);
     }
 
     @Override
-    public URL getReporterUrl() {
-        return reporterUrl;
+    public String getCheckName() {
+        return this.checkName;
     }
 
     @Override
@@ -44,9 +44,17 @@ public class SimpleViolationReport implements ViolationReport {
         return violations;
     }
 
-    public static SimpleViolationReport generateReport(ViolationReporter reporter) {
-        return new SimpleViolationReport(reporter.getReporterUrl(),
-                reporter.reportViolations().stream()
+    public static SimpleReport generateReport(final PackageCheck reporter) {
+        return new SimpleReport(Optional.ofNullable(reporter.getCheckName())
+                .orElse(reporter.getClass().getSimpleName()),
+                reporter.getReportedViolations().stream()
+                        .map(SimpleViolation::fromReported)
+                        .collect(Collectors.toList()));
+    }
+
+    public static SimpleReport generateReport(final ErrorListener reporter) {
+        return new SimpleReport(reporter.getClass().getSimpleName(),
+                reporter.getReportedViolations().stream()
                         .map(SimpleViolation::fromReported)
                         .collect(Collectors.toList()));
     }

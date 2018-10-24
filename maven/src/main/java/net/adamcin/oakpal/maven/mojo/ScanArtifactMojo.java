@@ -19,15 +19,15 @@ package net.adamcin.oakpal.maven.mojo;
 import java.io.File;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 import net.adamcin.oakpal.core.AbortedScanException;
-import net.adamcin.oakpal.core.ViolationReport;
+import net.adamcin.oakpal.core.CheckReport;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
+import org.apache.maven.plugins.annotations.ResolutionScope;
 
 /**
  * Scans the main project artifact by simulating package installation and listening for violations reported by the
@@ -35,7 +35,7 @@ import org.apache.maven.plugins.annotations.Parameter;
  *
  * @since 0.1.0
  */
-@Mojo(name = "scan",
+@Mojo(name = "scan", requiresDependencyResolution = ResolutionScope.TEST,
   defaultPhase = LifecyclePhase.INTEGRATION_TEST)
 public class ScanArtifactMojo extends AbstractScanMojo {
 
@@ -58,7 +58,7 @@ public class ScanArtifactMojo extends AbstractScanMojo {
         if (packageArtifact.isPresent() && packageArtifact.get().exists()) {
             try {
 
-                List<ViolationReport> reports = getBuilder().build().scanPackage(packageArtifact.get());
+                List<CheckReport> reports = getBuilder().build().scanPackage(packageArtifact.get());
                 reactToReports(reports, false);
 
             } catch (AbortedScanException e) {

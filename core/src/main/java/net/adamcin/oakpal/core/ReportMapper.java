@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Mark Adamcin
+ * Copyright 2018 Mark Adamcin
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -46,25 +46,25 @@ import org.json.JSONTokener;
 /**
  * Serialize violations to/from json.
  */
-public final class JsonUtil {
+public final class ReportMapper {
     public static final String KEY_REPORTS = "reports";
-    public static final String KEY_REPORTER_URL = "reporterUrl";
+    public static final String KEY_CHECK_NAME = "reporterUrl";
     public static final String KEY_VIOLATIONS = "violations";
     public static final String KEY_DESCRIPTION = "description";
     public static final String KEY_SEVERITY = "severity";
     public static final String KEY_PACKAGES = "packages";
 
-    private JsonUtil() {
+    private ReportMapper() {
         throw new RuntimeException("No instantiation");
     }
 
-    public static List<ViolationReport> readFromFile(File jsonFile)
+    public static List<CheckReport> readReportsFromFile(File jsonFile)
             throws IOException, JSONException {
 
         InputStream is = null;
         try {
             is = new FileInputStream(jsonFile);
-            return readFromStream(is);
+            return readReportsFromStream(is);
         } finally {
             if (is != null) {
                 is.close();
@@ -72,17 +72,17 @@ public final class JsonUtil {
         }
     }
 
-    public static List<ViolationReport> readFromStream(InputStream inputStream) throws IOException, JSONException {
+    public static List<CheckReport> readReportsFromStream(InputStream inputStream) throws IOException, JSONException {
         Reader reader = new InputStreamReader(inputStream, "UTF-8");
 
-        return readFromReader(reader);
+        return readReportsFromReader(reader);
     }
 
-    public static List<ViolationReport> readFromReader(Reader reader) throws IOException, JSONException {
+    public static List<CheckReport> readReportsFromReader(Reader reader) throws IOException, JSONException {
         JSONTokener tokener = new JSONTokener(reader);
         JSONObject json = new JSONObject(tokener);
 
-        List<ViolationReport> reports = new ArrayList<>();
+        List<CheckReport> reports = new ArrayList<>();
         JSONArray jsonReports = json.optJSONArray(KEY_REPORTS);
 
         if (jsonReports != null) {
@@ -95,16 +95,8 @@ public final class JsonUtil {
         return Collections.unmodifiableList(reports);
     }
 
-    private static ViolationReport reportFromJSON(JSONObject jsonReport) {
-        String vReporterUrl = jsonReport.optString(KEY_REPORTER_URL);
-        URL reporterUrl = null;
-        if (vReporterUrl != null) {
-            try {
-                reporterUrl = new URL(vReporterUrl);
-            } catch (MalformedURLException ignored) {
-            }
-        }
-
+    private static CheckReport reportFromJSON(JSONObject jsonReport) {
+        String vCheckName = jsonReport.optString(KEY_CHECK_NAME);
         List<Violation> violations = new ArrayList<>();
         JSONArray vViolations = jsonReport.optJSONArray(KEY_VIOLATIONS);
         if (vViolations != null) {
@@ -114,7 +106,7 @@ public final class JsonUtil {
                     .collect(Collectors.toList());
         }
 
-        return new SimpleViolationReport(reporterUrl, violations);
+        return new SimpleReport(vCheckName, violations);
     }
 
     private static Violation violationFromJSON(JSONObject jsonViolation) {
@@ -134,11 +126,11 @@ public final class JsonUtil {
         return new SimpleViolation(severity, description, packages);
     }
 
-    public static void writeToFile(Collection<ViolationReport> reports, File outputFile) throws IOException, JSONException {
+    public static void writeReportsToFile(Collection<CheckReport> reports, File outputFile) throws IOException, JSONException {
         OutputStream os = null;
         try {
             os = new FileOutputStream(outputFile);
-            writeToStream(reports, os);
+            writeReportsToStream(reports, os);
         } finally {
             if (os != null) {
                 os.close();
@@ -146,12 +138,12 @@ public final class JsonUtil {
         }
     }
 
-    public static void writeToStream(Collection<ViolationReport> reports, OutputStream outputStream) throws IOException, JSONException {
+    public static void writeReportsToStream(Collection<CheckReport> reports, OutputStream outputStream) throws IOException, JSONException {
         Writer writer = new OutputStreamWriter(outputStream, "UTF-8");
-        writeToWriter(reports, writer);
+        writeReportsToWriter(reports, writer);
     }
 
-    public static void writeToWriter(Collection<ViolationReport> reports, Writer writer) throws IOException, JSONException {
+    public static void writeReportsToWriter(Collection<CheckReport> reports, Writer writer) throws IOException, JSONException {
         JSONArray jsonReports = reportsToJSON(reports);
         JSONObject rootObj = new JSONObject();
         rootObj.put(KEY_REPORTS, jsonReports);
@@ -159,21 +151,21 @@ public final class JsonUtil {
         writer.flush();
     }
 
-    public static JSONArray reportsToJSON(Collection<ViolationReport> reports) throws JSONException {
+    public static JSONArray reportsToJSON(Collection<CheckReport> reports) throws JSONException {
         return new JSONArray(reports.stream()
-                .map(JsonUtil::reportToJSON)
+                .map(ReportMapper::reportToJSON)
                 .collect(Collectors.toList()));
     }
 
-    private static JSONObject reportToJSON(ViolationReport report) throws JSONException {
+    private static JSONObject reportToJSON(CheckReport report) throws JSONException {
         JSONObject jsonReport = new JSONObject();
-        if (report.getReporterUrl() != null) {
-            jsonReport.put(KEY_REPORTER_URL, report.getReporterUrl().toExternalForm());
+        if (report.getCheckName() != null) {
+            jsonReport.put(KEY_CHECK_NAME, report.getCheckName());
         }
 
         if (report.getViolations() != null) {
             JSONArray jsonViolations = new JSONArray(report.getViolations().stream()
-                    .map(JsonUtil::violationToJSON)
+                    .map(ReportMapper::violationToJSON)
                     .collect(Collectors.toList()));
             jsonReport.put(KEY_VIOLATIONS, jsonViolations);
         }

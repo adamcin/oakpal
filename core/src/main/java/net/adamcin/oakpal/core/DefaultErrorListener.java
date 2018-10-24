@@ -16,6 +16,8 @@
 
 package net.adamcin.oakpal.core;
 
+import java.net.URL;
+import java.util.Collection;
 import javax.jcr.PathNotFoundException;
 
 import org.apache.jackrabbit.vault.packaging.PackageId;
@@ -23,10 +25,69 @@ import org.apache.jackrabbit.vault.packaging.PackageId;
 /**
  * Default implementation which reports all exceptions as violations.
  */
-public class DefaultErrorListener extends AbstractViolationReporter implements ErrorListener {
+public class DefaultErrorListener implements ErrorListener {
+
+    private final ReportCollector collector = new ReportCollector();
+
+    protected void reportViolation(final Violation violation) {
+        this.collector.reportViolation(violation);
+    }
 
     @Override
-    public void onListenerException(Exception e, PackageListener listener, PackageId packageId) {
+    public Collection<Violation> getReportedViolations() {
+        return collector.getReportedViolations();
+    }
+
+    @Override
+    public void onNodeTypeRegistrationError(final Throwable e, final URL resource) {
+        if (e.getCause() != null) {
+            onNodeTypeRegistrationError(e.getCause(), resource);
+        } else {
+            reportViolation(
+                    new SimpleViolation(Violation.Severity.MAJOR,
+                            String.format("NodeType registration error (%s): %s \"%s\"",
+                                    resource.toString(), e.getClass().getName(), e.getMessage())));
+        }
+    }
+
+    @Override
+    public void onJcrNamespaceRegistrationError(final Throwable e, final String prefix, final String uri) {
+        if (e.getCause() != null) {
+            onJcrNamespaceRegistrationError(e.getCause(), prefix, uri);
+        } else {
+            reportViolation(
+                    new SimpleViolation(Violation.Severity.MAJOR,
+                            String.format("JCR namespace registration error (%s=%s): %s \"%s\"",
+                                    prefix, uri, e.getClass().getName(), e.getMessage())));
+        }
+    }
+
+    @Override
+    public void onJcrPrivilegeRegistrationError(final Throwable e, final String jcrPrivilege) {
+        if (e.getCause() != null) {
+            onJcrPrivilegeRegistrationError(e.getCause(), jcrPrivilege);
+        } else {
+            reportViolation(
+                    new SimpleViolation(Violation.Severity.MAJOR,
+                            String.format("JCR privilege registration error (%s): %s \"%s\"",
+                                    jcrPrivilege, e.getClass().getName(), e.getMessage())));
+        }
+    }
+
+    @Override
+    public void onForcedRootCreationError(final Throwable e, final ForcedRoot forcedRoot) {
+        if (e.getCause() != null) {
+            onForcedRootCreationError(e.getCause(), forcedRoot);
+        } else {
+            reportViolation(
+                    new SimpleViolation(Violation.Severity.MAJOR,
+                            String.format("Forced root creation error (%s): %s \"%s\"",
+                                    forcedRoot.getPath(), e.getClass().getName(), e.getMessage())));
+        }
+    }
+
+    @Override
+    public void onListenerException(Exception e, PackageCheck listener, PackageId packageId) {
         reportViolation(
                 new SimpleViolation(Violation.Severity.MAJOR,
                         String.format("Listener error (%s): %s \"%s\"",
@@ -53,7 +114,7 @@ public class DefaultErrorListener extends AbstractViolationReporter implements E
     }
 
     @Override
-    public void onListenerPathException(Exception e, PackageListener handler, PackageId packageId, String path) {
+    public void onListenerPathException(Exception e, PackageCheck handler, PackageId packageId, String path) {
         reportViolation(
                 new SimpleViolation(Violation.Severity.MAJOR,
                         String.format("%s - Listener error: %s \"%s\"", path, e.getClass().getName(), e.getMessage()),

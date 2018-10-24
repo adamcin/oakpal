@@ -68,7 +68,7 @@ abstract class AbstractMojo extends org.apache.maven.plugin.AbstractMojo {
 
     protected abstract boolean isIndividuallySkipped();
 
-    protected void executeGuardedIntegrationTest() throws MojoExecutionException, MojoFailureException {
+    void executeGuardedIntegrationTest() throws MojoExecutionException, MojoFailureException {
 
     }
 

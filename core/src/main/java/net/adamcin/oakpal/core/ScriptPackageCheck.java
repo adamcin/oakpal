@@ -40,10 +40,37 @@ import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.apache.jackrabbit.vault.packaging.PackageProperties;
 
 /**
- * Whoa...
+ * The {@link ScriptPackageCheck} uses the {@link Invocable} interface from JSR223 to listen for scan events and optionally
+ * report check violations.
+ * <p/>
+ * You may implement only the methods you need to enforce your package check rules.
+ * <dl>
+ *     <dt>getCheckName()</dt>
+ *     <dd>{@link PackageCheck#getCheckName()}</dd>
+ *     <dt>startedScan()</dt>
+ *     <dd>{@link PackageCheck#startedScan()}</dd>
+ *     <dt>identifyPackage(packageId, packageFile)</dt>
+ *     <dd>{@link PackageCheck#identifyPackage(PackageId, File)}</dd>
+ *     <dt>identifySubpackage(packageId, parentPackageId)</dt>
+ *     <dd>{@link PackageCheck#identifySubpackage(PackageId, PackageId)}</dd>
+ *     <dt>beforeExtract()</dt>
+ *     <dd>{@link PackageCheck#beforeExtract(PackageId, PackageProperties, MetaInf, List)}</dd>
+ *     <dt>importedPath()</dt>
+ *     <dd>{@link PackageCheck#importedPath(PackageId, String, Node)}</dd>
+ *     <dt>deletedPath()</dt>
+ *     <dd>{@link PackageCheck#deletedPath(PackageId, String)}</dd>
+ *     <dt>afterExtract()</dt>
+ *     <dd>{@link PackageCheck#afterExtract(PackageId, Session)}</dd>
+ *     <dt>finishedScan()</dt>
+ *     <dd>{@link PackageCheck#finishedScan()}</dd>
+ * </dl>
+ * <p/>
+ * To report package violations, a {@link ScriptHelper} is bound to the global variable "oakpal".
+ *
  */
 @ProviderType
-public class ScriptPackageListener implements PackageListener, ViolationReporter {
+public final class ScriptPackageCheck implements PackageCheck {
+    public static final String BINDING_SCRIPT_HELPER = "oakpal";
     public static final String INVOKE_ON_BEGIN_SCAN = "startedScan";
     public static final String INVOKE_ON_BEGIN_PACKAGE = "identifyPackage";
     public static final String INVOKE_ON_BEGIN_SUBPACKAGE = "identifySubpackage";
@@ -52,23 +79,47 @@ public class ScriptPackageListener implements PackageListener, ViolationReporter
     public static final String INVOKE_ON_DELETE_PATH = "deletedPath";
     public static final String INVOKE_ON_CLOSE = "afterExtract";
     public static final String INVOKE_ON_END_SCAN = "finishedScan";
+    public static final String INVOKE_GET_LABEL = "getCheckName";
 
     private final Invocable script;
-    private final ScriptViolationReporter reporter;
+    private final ScriptHelper helper;
+    private final URL scriptUrl;
 
-    public ScriptPackageListener(Invocable script, ScriptViolationReporter reporter) {
+    private ScriptPackageCheck(final Invocable script, final ScriptHelper helper, final URL scriptUrl) {
         this.script = script;
-        this.reporter = reporter;
+        this.helper = helper;
+        this.scriptUrl = scriptUrl;
+    }
+
+    private String getFilename() {
+        final int lastSlash = this.scriptUrl.getFile().lastIndexOf("/");
+        if (lastSlash >= 0 && this.scriptUrl.getFile().length() > lastSlash + 1) {
+            return this.scriptUrl.getFile().substring(lastSlash + 1);
+        } else {
+            return this.scriptUrl.getFile();
+        }
     }
 
     @Override
-    public URL getReporterUrl() {
-        return reporter.getReporterUrl();
+    public String getCheckName() {
+        try {
+            Object result = this.script.invokeFunction(INVOKE_GET_LABEL);
+            if (result != null) {
+                return String.valueOf(result);
+            } else {
+                return getFilename();
+            }
+        } catch (NoSuchMethodException ignored) {
+            return getFilename();
+        } catch (ScriptException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
     public void startedScan() {
         try {
+            helper.collector.clearViolations();
             this.script.invokeFunction(INVOKE_ON_BEGIN_SCAN);
         } catch (NoSuchMethodException ignored) {
         } catch (ScriptException e) {
@@ -154,56 +205,57 @@ public class ScriptPackageListener implements PackageListener, ViolationReporter
     }
 
     @Override
-    public Collection<Violation> reportViolations() {
-        return reporter.reportViolations();
+    public final Collection<Violation> getReportedViolations() {
+        return this.helper.collector.getReportedViolations();
     }
 
-    public static class ScriptViolationReporter extends AbstractViolationReporter {
-        private final URL scriptUrl;
-
-        public ScriptViolationReporter(URL scriptUrl) {
-            this.scriptUrl = scriptUrl;
-        }
-
-        @Override
-        public URL getReporterUrl() {
-            return scriptUrl;
-        }
+    public static class ScriptHelper {
+        private final ReportCollector collector = new ReportCollector();
 
         public void minorViolation(String description, PackageId... packageIds) {
-            reportViolation(new SimpleViolation(Violation.Severity.MINOR, description, packageIds));
+            collector.reportViolation(new SimpleViolation(Violation.Severity.MINOR, description, packageIds));
         }
 
         public void majorViolation(String description, PackageId... packageIds) {
-            reportViolation(new SimpleViolation(Violation.Severity.MAJOR, description, packageIds));
+            collector.reportViolation(new SimpleViolation(Violation.Severity.MAJOR, description, packageIds));
         }
 
         public void severeViolation(String description, PackageId... packageIds) {
-            reportViolation(new SimpleViolation(Violation.Severity.SEVERE, description, packageIds));
+            collector.reportViolation(new SimpleViolation(Violation.Severity.SEVERE, description, packageIds));
         }
-
     }
 
-    public static ScriptPackageListener createScriptListener(String engineName, URL scriptUrl) throws Exception {
-        ScriptViolationReporter reporter = new ScriptViolationReporter(scriptUrl);
+    public static ScriptPackageCheck createScriptListener(final URL scriptUrl) throws Exception {
+        final int lastPeriod = scriptUrl.getPath().lastIndexOf(".");
+        if (lastPeriod < 0 || lastPeriod + 1 >= scriptUrl.getPath().length()) {
+            throw new Exception("Failed to load ScriptEngine for URL missing file extension."
+                    + scriptUrl.toString());
+        }
+        final String ext = scriptUrl.getPath().substring(lastPeriod + 1);
+        ScriptEngine engine = new ScriptEngineManager().getEngineByExtension(ext);
+        if (engine == null) {
+            throw new Exception("Failed to find a ScriptEngine for URL extension: " + scriptUrl.toString());
+        }
+        return createScriptListener(engine, scriptUrl);
+    }
 
-        InputStream is = null;
+    public static ScriptPackageCheck createScriptListener(String engineName, URL scriptUrl) throws Exception {
+        ScriptEngine engine = new ScriptEngineManager().getEngineByName(engineName);
+        if (engine == null) {
+            throw new Exception("Failed to load ScriptEngine by name: " + engineName);
+        }
+        return createScriptListener(engine, scriptUrl);
+    }
 
-        try {
-            is = scriptUrl.openStream();
-
+    public static ScriptPackageCheck createScriptListener(ScriptEngine engine, URL scriptUrl) throws Exception {
+        try (InputStream is = scriptUrl.openStream()) {
             Bindings scriptBindings = new SimpleBindings();
-            scriptBindings.put("oakpal", reporter);
+            final ScriptHelper helper = new ScriptHelper();
+            scriptBindings.put(BINDING_SCRIPT_HELPER, helper);
 
-            ScriptEngine engine = new ScriptEngineManager().getEngineByName(engineName);
             engine.setBindings(scriptBindings, ScriptContext.ENGINE_SCOPE);
             engine.eval(new InputStreamReader(is, Charset.forName("UTF-8")));
-            return new ScriptPackageListener((Invocable) engine, reporter) ;
-        } finally {
-            if (is != null) {
-                is.close();
-            }
+            return new ScriptPackageCheck((Invocable) engine, helper, scriptUrl);
         }
-
     }
 }

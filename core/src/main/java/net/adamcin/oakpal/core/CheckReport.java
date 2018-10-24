@@ -16,29 +16,31 @@
 
 package net.adamcin.oakpal.core;
 
-import java.net.URL;
 import java.util.Collection;
 import java.util.stream.Collectors;
 
 /**
- * Type for collected {@link Violation}s from a particlular {@link ViolationReporter}.
+ * Type for collected {@link Violation}s from a particlular {@link PackageCheck}.
  */
-public interface ViolationReport {
+public interface CheckReport {
 
     /**
-     * The URL of the reporter.
-     * @return the URL of the reporter
+     * The serialized display name of the package check that created the report.
+     *
+     * @return the serialized display name of the reporter.
      */
-    URL getReporterUrl();
+    String getCheckName();
 
     /**
      * The reported violations.
+     *
      * @return the reported violations
      */
     Collection<Violation> getViolations();
 
     /**
      * The list of violations filtered to ignore severities less than {@code atLeastAsSevere}.
+     *
      * @param atLeastAsSevere lower bound for severity
      * @return the reported violations filtered by severity
      */

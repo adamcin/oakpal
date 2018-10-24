@@ -17,18 +17,26 @@
 package net.adamcin.oakpal.maven.mojo;
 
 import java.io.File;
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import net.adamcin.oakpal.core.PackageListener;
+import net.adamcin.oakpal.core.CheckReport;
+import net.adamcin.oakpal.core.ForcedRoot;
+import net.adamcin.oakpal.core.InitStage;
+import net.adamcin.oakpal.core.Locator;
+import net.adamcin.oakpal.core.PackageCheck;
 import net.adamcin.oakpal.core.PackageScanner;
-import net.adamcin.oakpal.core.ScriptPackageListener;
+import net.adamcin.oakpal.core.ScriptPackageCheck;
+import net.adamcin.oakpal.core.SlingNodetypesScanner;
 import net.adamcin.oakpal.core.Violation;
-import net.adamcin.oakpal.core.ViolationReport;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.artifact.repository.DefaultRepositoryRequest;
@@ -67,14 +75,17 @@ abstract class AbstractScanMojo extends AbstractMojo {
         }
     }
 
+    /**
+     * package private for tests.
+     */
     @Component
-    private RepositorySystem repositorySystem;
+    RepositorySystem repositorySystem;
 
     /**
      * Specify a list of content-package artifacts to download and pre-install before the scanned packages.
-     *
+     * <p>
      * For example:
-     *
+     * <p>
      * <pre>
      * &lt;preInstallArtifacts&gt;
      *   &lt;preInstallArtifact&gt;
@@ -94,10 +105,21 @@ abstract class AbstractScanMojo extends AbstractMojo {
     /**
      * Specify a list of content package files by path to pre-install, which have already been built or downloaded in a
      * previous phase.
+     *
      * @since 0.2.0
      */
     @Parameter(name = "preInstallFiles")
     protected List<File> preInstallFiles = new ArrayList<>();
+
+    /**
+     * Specify a list of Compact NodeType Definition (CND) resource names (to discover in the test-scope classpath)
+     * to import before any packages are installed during the scan. This is usually necessary for proprietary CRX applications
+     * like AEM.
+     *
+     * @since 0.4.0
+     */
+    @Parameter(name = "cndNames")
+    protected List<String> cndNames = new ArrayList<>();
 
     /**
      * Specify a list of Compact NodeType Definition (CND) files to import before any packages are installed during the
@@ -110,10 +132,19 @@ abstract class AbstractScanMojo extends AbstractMojo {
     protected List<File> cndFiles = new ArrayList<>();
 
     /**
+     * Disable automatic discovery and installation of CND files referenced in Sling-Nodetypes Manifest headers on the
+     * class path.
+     *
+     * @since 0.4.0
+     */
+    @Parameter(name = "slingNodeTypes")
+    protected boolean slingNodeTypes;
+
+    /**
      * Specify a list of additional JCR namespaces to register before installing any packages for the scan.
-     *
+     * <p>
      * For example:
-     *
+     * <p>
      * <pre>
      * &lt;jcrNamespaces&gt;
      *   &lt;jcrNamespace&gt;
@@ -130,9 +161,9 @@ abstract class AbstractScanMojo extends AbstractMojo {
 
     /**
      * Specify a list of additional JCR privileges to register before installing any packages for the scan.
-     *
+     * <p>
      * For example:
-     *
+     * <p>
      * <pre>
      * &lt;jcrPrivileges&gt;
      *   &lt;jcrPrivilege&gt;crx:replicate&lt;/jcrPrivilege&gt;
@@ -149,10 +180,10 @@ abstract class AbstractScanMojo extends AbstractMojo {
      * installing any packages for the scan. This should only be necessary for packages that you are pre-installing
      * and do not have the ability to adjust to ensure that they contain the necessary DocView XML files to ensure
      * content structure nodetype dependencies are self-contained in the package that depends on them.
-     *
+     * <p>
      * For example, to ensure that /home/users/system is created as a rep:AuthorizableFolder, you would add a
      * forcedRoot element with a path of "/home/users/system" and a primaryType of "rep:AuthorizableFolder".
-     *
+     * <p>
      * <pre>
      * &lt;forcedRoots&gt;
      *   &lt;forcedRoot&gt;
@@ -168,23 +199,42 @@ abstract class AbstractScanMojo extends AbstractMojo {
      * @since 0.2.0
      */
     @Parameter(name = "forcedRoots")
-    protected List<PackageScanner.ForcedRoot> forcedRoots = new ArrayList<>();
+    protected List<ForcedRoot> forcedRoots = new ArrayList<>();
 
     /**
-     * Specify a list of javascript files implementing the {@link PackageListener} functions that will receive events
+     * Specify a list of javascript files implementing the {@link PackageCheck} functions that will receive events
      * for each scanned package.
      *
      * @since 0.1.0
+     * @deprecated 0.4.0 use scriptPaths
      */
+    @Deprecated
     @Parameter(name = "scriptReporters")
     protected List<File> scriptReporters = new ArrayList<>();
+
+    /**
+     * Specify a list of paths to script files implementing the {@link ScriptPackageCheck} functions that will receive events
+     * for each scanned package.
+     *
+     * @since 0.4.0
+     */
+    @Parameter(name = "scriptPaths")
+    protected List<File> scriptPaths = new ArrayList<>();
+
+    /**
+     * Specify a list of classPath resource names to locate and load as {@code PackageCheck}s.
+     *
+     * @since 0.4.0
+     */
+    @Parameter(name = "classPathChecks")
+    protected List<String> classPathChecks = new ArrayList<>();
 
     /**
      * Specify the minimum violation severity level that will trigger plugin execution failure. Valid options are
      * {@link net.adamcin.oakpal.core.Violation.Severity#MINOR},
      * {@link net.adamcin.oakpal.core.Violation.Severity#MAJOR}, and
      * {@link net.adamcin.oakpal.core.Violation.Severity#SEVERE}.
-     *
+     * <p>
      * FYI: FileVault Importer errors are reported as MAJOR by default.
      *
      * @since 0.1.0
@@ -200,18 +250,17 @@ abstract class AbstractScanMojo extends AbstractMojo {
         return artifact;
     }
 
-    protected void reactToReports(List<ViolationReport> reports, boolean logPackageId) throws MojoFailureException {
+    protected void reactToReports(List<CheckReport> reports, boolean logPackageId) throws MojoFailureException {
         String errorMessage = String.format("** Violations were reported at or above severity: %s **", failOnSeverity);
 
-        List<ViolationReport> nonEmptyReports = reports.stream()
+        List<CheckReport> nonEmptyReports = reports.stream()
                 .filter(r -> !r.getViolations().isEmpty())
                 .collect(Collectors.toList());
         boolean shouldFail = nonEmptyReports.stream().anyMatch(r -> !r.getViolations(failOnSeverity).isEmpty());
 
-        nonEmptyReports.forEach(r -> {
-            getLog().info("");
-            getLog().info(String.format(" OakPAL Reporter: %s", String.valueOf(r.getReporterUrl())));
-            r.getViolations().forEach(v -> {
+        for (CheckReport r : nonEmptyReports) {
+            getLog().info(String.format(" OakPAL Check: %s", String.valueOf(r.getCheckName())));
+            for (Violation v : r.getViolations()) {
                 Set<PackageId> packageIds = new LinkedHashSet<>(v.getPackages());
                 String violLog = logPackageId && !packageIds.isEmpty()
                         ? String.format("  +- <%s> %s %s", v.getSeverity(), v.getDescription(), packageIds)
@@ -219,58 +268,76 @@ abstract class AbstractScanMojo extends AbstractMojo {
                 if (v.getSeverity().isLessSevereThan(failOnSeverity)) {
                     getLog().info(" " + violLog);
                 } else {
-                    getLog().error(violLog);
+                    getLog().error("" + violLog);
                 }
-            });
-        });
+            }
+        }
 
         if (shouldFail) {
-            getLog().error("");
             getLog().error(errorMessage);
             throw new MojoFailureException(errorMessage);
         }
     }
 
+    protected List<File> resolveDependencies(final List<Dependency> dependencies) throws MojoExecutionException {
+        RepositoryRequest baseRequest = DefaultRepositoryRequest.getRepositoryRequest(session, project);
+
+        List<Artifact> preResolved = dependencies.stream()
+                .map(d -> depToArtifact(d, baseRequest)).collect(Collectors.toList());
+
+        Optional<Artifact> unresolvedArtifact = preResolved.stream()
+                .filter(a -> a.getFile() == null || !a.getFile().exists())
+                .findFirst();
+
+        if (unresolvedArtifact.isPresent()) {
+            Artifact a = unresolvedArtifact.get();
+            throw new MojoExecutionException(String.format("Failed to resolve file for artifact: %s:%s:%s",
+                    a.getGroupId(), a.getArtifactId(), a.getVersion()));
+        }
+
+        return preResolved.stream()
+                .map(Artifact::getFile)
+                .filter(File::exists)
+                .collect(Collectors.toList());
+    }
+
     protected PackageScanner.Builder getBuilder() throws MojoExecutionException {
 
-        final List<PackageListener> listeners = new ArrayList<>();
+        final List<PackageCheck> listeners = new ArrayList<>();
 
-        if (scriptReporters != null) {
-            List<ScriptPackageListener> scriptListeners = scriptReporters.stream().map(s -> {
+        if (classPathChecks != null) {
+            for (String checkName : classPathChecks) {
                 try {
-                    return Optional.of(ScriptPackageListener.createScriptListener("nashorn",
-                            s.toURI().toURL()));
+                    PackageCheck packageCheck = Locator.loadPackageCheck(checkName);
+                    listeners.add(packageCheck);
+                } catch (final Exception e) {
+                    throw new MojoExecutionException("Failed to load package check by name on classPath: " + checkName, e);
+                }
+            }
+        }
+
+        if (scriptPaths != null) {
+            if (scriptReporters != null && !scriptReporters.isEmpty()) {
+                getLog().info("the scriptReporters parameter is deprecated. please use scriptPaths instead.");
+                scriptPaths.addAll(scriptReporters);
+            }
+
+            List<ScriptPackageCheck> scriptListeners = scriptPaths.stream().map(s -> {
+                try {
+                    return Optional.of(ScriptPackageCheck.createScriptListener(s.toURI().toURL()));
                 } catch (Exception e) {
-                    getLog().error("Failed to read scriptReporter " + s.getAbsolutePath(), e);
-                    return Optional.<ScriptPackageListener>empty();
+                    getLog().error("Failed to read check script " + s.getAbsolutePath(), e);
+                    return Optional.<ScriptPackageCheck>empty();
                 }
             }).filter(Optional::isPresent).map(Optional::get).collect(Collectors.toList());
+
             listeners.addAll(scriptListeners);
         }
 
         List<File> preInstall = new ArrayList<>();
 
         if (preInstallArtifacts != null && !preInstallArtifacts.isEmpty()) {
-            RepositoryRequest baseRequest = DefaultRepositoryRequest.getRepositoryRequest(session, project);
-
-            List<Artifact> preResolved = preInstallArtifacts.stream()
-                    .map(d -> depToArtifact(d, baseRequest)).collect(Collectors.toList());
-
-            Optional<Artifact> unresolvedArtifact = preResolved.stream()
-                    .filter(a -> a.getFile() == null || !a.getFile().exists())
-                    .findFirst();
-
-            if (unresolvedArtifact.isPresent()) {
-                Artifact a = unresolvedArtifact.get();
-                throw new MojoExecutionException(String.format("Failed to resolve file for artifact: %s:%s:%s",
-                        a.getGroupId(), a.getArtifactId(), a.getVersion()));
-            }
-
-            List<File> preInstallResolved = preResolved.stream()
-                    .map(Artifact::getFile)
-                    .filter(File::exists)
-                    .collect(Collectors.toList());
-
+            List<File> preInstallResolved = resolveDependencies(preInstallArtifacts);
             preInstall.addAll(preInstallResolved);
         }
 
@@ -278,10 +345,74 @@ abstract class AbstractScanMojo extends AbstractMojo {
             preInstall.addAll(preInstallFiles);
         }
 
-        PackageScanner.Builder builder = new PackageScanner.Builder()
-                .withPackageListeners(listeners)
-                .withCndFiles(cndFiles)
-                .withPreInstallPackages(preInstall);
+        InitStage.Builder builder = new InitStage.Builder();
+
+        final Set<URL> unorderedCndUrls = new LinkedHashSet<>();
+
+        List<File> dependencyJars = new ArrayList<>();
+
+        getProject().ifPresent(project -> {
+            dependencyJars.add(new File(project.getBuild().getTestOutputDirectory()));
+        });
+
+        dependencyJars.addAll(resolveDependencies(project.getDependencies().stream()
+                .filter(dependency -> "jar".equals(dependency.getType()))
+                .filter(dependency -> "test".equals(dependency.getScope()))
+                .collect(Collectors.toList())));
+
+        if (cndNames != null) {
+            try {
+                Map<String, URL> projectNtds = SlingNodetypesScanner.resolveNodeTypeDefinitions(dependencyJars, cndNames);
+                Map<String, URL> pluginNtds = SlingNodetypesScanner.resolveNodeTypeDefinitions(getClass().getClassLoader(), cndNames);
+                for (String cndName : cndNames) {
+                    if (!projectNtds.containsKey(cndName) && !pluginNtds.containsKey(cndName)) {
+                        throw new MojoExecutionException("Failed to find node type definition on classpath for cndName " + cndName);
+                    }
+                }
+                unorderedCndUrls.addAll(projectNtds.values());
+                unorderedCndUrls.addAll(pluginNtds.values());
+            } catch (IOException e) {
+                throw new MojoExecutionException("Failed to resolve cndNames.", e);
+            }
+        }
+
+        if (slingNodeTypes) {
+            try {
+                List<URL> projectNtds = SlingNodetypesScanner.findNodeTypeDefinitions(dependencyJars);
+                if (getLog().isInfoEnabled()) {
+                    for (URL ntd : projectNtds) {
+                        getLog().info("found project cnd URL: " + ntd.toString());
+                    }
+                }
+                unorderedCndUrls.addAll(projectNtds);
+                List<URL> pluginNtds = SlingNodetypesScanner.findNodeTypeDefinitions(getClass().getClassLoader());
+                if (getLog().isInfoEnabled()) {
+                    for (URL ntd : pluginNtds) {
+                        getLog().info("found plugin cnd URL: " + ntd.toString());
+                    }
+                }
+                unorderedCndUrls.addAll(pluginNtds);
+            } catch (IOException e) {
+                throw new MojoExecutionException("Failed to resolve cndNames.", e);
+            }
+        }
+
+        builder.withOrderedCndUrls(new ArrayList<>(unorderedCndUrls));
+
+        if (cndFiles != null) {
+            List<URL> cndUrls = cndFiles.stream()
+                    .map(File::toURI)
+                    .map(uri -> {
+                        URL url = null;
+                        try {
+                            url = uri.toURL();
+                        } catch (MalformedURLException ignored) {
+                        }
+                        return Optional.ofNullable(url);
+                    }).filter(Optional::isPresent)
+                    .map(Optional::get).collect(Collectors.toList());
+            builder.withOrderedCndUrls(cndUrls);
+        }
 
         if (jcrNamespaces != null) {
             for (JcrNs ns : jcrNamespaces) {
@@ -296,11 +427,16 @@ abstract class AbstractScanMojo extends AbstractMojo {
         }
 
         if (forcedRoots != null) {
-            for (PackageScanner.ForcedRoot forcedRoot : forcedRoots) {
+            for (ForcedRoot forcedRoot : forcedRoots) {
                 builder = builder.withForcedRoot(forcedRoot);
             }
         }
 
-        return builder;
+        PackageScanner.Builder scannerBuilder = new PackageScanner.Builder()
+                .withPackageListeners(listeners)
+                .withInitStage(builder.build())
+                .withPreInstallPackages(preInstall);
+
+        return scannerBuilder;
     }
 }
