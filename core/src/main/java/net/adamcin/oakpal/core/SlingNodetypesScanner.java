@@ -37,6 +37,8 @@ import java.util.zip.ZipFile;
  * Additionally it support registering them to a JCR repository.
  */
 public final class SlingNodetypesScanner {
+    public static final String SLING_NODETYPES = "Sling-Nodetypes";
+
     /**
      * Find all node type definition classpath paths by searching all MANIFEST.MF files in the classpath and reading
      * the paths from the "Sling-Nodetypes" entry.
@@ -105,7 +107,7 @@ public final class SlingNodetypesScanner {
     public static List<String> getSlingNodetypesFromManifest(final Manifest manifest) {
         List<String> resourceNames = new ArrayList<>();
         Attributes mainAttribs = manifest.getMainAttributes();
-        String nodeTypeDefinitionList = mainAttribs.getValue("Sling-Nodetypes");
+        String nodeTypeDefinitionList = mainAttribs.getValue(SLING_NODETYPES);
         String[] nodeTypeDefinitionArray = nodeTypeDefinitionList != null
                 ? nodeTypeDefinitionList.split(",")
                 : null;

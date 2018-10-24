@@ -379,16 +379,18 @@ abstract class AbstractScanMojo extends AbstractMojo {
         if (slingNodeTypes) {
             try {
                 List<URL> projectNtds = SlingNodetypesScanner.findNodeTypeDefinitions(dependencyJars);
-                if (getLog().isDebugEnabled()) {
-                    for (URL ntd : projectNtds) {
-                        getLog().debug("found project cnd URL: " + ntd.toString());
+                for (URL ntd : projectNtds) {
+                    if (!unorderedCndUrls.contains(ntd)) {
+                        getLog().info(SlingNodetypesScanner.SLING_NODETYPES + ": Discovered node types: "
+                                + ntd.toString());
                     }
                 }
                 unorderedCndUrls.addAll(projectNtds);
                 List<URL> pluginNtds = SlingNodetypesScanner.findNodeTypeDefinitions(getClass().getClassLoader());
-                if (getLog().isDebugEnabled()) {
-                    for (URL ntd : pluginNtds) {
-                        getLog().debug("found plugin cnd URL: " + ntd.toString());
+                for (URL ntd : pluginNtds) {
+                    if (!unorderedCndUrls.contains(ntd)) {
+                        getLog().info(SlingNodetypesScanner.SLING_NODETYPES + ": Discovered node types: "
+                                + ntd.toString());
                     }
                 }
                 unorderedCndUrls.addAll(pluginNtds);
