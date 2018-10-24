@@ -1,9 +1,9 @@
 oakpal-maven-plugin
 ===================
 
-h2. AEM Package Testing
+## AEM Package Testing
 
-TL;DR: Paste the following into a content-package pom.xml and get started with oakpal-maven-plugin.
+_TL;DR:_ Paste the following into a content-package pom.xml and get started with oakpal-maven-plugin.
 
     <plugin>
       <groupId>net.adamcin.oakpal</groupId>
@@ -27,4 +27,4 @@ What you may not know is that, other than the traditional culprits of lack of di
 occasional Package Manager bundle restart, the vast majority of package installation failures are caused by a capricious
 gremlin that lives in the packages themselves, and that gremlin's name is "DocView".
 
-h2. [Maven Site Docs](http://adamcin.net/net.adamcin.oakpal/oakpal-maven-plugin/index.html)
+## [Maven Site Docs](http://adamcin.net/net.adamcin.oakpal/oakpal-maven-plugin/index.html)
