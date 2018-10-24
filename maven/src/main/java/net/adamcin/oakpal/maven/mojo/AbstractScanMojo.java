@@ -379,16 +379,16 @@ abstract class AbstractScanMojo extends AbstractMojo {
         if (slingNodeTypes) {
             try {
                 List<URL> projectNtds = SlingNodetypesScanner.findNodeTypeDefinitions(dependencyJars);
-                if (getLog().isInfoEnabled()) {
+                if (getLog().isDebugEnabled()) {
                     for (URL ntd : projectNtds) {
-                        getLog().info("found project cnd URL: " + ntd.toString());
+                        getLog().debug("found project cnd URL: " + ntd.toString());
                     }
                 }
                 unorderedCndUrls.addAll(projectNtds);
                 List<URL> pluginNtds = SlingNodetypesScanner.findNodeTypeDefinitions(getClass().getClassLoader());
-                if (getLog().isInfoEnabled()) {
+                if (getLog().isDebugEnabled()) {
                     for (URL ntd : pluginNtds) {
-                        getLog().info("found plugin cnd URL: " + ntd.toString());
+                        getLog().debug("found plugin cnd URL: " + ntd.toString());
                     }
                 }
                 unorderedCndUrls.addAll(pluginNtds);
