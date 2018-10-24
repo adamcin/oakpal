@@ -23,7 +23,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import net.adamcin.oakpal.core.AbortedScanException;
-import net.adamcin.oakpal.core.ViolationReport;
+import net.adamcin.oakpal.core.CheckReport;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.artifact.repository.DefaultRepositoryRequest;
 import org.apache.maven.artifact.repository.RepositoryRequest;
@@ -141,7 +141,7 @@ public class ScanManyArtifactsMojo extends AbstractScanMojo {
         }
 
         try {
-            List<ViolationReport> reports = getBuilder().build().scanPackages(resolvedArtifacts);
+            List<CheckReport> reports = getBuilder().build().scanPackages(resolvedArtifacts);
 
             reactToReports(reports, true);
 

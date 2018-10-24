@@ -16,6 +16,8 @@
 
 package net.adamcin.oakpal.core;
 
+import java.net.URL;
+
 import aQute.bnd.annotation.ConsumerType;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 
@@ -23,28 +25,65 @@ import org.apache.jackrabbit.vault.packaging.PackageId;
  * A single error handler is used during an OakPAL scan.
  */
 @ConsumerType
-public interface ErrorListener extends ScanListener {
+public interface ErrorListener extends ScanListener, ViolationReporter {
 
     /**
-     * Called when a {@link PackageListener} throws an exception.
+     * Called for each unresolved error thrown during node type definition auto-installation.
+     *
+     * @param e        the error.
+     * @param resource the classpath resource of the failed Sling-Nodetypes entry.
+     */
+    default void onNodeTypeRegistrationError(final Throwable e, final URL resource) {
+    }
+
+    /**
+     * Called for each unresolved error thrown during JCR namespace prefix registration.
+     *
+     * @param e      the error.
+     * @param prefix the prefix being registered.
+     * @param uri    the uri being registered.
+     */
+    default void onJcrNamespaceRegistrationError(final Throwable e, final String prefix, final String uri) {
+    }
+
+    /**
+     * Called for each unresolved error thrown during JCR privilege registration.
+     *
+     * @param e            the error.
+     * @param jcrPrivilege the jcrPrivilege being registered.
+     */
+    default void onJcrPrivilegeRegistrationError(final Throwable e, final String jcrPrivilege) {
+    }
+
+    /**
+     * Called for each error thrown during creation of a forced JCR root.
+     *
+     * @param e          the error.
+     * @param forcedRoot the root path being created.
+     */
+    default void onForcedRootCreationError(final Throwable e, final ForcedRoot forcedRoot) {
+    }
+
+    /**
+     * Called when a {@link PackageCheck} throws an exception.
      *
      * @param e         the error
-     * @param listener   the listener
+     * @param listener  the listener
      * @param packageId the current package id
      */
-    default void onListenerException(Exception e, PackageListener listener, PackageId packageId) {
+    default void onListenerException(final Exception e, final PackageCheck listener, final PackageId packageId) {
 
     }
 
     /**
-     * Called when a {@link PackageListener} throws an exception when handling an imported path.
+     * Called when a {@link PackageCheck} throws an exception when handling an imported path.
      *
      * @param e         the error
      * @param handler   the handler
      * @param packageId the current package id
      * @param path      the current path
      */
-    default void onListenerPathException(Exception e, PackageListener handler, PackageId packageId, String path) {
+    default void onListenerPathException(final Exception e, final PackageCheck handler, final PackageId packageId, final String path) {
 
     }
 
@@ -55,7 +94,7 @@ public interface ErrorListener extends ScanListener {
      * @param packageId the current package ID
      * @param path      the related repository path, if applicable
      */
-    default void onImporterException(Exception e, PackageId packageId, String path) {
+    default void onImporterException(final Exception e, final PackageId packageId, final String path) {
 
     }
 
@@ -65,7 +104,7 @@ public interface ErrorListener extends ScanListener {
      * @param e         the Exception that was thrown
      * @param packageId the offending package id
      */
-    default void onSubpackageException(Exception e, PackageId packageId) {
+    default void onSubpackageException(final Exception e, final PackageId packageId) {
 
     }
 }

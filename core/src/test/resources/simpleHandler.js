@@ -18,12 +18,7 @@
  * Created by madamcin on 5/10/17.
  */
 
-function onOpen(packageId, properties, metaInf, subpackages) {
-    print("HEEYEEYE" + properties.toString());
-
-}
-
-function onImportPath(packageId, path, node) {
-    opal.majorViolation(path + " [" + node.getPrimaryNodeType().getName() + "]", packageId);
+function startedScan() {
+    print("startedScan");
 }
 

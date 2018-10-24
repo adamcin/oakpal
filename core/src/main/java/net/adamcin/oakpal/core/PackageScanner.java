@@ -17,19 +17,12 @@
 package net.adamcin.oakpal.core;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.Reader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Properties;
-import java.util.Set;
 import java.util.stream.Collectors;
 import javax.jcr.Node;
 import javax.jcr.Repository;
@@ -39,9 +32,6 @@ import javax.jcr.SimpleCredentials;
 
 import aQute.bnd.annotation.ProviderType;
 import net.adamcin.oakpal.core.jcrfacade.SessionFacade;
-import org.apache.jackrabbit.api.JackrabbitWorkspace;
-import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
-import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.jcr.repository.RepositoryImpl;
 import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
@@ -55,14 +45,8 @@ import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.action.AccessControlAction;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
-import org.apache.jackrabbit.spi.commons.namespace.NamespaceMapping;
-import org.apache.jackrabbit.spi.commons.namespace.SessionNamespaceResolver;
 import org.apache.jackrabbit.vault.fs.api.ProgressTrackerListener;
 import org.apache.jackrabbit.vault.fs.io.ImportOptions;
-import org.apache.jackrabbit.vault.fs.spi.CNDReader;
-import org.apache.jackrabbit.vault.fs.spi.DefaultNodeTypeSet;
-import org.apache.jackrabbit.vault.fs.spi.NodeTypeInstaller;
-import org.apache.jackrabbit.vault.fs.spi.ServiceProviderFactory;
 import org.apache.jackrabbit.vault.packaging.DependencyHandling;
 import org.apache.jackrabbit.vault.packaging.JcrPackage;
 import org.apache.jackrabbit.vault.packaging.JcrPackageManager;
@@ -72,167 +56,90 @@ import org.apache.jackrabbit.vault.packaging.PackagingService;
 import org.apache.jackrabbit.vault.packaging.VaultPackage;
 
 /**
- * Entry point for OakPAL Acceptance Library. See {@link PackageListener} for the event listener interface.
+ * Entry point for OakPAL Acceptance Library. See {@link PackageCheck} for the event listener interface.
  */
 @ProviderType
 public final class PackageScanner {
     private static final ErrorListener DEFAULT_ERROR_LISTENER = new DefaultErrorListener();
 
-    private final List<PackageListener> packageListeners;
-    private final ErrorListener errorListener;
-    private final List<File> preInstallPackages;
-    private final List<File> cndFiles;
-    // uri to prefix !!
-    private final Map<String, String> namespaces;
-    private final Set<String> privileges;
-    private final Map<String, ForcedRoot> forcedRoots;
+    private final List<PackageCheck> packageChecks;
 
-    private PackageScanner(List<PackageListener> packageListeners,
+    private final ErrorListener errorListener;
+
+    private final List<File> preInstallPackages;
+
+    private final List<InitStage> initStages;
+
+    private PackageScanner(List<PackageCheck> packageChecks,
                            ErrorListener errorListener,
                            List<File> preInstallPackages,
-                           List<File> cndFiles,
-                           Map<String, String> namespaces,
-                           Set<String> privileges,
-                           Map<String, ForcedRoot> forcedRoots) {
-        this.packageListeners = packageListeners;
+                           List<InitStage> initStages) {
+        this.packageChecks = packageChecks;
         this.errorListener = errorListener;
         this.preInstallPackages = preInstallPackages;
-        this.cndFiles = cndFiles;
-        this.namespaces = namespaces;
-        this.privileges = privileges;
-        this.forcedRoots = forcedRoots;
-    }
-
-    public static final class ForcedRoot {
-        private String path;
-        private String primaryType;
-        private List<String> mixinTypes;
-
-        public String getPath() {
-            return path;
-        }
-
-        public void setPath(String path) {
-            this.path = path;
-        }
-
-        public String getPrimaryType() {
-            return primaryType;
-        }
-
-        public void setPrimaryType(String primaryType) {
-            this.primaryType = primaryType;
-        }
-
-        public List<String> getMixinTypes() {
-            return mixinTypes;
-        }
-
-        public void setMixinTypes(List<String> mixinTypes) {
-            this.mixinTypes = mixinTypes;
-        }
+        this.initStages = initStages;
     }
 
     /**
      * Use the builder to construct the {@link PackageScanner}.
      */
     public static class Builder {
-        private Map<String, String> namespaces = new HashMap<>();
-        private Set<String> privileges = new HashSet<>();
-        private Map<String, ForcedRoot> forcedRoots = new HashMap<>();
-        private List<PackageListener> packageListeners = Collections.emptyList();
+        private final List<InitStage> initStages = new ArrayList<>();
+
+        private final List<PackageCheck> packageChecks = new ArrayList<>();
+
         private ErrorListener errorListener = DEFAULT_ERROR_LISTENER;
+
         private List<File> preInstallPackages = Collections.emptyList();
-        private List<File> cndFiles = Collections.emptyList();
 
         /**
-         * Register an additional JCR namespace prior to the scan.
+         * Add a single instance of {@link InitStage} (or more) to the scan.
          *
-         * @param prefix the registered prefix for the namespace
-         * @param uri    the registered URI for the namespace
+         * @param initStage the init stage
          * @return my builder self
          */
-        public Builder withNs(String prefix, String uri) {
-            this.namespaces.put(uri, prefix);
-            return this;
-        }
-
-        /**
-         * Register an additional JCR privilege prior to the scan. If the privilege belongs to a custom namespace, be
-         * sure to register that as well using {@link #withNs(String, String)}
-         *
-         * @param privilege the name of the privilege
-         * @return my builder self
-         */
-        public Builder withPrivilege(String... privilege) {
-            if (privilege != null) {
-                this.privileges.addAll(Arrays.asList(privilege));
+        public Builder withInitStage(InitStage... initStage) {
+            if (initStage != null) {
+                return this.withInitStages(Arrays.asList(initStage));
             }
             return this;
         }
 
         /**
-         * Force the creation of the described root path prior to the scan.
+         * Add a list of {@link InitStage}s to the scan.
          *
-         * @param path      the JCR path
-         * @param nodeTypes the list of nodetypes. the first element is assumed
-         *                  to be the primary type, with subsequent elements treated as mixin types.
+         * @param initStages the list of init stages
          * @return my builder self
          */
-        public Builder withForcedRoot(String path, String... nodeTypes) {
-            String primaryType = null;
-            List<String> mixinTypes = Collections.emptyList();
-            if (nodeTypes != null) {
-                if (nodeTypes.length > 0) {
-                    primaryType = nodeTypes[0];
-                    if (nodeTypes.length > 1) {
-                        mixinTypes = Arrays.asList(Arrays.copyOfRange(nodeTypes, 1, nodeTypes.length));
-                    }
-                }
+        public Builder withInitStages(List<InitStage> initStages) {
+            if (initStages != null) {
+                this.initStages.addAll(initStages);
             }
-            ForcedRoot forcedRoot = new ForcedRoot();
-            forcedRoot.setPath(path);
-            forcedRoot.setPrimaryType(primaryType);
-            forcedRoot.setMixinTypes(mixinTypes);
-            return this.withForcedRoot(forcedRoot);
-        }
-
-        /**
-         * Force the creation of the described root path prior to the scan.
-         *
-         * @param forcedRoot the described root path
-         * @return my builder self
-         */
-        public Builder withForcedRoot(ForcedRoot forcedRoot) {
-            this.forcedRoots.put(forcedRoot.getPath(), forcedRoot);
             return this;
         }
 
         /**
-         * Set a single instance of {@link PackageListener} for the scan.
+         * Set a single instance of {@link PackageCheck} for the scan.
          *
          * @param listener the package listeners
          * @return my builder self
          */
-        public Builder withPackageListener(PackageListener... listener) {
+        public Builder withPackageListener(PackageCheck... listener) {
             if (listener != null) {
                 return this.withPackageListeners(Arrays.asList(listener));
-            } else {
-                return this.withPackageListeners(Collections.emptyList());
             }
+            return this;
         }
 
         /**
-         * Set the list of {@link PackageListener}s for the scan.
+         * Set the list of {@link PackageCheck}s for the scan.
          *
          * @param listeners the list of packageListeners
          * @return my builder self
          */
-        public Builder withPackageListeners(List<? extends PackageListener> listeners) {
+        public Builder withPackageListeners(List<? extends PackageCheck> listeners) {
             if (listeners != null) {
-                this.packageListeners = new ArrayList<>(listeners);
-            } else {
-                this.packageListeners = Collections.emptyList();
+                this.packageChecks.addAll(listeners);
             }
             return this;
         }
@@ -254,7 +161,7 @@ public final class PackageScanner {
 
         /**
          * Provide a list of package files to install before each scan. Install events raised during
-         * pre-install are not passed to each {@link PackageListener}, but errors raised are passed to
+         * pre-install are not passed to each {@link PackageCheck}, but errors raised are passed to
          * the {@link ErrorListener}.
          *
          * @param preInstallPackage the list of pre-install package files
@@ -270,7 +177,7 @@ public final class PackageScanner {
 
         /**
          * Provide a list of package files to install before each scan. Install events raised during
-         * pre-install are not passed to each {@link PackageListener}, but errors raised are passed to
+         * pre-install are not passed to each {@link PackageCheck}, but errors raised are passed to
          * the {@link ErrorListener}.
          *
          * @param preInstallPackages the list of pre-install package files
@@ -286,52 +193,20 @@ public final class PackageScanner {
         }
 
         /**
-         * Provide a list of cnd files to install.
-         *
-         * @param cndFiles the list of cnd files
-         * @return my builder self
-         */
-        public Builder withCndFiles(List<File> cndFiles) {
-            if (cndFiles != null) {
-                this.cndFiles = new ArrayList<>(cndFiles);
-            } else {
-                this.cndFiles = Collections.emptyList();
-            }
-            return this;
-        }
-
-        /**
-         * Provide a list of cnd files to install.
-         *
-         * @param cndFile the list of cnd files
-         * @return my builder self
-         */
-        public Builder withCndFile(File... cndFile) {
-            if (cndFile != null) {
-                return this.withCndFiles(Arrays.asList(cndFile));
-            } else {
-                return this.withCndFiles(Collections.emptyList());
-            }
-        }
-
-        /**
          * Construct a {@link PackageScanner} from the {@link Builder} state.
          *
          * @return a {@link PackageScanner}
          */
         public PackageScanner build() {
-            return new PackageScanner(packageListeners,
+            return new PackageScanner(packageChecks,
                     errorListener,
                     preInstallPackages,
-                    cndFiles,
-                    namespaces,
-                    privileges,
-                    forcedRoots);
+                    initStages);
         }
     }
 
-    public List<PackageListener> getPackageListeners() {
-        return packageListeners;
+    public List<PackageCheck> getPackageChecks() {
+        return packageChecks;
     }
 
     public ErrorListener getErrorListener() {
@@ -342,7 +217,7 @@ public final class PackageScanner {
         return preInstallPackages;
     }
 
-    public List<ViolationReport> scanPackage(File... file) throws AbortedScanException {
+    public List<CheckReport> scanPackage(File... file) throws AbortedScanException {
         if (file != null) {
             return scanPackages(Arrays.asList(file));
         } else {
@@ -350,66 +225,18 @@ public final class PackageScanner {
         }
     }
 
-    public List<ViolationReport> scanPackages(List<File> files) throws AbortedScanException {
+    public List<CheckReport> scanPackages(List<File> files) throws AbortedScanException {
         Session admin = null;
         Repository scanRepo = null;
         try {
             getErrorListener().startedScan();
-            packageListeners.forEach(PackageListener::startedScan);
 
             scanRepo = initRepository();
+
             admin = loginAdmin(scanRepo);
 
-            if (!cndFiles.isEmpty()) {
-                final DefaultNodeTypeSet nodeTypes = new DefaultNodeTypeSet("internal");
-                final CNDReader cndReader = ServiceProviderFactory.getProvider().getCNDReader();
-                final NamespaceMapping mapping =
-                        new NamespaceMapping(new SessionNamespaceResolver(admin));
-
-                for (File cndFile : cndFiles) {
-                    Reader reader = null;
-                    try {
-                        reader = new InputStreamReader(new FileInputStream(cndFile), "utf8");
-                        cndReader.read(reader, cndFile.toURI().toString(), mapping);
-                    } finally {
-                        if (reader != null) {
-                            reader.close();
-                        }
-                    }
-                }
-
-                nodeTypes.add(cndReader);
-                NodeTypeInstaller installer = ServiceProviderFactory.getProvider().getDefaultNodeTypeInstaller(admin);
-                installer.install(null, nodeTypes);
-            }
-
-            // uri to prefix !!
-            if (!namespaces.isEmpty()) {
-                for (Map.Entry<String, String> nsEntry : namespaces.entrySet()) {
-                    admin.getWorkspace().getNamespaceRegistry().registerNamespace(nsEntry.getValue(), nsEntry.getKey());
-                }
-            }
-
-            if (!privileges.isEmpty()) {
-                if (admin.getWorkspace() instanceof JackrabbitWorkspace) {
-                    PrivilegeManager pm = ((JackrabbitWorkspace) admin.getWorkspace()).getPrivilegeManager();
-                    for (String privilege : privileges) {
-                        pm.registerPrivilege(privilege, false, new String[0]);
-                    }
-                }
-            }
-
-            if (!forcedRoots.isEmpty()) {
-                for (ForcedRoot root : forcedRoots.values()) {
-                    final String path = root.getPath();
-                    final String primaryType = root.getPrimaryType() != null ? root.getPrimaryType() : "nt:unstructured";
-                    final List<String> mixinTypes = root.getMixinTypes() != null ? root.getMixinTypes() : Collections.emptyList();
-                    Node rootNode = JcrUtils.getOrCreateByPath(root.getPath(), primaryType, admin);
-                    for (String mixinType : mixinTypes) {
-                        rootNode.addMixin(mixinType);
-                    }
-                }
-                admin.save();
+            for (InitStage initStage : this.initStages) {
+                initStage.initSession(admin, getErrorListener());
             }
 
             JcrPackageManager manager = PackagingService.getPackageManager(admin);
@@ -417,6 +244,8 @@ public final class PackageScanner {
             for (File file : preInstallPackages) {
                 processPackageFile(admin, manager, file, true);
             }
+
+            packageChecks.forEach(PackageCheck::startedScan);
 
             if (files != null) {
                 for (File file : files) {
@@ -426,23 +255,22 @@ public final class PackageScanner {
         } catch (RepositoryException | IOException e) {
             throw new AbortedScanException(e);
         } finally {
+            packageChecks.forEach(PackageCheck::finishedScan);
+
             if (admin != null) {
                 admin.logout();
             }
+
             shutdownRepository(scanRepo);
 
-            packageListeners.forEach(PackageListener::finishedScan);
             getErrorListener().finishedScan();
         }
 
-        List<ViolationReport> reports = new ArrayList<>();
-        if (getErrorListener() instanceof ViolationReporter) {
-            reports.add(SimpleViolationReport.generateReport((ViolationReporter) getErrorListener()));
-        }
+        List<CheckReport> reports = new ArrayList<>();
+        reports.add(SimpleReport.generateReport(getErrorListener()));
 
-        List<ViolationReport> listenerReports = packageListeners.stream()
-                .filter(l -> l instanceof ViolationReporter)
-                .map(l -> SimpleViolationReport.generateReport((ViolationReporter) l))
+        List<CheckReport> listenerReports = packageChecks.stream()
+                .map(SimpleReport::generateReport)
                 .collect(Collectors.toList());
 
         reports.addAll(listenerReports);
@@ -455,7 +283,7 @@ public final class PackageScanner {
         final PackageId packageId = jcrPackage.getPackage().getId();
         final SessionFacade inspectSession = new SessionFacade(admin, false);
         final ProgressTrackerListener tracker =
-                new ImporterListenerAdapter(packageId, packageListeners, inspectSession, preInstall);
+                new ImporterListenerAdapter(packageId, packageChecks, inspectSession, preInstall);
 
         ImportOptions options = new ImportOptions();
         options.setNonRecursive(true);
@@ -467,7 +295,7 @@ public final class PackageScanner {
         final VaultPackage vaultPackage = jcrPackage.getPackage();
 
         if (!preInstall) {
-            packageListeners.forEach(handler -> handler.beforeExtract(packageId,
+            packageChecks.forEach(handler -> handler.beforeExtract(packageId,
                     vaultPackage.getProperties(), vaultPackage.getMetaInf(), subpacks));
         }
 
@@ -476,7 +304,7 @@ public final class PackageScanner {
         jcrPackage.close();
 
         if (!preInstall) {
-            packageListeners.forEach(handler -> {
+            packageChecks.forEach(handler -> {
                 try {
                     handler.afterExtract(packageId, inspectSession);
                 } catch (RepositoryException e) {
@@ -496,7 +324,7 @@ public final class PackageScanner {
             jcrPackage = manager.open(packageId);
 
             if (!preInstall) {
-                packageListeners.forEach(handler -> handler.identifySubpackage(packageId, parentId));
+                packageChecks.forEach(handler -> handler.identifySubpackage(packageId, parentId));
             }
 
             processPackage(admin, manager, jcrPackage, preInstall);
@@ -519,7 +347,7 @@ public final class PackageScanner {
             final PackageId packageId = jcrPackage.getPackage().getId();
 
             if (!preInstall) {
-                packageListeners.forEach(handler -> {
+                packageChecks.forEach(handler -> {
                     try {
                         handler.identifyPackage(packageId, file);
                     } catch (Exception e) {
@@ -577,11 +405,14 @@ public final class PackageScanner {
 
     private class ImporterListenerAdapter implements ProgressTrackerListener {
         private final PackageId packageId;
-        private final List<PackageListener> handlers;
+
+        private final List<PackageCheck> handlers;
+
         private final SessionFacade session;
+
         private final boolean preInstall;
 
-        ImporterListenerAdapter(PackageId packageId, List<PackageListener> handlers, SessionFacade session, boolean preInstall) {
+        ImporterListenerAdapter(PackageId packageId, List<PackageCheck> handlers, SessionFacade session, boolean preInstall) {
             this.packageId = packageId;
             this.handlers = handlers;
             this.session = session;

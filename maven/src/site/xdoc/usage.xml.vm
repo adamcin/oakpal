@@ -12,7 +12,7 @@
     &lt;plugin&gt;
         &lt;groupId&gt;net.adamcin.oakpal&lt;/groupId&gt;
         &lt;artifactId&gt;oakpal-maven-plugin&lt;/artifactId&gt;
-        &lt;version&gt;0.2.0&lt;/version&gt;
+        &lt;version&gt;0.4.0&lt;/version&gt;
         &lt;configuration&gt;
         &lt;/configuration&gt;
         &lt;executions&gt;
@@ -106,8 +106,8 @@
             </p>
         </section>
 
-        <section name="3. Write a Script Reporter">
-            <p>Follow these instructions to <a href="writing-a-script-reporter.html">create a script reporter for your
+        <section name="3. Write a Script Check">
+            <p>Follow these instructions to <a href="writing-a-script-check.html">create a script check for your
                 package build</a>.</p>
         </section>
 

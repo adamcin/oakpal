@@ -1,17 +1,3 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<document>
-    <properties>
-        <title>Writing a Script Reporter</title>
-    </properties>
-    <body>
-        <h1>Writing a Script Reporter</h1>
-        <section name="Create a javascript file in src/test/resources">
-            <p>
-                Create a JavaScript file in <code>src/test/resources</code> that will respond to scan events. You can copy
-                <a href="exampleReporter.js">the example script</a> as a starting point:
-            </p>
-            <div class="source">
-<pre>
 /*
  * Copyright 2017 Mark Adamcin
  *
@@ -52,6 +38,15 @@
  * import javax.jcr.Session;
  */
 
+/***
+ * Optionally implement this function to return a label for your check.
+ */
+/*
+function getCheckName() {
+    return "ACME Example Check";
+}
+*/
+
 /**
  * Called after the package is uploaded to the package manager at the beginning of the scan. Track subsequent
  * events using the package ID provided to this method.
@@ -69,9 +64,9 @@ function identifyPackage(packageId /* PackageId */, file /* File */) {
  * @param packageId the package ID of the newly opened subpackage
  * @param parentId the package ID of the parent package.
  */
- function identifySubpackage(packageId /* PackageId */, parentId /* PackageId */) {
+function identifySubpackage(packageId /* PackageId */, parentId /* PackageId */) {
 
- }
+}
 
 /**
  * Called for each package before it is extracted.
@@ -82,7 +77,7 @@ function identifyPackage(packageId /* PackageId */, file /* File */) {
  * @param subpackages       extracted subpackages
  */
 function beforeExtract(packageId /* PackageId */, packageProperties /* PackageProperties */,
-                       metaInf /* MetaInf */, subpackages /* PackageId[] */) {
+    metaInf /* MetaInf */, subpackages /* PackageId[] */) {
 
 }
 
@@ -130,37 +125,3 @@ function startedScan() {
 function finishedScan() {
 
 }
-</pre>
-            </div>
-        </section>
-        <section name="Add the scriptReporter to the plugin configuration">
-            <p>
-                Add the path to the file as a <tt>&lt;scriptReporters&gt;/&lt;scriptReporter&gt;</tt> parameter to
-                your oakpal-maven-plugin configuration with the path to the file.
-                <div class="source">
-<pre>
-    &lt;plugin&gt;
-        &lt;groupId&gt;net.adamcin.oakpal&lt;/groupId&gt;
-        &lt;artifactId&gt;oakpal-maven-plugin&lt;/artifactId&gt;
-        &lt;version&gt;0.2.0&lt;/version&gt;
-        &lt;configuration&gt;
-            &lt;scriptReporters&gt;
-                &lt;scriptReporter&gt;src/test/resources/[your-script-filename]&lt;/scriptReporter&gt;
-            &lt;/scriptReporters&gt;
-        &lt;/configuration&gt;
-        &lt;executions&gt;
-            &lt;execution&gt;
-                &lt;goals&gt;
-                    &lt;goal&gt;scan&lt;/goal&gt;
-                &lt;/goals&gt;
-            &lt;/execution&gt;
-        &lt;/executions&gt;
-    &lt;/plugin&gt;
-</pre>
-                </div>
-            </p>
-        </section>
-
-
-    </body>
-</document>

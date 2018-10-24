@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Mark Adamcin
+ * Copyright 2018 Mark Adamcin
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,27 +16,16 @@
 
 package net.adamcin.oakpal.core;
 
-import java.net.URL;
 import java.util.Collection;
 
-import aQute.bnd.annotation.ConsumerType;
-
-/**
- * Base interface for {@link PackageListener} and {@link ErrorListener}.
- */
-@ConsumerType
 public interface ViolationReporter {
 
     /**
-     * Return a URL identifying the reporter.
-     *
-     * @return a URL identifying the reporter
-     */
-    URL getReporterUrl();
-
-    /**
      * Called at the end of execution to collect any detected violations.
+     *
      * @return any reported violations.
      */
-    Collection<Violation> reportViolations();
+    Collection<Violation> getReportedViolations();
+
+
 }

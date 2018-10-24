@@ -19,7 +19,6 @@ package net.adamcin.oakpal.core;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
-
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
 import javax.jcr.RepositoryException;
@@ -29,6 +28,7 @@ import javax.jcr.query.QueryManager;
 import javax.jcr.query.QueryResult;
 
 import net.adamcin.commons.testing.junit.TestBody;
+import net.adamcin.oakpal.testing.TestPackageUtil;
 import org.apache.jackrabbit.vault.fs.config.MetaInf;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.apache.jackrabbit.vault.packaging.PackageProperties;
@@ -49,7 +49,7 @@ public class ScanTest {
             protected void execute() throws Exception {
                 File package10 = TestPackageUtil.prepareTestPackage("package_1.0.zip");
 
-                PackageListener listener = new PackageListener() {
+                PackageCheck listener = new SimplePackageCheck() {
 
                     @Override
                     public void beforeExtract(PackageId packageId, PackageProperties packageProperties, MetaInf metaInf, List<PackageId> subpackages) {
@@ -76,7 +76,7 @@ public class ScanTest {
                 final List<String> importedPaths = new ArrayList<>();
                 final List<String> queriedPaths = new ArrayList<>();
 
-                PackageListener handler = new PackageListener() {
+                PackageCheck handler = new SimplePackageCheck() {
 
                     @Override
                     public void importedPath(PackageId packageId, String path, Node node) throws RepositoryException {
@@ -111,13 +111,14 @@ public class ScanTest {
             protected void execute() throws Exception {
                 File fullcoverage = TestPackageUtil.prepareTestPackage("fullcoverage.zip");
 
-                PackageListener handler = ScriptPackageListener.createScriptListener("nashorn",
+                PackageCheck handler = ScriptPackageCheck.createScriptListener(
                         getClass().getResource("/simpleHandler.js"));
 
                 new PackageScanner.Builder().withPackageListener(handler)
                         .build().scanPackage(fullcoverage).stream()
                         .flatMap(r -> r.getViolations().stream())
-                        .forEach(violation -> LOGGER.info("[{} violation] {}", violation.getSeverity(), violation.getDescription()));
+                        .forEach(violation -> LOGGER.info("[{} violation] {}", violation.getSeverity(),
+                                violation.getDescription()));
             }
         });
     }

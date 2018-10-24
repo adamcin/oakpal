@@ -16,32 +16,28 @@
 
 package net.adamcin.oakpal.core;
 
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
 /**
- * Base class implementing common or default methods of {@link ViolationReporter}.
+ * Simple collector of violations for use by {@link PackageCheck} implementations.
  */
-public abstract class AbstractViolationReporter implements ViolationReporter {
+public final class ReportCollector implements ViolationReporter {
     private final List<Violation> violations = new ArrayList<>();
 
-    protected final void reportViolation(Violation violation) {
+    public void reportViolation(Violation violation) {
         violations.add(violation);
     }
 
-    @Override
-    public URL getReporterUrl() {
-        Class<?> clazz = getClass();
-        return clazz.getResource(clazz.getSimpleName() + ".class");
+    public void clearViolations() {
+        this.violations.clear();
     }
 
     @Override
-    public final Collection<Violation> reportViolations() {
+    public Collection<Violation> getReportedViolations() {
         List<Violation> toReturn = new ArrayList<>(this.violations);
-        this.violations.clear();
         return Collections.unmodifiableList(toReturn);
     }
 }
