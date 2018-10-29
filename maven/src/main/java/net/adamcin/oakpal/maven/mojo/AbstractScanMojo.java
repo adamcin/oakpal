@@ -100,8 +100,10 @@ abstract class AbstractScanMojo extends AbstractMojo {
          * this execution.
          * <p>
          * If "impl" is not provided, this is used to lookup a catalog check.
+         * </p>
          * <p>
          * If "impl" is not a {@link PackageCheckFactory}, this value is ignored.
+         * </p>
          *
          * @return the checkName
          */
@@ -133,7 +135,7 @@ abstract class AbstractScanMojo extends AbstractMojo {
      * Specify a list of content-package artifacts to download and pre-install before the scanned packages.
      * <p>
      * For example:
-     * <p>
+     * </p>
      * <pre>
      * &lt;preInstallArtifacts&gt;
      *   &lt;preInstallArtifact&gt;
@@ -180,7 +182,7 @@ abstract class AbstractScanMojo extends AbstractMojo {
     protected List<File> cndFiles = new ArrayList<>();
 
     /**
-     * Disable automatic discovery and installation of CND files referenced in Sling-Nodetypes Manifest headers on the
+     * Enable automatic discovery and installation of CND files referenced in Sling-Nodetypes Manifest headers on the
      * class path.
      *
      * @since 0.4.0
@@ -192,7 +194,7 @@ abstract class AbstractScanMojo extends AbstractMojo {
      * Specify a list of additional JCR namespaces to register before installing any packages for the scan.
      * <p>
      * For example:
-     * <p>
+     * </p>
      * <pre>
      * &lt;jcrNamespaces&gt;
      *   &lt;jcrNamespace&gt;
@@ -211,7 +213,7 @@ abstract class AbstractScanMojo extends AbstractMojo {
      * Specify a list of additional JCR privileges to register before installing any packages for the scan.
      * <p>
      * For example:
-     * <p>
+     * </p>
      * <pre>
      * &lt;jcrPrivileges&gt;
      *   &lt;jcrPrivilege&gt;crx:replicate&lt;/jcrPrivilege&gt;
@@ -231,7 +233,7 @@ abstract class AbstractScanMojo extends AbstractMojo {
      * <p>
      * For example, to ensure that /home/users/system is created as a rep:AuthorizableFolder, you would add a
      * forcedRoot element with a path of "/home/users/system" and a primaryType of "rep:AuthorizableFolder".
-     * <p>
+     * </p>
      * <pre>
      * &lt;forcedRoots&gt;
      *   &lt;forcedRoot&gt;
@@ -271,7 +273,16 @@ abstract class AbstractScanMojo extends AbstractMojo {
 
     /**
      * Specify a config object that will be provided as bindings to checks loaded via {@link #scriptPaths}
-     * and {@link #classPathChecks}.
+     * and {@link #classPathChecks}. The Maven configuration format is normalized to an {@code org.json.JSONObject} structure.
+     * <p>
+     * For example, to provide a key of {@code foo} with a value of {@code bar}
+     * </p>
+     * <pre>
+     * &lt;adhocCheckConfig&gt;
+     *   &lt;foo&gt;bar&lt;/foo&gt;
+     * &lt;/adhocCheckConfig&gt;
+     * </pre>
+     * <p>Your check script would then be able to use the value {@code config.foo} or {@code config["foo"]}</p>
      *
      * @since 0.5.0
      */

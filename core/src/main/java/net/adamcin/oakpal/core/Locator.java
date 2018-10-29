@@ -46,7 +46,8 @@ public final class Locator {
     /**
      * Attempt to load a {@link PackageCheck} from a particular class loader.
      *
-     * @param impl className or resourceName
+     * @param impl   className or resourceName
+     * @param config provide an optional config object (may be ignored by the check.)
      * @return a new {@link PackageCheck} instance for the given name
      * @throws Exception on any error or failure to find a resource for given name.
      */
