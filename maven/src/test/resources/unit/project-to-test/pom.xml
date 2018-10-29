@@ -56,9 +56,40 @@
                         </forcedRoot>
                     </forcedRoots>
                     <slingNodeTypes>true</slingNodeTypes>
-                    <scriptReporters>
-                        <scriptReporter>simpleReporter.js</scriptReporter>
-                    </scriptReporters>
+                    <scriptPaths>
+                        <scriptPath>simpleReporter.js</scriptPath>
+                    </scriptPaths>
+                    <adhocCheckConfig>
+                        <foo>bar</foo>
+                        <bars>
+                            <bar>one</bar>
+                            <bar>two</bar>
+                            <bar>three</bar>
+                            <bar>
+                                <one>two</one>
+                                <red>blue</red>
+                            </bar>
+                        </bars>
+                        <someMap>
+                            <cars>
+                                <car>false</car>
+                                <car implementation="java.lang.Boolean">false</car>
+                            </cars>
+                            <bats>
+                                <bob>false</bob>
+                            </bats>
+                        </someMap>
+                    </adhocCheckConfig>
+                    <checks>
+                        <check>
+                            <impl>testOutputScriptCheck.js</impl>
+                            <name>Script Check: Test Output</name>
+                            <config>
+                                <foo>bar</foo>
+                                <barFoo>fooBar</barFoo>
+                            </config>
+                        </check>
+                    </checks>
                 </configuration>
                 <executions>
                     <execution>

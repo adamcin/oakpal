@@ -32,6 +32,7 @@ import net.adamcin.oakpal.testing.TestPackageUtil;
 import org.apache.jackrabbit.vault.fs.config.MetaInf;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.apache.jackrabbit.vault.packaging.PackageProperties;
+import org.json.JSONObject;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -111,8 +112,8 @@ public class ScanTest {
             protected void execute() throws Exception {
                 File fullcoverage = TestPackageUtil.prepareTestPackage("fullcoverage.zip");
 
-                PackageCheck handler = ScriptPackageCheck.createScriptListener(
-                        getClass().getResource("/simpleHandler.js"));
+                PackageCheck handler = ScriptPackageCheck.createScriptCheckFactory(
+                        getClass().getResource("/simpleHandler.js")).newInstance(new JSONObject());
 
                 new PackageScanner.Builder().withPackageListener(handler)
                         .build().scanPackage(fullcoverage).stream()

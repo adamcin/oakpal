@@ -24,6 +24,7 @@ import java.util.stream.Collectors;
 
 import net.adamcin.oakpal.core.AbortedScanException;
 import net.adamcin.oakpal.core.CheckReport;
+import net.adamcin.oakpal.maven.component.OakpalComponentConfigurator;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.artifact.repository.DefaultRepositoryRequest;
 import org.apache.maven.artifact.repository.RepositoryRequest;
@@ -43,7 +44,7 @@ import org.apache.maven.plugins.annotations.Parameter;
  *
  * @since 0.3.0
  */
-@Mojo(name = "scan-many",
+@Mojo(name = "scan-many", configurator = OakpalComponentConfigurator.HINT,
         defaultPhase = LifecyclePhase.INTEGRATION_TEST)
 public class ScanManyArtifactsMojo extends AbstractScanMojo {
 

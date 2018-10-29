@@ -66,7 +66,13 @@ public class ScanArtifactMojoTest extends OakpalMojoTestCaseBase {
         try {
             ScanArtifactMojo myMojo = (ScanArtifactMojo) lookupConfiguredMojo(pair.getProject(), "scan");
             assertNotNull("myMojo null", myMojo);
-            myMojo.executeGuardedIntegrationTest();
+            ClassLoader oldCl = Thread.currentThread().getContextClassLoader();
+            try {
+                Thread.currentThread().setContextClassLoader(myMojo.getContainerClassLoader());
+                myMojo.executeGuardedIntegrationTest();
+            } finally {
+                Thread.currentThread().setContextClassLoader(oldCl);
+            }
         } catch (Exception e) {
             e.printStackTrace(System.err);
             throw e;

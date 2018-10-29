@@ -49,7 +49,9 @@ public final class SlingNodetypesScanner {
      * @throws IOException for I/O Errors
      */
     public static List<URL> findNodeTypeDefinitions() throws IOException {
-        return findNodeTypeDefinitions(SlingNodetypesScanner.class.getClassLoader());
+        return findNodeTypeDefinitions(Thread.currentThread().getContextClassLoader() != null
+                ? Thread.currentThread().getContextClassLoader()
+                : SlingNodetypesScanner.class.getClassLoader());
     }
 
     /**
@@ -73,7 +75,7 @@ public final class SlingNodetypesScanner {
             }
         }
 
-        return new ArrayList<>(resolveNodeTypeDefinitions(classLoader, resourceNames).values());
+        return new ArrayList<>(resolveNodeTypeDefinitions(resourceNames, classLoader).values());
     }
 
     /**
@@ -105,7 +107,7 @@ public final class SlingNodetypesScanner {
             }
         }
 
-        return new ArrayList<>(resolveNodeTypeDefinitions(zipFiles, resourceNames).values());
+        return new ArrayList<>(resolveNodeTypeDefinitions(resourceNames, zipFiles).values());
     }
 
 
@@ -126,8 +128,14 @@ public final class SlingNodetypesScanner {
         return resourceNames;
     }
 
-    public static Map<String, URL> resolveNodeTypeDefinitions(final ClassLoader classLoader,
-                                                              final List<String> resourceNames) {
+    public static Map<String, URL> resolveNodeTypeDefinitions(final List<String> resourceNames) {
+        return resolveNodeTypeDefinitions(resourceNames, Thread.currentThread().getContextClassLoader() != null
+                ? Thread.currentThread().getContextClassLoader()
+                : SlingNodetypesScanner.class.getClassLoader());
+    }
+
+    public static Map<String, URL> resolveNodeTypeDefinitions(final List<String> resourceNames,
+                                                              final ClassLoader classLoader) {
         Map<String, URL> cndUrls = new LinkedHashMap<>();
         for (String name : resourceNames) {
             final URL cndUrl = classLoader.getResource(name);
@@ -139,8 +147,8 @@ public final class SlingNodetypesScanner {
         return cndUrls;
     }
 
-    public static Map<String, URL> resolveNodeTypeDefinitions(final List<File> zipFiles,
-                                                              final List<String> resourceNames) throws IOException {
+    public static Map<String, URL> resolveNodeTypeDefinitions(final List<String> resourceNames,
+                                                              final List<File> zipFiles) throws IOException {
         Map<String, URL> cndUrls = new LinkedHashMap<>();
         for (File zipFile : zipFiles) {
             if (!zipFile.exists() || zipFile.isDirectory()) {

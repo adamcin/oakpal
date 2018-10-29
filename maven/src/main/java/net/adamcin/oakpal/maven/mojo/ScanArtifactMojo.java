@@ -22,6 +22,7 @@ import java.util.Optional;
 
 import net.adamcin.oakpal.core.AbortedScanException;
 import net.adamcin.oakpal.core.CheckReport;
+import net.adamcin.oakpal.maven.component.OakpalComponentConfigurator;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
@@ -35,7 +36,7 @@ import org.apache.maven.plugins.annotations.ResolutionScope;
  *
  * @since 0.1.0
  */
-@Mojo(name = "scan", requiresDependencyResolution = ResolutionScope.TEST,
+@Mojo(name = "scan", requiresDependencyResolution = ResolutionScope.TEST, configurator = OakpalComponentConfigurator.HINT,
   defaultPhase = LifecyclePhase.INTEGRATION_TEST)
 public class ScanArtifactMojo extends AbstractScanMojo {
 

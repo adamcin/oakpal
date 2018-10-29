@@ -42,6 +42,8 @@
  *   For SEVERE violations:
  *     oakpal.severeViolation(description, packageId);
  *
+ * 3. If configuration parameters are available, they can be accessed using the "config" global object.
+ *
  * Java type imports for reference:
  *
  * import org.apache.jackrabbit.vault.packaging.PackageId;

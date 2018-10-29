@@ -33,21 +33,18 @@ import net.adamcin.oakpal.core.ForcedRoot;
 import net.adamcin.oakpal.core.InitStage;
 import net.adamcin.oakpal.core.Locator;
 import net.adamcin.oakpal.core.PackageCheck;
+import net.adamcin.oakpal.core.PackageCheckFactory;
 import net.adamcin.oakpal.core.PackageScanner;
 import net.adamcin.oakpal.core.ScriptPackageCheck;
 import net.adamcin.oakpal.core.SlingNodetypesScanner;
 import net.adamcin.oakpal.core.Violation;
 import org.apache.jackrabbit.vault.packaging.PackageId;
-import org.apache.maven.artifact.Artifact;
-import org.apache.maven.artifact.repository.DefaultRepositoryRequest;
-import org.apache.maven.artifact.repository.RepositoryRequest;
-import org.apache.maven.artifact.resolver.ArtifactResolutionRequest;
 import org.apache.maven.model.Dependency;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
-import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.plugins.annotations.Parameter;
-import org.apache.maven.repository.RepositorySystem;
+import org.codehaus.plexus.util.StringUtils;
+import org.json.JSONObject;
 
 /**
  * Base scan class defining scanner parameters.
@@ -76,10 +73,61 @@ abstract class AbstractScanMojo extends AbstractMojo {
     }
 
     /**
-     * package private for tests.
+     * DTO for full-featured check spec.
      */
-    @Component
-    RepositorySystem repositorySystem;
+    public static class CheckSpec {
+        private String impl;
+        private String name;
+        private JSONObject config;
+
+        /**
+         * The direct classpath lookup name for a particular check. If not provided, indicates that a check should be
+         * looked up by name from a catalog on the classpath.
+         *
+         * @return className or script resource name of a {@link PackageCheck}
+         */
+        public String getImpl() {
+            return impl;
+        }
+
+        public void setImpl(final String impl) {
+            this.impl = impl;
+        }
+
+        /**
+         * The display name for the check. If "impl" is provided, and represents a script package check or a class that
+         * implements {@link PackageCheckFactory} this is treated as an alias for the check during
+         * this execution.
+         * <p>
+         * If "impl" is not provided, this is used to lookup a catalog check.
+         * <p>
+         * If "impl" is not a {@link PackageCheckFactory}, this value is ignored.
+         *
+         * @return the checkName
+         */
+        public String getName() {
+            return name;
+        }
+
+        public void setName(final String name) {
+            this.name = name;
+        }
+
+        /**
+         * If {@code impl} references a script check or a {@link PackageCheckFactory},
+         * or if the check loaded from a catalog by {@code name} is a script check or a
+         * {@link PackageCheckFactory}, this is used to configure the check.
+         *
+         * @return
+         */
+        public JSONObject getConfig() {
+            return config;
+        }
+
+        public void setConfig(final JSONObject config) {
+            this.config = config;
+        }
+    }
 
     /**
      * Specify a list of content-package artifacts to download and pre-install before the scanned packages.
@@ -222,12 +270,31 @@ abstract class AbstractScanMojo extends AbstractMojo {
     protected List<File> scriptPaths = new ArrayList<>();
 
     /**
+     * Specify a config object that will be provided as bindings to checks loaded via {@link #scriptPaths}
+     * and {@link #classPathChecks}.
+     *
+     * @since 0.5.0
+     */
+    @Parameter(name = "adhocCheckConfig")
+    protected JSONObject adhocCheckConfig;
+
+    /**
      * Specify a list of classPath resource names to locate and load as {@code PackageCheck}s.
      *
      * @since 0.4.0
+     * @deprecated 0.5.0
      */
+    @Deprecated
     @Parameter(name = "classPathChecks")
     protected List<String> classPathChecks = new ArrayList<>();
+
+    /**
+     * Specify a list of Checks to locate and load as {@code PackageCheck}s.
+     *
+     * @since 0.5.0
+     */
+    @Parameter(name = "checks")
+    protected List<CheckSpec> checks = new ArrayList<>();
 
     /**
      * Specify the minimum violation severity level that will trigger plugin execution failure. Valid options are
@@ -241,14 +308,6 @@ abstract class AbstractScanMojo extends AbstractMojo {
      */
     @Parameter(defaultValue = "MAJOR")
     protected Violation.Severity failOnSeverity = Violation.Severity.MAJOR;
-
-    protected Artifact depToArtifact(Dependency dependency, RepositoryRequest baseRequest) {
-        Artifact artifact = repositorySystem.createDependencyArtifact(dependency);
-        ArtifactResolutionRequest request = new ArtifactResolutionRequest(baseRequest);
-        request.setArtifact(artifact);
-        repositorySystem.resolve(request);
-        return artifact;
-    }
 
     protected void reactToReports(List<CheckReport> reports, boolean logPackageId) throws MojoFailureException {
         String errorMessage = String.format("** Violations were reported at or above severity: %s **", failOnSeverity);
@@ -279,37 +338,33 @@ abstract class AbstractScanMojo extends AbstractMojo {
         }
     }
 
-    protected List<File> resolveDependencies(final List<Dependency> dependencies) throws MojoExecutionException {
-        RepositoryRequest baseRequest = DefaultRepositoryRequest.getRepositoryRequest(session, project);
-
-        List<Artifact> preResolved = dependencies.stream()
-                .map(d -> depToArtifact(d, baseRequest)).collect(Collectors.toList());
-
-        Optional<Artifact> unresolvedArtifact = preResolved.stream()
-                .filter(a -> a.getFile() == null || !a.getFile().exists())
-                .findFirst();
-
-        if (unresolvedArtifact.isPresent()) {
-            Artifact a = unresolvedArtifact.get();
-            throw new MojoExecutionException(String.format("Failed to resolve file for artifact: %s:%s:%s",
-                    a.getGroupId(), a.getArtifactId(), a.getVersion()));
-        }
-
-        return preResolved.stream()
-                .map(Artifact::getFile)
-                .filter(File::exists)
-                .collect(Collectors.toList());
-    }
-
     protected PackageScanner.Builder getBuilder() throws MojoExecutionException {
 
-        final List<PackageCheck> listeners = new ArrayList<>();
+        final List<PackageCheck> allChecks = new ArrayList<>();
+
+        if (checks != null) {
+            for (CheckSpec checkSpec : checks) {
+                if (StringUtils.isEmpty(checkSpec.impl)) {
+                    throw new MojoExecutionException("Checklist lookup is not implemented yet. Please provide an 'impl' value for " + checkSpec.name);
+                }
+
+                try {
+                    PackageCheck packageCheck = Locator.loadPackageCheck(checkSpec.impl, checkSpec.config);
+                    if (StringUtils.isNotEmpty(checkSpec.name)) {
+                        packageCheck = Locator.wrapWithAlias(packageCheck, checkSpec.name);
+                    }
+                    allChecks.add(packageCheck);
+                } catch (final Exception e) {
+                    throw new MojoExecutionException("Failed to load package check: " + checkSpec.impl, e);
+                }
+            }
+        }
 
         if (classPathChecks != null) {
             for (String checkName : classPathChecks) {
                 try {
-                    PackageCheck packageCheck = Locator.loadPackageCheck(checkName);
-                    listeners.add(packageCheck);
+                    PackageCheck packageCheck = Locator.loadPackageCheck(checkName, adhocCheckConfig);
+                    allChecks.add(packageCheck);
                 } catch (final Exception e) {
                     throw new MojoExecutionException("Failed to load package check by name on classPath: " + checkName, e);
                 }
@@ -322,16 +377,17 @@ abstract class AbstractScanMojo extends AbstractMojo {
                 scriptPaths.addAll(scriptReporters);
             }
 
-            List<ScriptPackageCheck> scriptListeners = scriptPaths.stream().map(s -> {
+            List<PackageCheck> scriptListeners = scriptPaths.stream().map(s -> {
                 try {
-                    return Optional.of(ScriptPackageCheck.createScriptListener(s.toURI().toURL()));
+                    PackageCheckFactory factory = ScriptPackageCheck.createScriptCheckFactory(s.toURI().toURL());
+                    return Optional.of(factory.newInstance(adhocCheckConfig));
                 } catch (Exception e) {
                     getLog().error("Failed to read check script " + s.getAbsolutePath(), e);
                     return Optional.<ScriptPackageCheck>empty();
                 }
             }).filter(Optional::isPresent).map(Optional::get).collect(Collectors.toList());
 
-            listeners.addAll(scriptListeners);
+            allChecks.addAll(scriptListeners);
         }
 
         List<File> preInstall = new ArrayList<>();
@@ -349,44 +405,24 @@ abstract class AbstractScanMojo extends AbstractMojo {
 
         final Set<URL> unorderedCndUrls = new LinkedHashSet<>();
 
-        List<File> dependencyJars = new ArrayList<>();
-
-        getProject().ifPresent(project -> {
-            dependencyJars.add(new File(project.getBuild().getTestOutputDirectory()));
-        });
-
-        dependencyJars.addAll(resolveDependencies(project.getDependencies().stream()
-                .filter(dependency -> "jar".equals(dependency.getType()))
-                .filter(dependency -> "test".equals(dependency.getScope()))
-                .collect(Collectors.toList())));
 
         if (cndNames != null) {
             try {
-                Map<String, URL> projectNtds = SlingNodetypesScanner.resolveNodeTypeDefinitions(dependencyJars, cndNames);
-                Map<String, URL> pluginNtds = SlingNodetypesScanner.resolveNodeTypeDefinitions(getClass().getClassLoader(), cndNames);
+                Map<String, URL> pluginNtds = SlingNodetypesScanner.resolveNodeTypeDefinitions(cndNames);
                 for (String cndName : cndNames) {
-                    if (!projectNtds.containsKey(cndName) && !pluginNtds.containsKey(cndName)) {
+                    if (!pluginNtds.containsKey(cndName)) {
                         throw new MojoExecutionException("Failed to find node type definition on classpath for cndName " + cndName);
                     }
                 }
-                unorderedCndUrls.addAll(projectNtds.values());
                 unorderedCndUrls.addAll(pluginNtds.values());
-            } catch (IOException e) {
+            } catch (Exception e) {
                 throw new MojoExecutionException("Failed to resolve cndNames.", e);
             }
         }
 
         if (slingNodeTypes) {
             try {
-                List<URL> projectNtds = SlingNodetypesScanner.findNodeTypeDefinitions(dependencyJars);
-                for (URL ntd : projectNtds) {
-                    if (!unorderedCndUrls.contains(ntd)) {
-                        getLog().info(SlingNodetypesScanner.SLING_NODETYPES + ": Discovered node types: "
-                                + ntd.toString());
-                    }
-                }
-                unorderedCndUrls.addAll(projectNtds);
-                List<URL> pluginNtds = SlingNodetypesScanner.findNodeTypeDefinitions(getClass().getClassLoader());
+                List<URL> pluginNtds = SlingNodetypesScanner.findNodeTypeDefinitions();
                 for (URL ntd : pluginNtds) {
                     if (!unorderedCndUrls.contains(ntd)) {
                         getLog().info(SlingNodetypesScanner.SLING_NODETYPES + ": Discovered node types: "
@@ -435,7 +471,7 @@ abstract class AbstractScanMojo extends AbstractMojo {
         }
 
         PackageScanner.Builder scannerBuilder = new PackageScanner.Builder()
-                .withPackageListeners(listeners)
+                .withPackageListeners(allChecks)
                 .withInitStage(builder.build())
                 .withPreInstallPackages(preInstall);
 

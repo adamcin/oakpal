@@ -22,6 +22,7 @@ import java.io.InputStreamReader;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
@@ -38,6 +39,7 @@ import aQute.bnd.annotation.ProviderType;
 import org.apache.jackrabbit.vault.fs.config.MetaInf;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.apache.jackrabbit.vault.packaging.PackageProperties;
+import org.json.JSONObject;
 
 /**
  * The {@link ScriptPackageCheck} uses the {@link Invocable} interface from JSR223 to listen for scan events and optionally
@@ -46,33 +48,33 @@ import org.apache.jackrabbit.vault.packaging.PackageProperties;
  * You may implement only the methods you need to enforce your package check rules.
  * </p>
  * <dl>
- *     <dt>getCheckName()</dt>
- *     <dd>{@link PackageCheck#getCheckName()}</dd>
- *     <dt>startedScan()</dt>
- *     <dd>{@link PackageCheck#startedScan()}</dd>
- *     <dt>identifyPackage(packageId, packageFile)</dt>
- *     <dd>{@link PackageCheck#identifyPackage(PackageId, File)}</dd>
- *     <dt>identifySubpackage(packageId, parentPackageId)</dt>
- *     <dd>{@link PackageCheck#identifySubpackage(PackageId, PackageId)}</dd>
- *     <dt>beforeExtract()</dt>
- *     <dd>{@link PackageCheck#beforeExtract(PackageId, PackageProperties, MetaInf, List)}</dd>
- *     <dt>importedPath()</dt>
- *     <dd>{@link PackageCheck#importedPath(PackageId, String, Node)}</dd>
- *     <dt>deletedPath()</dt>
- *     <dd>{@link PackageCheck#deletedPath(PackageId, String)}</dd>
- *     <dt>afterExtract()</dt>
- *     <dd>{@link PackageCheck#afterExtract(PackageId, Session)}</dd>
- *     <dt>finishedScan()</dt>
- *     <dd>{@link PackageCheck#finishedScan()}</dd>
+ * <dt>getCheckName()</dt>
+ * <dd>{@link PackageCheck#getCheckName()}</dd>
+ * <dt>startedScan()</dt>
+ * <dd>{@link PackageCheck#startedScan()}</dd>
+ * <dt>identifyPackage(packageId, packageFile)</dt>
+ * <dd>{@link PackageCheck#identifyPackage(PackageId, File)}</dd>
+ * <dt>identifySubpackage(packageId, parentPackageId)</dt>
+ * <dd>{@link PackageCheck#identifySubpackage(PackageId, PackageId)}</dd>
+ * <dt>beforeExtract()</dt>
+ * <dd>{@link PackageCheck#beforeExtract(PackageId, PackageProperties, MetaInf, List)}</dd>
+ * <dt>importedPath()</dt>
+ * <dd>{@link PackageCheck#importedPath(PackageId, String, Node)}</dd>
+ * <dt>deletedPath()</dt>
+ * <dd>{@link PackageCheck#deletedPath(PackageId, String)}</dd>
+ * <dt>afterExtract()</dt>
+ * <dd>{@link PackageCheck#afterExtract(PackageId, Session)}</dd>
+ * <dt>finishedScan()</dt>
+ * <dd>{@link PackageCheck#finishedScan()}</dd>
  * </dl>
  * <p>
  * To report package violations, a {@link ScriptHelper} is bound to the global variable "oakpal".
  * </p>
- *
  */
 @ProviderType
 public final class ScriptPackageCheck implements PackageCheck {
     public static final String BINDING_SCRIPT_HELPER = "oakpal";
+    public static final String BINDING_CHECK_CONFIG = "config";
     public static final String INVOKE_ON_BEGIN_SCAN = "startedScan";
     public static final String INVOKE_ON_BEGIN_PACKAGE = "identifyPackage";
     public static final String INVOKE_ON_BEGIN_SUBPACKAGE = "identifySubpackage";
@@ -227,7 +229,39 @@ public final class ScriptPackageCheck implements PackageCheck {
         }
     }
 
-    public static ScriptPackageCheck createScriptListener(final URL scriptUrl) throws Exception {
+    /**
+     * Internal {@link PackageCheckFactory} impl for script check creation.
+     */
+    private static class ScriptPackageCheckFactory implements PackageCheckFactory {
+
+        private final ScriptEngine engine;
+        private final URL scriptUrl;
+
+        private ScriptPackageCheckFactory(final ScriptEngine engine, final URL scriptUrl) {
+            this.engine = engine;
+            this.scriptUrl = scriptUrl;
+        }
+
+        @Override
+        public PackageCheck newInstance(final JSONObject config) throws Exception {
+            try (InputStream is = scriptUrl.openStream()) {
+                Bindings scriptBindings = new SimpleBindings();
+                if (config != null) {
+                    scriptBindings.put(BINDING_CHECK_CONFIG, config.toMap());
+                } else {
+                    scriptBindings.put(BINDING_CHECK_CONFIG, Collections.<String, Object>emptyMap());
+                }
+                final ScriptHelper helper = new ScriptHelper();
+                scriptBindings.put(BINDING_SCRIPT_HELPER, helper);
+
+                engine.setBindings(scriptBindings, ScriptContext.ENGINE_SCOPE);
+                engine.eval(new InputStreamReader(is, Charset.forName("UTF-8")));
+                return new ScriptPackageCheck((Invocable) engine, helper, scriptUrl);
+            }
+        }
+    }
+
+    public static PackageCheckFactory createScriptCheckFactory(final URL scriptUrl) throws Exception {
         final int lastPeriod = scriptUrl.getPath().lastIndexOf(".");
         if (lastPeriod < 0 || lastPeriod + 1 >= scriptUrl.getPath().length()) {
             throw new Exception("Failed to load ScriptEngine for URL missing file extension."
@@ -238,26 +272,18 @@ public final class ScriptPackageCheck implements PackageCheck {
         if (engine == null) {
             throw new Exception("Failed to find a ScriptEngine for URL extension: " + scriptUrl.toString());
         }
-        return createScriptListener(engine, scriptUrl);
+        return createScriptCheckFactory(engine, scriptUrl);
     }
 
-    public static ScriptPackageCheck createScriptListener(String engineName, URL scriptUrl) throws Exception {
+    public static PackageCheckFactory createScriptCheckFactory(String engineName, URL scriptUrl) throws Exception {
         ScriptEngine engine = new ScriptEngineManager().getEngineByName(engineName);
         if (engine == null) {
             throw new Exception("Failed to load ScriptEngine by name: " + engineName);
         }
-        return createScriptListener(engine, scriptUrl);
+        return createScriptCheckFactory(engine, scriptUrl);
     }
 
-    public static ScriptPackageCheck createScriptListener(ScriptEngine engine, URL scriptUrl) throws Exception {
-        try (InputStream is = scriptUrl.openStream()) {
-            Bindings scriptBindings = new SimpleBindings();
-            final ScriptHelper helper = new ScriptHelper();
-            scriptBindings.put(BINDING_SCRIPT_HELPER, helper);
-
-            engine.setBindings(scriptBindings, ScriptContext.ENGINE_SCOPE);
-            engine.eval(new InputStreamReader(is, Charset.forName("UTF-8")));
-            return new ScriptPackageCheck((Invocable) engine, helper, scriptUrl);
-        }
+    public static PackageCheckFactory createScriptCheckFactory(ScriptEngine engine, URL scriptUrl) throws Exception {
+        return new ScriptPackageCheckFactory(engine, scriptUrl);
     }
 }
