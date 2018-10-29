@@ -20,6 +20,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import net.adamcin.oakpal.core.AbortedScanException;
@@ -116,8 +117,8 @@ public class ScanManyArtifactsMojo extends AbstractScanMojo {
         if (scanArtifacts != null && !scanArtifacts.isEmpty()) {
             RepositoryRequest baseRequest = DefaultRepositoryRequest.getRepositoryRequest(session, project);
 
-            List<Artifact> preResolved = scanArtifacts.stream()
-                    .map(d -> depToArtifact(d, baseRequest)).collect(Collectors.toList());
+            Set<Artifact> preResolved = scanArtifacts.stream()
+                    .map(d -> depToArtifact(d, baseRequest)).flatMap(Set::stream).collect(Collectors.toSet());
 
             Optional<Artifact> unresolvedArtifact = preResolved.stream()
                     .filter(a -> a.getFile() == null || !a.getFile().exists())

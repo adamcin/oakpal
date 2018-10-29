@@ -314,6 +314,7 @@ abstract class AbstractScanMojo extends AbstractMojo {
      * {@link net.adamcin.oakpal.core.Violation.Severity#SEVERE}.
      * <p>
      * FYI: FileVault Importer errors are reported as MAJOR by default.
+     * </p>
      *
      * @since 0.1.0
      */
