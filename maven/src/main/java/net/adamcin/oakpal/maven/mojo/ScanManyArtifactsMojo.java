@@ -46,7 +46,7 @@ import org.apache.maven.plugins.annotations.Parameter;
  * @since 0.3.0
  */
 @Mojo(name = "scan-many", configurator = OakpalComponentConfigurator.HINT,
-        defaultPhase = LifecyclePhase.INTEGRATION_TEST)
+        defaultPhase = LifecyclePhase.VERIFY)
 public class ScanManyArtifactsMojo extends AbstractScanMojo {
 
     /**
