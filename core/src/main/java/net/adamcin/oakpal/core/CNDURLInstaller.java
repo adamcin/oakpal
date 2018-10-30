@@ -58,7 +58,7 @@ final class CNDURLInstaller {
      */
     CNDURLInstaller(final ErrorListener errorListener,
                     final List<URL> unorderedCnds,
-                    final List<URL> postInstallCnds) throws IOException {
+                    final List<URL> postInstallCnds) {
         this.errorListener = errorListener != null ? errorListener : new DefaultErrorListener();
         this.unorderedCnds = new ArrayList<>(unorderedCnds);
         this.postInstallCnds = postInstallCnds != null ? new ArrayList<>(postInstallCnds) : Collections.emptyList();
@@ -69,7 +69,7 @@ final class CNDURLInstaller {
      *
      * @param session Session
      */
-    public void register(Session session) throws RepositoryException, IOException {
+    public void register(Session session) throws RepositoryException {
         register(session, unorderedCnds);
         registerByUrl(session, postInstallCnds);
     }
@@ -81,7 +81,7 @@ final class CNDURLInstaller {
      * @param nodeTypeResources List of classpath resource URLs pointing to node type definitions
      * @return map of resulting node type errors
      */
-    public void register(Session session, List<URL> nodeTypeResources) throws RepositoryException, IOException {
+    public void register(Session session, List<URL> nodeTypeResources) throws RepositoryException {
         registerNodeTypes(session, nodeTypeResources);
     }
 
@@ -123,7 +123,7 @@ final class CNDURLInstaller {
      * @param session           Session
      * @param nodeTypeResources List of classpath resource URLs pointing to node type definitions
      */
-    private void registerNodeTypes(Session session, List<URL> nodeTypeResources) throws RepositoryException, IOException {
+    private void registerNodeTypes(Session session, List<URL> nodeTypeResources) throws RepositoryException {
         Workspace workspace = session.getWorkspace();
         NodeTypeManager nodeTypeManager = workspace.getNodeTypeManager();
         NamespaceRegistry namespaceRegistry = workspace.getNamespaceRegistry();
@@ -154,13 +154,12 @@ final class CNDURLInstaller {
      * @param nodeTypeManager
      * @param namespaceRegistry
      * @param valueFactory
-     * @throws IOException if a ClassLoader.getResources() error occurs
      */
     private void registerNodeTypesAndRemoveSucceeds(final List<URL> nodeTypeResources,
                                                     final NodeTypeManager nodeTypeManager,
                                                     final NamespaceRegistry namespaceRegistry,
                                                     final ValueFactory valueFactory,
-                                                    final boolean logErrors) throws IOException {
+                                                    final boolean logErrors) {
         Iterator<URL> namedResources = nodeTypeResources.iterator();
         while (namedResources.hasNext()) {
             final URL namedResource = namedResources.next();

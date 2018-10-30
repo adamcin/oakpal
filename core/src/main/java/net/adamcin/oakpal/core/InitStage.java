@@ -22,8 +22,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -52,14 +53,6 @@ public final class InitStage {
 
     private final Map<String, ForcedRoot> forcedRoots;
 
-    /**
-     * Use the Builder
-     *
-     * @param orderedCndUrls
-     * @param namespaces
-     * @param privileges
-     * @param forcedRoots
-     */
     private InitStage(final List<URL> unorderedCndUrls,
                       final List<URL> orderedCndUrls,
                       final Map<String, String> namespaces,
@@ -76,11 +69,11 @@ public final class InitStage {
      * Use the builder to construct the {@link InitStage}.
      */
     public static class Builder {
-        private Map<String, String> namespaces = new HashMap<>();
+        private Map<String, String> namespaces = new LinkedHashMap<>();
 
-        private Set<String> privileges = new HashSet<>();
+        private Set<String> privileges = new LinkedHashSet<>();
 
-        private Map<String, ForcedRoot> forcedRoots = new HashMap<>();
+        private Map<String, ForcedRoot> forcedRoots = new LinkedHashMap<>();
 
         private List<URL> unorderedCndUrls = new ArrayList<>();
 
