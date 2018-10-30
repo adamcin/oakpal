@@ -61,6 +61,34 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-release-plugin</artifactId>
+                <version>2.5.3</version>
+                <configuration>
+                    <goals>deploy site</goals>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-site-plugin</artifactId>
+                <version>3.5.1</version>
+                <configuration>
+                    <inputEncoding>utf-8</inputEncoding>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>com.github.github</groupId>
+                <artifactId>site-maven-plugin</artifactId>
+                <configuration>
+                    <message>Creating site for ${project.artifactId} ${project.version}</message>
+                    <noJekyll>true</noJekyll>
+                    <repositoryOwner>adamcin</repositoryOwner>
+                    <repositoryName>${project.groupId}</repositoryName>
+                    <path>${project.artifactId}</path>
+                    <merge>true</merge>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 

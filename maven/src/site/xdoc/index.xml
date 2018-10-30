@@ -16,12 +16,12 @@
 
 <document>
     <properties>
-        <title>opal-maven-plugin</title>
+        <title>oakpal-maven-plugin</title>
     </properties>
     <body>
-        <section name="opal-maven-plugin">
+        <section name="oakpal-maven-plugin">
             <p>
-                Opal: Opal Package Acceptance Library
+                OakPAL: Opal Package Acceptance Library
             </p>
         </section>
         <section name="Requirements">

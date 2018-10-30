@@ -51,86 +51,6 @@ import org.json.JSONObject;
  */
 abstract class AbstractScanMojo extends AbstractMojo {
 
-    public static class JcrNs {
-        private String prefix;
-        private String uri;
-
-        public String getPrefix() {
-            return prefix;
-        }
-
-        public void setPrefix(String prefix) {
-            this.prefix = prefix;
-        }
-
-        public String getUri() {
-            return uri;
-        }
-
-        public void setUri(String uri) {
-            this.uri = uri;
-        }
-    }
-
-    /**
-     * DTO for full-featured check spec.
-     */
-    public static class CheckSpec {
-        private String impl;
-        private String name;
-        private JSONObject config;
-
-        /**
-         * The direct classpath lookup name for a particular check. If not provided, indicates that a check should be
-         * looked up by name from a catalog on the classpath.
-         *
-         * @return className or script resource name of a {@link PackageCheck}
-         */
-        public String getImpl() {
-            return impl;
-        }
-
-        public void setImpl(final String impl) {
-            this.impl = impl;
-        }
-
-        /**
-         * The display name for the check. If "impl" is provided, and represents a script package check or a class that
-         * implements {@link PackageCheckFactory} this is treated as an alias for the check during
-         * this execution.
-         * <p>
-         * If "impl" is not provided, this is used to lookup a catalog check.
-         * </p>
-         * <p>
-         * If "impl" is not a {@link PackageCheckFactory}, this value is ignored.
-         * </p>
-         *
-         * @return the checkName
-         */
-        public String getName() {
-            return name;
-        }
-
-        public void setName(final String name) {
-            this.name = name;
-        }
-
-        /**
-         * If {@code impl} references a script check or a {@link PackageCheckFactory},
-         * or if the check loaded from a catalog by {@code name} is a script check or a
-         * {@link PackageCheckFactory}, this is used to configure the check.
-         *
-         * @return
-         */
-        public JSONObject getConfig() {
-            return config;
-        }
-
-        public void setConfig(final JSONObject config) {
-            this.config = config;
-        }
-    }
-
     /**
      * Specify a list of content-package artifacts to download and pre-install before the scanned packages.
      * <p>
@@ -356,18 +276,18 @@ abstract class AbstractScanMojo extends AbstractMojo {
 
         if (checks != null) {
             for (CheckSpec checkSpec : checks) {
-                if (StringUtils.isEmpty(checkSpec.impl)) {
-                    throw new MojoExecutionException("Checklist lookup is not implemented yet. Please provide an 'impl' value for " + checkSpec.name);
+                if (StringUtils.isEmpty(checkSpec.getImpl())) {
+                    throw new MojoExecutionException("Checklist lookup is not implemented yet. Please provide an 'impl' value for " + checkSpec.getName());
                 }
 
                 try {
-                    PackageCheck packageCheck = Locator.loadPackageCheck(checkSpec.impl, checkSpec.config);
-                    if (StringUtils.isNotEmpty(checkSpec.name)) {
-                        packageCheck = Locator.wrapWithAlias(packageCheck, checkSpec.name);
+                    PackageCheck packageCheck = Locator.loadPackageCheck(checkSpec.getImpl(), checkSpec.getConfig());
+                    if (StringUtils.isNotEmpty(checkSpec.getName())) {
+                        packageCheck = Locator.wrapWithAlias(packageCheck, checkSpec.getName());
                     }
                     allChecks.add(packageCheck);
                 } catch (final Exception e) {
-                    throw new MojoExecutionException("Failed to load package check: " + checkSpec.impl, e);
+                    throw new MojoExecutionException("Failed to load package check: " + checkSpec.getImpl(), e);
                 }
             }
         }

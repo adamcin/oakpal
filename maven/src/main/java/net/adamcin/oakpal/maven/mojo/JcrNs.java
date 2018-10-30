@@ -14,23 +14,38 @@
  * limitations under the License.
  */
 
-package net.adamcin.oakpal.core;
-
-import org.json.JSONObject;
+package net.adamcin.oakpal.maven.mojo;
 
 /**
- * A factory for creating {@link PackageCheck}s that accepts a config map.
- *
- * @since 0.5.0
+ * Config DTO for JCR Namespace Prefix to URI Mappings.
  */
-public interface PackageCheckFactory {
+public class JcrNs {
+    private String prefix;
+    private String uri;
 
     /**
-     * Returns a new check with the provided config.
+     * The namespace prefix.
      *
-     * @param config an arbitrary config object
-     * @return new PackageCheck, optionally taking the provided config into account.
-     * @throws Exception for whatever reason instance creation fails.
+     * @return the namespace prefix
      */
-    PackageCheck newInstance(final JSONObject config) throws Exception;
+    public String getPrefix() {
+        return prefix;
+    }
+
+    public void setPrefix(String prefix) {
+        this.prefix = prefix;
+    }
+
+    /**
+     * The namespace URI.
+     *
+     * @return the namespace URI
+     */
+    public String getUri() {
+        return uri;
+    }
+
+    public void setUri(String uri) {
+        this.uri = uri;
+    }
 }
