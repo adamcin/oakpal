@@ -289,7 +289,7 @@ abstract class AbstractScanMojo extends AbstractMojo {
 
         final List<PackageCheck> allChecks = new ArrayList<>();
         final ChecklistPlanner checklistPlanner = new ChecklistPlanner(errorListener, checklists);
-        checklistPlanner.discoverChecklists(ChecklistPlanner.class.getClassLoader());
+        checklistPlanner.discoverChecklists();
 
         for (CheckSpec checkSpec : checklistPlanner.getEffectiveCheckSpecs(checks)) {
             if (StringUtils.isEmpty(checkSpec.getImpl())) {

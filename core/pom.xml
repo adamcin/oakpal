@@ -91,6 +91,7 @@
                 <extensions>true</extensions>
                 <configuration>
                     <instructions>
+                        <Automatic-Module-Name>net.adamcin.oakpal.core</Automatic-Module-Name>
                         <Oakpal-Checklist>OAKPAL-INF/utility.json</Oakpal-Checklist>
                     </instructions>
                 </configuration>

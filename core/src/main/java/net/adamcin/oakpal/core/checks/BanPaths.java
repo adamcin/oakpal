@@ -37,12 +37,16 @@ import org.json.JSONObject;
  * Ban paths by regular expression.
  */
 public class BanPaths implements PackageCheckFactory {
+    public static final String CONFIG_PATTERNS = "patterns";
+    public static final String CONFIG_BAN_ALL_DELETES = "banAllDeletes";
 
     public class Check extends SimplePackageCheck {
         private final List<Pattern> banPatterns;
+        private final boolean banAllDeletes;
 
-        public Check(final List<Pattern> banPatterns) {
+        public Check(final List<Pattern> banPatterns, final boolean banAllDeletes) {
             this.banPatterns = banPatterns;
+            this.banAllDeletes = banAllDeletes;
         }
 
         @Override
@@ -63,12 +67,17 @@ public class BanPaths implements PackageCheckFactory {
 
         @Override
         public void deletedPath(final PackageId packageId, final String path) {
-            banPatterns.forEach(pattern -> {
-                if (pattern.matcher(path).find()) {
-                    reportViolation(new SimpleViolation(Violation.Severity.MAJOR,
-                            String.format("deleted path %s matches banned pattern %s", path, pattern.pattern()), packageId));
-                }
-            });
+            if (this.banAllDeletes) {
+                reportViolation(new SimpleViolation(Violation.Severity.MAJOR,
+                        String.format("deleted path %s. All deletions are forbidden.", path), packageId));
+            } else {
+                banPatterns.forEach(pattern -> {
+                    if (pattern.matcher(path).find()) {
+                        reportViolation(new SimpleViolation(Violation.Severity.MAJOR,
+                                String.format("deleted path %s matches banned pattern %s", path, pattern.pattern()), packageId));
+                    }
+                });
+            }
         }
     }
 
@@ -76,12 +85,18 @@ public class BanPaths implements PackageCheckFactory {
     public PackageCheck newInstance(final JSONObject config) throws Exception {
         List<String> patternStrings = new ArrayList<>();
         List<Pattern> patterns = new ArrayList<>();
-        Optional.ofNullable(config.optJSONArray("patterns"))
+        Optional.ofNullable(config.optJSONArray(CONFIG_PATTERNS))
                 .map(array -> StreamSupport.stream(array.spliterator(), true)
                         .map(String::valueOf).collect(Collectors.toList())).ifPresent(patternStrings::addAll);
         for (String patternString : patternStrings) {
             patterns.add(Pattern.compile(patternString));
         }
-        return new Check(patterns);
+        final boolean banAllDeletes;
+        if (config.has(CONFIG_BAN_ALL_DELETES)) {
+            banAllDeletes = config.optBoolean(CONFIG_BAN_ALL_DELETES);
+        } else {
+            banAllDeletes = false;
+        }
+        return new Check(patterns, banAllDeletes);
     }
 }

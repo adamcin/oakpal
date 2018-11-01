@@ -88,6 +88,7 @@
                         <check>
                             <name>utility/banPaths</name>
                             <config>
+                                <banAllDeletes>true</banAllDeletes>
                                 <patterns>
                                     <pattern>/tmp/fullcoverage</pattern>
                                 </patterns>
