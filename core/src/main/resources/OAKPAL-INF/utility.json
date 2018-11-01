@@ -1,0 +1,16 @@
+{
+  "name": "utility",
+  "checks": [
+    {
+      "name": "echo",
+      "impl": "net.adamcin.oakpal.core.checks.Echo"
+    },
+    {
+      "name": "banPaths",
+      "impl": "net.adamcin.oakpal.core.checks.BanPaths",
+      "config": {
+        "patterns": []
+      }
+    }
+  ]
+}

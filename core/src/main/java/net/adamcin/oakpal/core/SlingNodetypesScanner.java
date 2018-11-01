@@ -25,7 +25,6 @@ import java.util.Enumeration;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.jar.Attributes;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
 import java.util.zip.ZipEntry;
@@ -49,9 +48,7 @@ public final class SlingNodetypesScanner {
      * @throws IOException for I/O Errors
      */
     public static List<URL> findNodeTypeDefinitions() throws IOException {
-        return findNodeTypeDefinitions(Thread.currentThread().getContextClassLoader() != null
-                ? Thread.currentThread().getContextClassLoader()
-                : SlingNodetypesScanner.class.getClassLoader());
+        return findNodeTypeDefinitions(Util.getDefaultClassLoader());
     }
 
     /**
@@ -71,7 +68,7 @@ public final class SlingNodetypesScanner {
             URL url = resEnum.nextElement();
             try (InputStream is = url.openStream()) {
                 Manifest manifest = new Manifest(is);
-                resourceNames.addAll(getSlingNodetypesFromManifest(manifest));
+                resourceNames.addAll(Util.getManifestHeaderValues(manifest, SLING_NODETYPES));
             }
         }
 
@@ -96,13 +93,13 @@ public final class SlingNodetypesScanner {
                 if (manifestFile.exists()) {
                     try (InputStream fis = new FileInputStream(manifestFile)) {
                         Manifest manifest = new Manifest(fis);
-                        resourceNames.addAll(getSlingNodetypesFromManifest(manifest));
+                        resourceNames.addAll(Util.getManifestHeaderValues(manifest, SLING_NODETYPES));
                     }
                 }
             } else {
                 try (JarFile jar = new JarFile(zipFile)) {
                     Manifest manifest = jar.getManifest();
-                    resourceNames.addAll(getSlingNodetypesFromManifest(manifest));
+                    resourceNames.addAll(Util.getManifestHeaderValues(manifest, SLING_NODETYPES));
                 }
             }
         }
@@ -110,28 +107,8 @@ public final class SlingNodetypesScanner {
         return new ArrayList<>(resolveNodeTypeDefinitions(resourceNames, zipFiles).values());
     }
 
-
-    public static List<String> getSlingNodetypesFromManifest(final Manifest manifest) {
-        List<String> resourceNames = new ArrayList<>();
-        Attributes mainAttribs = manifest.getMainAttributes();
-        String nodeTypeDefinitionList = mainAttribs.getValue(SLING_NODETYPES);
-        String[] nodeTypeDefinitionArray = nodeTypeDefinitionList != null
-                ? nodeTypeDefinitionList.split(",")
-                : null;
-        if (nodeTypeDefinitionArray != null) {
-            for (String nodeTypeDefinition : nodeTypeDefinitionArray) {
-                if (!nodeTypeDefinition.trim().isEmpty()) {
-                    resourceNames.add(nodeTypeDefinition.trim());
-                }
-            }
-        }
-        return resourceNames;
-    }
-
     public static Map<String, URL> resolveNodeTypeDefinitions(final List<String> resourceNames) {
-        return resolveNodeTypeDefinitions(resourceNames, Thread.currentThread().getContextClassLoader() != null
-                ? Thread.currentThread().getContextClassLoader()
-                : SlingNodetypesScanner.class.getClassLoader());
+        return resolveNodeTypeDefinitions(resourceNames, Util.getDefaultClassLoader());
     }
 
     public static Map<String, URL> resolveNodeTypeDefinitions(final List<String> resourceNames,
@@ -169,7 +146,8 @@ public final class SlingNodetypesScanner {
                         }
                         ZipEntry zipEntry = zip.getEntry(name);
                         if (zipEntry != null) {
-                            URL cndUrl = new URL(String.format("jar:%s!/%s", zipFile.toURI().toURL().toExternalForm(), name));
+                            URL cndUrl = new URL(String.format("jar:%s!/%s",
+                                    zipFile.toURI().toURL().toExternalForm(), name));
                             cndUrls.put(name, cndUrl);
                         }
                     }

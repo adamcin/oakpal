@@ -92,6 +92,17 @@ public final class InitStage {
         }
 
         /**
+         * Register additional JCR namespaces prior to the scan.
+         *
+         * @param mappings list of mappings
+         * @return my builder self
+         */
+        public Builder withNs(final List<JcrNs> mappings) {
+            mappings.forEach(jcrNs -> withNs(jcrNs.getPrefix(), jcrNs.getUri()));
+            return this;
+        }
+
+        /**
          * Register an additional JCR privilege prior to the scan. If the privilege belongs to a custom namespace, be
          * sure to register that as well using {@link #withNs(String, String)}
          *
@@ -233,7 +244,7 @@ public final class InitStage {
         }
     }
 
-    void initSession(final Session admin, final ErrorListener errorListener) throws RepositoryException, IOException {
+    void initSession(final Session admin, final ErrorListener errorListener) throws RepositoryException {
         final CNDURLInstaller cndInstaller = new CNDURLInstaller(errorListener,
                 this.unorderedCndUrls, this.orderedCndUrls);
 
@@ -288,5 +299,4 @@ public final class InitStage {
             }
         }
     }
-
 }

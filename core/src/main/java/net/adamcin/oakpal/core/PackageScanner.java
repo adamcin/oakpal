@@ -252,7 +252,7 @@ public final class PackageScanner {
                     processPackageFile(admin, manager, file, false);
                 }
             }
-        } catch (RepositoryException | IOException e) {
+        } catch (RepositoryException e) {
             throw new AbortedScanException(e);
         } finally {
             packageChecks.forEach(PackageCheck::finishedScan);

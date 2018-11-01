@@ -14,12 +14,19 @@
  * limitations under the License.
  */
 
-package net.adamcin.oakpal.maven.mojo;
+package net.adamcin.oakpal.core;
+
+import static java.util.Optional.ofNullable;
+
+import org.json.JSONObject;
 
 /**
  * Config DTO for JCR Namespace Prefix to URI Mappings.
  */
-public class JcrNs {
+public final class JcrNs {
+    static final String KEY_PREFIX = "prefix";
+    static final String KEY_URI = "uri";
+
     private String prefix;
     private String uri;
 
@@ -47,5 +54,18 @@ public class JcrNs {
 
     public void setUri(String uri) {
         this.uri = uri;
+    }
+
+    /**
+     * Map a JSON object to a {@link JcrNs}.
+     *
+     * @param json JSON object
+     * @return a new JCR NS mapping
+     */
+    static JcrNs fromJSON(final JSONObject json) {
+        JcrNs jcrNs = new JcrNs();
+        ofNullable(json.optString(KEY_PREFIX)).ifPresent(jcrNs::setPrefix);
+        ofNullable(json.optString(KEY_URI)).ifPresent(jcrNs::setUri);
+        return jcrNs;
     }
 }

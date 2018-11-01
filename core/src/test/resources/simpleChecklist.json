@@ -1,0 +1,28 @@
+{
+  "name": "simpleChecklist",
+  "cndNames": [
+    "parent/fake.cnd"
+  ],
+  "jcrNamespaces": [
+    {
+      "prefix": "oakpal",
+      "uri": "simpleNS"
+    }
+  ],
+  "jcrPrivileges": [
+    "oakpal:dummy"
+  ],
+  "forcedRoots": [
+    {
+      "path": "/home/oakpal",
+      "primaryType": "sling:Folder",
+      "mixinTypes": "oakpal:Mixin"
+    }
+  ],
+  "checks": [
+    {
+      "name": "simpleHandler",
+      "impl": "simpleHandler.js"
+    }
+  ]
+}

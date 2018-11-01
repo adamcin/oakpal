@@ -52,7 +52,7 @@
                     </jcrPrivileges>
                     <forcedRoots>
                         <forcedRoot>
-                            <path>/oakpal:oakpal</path>
+                            <path>/tmp/fullcoverage/c</path>
                         </forcedRoot>
                     </forcedRoots>
                     <slingNodeTypes>true</slingNodeTypes>
@@ -80,7 +80,19 @@
                             </bats>
                         </someMap>
                     </adhocCheckConfig>
+                    <failOnSeverity>SEVERE</failOnSeverity>
                     <checks>
+                        <check>
+                            <name>utility/echo</name>
+                        </check>
+                        <check>
+                            <name>utility/banPaths</name>
+                            <config>
+                                <patterns>
+                                    <pattern>/tmp/fullcoverage</pattern>
+                                </patterns>
+                            </config>
+                        </check>
                         <check>
                             <impl>testOutputScriptCheck.js</impl>
                             <name>Script Check: Test Output</name>

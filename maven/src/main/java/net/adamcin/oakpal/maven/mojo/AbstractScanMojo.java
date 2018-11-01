@@ -29,8 +29,13 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import net.adamcin.oakpal.core.CheckReport;
+import net.adamcin.oakpal.core.CheckSpec;
+import net.adamcin.oakpal.core.ChecklistPlanner;
+import net.adamcin.oakpal.core.DefaultErrorListener;
+import net.adamcin.oakpal.core.ErrorListener;
 import net.adamcin.oakpal.core.ForcedRoot;
 import net.adamcin.oakpal.core.InitStage;
+import net.adamcin.oakpal.core.JcrNs;
 import net.adamcin.oakpal.core.Locator;
 import net.adamcin.oakpal.core.PackageCheck;
 import net.adamcin.oakpal.core.PackageCheckFactory;
@@ -228,6 +233,15 @@ abstract class AbstractScanMojo extends AbstractMojo {
     protected List<CheckSpec> checks = new ArrayList<>();
 
     /**
+     * Specify a list of checklist ids {@code [ module/ ]name} to enforce.
+     *
+     * @since 0.6.0
+     */
+    @Parameter(name = "checklists")
+    protected List<String> checklists = new ArrayList<>();
+
+
+    /**
      * Specify the minimum violation severity level that will trigger plugin execution failure. Valid options are
      * {@link net.adamcin.oakpal.core.Violation.Severity#MINOR},
      * {@link net.adamcin.oakpal.core.Violation.Severity#MAJOR}, and
@@ -271,24 +285,25 @@ abstract class AbstractScanMojo extends AbstractMojo {
     }
 
     protected PackageScanner.Builder getBuilder() throws MojoExecutionException {
+        final ErrorListener errorListener = new DefaultErrorListener();
 
         final List<PackageCheck> allChecks = new ArrayList<>();
+        final ChecklistPlanner checklistPlanner = new ChecklistPlanner(errorListener, checklists);
+        checklistPlanner.discoverChecklists(ChecklistPlanner.class.getClassLoader());
 
-        if (checks != null) {
-            for (CheckSpec checkSpec : checks) {
-                if (StringUtils.isEmpty(checkSpec.getImpl())) {
-                    throw new MojoExecutionException("Checklist lookup is not implemented yet. Please provide an 'impl' value for " + checkSpec.getName());
-                }
+        for (CheckSpec checkSpec : checklistPlanner.getEffectiveCheckSpecs(checks)) {
+            if (StringUtils.isEmpty(checkSpec.getImpl())) {
+                throw new MojoExecutionException("Please provide an 'impl' value for " + checkSpec.getName());
+            }
 
-                try {
-                    PackageCheck packageCheck = Locator.loadPackageCheck(checkSpec.getImpl(), checkSpec.getConfig());
-                    if (StringUtils.isNotEmpty(checkSpec.getName())) {
-                        packageCheck = Locator.wrapWithAlias(packageCheck, checkSpec.getName());
-                    }
-                    allChecks.add(packageCheck);
-                } catch (final Exception e) {
-                    throw new MojoExecutionException("Failed to load package check: " + checkSpec.getImpl(), e);
+            try {
+                PackageCheck packageCheck = Locator.loadPackageCheck(checkSpec.getImpl(), checkSpec.getConfig());
+                if (StringUtils.isNotEmpty(checkSpec.getName())) {
+                    packageCheck = Locator.wrapWithAlias(packageCheck, checkSpec.getName());
                 }
+                allChecks.add(packageCheck);
+            } catch (final Exception e) {
+                throw new MojoExecutionException("Failed to load package check: " + checkSpec.getImpl(), e);
             }
         }
 
@@ -403,7 +418,9 @@ abstract class AbstractScanMojo extends AbstractMojo {
         }
 
         PackageScanner.Builder scannerBuilder = new PackageScanner.Builder()
+                .withErrorListener(errorListener)
                 .withPackageListeners(allChecks)
+                .withInitStages(checklistPlanner.getInitStages())
                 .withInitStage(builder.build())
                 .withPreInstallPackages(preInstall);
 

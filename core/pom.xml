@@ -37,7 +37,7 @@
     </parent>
 
     <artifactId>oakpal-core</artifactId>
-    <packaging>jar</packaging>
+    <packaging>bundle</packaging>
 
     <name>OakPAL - Core</name>
     <description>OakPAL Core Implementation</description>
@@ -86,8 +86,14 @@
                 <artifactId>maven-compiler-plugin</artifactId>
             </plugin>
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-jar-plugin</artifactId>
+                <groupId>org.apache.felix</groupId>
+                <artifactId>maven-bundle-plugin</artifactId>
+                <extensions>true</extensions>
+                <configuration>
+                    <instructions>
+                        <Oakpal-Checklist>OAKPAL-INF/utility.json</Oakpal-Checklist>
+                    </instructions>
+                </configuration>
             </plugin>
             <plugin>
                 <groupId>com.github.github</groupId>

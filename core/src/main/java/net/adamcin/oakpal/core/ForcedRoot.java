@@ -16,12 +16,21 @@
 
 package net.adamcin.oakpal.core;
 
+import static java.util.Optional.ofNullable;
+
 import java.util.List;
+import java.util.stream.Collectors;
+
+import org.json.JSONObject;
 
 /**
  * Encapsulation of details necessary to force creation of a particular root path.
  */
 public final class ForcedRoot {
+    static final String KEY_PATH = "path";
+    static final String KEY_PRIMARY_TYPE = "primaryType";
+    static final String KEY_MIXIN_TYPES = "mixinTypes";
+
     private String path;
 
     private String primaryType;
@@ -50,5 +59,22 @@ public final class ForcedRoot {
 
     public void setMixinTypes(List<String> mixinTypes) {
         this.mixinTypes = mixinTypes;
+    }
+
+
+    /**
+     * Map a JSON object to a {@link ForcedRoot}.
+     *
+     * @param json JSON object
+     * @return a new forced root
+     */
+    static ForcedRoot fromJSON(final JSONObject json) {
+        final ForcedRoot forcedRoot = new ForcedRoot();
+        ofNullable(json.optString(KEY_PATH)).ifPresent(forcedRoot::setPath);
+        ofNullable(json.optString(KEY_PRIMARY_TYPE)).ifPresent(forcedRoot::setPrimaryType);
+        ofNullable(json.optJSONArray(KEY_MIXIN_TYPES))
+                .map(types -> types.toList().stream().map(String::valueOf).collect(Collectors.toList()))
+                .ifPresent(forcedRoot::setMixinTypes);
+        return forcedRoot;
     }
 }
