@@ -21,6 +21,7 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -90,20 +91,24 @@ abstract class AbstractMojo extends org.apache.maven.plugin.AbstractMojo {
 
     private ClassLoader containerClassLoader;
 
-    protected Set<Artifact> depToArtifact(Dependency dependency, RepositoryRequest baseRequest) {
+    protected Set<Artifact> depToArtifact(final Dependency dependency, final RepositoryRequest baseRequest,
+                                          final boolean transitive) {
         Artifact artifact = repositorySystem.createDependencyArtifact(dependency);
         ArtifactResolutionRequest request = new ArtifactResolutionRequest(baseRequest);
         request.setArtifact(artifact);
-        request.setResolveTransitively(true);
+        request.setResolveTransitively(transitive);
         ArtifactResolutionResult result = repositorySystem.resolve(request);
-        return result.getArtifacts();
+        return transitive ? result.getArtifacts() : Collections.singleton(artifact);
     }
 
-    protected List<File> resolveDependencies(final List<Dependency> dependencies) throws MojoExecutionException {
+    protected List<File> resolveDependencies(final List<Dependency> dependencies, final boolean transitive)
+            throws MojoExecutionException {
         RepositoryRequest baseRequest = DefaultRepositoryRequest.getRepositoryRequest(session, project);
 
         Set<Artifact> preResolved = dependencies.stream()
-                .map(d -> depToArtifact(d, baseRequest)).flatMap(Set::stream).collect(Collectors.toSet());
+                .map(d -> depToArtifact(d, baseRequest, transitive))
+                .flatMap(Set::stream)
+                .collect(Collectors.toSet());
 
         Optional<Artifact> unresolvedArtifact = preResolved.stream()
                 .filter(a -> a.getFile() == null || !a.getFile().exists())
@@ -144,7 +149,7 @@ abstract class AbstractMojo extends org.apache.maven.plugin.AbstractMojo {
                         .collect(Collectors.toList()))
         );
 
-        dependencyJars.addAll(resolveDependencies(unresolvedDependencies));
+        dependencyJars.addAll(resolveDependencies(unresolvedDependencies, true));
 
         try {
             List<URL> urls = new ArrayList<>(dependencyJars.size());

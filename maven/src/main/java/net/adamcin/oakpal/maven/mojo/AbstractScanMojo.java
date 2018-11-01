@@ -344,7 +344,7 @@ abstract class AbstractScanMojo extends AbstractMojo {
         List<File> preInstall = new ArrayList<>();
 
         if (preInstallArtifacts != null && !preInstallArtifacts.isEmpty()) {
-            List<File> preInstallResolved = resolveDependencies(preInstallArtifacts);
+            List<File> preInstallResolved = resolveDependencies(preInstallArtifacts, false);
             preInstall.addAll(preInstallResolved);
         }
 

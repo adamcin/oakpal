@@ -35,6 +35,7 @@ import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
+import org.apache.maven.plugins.annotations.ResolutionScope;
 
 /**
  * Scans a list of artifacts by simulating package installation and listening for violations reported by the
@@ -46,7 +47,7 @@ import org.apache.maven.plugins.annotations.Parameter;
  * @since 0.3.0
  */
 @Mojo(name = "scan-many", configurator = OakpalComponentConfigurator.HINT,
-        defaultPhase = LifecyclePhase.VERIFY)
+        requiresDependencyResolution = ResolutionScope.TEST, defaultPhase = LifecyclePhase.VERIFY)
 public class ScanManyArtifactsMojo extends AbstractScanMojo {
 
     /**
@@ -118,7 +119,9 @@ public class ScanManyArtifactsMojo extends AbstractScanMojo {
             RepositoryRequest baseRequest = DefaultRepositoryRequest.getRepositoryRequest(session, project);
 
             Set<Artifact> preResolved = scanArtifacts.stream()
-                    .map(d -> depToArtifact(d, baseRequest)).flatMap(Set::stream).collect(Collectors.toSet());
+                    .map(d -> depToArtifact(d, baseRequest, false))
+                    .flatMap(Set::stream)
+                    .collect(Collectors.toSet());
 
             Optional<Artifact> unresolvedArtifact = preResolved.stream()
                     .filter(a -> a.getFile() == null || !a.getFile().exists())
