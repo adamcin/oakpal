@@ -11,6 +11,13 @@
       "config": {
         "patterns": []
       }
+    },
+    {
+      "name": "acHandling",
+      "impl": "net.adamcin.oakpal.core.checks.AcHandling",
+      "config": {
+        "levelSet": "no_unsafe"
+      }
     }
   ]
 }

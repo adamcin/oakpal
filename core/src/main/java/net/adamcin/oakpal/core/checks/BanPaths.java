@@ -51,7 +51,7 @@ public class BanPaths implements PackageCheckFactory {
 
         @Override
         public String getCheckName() {
-            return "BanPaths";
+            return BanPaths.this.getClass().getSimpleName();
         }
 
         @Override
@@ -91,12 +91,7 @@ public class BanPaths implements PackageCheckFactory {
         for (String patternString : patternStrings) {
             patterns.add(Pattern.compile(patternString));
         }
-        final boolean banAllDeletes;
-        if (config.has(CONFIG_BAN_ALL_DELETES)) {
-            banAllDeletes = config.optBoolean(CONFIG_BAN_ALL_DELETES);
-        } else {
-            banAllDeletes = false;
-        }
+        final boolean banAllDeletes = config.has(CONFIG_BAN_ALL_DELETES) && config.optBoolean(CONFIG_BAN_ALL_DELETES);
         return new Check(patterns, banAllDeletes);
     }
 }

@@ -263,13 +263,16 @@ abstract class AbstractScanMojo extends AbstractMojo {
                 .collect(Collectors.toList());
         boolean shouldFail = nonEmptyReports.stream().anyMatch(r -> !r.getViolations(failOnSeverity).isEmpty());
 
+        if (!nonEmptyReports.isEmpty()) {
+            getLog().info("OakPAL Check Reports");
+        }
         for (CheckReport r : nonEmptyReports) {
-            getLog().info(String.format(" OakPAL Check: %s", String.valueOf(r.getCheckName())));
+            getLog().info(String.format("  %s", String.valueOf(r.getCheckName())));
             for (Violation v : r.getViolations()) {
                 Set<PackageId> packageIds = new LinkedHashSet<>(v.getPackages());
                 String violLog = logPackageId && !packageIds.isEmpty()
-                        ? String.format("  +- <%s> %s %s", v.getSeverity(), v.getDescription(), packageIds)
-                        : String.format("  +- <%s> %s", v.getSeverity(), v.getDescription());
+                        ? String.format("   +- <%s> %s %s", v.getSeverity(), v.getDescription(), packageIds)
+                        : String.format("   +- <%s> %s", v.getSeverity(), v.getDescription());
                 if (v.getSeverity().isLessSevereThan(failOnSeverity)) {
                     getLog().info(" " + violLog);
                 } else {
@@ -303,7 +306,8 @@ abstract class AbstractScanMojo extends AbstractMojo {
                 }
                 allChecks.add(packageCheck);
             } catch (final Exception e) {
-                throw new MojoExecutionException("Failed to load package check: " + checkSpec.getImpl(), e);
+                throw new MojoExecutionException(String.format("Failed to load package check %s. (impl: %s)",
+                        Optional.ofNullable(checkSpec.getName()).orElse(""), checkSpec.getImpl()), e);
             }
         }
 

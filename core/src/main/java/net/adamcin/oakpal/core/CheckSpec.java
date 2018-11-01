@@ -18,8 +18,6 @@ package net.adamcin.oakpal.core;
 
 import static java.util.Optional.ofNullable;
 
-import java.util.Map;
-
 import org.json.JSONObject;
 
 /**
@@ -124,7 +122,7 @@ public class CheckSpec {
 
     static JSONObject merge(final JSONObject base, final JSONObject overlay) {
         JSONObject init = ofNullable(base).orElse(new JSONObject());
-        ofNullable(overlay).map(JSONObject::toMap).ifPresent(entries -> entries.forEach(init::accumulate));
+        ofNullable(overlay).ifPresent(ext -> ext.keySet().forEach(key -> init.put(key, ext.get(key))));
         return init;
     }
 

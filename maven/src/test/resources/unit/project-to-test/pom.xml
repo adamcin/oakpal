@@ -83,15 +83,21 @@
                     <failOnSeverity>SEVERE</failOnSeverity>
                     <checks>
                         <check>
-                            <name>utility/echo</name>
+                            <name>echo</name>
                         </check>
                         <check>
-                            <name>utility/banPaths</name>
+                            <name>banPaths</name>
                             <config>
                                 <banAllDeletes>true</banAllDeletes>
                                 <patterns>
                                     <pattern>/tmp/fullcoverage</pattern>
                                 </patterns>
+                            </config>
+                        </check>
+                        <check>
+                            <name>acHandling</name>
+                            <config>
+                                <allowedModes implementation="java.util.List"/>
                             </config>
                         </check>
                         <check>
