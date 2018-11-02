@@ -37,7 +37,7 @@
 
     <groupId>net.adamcin.oakpal</groupId>
     <artifactId>oakpal</artifactId>
-    <version>0.8.0</version>
+    <version>0.9.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <inceptionYear>2017</inceptionYear>
@@ -49,7 +49,7 @@
         <url>https://github.com/adamcin/${project.groupId}</url>
         <developerConnection>scm:git:git@github.com:adamcin/${project.groupId}.git</developerConnection>
         <connection>scm:git://github.com/adamcin/${project.groupId}.git</connection>
-        <tag>oakpal-0.8.0</tag>
+        <tag>HEAD</tag>
     </scm>
 
     <modules>
@@ -288,12 +288,12 @@
             <dependency>
                 <groupId>net.adamcin.oakpal</groupId>
                 <artifactId>oakpal-testing</artifactId>
-                <version>0.8.0</version>
+                <version>0.9.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>net.adamcin.oakpal</groupId>
                 <artifactId>oakpal-core</artifactId>
-                <version>0.8.0</version>
+                <version>0.9.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.json</groupId>
