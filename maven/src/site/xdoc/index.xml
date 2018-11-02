@@ -21,7 +21,7 @@
     <body>
         <section name="oakpal-maven-plugin">
             <p>
-                OakPAL: Opal Package Acceptance Library
+                OakPAL: Oak Package Acceptance Library
             </p>
         </section>
         <section name="Requirements">

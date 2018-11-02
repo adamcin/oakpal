@@ -31,7 +31,7 @@ import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.apache.jackrabbit.vault.packaging.PackageProperties;
 
 /**
- * Simple verbose package check.
+ * Simple verbose package check that logs all scan events to standard out.
  */
 public class Echo implements PackageCheck {
 

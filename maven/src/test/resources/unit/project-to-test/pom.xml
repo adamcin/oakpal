@@ -86,12 +86,15 @@
                             <name>echo</name>
                         </check>
                         <check>
-                            <name>banPaths</name>
+                            <name>paths</name>
                             <config>
-                                <banAllDeletes>true</banAllDeletes>
-                                <patterns>
-                                    <pattern>/tmp/fullcoverage</pattern>
-                                </patterns>
+                                <denyAllDeletes>true</denyAllDeletes>
+                                <rules>
+                                    <rule>
+                                        <pattern>/tmp/fullcoverage(/.*)?</pattern>
+                                        <type>DENY</type>
+                                    </rule>
+                                </rules>
                             </config>
                         </check>
                         <check>

@@ -33,10 +33,7 @@ import org.json.JSONObject;
 import org.json.JSONTokener;
 
 /**
- * TODO
- * 1. Discover all VALID checklists. Overrides may reference checks from inactive checklists
- * 2. Return ALL checks from active checklists with overrides
- * 3.
+ * Discoverer of checklists and computer of checkSpecs.
  */
 public final class ChecklistPlanner {
     public static final String OAKPAL_CHECKLIST = "Oakpal-Checklist";

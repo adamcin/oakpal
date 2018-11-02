@@ -43,13 +43,27 @@ import org.json.JSONObject;
 
 /**
  * Limit package {@code acHandling} mode to prevent unforeseen changes to ACLs upon installation.
+ * <p>
+ * Example config using {@link ACHandlingLevelSet#ONLY_IGNORE}:
+ * <pre>
+ *     "config": {
+ *         "levelSet": "only_ignore"
+ *     }
+ * </pre>
+ * <p>
+ * Example config requiring {@link AccessControlHandling#MERGE_PRESERVE}:
+ * <pre>
+ *     "config": {
+ *         "allowedModes": ["merge_preserve"]
+ *     }
+ * </pre>
  */
 public class AcHandling implements PackageCheckFactory {
     public static final String CONFIG_ALLOWED_MODES = "allowedModes";
     public static final String CONFIG_LEVEL_SET = "levelSet";
 
     /**
-     * Encapuslation of incrementally wider sets of forbidden acHandling modes as discrete levels.
+     * Encapsulation of incrementally wider sets of forbidden acHandling modes as discrete levels.
      */
     public enum ACHandlingLevelSet {
         /**
