@@ -52,9 +52,7 @@ public final class Locator {
      * @throws Exception on any error or failure to find a resource for given name.
      */
     public static PackageCheck loadPackageCheck(final String impl, final JSONObject config) throws Exception {
-        return loadPackageCheck(impl, config, Thread.currentThread().getContextClassLoader() != null
-                ? Thread.currentThread().getContextClassLoader()
-                : Locator.class.getClassLoader());
+        return loadPackageCheck(impl, config, Util.getDefaultClassLoader());
     }
 
     /**
