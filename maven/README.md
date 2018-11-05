@@ -8,7 +8,7 @@ _TL;DR:_ Paste the following into a content-package pom.xml and get started with
     <plugin>
       <groupId>net.adamcin.oakpal</groupId>
       <artifactId>oakpal-maven-plugin</artifactId>
-      <version>1.0.0</version>
+      <version>0.9.0</version>
       <executions>
         <execution>
           <goals>
@@ -27,4 +27,4 @@ What you may not know is that, other than the traditional culprits of lack of di
 occasional Package Manager bundle restart, the vast majority of package installation failures are caused by a capricious
 gremlin that lives in the packages themselves, and that gremlin's name is "DocView".
 
-## [Maven Site Docs](http://adamcin.net/net.adamcin.oakpal/oakpal-maven-plugin/index.html)
+## [Maven Site Docs](http://adamcin.net/oakpal/oakpal-maven-plugin/index.html)
