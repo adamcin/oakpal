@@ -69,8 +69,8 @@ public final class Locator {
         if (!impl.contains("/") && !impl.contains("\\")) {
             try {
                 Class<?> clazz = classLoader.loadClass(impl);
-                if (PackageCheckFactory.class.isAssignableFrom(clazz)) {
-                    return PackageCheckFactory.class.cast(clazz.getConstructor().newInstance())
+                if (ProgressCheckFactory.class.isAssignableFrom(clazz)) {
+                    return ProgressCheckFactory.class.cast(clazz.getConstructor().newInstance())
                             .newInstance(config == null ? new JSONObject() : config);
                 } else if (ProgressCheck.class.isAssignableFrom(clazz)) {
                     return ProgressCheck.class.cast(clazz.getConstructor().newInstance());

@@ -23,7 +23,7 @@ import org.json.JSONObject;
  *
  * @since 0.5.0
  */
-public interface PackageCheckFactory {
+public interface ProgressCheckFactory {
 
     /**
      * Returns a new check with the provided config.

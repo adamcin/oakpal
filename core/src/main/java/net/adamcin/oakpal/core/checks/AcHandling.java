@@ -33,7 +33,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
 import net.adamcin.oakpal.core.ProgressCheck;
-import net.adamcin.oakpal.core.PackageCheckFactory;
+import net.adamcin.oakpal.core.ProgressCheckFactory;
 import net.adamcin.oakpal.core.SimpleProgressCheck;
 import net.adamcin.oakpal.core.SimpleViolation;
 import net.adamcin.oakpal.core.Violation;
@@ -60,7 +60,7 @@ import org.json.JSONObject;
  *     }
  * </pre>
  */
-public class AcHandling implements PackageCheckFactory {
+public class AcHandling implements ProgressCheckFactory {
     public static final String CONFIG_ALLOWED_MODES = "allowedModes";
     public static final String CONFIG_LEVEL_SET = "levelSet";
 

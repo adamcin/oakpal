@@ -165,53 +165,6 @@ abstract class AbstractScanMojo extends AbstractMojo {
     @Parameter(name = "forcedRoots")
     protected List<ForcedRoot> forcedRoots = new ArrayList<>();
 
-    /*
-    *//**
-     * Specify a list of javascript files implementing the {@link ProgressCheck} functions that will receive events
-     * for each scanned package.
-     *
-     * @since 0.1.0
-     *//*
-    @Deprecated
-    @Parameter(name = "scriptReporters")
-    protected List<File> scriptReporters = new ArrayList<>();
-
-    *//**
-     * Specify a list of paths to script files implementing the {@link ScriptProgressCheck} functions that will receive events
-     * for each scanned package.
-     *
-     * @since 0.4.0
-     *//*
-    @Parameter(name = "scriptPaths")
-    protected List<File> scriptPaths = new ArrayList<>();
-
-    *//**
-     * Specify a config object that will be provided as bindings to checks loaded via {@link #scriptPaths}
-     * and {@link #classPathChecks}. The Maven configuration format is normalized to an {@code org.json.JSONObject} structure.
-     * <p>
-     * For example, to provide a key of {@code foo} with a value of {@code bar}
-     * </p>
-     * <pre>
-     * &lt;adhocCheckConfig&gt;
-     *   &lt;foo&gt;bar&lt;/foo&gt;
-     * &lt;/adhocCheckConfig&gt;
-     * </pre>
-     * <p>Your check script would then be able to use the value {@code config.foo} or {@code config["foo"]}</p>
-     *
-     * @since 0.5.0
-     *//*
-    @Parameter(name = "adhocCheckConfig")
-    protected JSONObject adhocCheckConfig;
-
-    *//**
-     * Specify a list of classPath resource names to locate and load as {@code PackageCheck}s.
-     *
-     * @since 0.4.0
-     *//*
-    @Deprecated
-    @Parameter(name = "classPathChecks")
-    protected List<String> classPathChecks = new ArrayList<>();
-*/
     /**
      * Specify a list of Checks to locate and load as {@code PackageCheck}s.
      *
@@ -227,7 +180,6 @@ abstract class AbstractScanMojo extends AbstractMojo {
      */
     @Parameter(name = "checklists")
     protected List<String> checklists = new ArrayList<>();
-
 
     /**
      * Specify the minimum violation severity level that will trigger plugin execution failure. Valid options are

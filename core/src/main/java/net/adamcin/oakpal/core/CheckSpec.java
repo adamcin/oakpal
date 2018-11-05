@@ -38,7 +38,7 @@ public class CheckSpec {
      * The direct classpath lookup name for a particular check. If not provided, indicates that a check should be
      * looked up by name from a catalog on the classpath.
      *
-     * @return className or script resource name of a {@link ProgressCheck} or {@link PackageCheckFactory}.
+     * @return className or script resource name of a {@link ProgressCheck} or {@link ProgressCheckFactory}.
      */
     public String getImpl() {
         return impl;
@@ -50,13 +50,13 @@ public class CheckSpec {
 
     /**
      * The display name for the check. If "impl" is provided, and represents a script package check or a class that
-     * implements {@link PackageCheckFactory} this is treated as an alias for the check during
+     * implements {@link ProgressCheckFactory} this is treated as an alias for the check during
      * this execution.
      * <p>
      * If "impl" is not provided, this is used to lookup a catalog check.
      * </p>
      * <p>
-     * If "impl" is not a {@link PackageCheckFactory}, this value is ignored.
+     * If "impl" is not a {@link ProgressCheckFactory}, this value is ignored.
      * </p>
      *
      * @return the checkName
@@ -88,9 +88,9 @@ public class CheckSpec {
     }
 
     /**
-     * If {@code impl} references a script check or a {@link PackageCheckFactory},
+     * If {@code impl} references a script check or a {@link ProgressCheckFactory},
      * or if the check loaded from a catalog by {@code name} is a script check or a
-     * {@link PackageCheckFactory}, this is used to configure the check.
+     * {@link ProgressCheckFactory}, this is used to configure the check.
      *
      * @return the JSONObject configuration for the package check
      */

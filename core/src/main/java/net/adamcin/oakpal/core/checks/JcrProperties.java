@@ -30,7 +30,7 @@ import javax.jcr.nodetype.NodeTypeDefinition;
 import javax.jcr.util.TraversingItemVisitor;
 
 import net.adamcin.oakpal.core.ProgressCheck;
-import net.adamcin.oakpal.core.PackageCheckFactory;
+import net.adamcin.oakpal.core.ProgressCheckFactory;
 import net.adamcin.oakpal.core.ReportCollector;
 import net.adamcin.oakpal.core.SimpleProgressCheck;
 import net.adamcin.oakpal.core.SimpleViolation;
@@ -95,7 +95,7 @@ import org.json.JSONObject;
  *     }
  * </pre>
  */
-public class JcrProperties implements PackageCheckFactory {
+public class JcrProperties implements ProgressCheckFactory {
     public static final String CONFIG_SCOPE_PATHS = "scopePaths";
     public static final String CONFIG_DENY_NODE_TYPES = "denyNodeTypes";
     public static final String CONFIG_SCOPE_NODE_TYPES = "scopeNodeTypes";

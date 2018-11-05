@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.Optional;
 
 import net.adamcin.oakpal.core.ProgressCheck;
-import net.adamcin.oakpal.core.PackageCheckFactory;
+import net.adamcin.oakpal.core.ProgressCheckFactory;
 import net.adamcin.oakpal.core.SimpleProgressCheck;
 import net.adamcin.oakpal.core.SimpleViolation;
 import net.adamcin.oakpal.core.Violation;
@@ -49,7 +49,7 @@ import org.json.JSONObject;
  * <p>
  * Rules are evaluated top-to-bottom. The type of the last rule to match is the effective action taken for the element.
  */
-public class Subpackages implements PackageCheckFactory {
+public class Subpackages implements ProgressCheckFactory {
     public static final String CONFIG_RULES = "rules";
     public static final String CONFIG_DENY_ALL = "denyAll";
 

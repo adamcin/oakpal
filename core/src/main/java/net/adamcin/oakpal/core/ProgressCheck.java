@@ -28,7 +28,8 @@ import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.apache.jackrabbit.vault.packaging.PackageProperties;
 
 /**
- * Primary point of customization for the OakPAL framework.
+ * Primary point of customization for the OakPAL framework. Receives events, ultimately, from a
+ * {@link org.apache.jackrabbit.vault.fs.api.ProgressTrackerListener}.
  */
 @ConsumerType
 public interface ProgressCheck extends ScanListener, ViolationReporter {
@@ -72,6 +73,7 @@ public interface ProgressCheck extends ScanListener, ViolationReporter {
      * @param packageProperties the package properties
      * @param metaInf           the package meta information
      * @param subpackages       extracted subpackages
+     * @throws RepositoryException because of access to a {@link Session}
      */
     default void beforeExtract(PackageId packageId, Session inspectSession, PackageProperties packageProperties,
                                MetaInf metaInf, List<PackageId> subpackages) throws RepositoryException {
@@ -84,7 +86,7 @@ public interface ProgressCheck extends ScanListener, ViolationReporter {
      * @param packageId the current package
      * @param path      the imported path
      * @param node      the imported node
-     * @throws RepositoryException for obvious reasons
+     * @throws RepositoryException because of access to a {@link Node}
      */
     default void importedPath(PackageId packageId, String path, Node node) throws RepositoryException {
 
@@ -93,9 +95,10 @@ public interface ProgressCheck extends ScanListener, ViolationReporter {
     /**
      * Notified when package importer deletes an existing node.
      *
-     * @param packageId the current package
-     * @param path      deleted path
-     * @param inspectSession    session providing access to repository state
+     * @param packageId      the current package
+     * @param path           deleted path
+     * @param inspectSession session providing access to repository state
+     * @throws RepositoryException because of access to a {@link Session}
      */
     default void deletedPath(PackageId packageId, String path, Session inspectSession) throws RepositoryException {
 
@@ -106,7 +109,7 @@ public interface ProgressCheck extends ScanListener, ViolationReporter {
      *
      * @param packageId      the current package
      * @param inspectSession session providing access to repository state
-     * @throws RepositoryException for obvious reasons
+     * @throws RepositoryException because of access to a {@link Session}
      */
     default void afterExtract(PackageId packageId, Session inspectSession) throws RepositoryException {
 

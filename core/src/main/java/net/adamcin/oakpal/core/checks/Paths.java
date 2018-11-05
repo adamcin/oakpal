@@ -22,7 +22,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
 import net.adamcin.oakpal.core.ProgressCheck;
-import net.adamcin.oakpal.core.PackageCheckFactory;
+import net.adamcin.oakpal.core.ProgressCheckFactory;
 import net.adamcin.oakpal.core.SimpleProgressCheck;
 import net.adamcin.oakpal.core.SimpleViolation;
 import net.adamcin.oakpal.core.Violation;
@@ -48,7 +48,7 @@ import org.json.JSONObject;
  * <p>
  * Rules are evaluated top-to-bottom. The type of the last rule to match is the effective action taken for the element.
  */
-public class Paths implements PackageCheckFactory {
+public class Paths implements ProgressCheckFactory {
     public static final String CONFIG_RULES = "rules";
     public static final String CONFIG_DENY_ALL_DELETES = "denyAllDeletes";
 

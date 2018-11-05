@@ -231,14 +231,14 @@ public final class ScriptProgressCheck implements ProgressCheck {
     }
 
     /**
-     * Internal {@link PackageCheckFactory} impl for script check creation.
+     * Internal {@link ProgressCheckFactory} impl for script check creation.
      */
-    private static class ScriptPackageCheckFactory implements PackageCheckFactory {
+    private static class ScriptProgressCheckFactory implements ProgressCheckFactory {
 
         private final ScriptEngine engine;
         private final URL scriptUrl;
 
-        private ScriptPackageCheckFactory(final ScriptEngine engine, final URL scriptUrl) {
+        private ScriptProgressCheckFactory(final ScriptEngine engine, final URL scriptUrl) {
             this.engine = engine;
             this.scriptUrl = scriptUrl;
         }
@@ -262,7 +262,7 @@ public final class ScriptProgressCheck implements ProgressCheck {
         }
     }
 
-    public static PackageCheckFactory createScriptCheckFactory(final URL scriptUrl) throws Exception {
+    public static ProgressCheckFactory createScriptCheckFactory(final URL scriptUrl) throws Exception {
         final int lastPeriod = scriptUrl.getPath().lastIndexOf(".");
         if (lastPeriod < 0 || lastPeriod + 1 >= scriptUrl.getPath().length()) {
             throw new Exception("Failed to load ScriptEngine for URL missing file extension."
@@ -276,7 +276,7 @@ public final class ScriptProgressCheck implements ProgressCheck {
         return createScriptCheckFactory(engine, scriptUrl);
     }
 
-    public static PackageCheckFactory createScriptCheckFactory(final String engineName, final URL scriptUrl)
+    public static ProgressCheckFactory createScriptCheckFactory(final String engineName, final URL scriptUrl)
             throws Exception {
         ScriptEngine engine = new ScriptEngineManager().getEngineByName(engineName);
         if (engine == null) {
@@ -285,8 +285,8 @@ public final class ScriptProgressCheck implements ProgressCheck {
         return createScriptCheckFactory(engine, scriptUrl);
     }
 
-    public static PackageCheckFactory createScriptCheckFactory(final ScriptEngine engine, final URL scriptUrl)
+    public static ProgressCheckFactory createScriptCheckFactory(final ScriptEngine engine, final URL scriptUrl)
             throws Exception {
-        return new ScriptPackageCheckFactory(engine, scriptUrl);
+        return new ScriptProgressCheckFactory(engine, scriptUrl);
     }
 }

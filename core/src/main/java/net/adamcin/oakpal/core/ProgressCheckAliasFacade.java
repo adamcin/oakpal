@@ -30,7 +30,7 @@ import org.apache.jackrabbit.vault.packaging.PackageProperties;
 /**
  * Internal facade class which serves to:
  * 1) ensure that a configured checkName is actually respected
- * 2) guard {@link PackageCheckFactory}s from being externally re-configured during a scan
+ * 2) guard {@link ProgressCheckFactory}s from being externally re-configured during a scan
  */
 class ProgressCheckAliasFacade implements ProgressCheck {
 

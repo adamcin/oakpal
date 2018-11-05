@@ -36,7 +36,7 @@
 
     <bannerLeft>
         <name>OakPAL - Oak Package Acceptance Library</name>
-        <href>http://adamcin.net/net.adamcin.oakpal/index.html</href>
+        <href>http://adamcin.net/oakpal/index.html</href>
     </bannerLeft>
 
     <!--
@@ -53,16 +53,16 @@
 
     <body>
         <links>
-            <item name="Wiki" href="http://wiki.github.com/adamcin/net.adamcin.oakpal/"/>
-            <item name="FAQ" href="http://wiki.github.com/adamcin/net.adamcin.oakpal/frequently-asked-questions"/>
+            <item name="Wiki" href="http://wiki.github.com/adamcin/oakpal/"/>
+            <item name="FAQ" href="http://wiki.github.com/adamcin/oakpal/frequently-asked-questions"/>
         </links>
         <menu name="Overview">
             <item name="Introduction" href="index.html" />
         </menu>
         <menu ref="modules" inherit="bottom"/>
         <menu name="Resources @ Github" inherit="bottom">
-            <item name="Get the Source" href="https://github.com/adamcin/net.adamcin.oakpal"/>
-            <item name="Report Issues" href="https://github.com/adamcin/net.adamcin.oakpal/issues"/>
+            <item name="Get the Source" href="https://github.com/adamcin/oakpal"/>
+            <item name="Report Issues" href="https://github.com/adamcin/oakpal/issues"/>
         </menu>
         <menu ref="reports" inherit="bottom"/>
         <menu name="Projects @ adamcin.net" inherit="bottom">
