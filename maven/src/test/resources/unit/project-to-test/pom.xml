@@ -70,7 +70,7 @@
                         <check>
                             <name>acHandling</name>
                             <config>
-                                <allowedModes implementation="java.util.List"/>
+                                <allowedModes hint="List"/>
                             </config>
                         </check>
                         <check>

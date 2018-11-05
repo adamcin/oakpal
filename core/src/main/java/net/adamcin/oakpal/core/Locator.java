@@ -39,8 +39,8 @@ public final class Locator {
      * @return a new {@link ProgressCheck} instance for the given name
      * @throws Exception on any error or failure to find a resource for given name.
      */
-    public static ProgressCheck loadPackageCheck(final String impl) throws Exception {
-        return loadPackageCheck(impl, null);
+    public static ProgressCheck loadProgressCheck(final String impl) throws Exception {
+        return loadProgressCheck(impl, null);
     }
 
     /**
@@ -51,12 +51,16 @@ public final class Locator {
      * @return a new {@link ProgressCheck} instance for the given name
      * @throws Exception on any error or failure to find a resource for given name.
      */
-    public static ProgressCheck loadPackageCheck(final String impl, final JSONObject config) throws Exception {
-        return loadPackageCheck(impl, config, Util.getDefaultClassLoader());
+    public static ProgressCheck loadProgressCheck(final String impl, final JSONObject config) throws Exception {
+        return loadProgressCheck(impl, config, Util.getDefaultClassLoader());
     }
 
     /**
-     * Attempt to load a {@link ProgressCheck} from a particular class loader.
+     * Attempt to load a {@link ProgressCheck} from a particular class loader. The {@code impl} value is first tried as
+     * a fully-qualified class name, and if a {@code Class<?>} is found, it is first checked for the
+     * {@link ProgressCheckFactory} interface, and then for the {@link ProgressCheck} interface. If a class is not
+     * found, {@link Locator} assumes the {@code impl} value represents a resource name for an
+     * {@link javax.script.Invocable} script, and attempts to create a {@link ScriptProgressCheck} from it.
      *
      * @param impl        className or resourceName
      * @param config      provide an optional config object (may be ignored by the check.)
@@ -64,8 +68,8 @@ public final class Locator {
      * @return a new {@link ProgressCheck} instance for the given name
      * @throws Exception on any error or failure to find a resource for given name.
      */
-    public static ProgressCheck loadPackageCheck(final String impl, final JSONObject config,
-                                                 final ClassLoader classLoader) throws Exception {
+    public static ProgressCheck loadProgressCheck(final String impl, final JSONObject config,
+                                                  final ClassLoader classLoader) throws Exception {
         if (!impl.contains("/") && !impl.contains("\\")) {
             try {
                 Class<?> clazz = classLoader.loadClass(impl);
@@ -102,7 +106,7 @@ public final class Locator {
      * Rename the provided package check with the provided alias.
      *
      * @param progressCheck the check to rename.
-     * @param alias        the name to override {@link ProgressCheck#getCheckName()}.
+     * @param alias         the name to override {@link ProgressCheck#getCheckName()}.
      * @return the renamed package check.
      */
     public static ProgressCheck wrapWithAlias(final ProgressCheck progressCheck, final String alias) {

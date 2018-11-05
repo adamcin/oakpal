@@ -79,15 +79,20 @@
                     repository, state initialization, and package installation for every set of package files.
                 </li>
                 <li>
-                    A pluggable listener API with classpath discovery of third-party <a href="https://github.com/adamcin/oakpal/blob/master/core/src/main/resources/OAKPAL-INF/checklists/basic.json">Checklists</a>, <a href="http://adamcin.net/oakpal/oakpal-core/apidocs/net/adamcin/oakpal/core/ProgressCheck.html">ProgressChecks</a>, and
-                    <a href="">ScriptProgressChecks</a>, which receive progress tracker events along with read-only access to
+                    A pluggable listener API with classpath discovery of third-party <a
+                        href="https://github.com/adamcin/oakpal/blob/master/core/src/main/resources/OAKPAL-INF/checklists/basic.json">
+                    Checklists</a>, <a href="oakpal-core/apidocs/net/adamcin/oakpal/core/ProgressCheck.html">
+                    ProgressChecks</a>, and
+                    <a href="oakpal-maven-plugin/writing-a-script-check.html">ScriptProgressChecks</a>, which receive
+                    progress tracker events along with read-only access to
                     incremental
                     repository state, and which can report Violations at the end of a scan.
                 </li>
             </ol>
 
             <p>
-                The first integration target for this library is Maven, via the oakpal-maven-plugin. Depending on
+                The first integration target for this library is Maven, via the <a
+                    href="oakpal-maven-plugin/index.html">oakpal-maven-plugin</a>. Depending on
                 interest, future integrations would likely include the Jenkins CRX plugin and a command-line interface
                 deployable with Docker.
             </p>

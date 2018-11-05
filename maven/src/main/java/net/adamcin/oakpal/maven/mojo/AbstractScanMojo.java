@@ -36,9 +36,8 @@ import net.adamcin.oakpal.core.ForcedRoot;
 import net.adamcin.oakpal.core.InitStage;
 import net.adamcin.oakpal.core.JcrNs;
 import net.adamcin.oakpal.core.Locator;
-import net.adamcin.oakpal.core.ProgressCheck;
 import net.adamcin.oakpal.core.PackageScanner;
-import net.adamcin.oakpal.core.ScriptProgressCheck;
+import net.adamcin.oakpal.core.ProgressCheck;
 import net.adamcin.oakpal.core.SlingNodetypesScanner;
 import net.adamcin.oakpal.core.Violation;
 import org.apache.jackrabbit.vault.packaging.PackageId;
@@ -96,8 +95,8 @@ abstract class AbstractScanMojo extends AbstractMojo {
     protected List<String> cndNames = new ArrayList<>();
 
     /**
-     * Enable automatic discovery and installation of CND files referenced in Sling-Nodetypes Manifest headers on the
-     * class path.
+     * Enable automatic discovery and installation of CND files referenced in {@code Sling-Nodetypes} Manifest headers
+     * in the plugin dependencies or the project's {@code test}-scope dependencies.
      *
      * @since 0.4.0
      */
@@ -166,7 +165,97 @@ abstract class AbstractScanMojo extends AbstractMojo {
     protected List<ForcedRoot> forcedRoots = new ArrayList<>();
 
     /**
-     * Specify a list of Checks to locate and load as {@code PackageCheck}s.
+     * Specify a list of Checks to locate and load as {@link ProgressCheck}s.
+     * <p>
+     * Minimally, there are two ways to define a {@link CheckSpec}. To load a check from the project's test output
+     * directory, you must specify the {@code impl} value as a classPath-relative resource name for script checks, or as
+     * a fully-qualified class name for Java {@link ProgressCheck} implementations.
+     * <p>
+     * For example, if your script check source is located at {@code src/test/resources/OAKPAL-INF/scripts/acme-vault-enforcer.js}:
+     * <pre>
+     * &lt;checks&gt;
+     *   &lt;check&gt;
+     *     &lt;impl&gt;OAKPAL-INF/scripts/acme-vault-enforcer.js&lt;/impl&gt;
+     *   &lt;/check&gt;
+     * &lt;/checks&gt;
+     * </pre>
+     * <p>
+     * If your {@code impl} represents a script check or a {@link net.adamcin.oakpal.core.ProgressCheckFactory}, you can
+     * also provide a {@code config} element that will be translated to a {@link org.json.JSONObject} by the
+     * {@link net.adamcin.oakpal.maven.component.JSONObjectConverter} via the
+     * {@link net.adamcin.oakpal.maven.component.OakpalComponentConfigurator}:
+     * <pre>
+     * &lt;checks&gt;
+     *   &lt;check&gt;
+     *     &lt;impl&gt;OAKPAL-INF/scripts/acme-vault-enforcer.js&lt;/impl&gt;
+     *     &lt;config&gt;
+     *       &lt;apples&gt;
+     *         &lt;apple&gt;Granny Smith&lt;/apple&gt;
+     *         &lt;apple&gt;Red Delicious&lt;/apple&gt;
+     *         &lt;apple&gt;IIe&lt;/apple&gt;
+     *       &lt;/apples&gt;
+     *       &lt;requirePolicyNode&gt;true&lt;/requirePolicyNode&gt;
+     *     &lt;/config&gt;
+     *   &lt;/check&gt;
+     * &lt;/checks&gt;
+     * </pre>
+     * <p>
+     * To reference a check from a specific checklist, available on the plugin or project test-scope classpath, you should
+     * not specify the {@code impl} property, but instead reference it by name, in one of the following formats, in order
+     * of increasing specificity,
+     * <ol>
+     * <li>{@code name}</li>
+     * <li>{@code checklistName/name}</li>
+     * <li>{@code module/checklistName/name}</li>
+     * </ol>
+     * <p>
+     * For example, the oakpal core library provides some useful checks in the {@code basic} checklist, like {@code echo},
+     * which prints progress events to System.out:
+     * <pre>
+     * &lt;checks&gt;
+     *   &lt;check&gt;
+     *     &lt;name&gt;net.adamcin.oakpal.core/basic/echo&lt;/name&gt;
+     *   &lt;/check&gt;
+     * &lt;/checks&gt;
+     * </pre>
+     * <p>
+     * It can also be referenced by shorter forms:
+     * <pre>
+     * &lt;checks&gt;
+     *   &lt;check&gt;
+     *     &lt;name&gt;basic/echo&lt;/name&gt;
+     *   &lt;/check&gt;
+     * &lt;/checks&gt;
+     * </pre>
+     * <pre>
+     * &lt;checks&gt;
+     *   &lt;check&gt;
+     *     &lt;name&gt;echo&lt;/name&gt;
+     *   &lt;/check&gt;
+     * &lt;/checks&gt;
+     * </pre>
+     * <p>
+     * You can also override the configs defined by a checklist for a given check:
+     * <pre>
+     * &lt;checks&gt;
+     *   &lt;check&gt;
+     *     &lt;name&gt;basic/paths&lt;/name&gt;
+     *     &lt;config&gt;
+     *       &lt;rules&gt;
+     *         &lt;rule&gt;
+     *           &lt;pattern&gt;/etc/tags(/.*)?&lt;/pattern&gt;
+     *           &lt;type&gt;deny&lt;/type&gt;
+     *         &lt;/rule&gt;
+     *         &lt;rule&gt;
+     *           &lt;pattern&gt;/etc/tags/acme(/.*)?&lt;/pattern&gt;
+     *           &lt;type&gt;allow&lt;/type&gt;
+     *         &lt;/rule&gt;
+     *       &lt;/rules&gt;
+     *       &lt;denyAllDeletes&gt;true&lt;/denyAllDeletes&gt;
+     *     &lt;/config&gt;
+     *   &lt;/check&gt;
+     * &lt;/checks&gt;
+     * </pre>
      *
      * @since 0.5.0
      */
@@ -174,7 +263,7 @@ abstract class AbstractScanMojo extends AbstractMojo {
     protected List<CheckSpec> checks = new ArrayList<>();
 
     /**
-     * Specify a list of checklist ids {@code [ module/ ]name} to enforce.
+     * Specify a list of checklist ids {@code [module/]name} to enforce.
      *
      * @since 0.6.0
      */
@@ -240,7 +329,7 @@ abstract class AbstractScanMojo extends AbstractMojo {
             }
 
             try {
-                ProgressCheck progressCheck = Locator.loadPackageCheck(checkSpec.getImpl(), checkSpec.getConfig());
+                ProgressCheck progressCheck = Locator.loadProgressCheck(checkSpec.getImpl(), checkSpec.getConfig());
                 if (StringUtils.isNotEmpty(checkSpec.getName())) {
                     progressCheck = Locator.wrapWithAlias(progressCheck, checkSpec.getName());
                 }

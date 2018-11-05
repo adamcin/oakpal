@@ -26,10 +26,12 @@ import org.json.JSONObject;
 public interface ProgressCheckFactory {
 
     /**
-     * Returns a new check with the provided config.
+     * Returns a new check with the provided config. The {@link JSONObject} parameter type is used to enforce JSON-like
+     * semantics and communicate an informal contract that nested structures should be simple maps, collections, and
+     * Java primitives.
      *
      * @param config an arbitrary config object
-     * @return new PackageCheck, optionally taking the provided config into account.
+     * @return new {@link ProgressCheck}, optionally taking the provided config into account.
      * @throws Exception for whatever reason instance creation fails.
      */
     ProgressCheck newInstance(final JSONObject config) throws Exception;
