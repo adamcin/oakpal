@@ -53,8 +53,8 @@ function getCheckName() {
  * Called after the package is uploaded to the package manager at the beginning of the scan. Track subsequent
  * events using the package ID provided to this method.
  *
- * @param packageId the package ID of the newly opened package
- * @param file      the package file that will be opened
+ * @param packageId         the package ID of the newly opened package
+ * @param file              the package file that will be opened
  */
 function identifyPackage(packageId /* PackageId */, file /* File */) {
 
@@ -63,8 +63,8 @@ function identifyPackage(packageId /* PackageId */, file /* File */) {
 /**
  * Called after each subpackage is opened. Track subsequent events using the package ID provided to this method.
  *
- * @param packageId the package ID of the newly opened subpackage
- * @param parentId the package ID of the parent package.
+ * @param packageId         the package ID of the newly opened subpackage
+ * @param parentId          the package ID of the parent package.
  */
 function identifySubpackage(packageId /* PackageId */, parentId /* PackageId */) {
 
@@ -74,21 +74,23 @@ function identifySubpackage(packageId /* PackageId */, parentId /* PackageId */)
  * Called for each package before it is extracted.
  *
  * @param packageId         the package ID of the newly opened package
+ * @param inspectSession    session providing access to repository state
  * @param packageProperties the package properties
  * @param metaInf           the package meta information
  * @param subpackages       extracted subpackages
  */
-function beforeExtract(packageId /* PackageId */, packageProperties /* PackageProperties */,
-    metaInf /* MetaInf */, subpackages /* PackageId[] */) {
+function beforeExtract(packageId /* PackageId */, inspectSession /* Session */,
+                       packageProperties /* PackageProperties */, metaInf /* MetaInf */,
+                       subpackages /* PackageId[] */) {
 
 }
 
 /**
  * Notified when package importer adds, modifies, or leaves a node untouched.
  *
- * @param packageId the current package
- * @param path the imported path
- * @param node the imported JCR node
+ * @param packageId         the current package
+ * @param path              the imported path
+ * @param node              the imported JCR node
  */
 function importedPath(packageId /* PackageId */, path /* String */, node /* Node */) {
 
@@ -97,18 +99,19 @@ function importedPath(packageId /* PackageId */, path /* String */, node /* Node
 /**
  * Notified when package importer deletes an existing node.
  *
- * @param packageId the current package
- * @param path deleted path
+ * @param packageId         the current package
+ * @param path              deleted path
+ * @param inspectSession    session providing access to repository state
  */
-function deletedPath(packageId /* PackageId */, path /* String */) {
+function deletedPath(packageId /* PackageId */, path /* String */, inspectSession /* Session */) {
 
 }
 
 /**
  * Provides an opportunity to inspect repository state between packages.
  *
- * @param packageId      the current package
- * @param inspectSession session providing access to repository state
+ * @param packageId         the current package
+ * @param inspectSession    session providing access to repository state
  */
 function afterExtract(packageId /* PackageId */, inspectSession /* Session */) {
 
