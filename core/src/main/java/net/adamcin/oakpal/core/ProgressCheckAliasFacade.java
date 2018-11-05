@@ -32,12 +32,12 @@ import org.apache.jackrabbit.vault.packaging.PackageProperties;
  * 1) ensure that a configured checkName is actually respected
  * 2) guard {@link PackageCheckFactory}s from being externally re-configured during a scan
  */
-class PackageCheckAliasFacade implements PackageCheck {
+class ProgressCheckAliasFacade implements ProgressCheck {
 
-    private final PackageCheck wrapped;
+    private final ProgressCheck wrapped;
     private final String alias;
 
-    PackageCheckAliasFacade(final PackageCheck wrapped, final String alias) {
+    ProgressCheckAliasFacade(final ProgressCheck wrapped, final String alias) {
         this.wrapped = wrapped;
         this.alias = alias;
     }
@@ -72,8 +72,10 @@ class PackageCheckAliasFacade implements PackageCheck {
     }
 
     @Override
-    public void beforeExtract(final PackageId packageId, final PackageProperties packageProperties, final MetaInf metaInf, final List<PackageId> subpackages) {
-        wrapped.beforeExtract(packageId, packageProperties, metaInf, subpackages);
+    public void beforeExtract(final PackageId packageId, final Session inspectSession,
+                              final PackageProperties packageProperties, final MetaInf metaInf,
+                              final List<PackageId> subpackages) throws RepositoryException {
+        wrapped.beforeExtract(packageId, inspectSession, packageProperties, metaInf, subpackages);
     }
 
     @Override
@@ -82,8 +84,9 @@ class PackageCheckAliasFacade implements PackageCheck {
     }
 
     @Override
-    public void deletedPath(final PackageId packageId, final String path) {
-        wrapped.deletedPath(packageId, path);
+    public void deletedPath(final PackageId packageId, final String path, final Session inspectSession)
+            throws RepositoryException {
+        wrapped.deletedPath(packageId, path, inspectSession);
     }
 
     @Override

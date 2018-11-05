@@ -29,10 +29,12 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
 
-import net.adamcin.oakpal.core.PackageCheck;
+import net.adamcin.oakpal.core.ProgressCheck;
 import net.adamcin.oakpal.core.PackageCheckFactory;
-import net.adamcin.oakpal.core.SimplePackageCheck;
+import net.adamcin.oakpal.core.SimpleProgressCheck;
 import net.adamcin.oakpal.core.SimpleViolation;
 import net.adamcin.oakpal.core.Violation;
 import org.apache.jackrabbit.vault.fs.config.MetaInf;
@@ -104,7 +106,7 @@ public class AcHandling implements PackageCheckFactory {
         }
     }
 
-    class Check extends SimplePackageCheck {
+    class Check extends SimpleProgressCheck {
         final ACHandlingLevelSet levelSet;
         final List<AccessControlHandling> allowedModes;
 
@@ -120,8 +122,9 @@ public class AcHandling implements PackageCheckFactory {
         }
 
         @Override
-        public void beforeExtract(final PackageId packageId, final PackageProperties packageProperties,
-                                  final MetaInf metaInf, final List<PackageId> subpackages) {
+        public void beforeExtract(final PackageId packageId, final Session inspectSession,
+                                  final PackageProperties packageProperties, final MetaInf metaInf,
+                                  final List<PackageId> subpackages) throws RepositoryException {
             if (this.levelSet == null) {
                 return;
             }
@@ -144,7 +147,7 @@ public class AcHandling implements PackageCheckFactory {
     }
 
     @Override
-    public PackageCheck newInstance(final JSONObject config) throws Exception {
+    public ProgressCheck newInstance(final JSONObject config) throws Exception {
         if (config.has(CONFIG_ALLOWED_MODES)) {
             List<String> jsonAllowedModes = StreamSupport
                     .stream(config.getJSONArray(CONFIG_ALLOWED_MODES).spliterator(), false)

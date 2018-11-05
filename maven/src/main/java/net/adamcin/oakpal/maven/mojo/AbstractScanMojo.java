@@ -18,7 +18,6 @@ package net.adamcin.oakpal.maven.mojo;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
@@ -37,10 +36,9 @@ import net.adamcin.oakpal.core.ForcedRoot;
 import net.adamcin.oakpal.core.InitStage;
 import net.adamcin.oakpal.core.JcrNs;
 import net.adamcin.oakpal.core.Locator;
-import net.adamcin.oakpal.core.PackageCheck;
-import net.adamcin.oakpal.core.PackageCheckFactory;
+import net.adamcin.oakpal.core.ProgressCheck;
 import net.adamcin.oakpal.core.PackageScanner;
-import net.adamcin.oakpal.core.ScriptPackageCheck;
+import net.adamcin.oakpal.core.ScriptProgressCheck;
 import net.adamcin.oakpal.core.SlingNodetypesScanner;
 import net.adamcin.oakpal.core.Violation;
 import org.apache.jackrabbit.vault.packaging.PackageId;
@@ -49,7 +47,6 @@ import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.codehaus.plexus.util.StringUtils;
-import org.json.JSONObject;
 
 /**
  * Base scan class defining scanner parameters.
@@ -88,23 +85,15 @@ abstract class AbstractScanMojo extends AbstractMojo {
 
     /**
      * Specify a list of Compact NodeType Definition (CND) resource names (to discover in the test-scope classpath)
-     * to import before any packages are installed during the scan. This is usually necessary for proprietary CRX applications
-     * like AEM.
+     * to import before any packages are installed during the scan. This is usually necessary for proprietary CRX
+     * applications like AEM. Use "Tools - Export Node Type" in CRX/de lite to export all nodetypes and save it to a
+     * file in your project code base on the test-scope class path (i.e. in {@code src/main/resources} of a common
+     * test-scoped dependency, or under {@code src/test/resources} of the referencing module).
      *
      * @since 0.4.0
      */
     @Parameter(name = "cndNames")
     protected List<String> cndNames = new ArrayList<>();
-
-    /**
-     * Specify a list of Compact NodeType Definition (CND) files to import before any packages are installed during the
-     * scan. This is usually necessary for proprietary CRX applications like AEM. Use "Tools - Export Node Type" in
-     * CRX/de lite to export all nodetypes and save it to a file in your project code base.
-     *
-     * @since 0.1.0
-     */
-    @Parameter(name = "cndFiles")
-    protected List<File> cndFiles = new ArrayList<>();
 
     /**
      * Enable automatic discovery and installation of CND files referenced in Sling-Nodetypes Manifest headers on the
@@ -176,27 +165,27 @@ abstract class AbstractScanMojo extends AbstractMojo {
     @Parameter(name = "forcedRoots")
     protected List<ForcedRoot> forcedRoots = new ArrayList<>();
 
-    /**
-     * Specify a list of javascript files implementing the {@link PackageCheck} functions that will receive events
+    /*
+    *//**
+     * Specify a list of javascript files implementing the {@link ProgressCheck} functions that will receive events
      * for each scanned package.
      *
      * @since 0.1.0
-     * @deprecated 0.4.0 use scriptPaths
-     */
+     *//*
     @Deprecated
     @Parameter(name = "scriptReporters")
     protected List<File> scriptReporters = new ArrayList<>();
 
-    /**
-     * Specify a list of paths to script files implementing the {@link ScriptPackageCheck} functions that will receive events
+    *//**
+     * Specify a list of paths to script files implementing the {@link ScriptProgressCheck} functions that will receive events
      * for each scanned package.
      *
      * @since 0.4.0
-     */
+     *//*
     @Parameter(name = "scriptPaths")
     protected List<File> scriptPaths = new ArrayList<>();
 
-    /**
+    *//**
      * Specify a config object that will be provided as bindings to checks loaded via {@link #scriptPaths}
      * and {@link #classPathChecks}. The Maven configuration format is normalized to an {@code org.json.JSONObject} structure.
      * <p>
@@ -210,20 +199,19 @@ abstract class AbstractScanMojo extends AbstractMojo {
      * <p>Your check script would then be able to use the value {@code config.foo} or {@code config["foo"]}</p>
      *
      * @since 0.5.0
-     */
+     *//*
     @Parameter(name = "adhocCheckConfig")
     protected JSONObject adhocCheckConfig;
 
-    /**
+    *//**
      * Specify a list of classPath resource names to locate and load as {@code PackageCheck}s.
      *
      * @since 0.4.0
-     * @deprecated 0.5.0
-     */
+     *//*
     @Deprecated
     @Parameter(name = "classPathChecks")
     protected List<String> classPathChecks = new ArrayList<>();
-
+*/
     /**
      * Specify a list of Checks to locate and load as {@code PackageCheck}s.
      *
@@ -290,7 +278,7 @@ abstract class AbstractScanMojo extends AbstractMojo {
     protected PackageScanner.Builder getBuilder() throws MojoExecutionException {
         final ErrorListener errorListener = new DefaultErrorListener();
 
-        final List<PackageCheck> allChecks = new ArrayList<>();
+        final List<ProgressCheck> allChecks = new ArrayList<>();
         final ChecklistPlanner checklistPlanner = new ChecklistPlanner(errorListener, checklists);
         checklistPlanner.discoverChecklists();
 
@@ -300,45 +288,15 @@ abstract class AbstractScanMojo extends AbstractMojo {
             }
 
             try {
-                PackageCheck packageCheck = Locator.loadPackageCheck(checkSpec.getImpl(), checkSpec.getConfig());
+                ProgressCheck progressCheck = Locator.loadPackageCheck(checkSpec.getImpl(), checkSpec.getConfig());
                 if (StringUtils.isNotEmpty(checkSpec.getName())) {
-                    packageCheck = Locator.wrapWithAlias(packageCheck, checkSpec.getName());
+                    progressCheck = Locator.wrapWithAlias(progressCheck, checkSpec.getName());
                 }
-                allChecks.add(packageCheck);
+                allChecks.add(progressCheck);
             } catch (final Exception e) {
                 throw new MojoExecutionException(String.format("Failed to load package check %s. (impl: %s)",
                         Optional.ofNullable(checkSpec.getName()).orElse(""), checkSpec.getImpl()), e);
             }
-        }
-
-        if (classPathChecks != null) {
-            for (String checkName : classPathChecks) {
-                try {
-                    PackageCheck packageCheck = Locator.loadPackageCheck(checkName, adhocCheckConfig);
-                    allChecks.add(packageCheck);
-                } catch (final Exception e) {
-                    throw new MojoExecutionException("Failed to load package check by name on classPath: " + checkName, e);
-                }
-            }
-        }
-
-        if (scriptPaths != null) {
-            if (scriptReporters != null && !scriptReporters.isEmpty()) {
-                getLog().info("the scriptReporters parameter is deprecated. please use scriptPaths instead.");
-                scriptPaths.addAll(scriptReporters);
-            }
-
-            List<PackageCheck> scriptListeners = scriptPaths.stream().map(s -> {
-                try {
-                    PackageCheckFactory factory = ScriptPackageCheck.createScriptCheckFactory(s.toURI().toURL());
-                    return Optional.of(factory.newInstance(adhocCheckConfig));
-                } catch (Exception e) {
-                    getLog().error("Failed to read check script " + s.getAbsolutePath(), e);
-                    return Optional.<ScriptPackageCheck>empty();
-                }
-            }).filter(Optional::isPresent).map(Optional::get).collect(Collectors.toList());
-
-            allChecks.addAll(scriptListeners);
         }
 
         List<File> preInstall = new ArrayList<>();
@@ -387,21 +345,6 @@ abstract class AbstractScanMojo extends AbstractMojo {
         }
 
         builder.withOrderedCndUrls(new ArrayList<>(unorderedCndUrls));
-
-        if (cndFiles != null) {
-            List<URL> cndUrls = cndFiles.stream()
-                    .map(File::toURI)
-                    .map(uri -> {
-                        URL url = null;
-                        try {
-                            url = uri.toURL();
-                        } catch (MalformedURLException ignored) {
-                        }
-                        return Optional.ofNullable(url);
-                    }).filter(Optional::isPresent)
-                    .map(Optional::get).collect(Collectors.toList());
-            builder.withOrderedCndUrls(cndUrls);
-        }
 
         if (jcrNamespaces != null) {
             for (JcrNs ns : jcrNamespaces) {

@@ -87,7 +87,7 @@ public class DefaultErrorListener implements ErrorListener {
     }
 
     @Override
-    public void onListenerException(Exception e, PackageCheck listener, PackageId packageId) {
+    public void onListenerException(Exception e, ProgressCheck listener, PackageId packageId) {
         reportViolation(
                 new SimpleViolation(Violation.Severity.MAJOR,
                         String.format("Listener error (%s): %s \"%s\"",
@@ -114,7 +114,7 @@ public class DefaultErrorListener implements ErrorListener {
     }
 
     @Override
-    public void onListenerPathException(Exception e, PackageCheck handler, PackageId packageId, String path) {
+    public void onListenerPathException(Exception e, ProgressCheck handler, PackageId packageId, String path) {
         reportViolation(
                 new SimpleViolation(Violation.Severity.MAJOR,
                         String.format("%s - Listener error: %s \"%s\"", path, e.getClass().getName(), e.getMessage()),

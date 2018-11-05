@@ -44,7 +44,7 @@ public class SimpleReport implements CheckReport {
         return violations;
     }
 
-    public static SimpleReport generateReport(final PackageCheck reporter) {
+    public static SimpleReport generateReport(final ProgressCheck reporter) {
         return new SimpleReport(Optional.ofNullable(reporter.getCheckName())
                 .orElse(reporter.getClass().getSimpleName()),
                 reporter.getReportedViolations().stream()

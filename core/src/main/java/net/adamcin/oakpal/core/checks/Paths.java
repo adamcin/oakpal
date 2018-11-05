@@ -17,13 +17,13 @@
 package net.adamcin.oakpal.core.checks;
 
 import java.util.List;
-import java.util.Optional;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
+import javax.jcr.Session;
 
-import net.adamcin.oakpal.core.PackageCheck;
+import net.adamcin.oakpal.core.ProgressCheck;
 import net.adamcin.oakpal.core.PackageCheckFactory;
-import net.adamcin.oakpal.core.SimplePackageCheck;
+import net.adamcin.oakpal.core.SimpleProgressCheck;
 import net.adamcin.oakpal.core.SimpleViolation;
 import net.adamcin.oakpal.core.Violation;
 import org.apache.jackrabbit.vault.packaging.PackageId;
@@ -38,16 +38,21 @@ import org.json.JSONObject;
  *         "rules": [{
  *             "type": "deny",
  *             "pattern": "/etc/tags(/.*)?"
+ *         },{
+ *             "type": "allow",
+ *             "pattern": "/etc/tags/acme(/.*)?"
  *         }],
  *         "denyAllDeletes": true
  *     }
  * </pre>
+ * <p>
+ * Rules are evaluated top-to-bottom. The type of the last rule to match is the effective action taken for the element.
  */
 public class Paths implements PackageCheckFactory {
     public static final String CONFIG_RULES = "rules";
     public static final String CONFIG_DENY_ALL_DELETES = "denyAllDeletes";
 
-    public class Check extends SimplePackageCheck {
+    public class Check extends SimpleProgressCheck {
         private final List<Rule> rules;
         private final boolean denyAllDeletes;
 
@@ -64,45 +69,46 @@ public class Paths implements PackageCheckFactory {
         @Override
         public void importedPath(final PackageId packageId, final String path, final Node node)
                 throws RepositoryException {
-            Rule lastMatch = null;
+            Rule lastMatch = Rule.DEFAULT_ALLOW;
 
             for (Rule rule : rules) {
-                if (rule.getPattern().matcher(path).matches()) {
+                if (rule.matches(path)) {
                     lastMatch = rule;
                 }
             }
 
-            Optional.ofNullable(lastMatch).filter(rule -> rule.getType() == Rule.RuleType.DENY).ifPresent(rule -> {
+            if (lastMatch.isDeny()) {
                 reportViolation(new SimpleViolation(Violation.Severity.MAJOR,
                         String.format("imported path %s matches deny pattern %s", path,
-                                rule.getPattern().pattern()), packageId));
-            });
+                                lastMatch.getPattern().pattern()), packageId));
+            }
         }
 
         @Override
-        public void deletedPath(final PackageId packageId, final String path) {
+        public void deletedPath(final PackageId packageId, final String path, final Session inspectSession)
+                throws RepositoryException {
             if (this.denyAllDeletes) {
                 reportViolation(new SimpleViolation(Violation.Severity.MAJOR,
                         String.format("deleted path %s. All deletions are denied.", path), packageId));
             } else {
-                Rule lastMatch = null;
+                Rule lastMatch = Rule.DEFAULT_ALLOW;
                 for (Rule rule : rules) {
-                    if (rule.getPattern().matcher(path).matches()) {
+                    if (rule.matches(path)) {
                         lastMatch = rule;
                     }
                 }
 
-                Optional.ofNullable(lastMatch).filter(rule -> rule.getType() == Rule.RuleType.DENY).ifPresent(rule -> {
+                if (lastMatch.isDeny()) {
                     reportViolation(new SimpleViolation(Violation.Severity.MAJOR,
                             String.format("deleted path %s matches deny rule %s", path,
-                                    rule.getPattern().pattern()), packageId));
-                });
+                                    lastMatch.getPattern().pattern()), packageId));
+                }
             }
         }
     }
 
     @Override
-    public PackageCheck newInstance(final JSONObject config) throws Exception {
+    public ProgressCheck newInstance(final JSONObject config) throws Exception {
         List<Rule> rules = Rule.fromJSON(config.optJSONArray(CONFIG_RULES));
 
         final boolean denyAllDeletes = config.has(CONFIG_DENY_ALL_DELETES)

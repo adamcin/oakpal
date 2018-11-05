@@ -24,7 +24,7 @@ import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
-import net.adamcin.oakpal.core.PackageCheck;
+import net.adamcin.oakpal.core.ProgressCheck;
 import net.adamcin.oakpal.core.Violation;
 import org.apache.jackrabbit.vault.fs.config.MetaInf;
 import org.apache.jackrabbit.vault.packaging.PackageId;
@@ -33,7 +33,7 @@ import org.apache.jackrabbit.vault.packaging.PackageProperties;
 /**
  * Simple verbose package check that logs all scan events to standard out.
  */
-public class Echo implements PackageCheck {
+public class Echo implements ProgressCheck {
 
     @Override
     public Collection<Violation> getReportedViolations() {
@@ -61,8 +61,9 @@ public class Echo implements PackageCheck {
     }
 
     @Override
-    public void beforeExtract(final PackageId packageId, final PackageProperties packageProperties,
-                              final MetaInf metaInf, final List<PackageId> subpackages) {
+    public void beforeExtract(final PackageId packageId, final Session inspectSession,
+                              final PackageProperties packageProperties, final MetaInf metaInf,
+                              final List<PackageId> subpackages) throws RepositoryException {
         echo("beforeExtract(packageId: %s, ..., subpackages: %s)", packageId, subpackages);
     }
 
@@ -72,7 +73,8 @@ public class Echo implements PackageCheck {
     }
 
     @Override
-    public void deletedPath(final PackageId packageId, final String path) {
+    public void deletedPath(final PackageId packageId, final String path, final Session inspectSession)
+            throws RepositoryException {
         echo("deletedPath(packageId: %s, path: %s, ...)", packageId, path);
     }
 

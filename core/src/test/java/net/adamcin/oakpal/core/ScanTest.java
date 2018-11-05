@@ -50,10 +50,12 @@ public class ScanTest {
             protected void execute() throws Exception {
                 File package10 = TestPackageUtil.prepareTestPackage("package_1.0.zip");
 
-                PackageCheck listener = new SimplePackageCheck() {
+                ProgressCheck listener = new SimpleProgressCheck() {
 
                     @Override
-                    public void beforeExtract(PackageId packageId, PackageProperties packageProperties, MetaInf metaInf, List<PackageId> subpackages) {
+                    public void beforeExtract(PackageId packageId, Session inspectSession,
+                                              PackageProperties packageProperties, MetaInf metaInf,
+                                              List<PackageId> subpackages) {
                     }
 
                     @Override
@@ -77,7 +79,7 @@ public class ScanTest {
                 final List<String> importedPaths = new ArrayList<>();
                 final List<String> queriedPaths = new ArrayList<>();
 
-                PackageCheck handler = new SimplePackageCheck() {
+                ProgressCheck handler = new SimpleProgressCheck() {
 
                     @Override
                     public void importedPath(PackageId packageId, String path, Node node) throws RepositoryException {
@@ -112,7 +114,7 @@ public class ScanTest {
             protected void execute() throws Exception {
                 File fullcoverage = TestPackageUtil.prepareTestPackage("fullcoverage.zip");
 
-                PackageCheck handler = ScriptPackageCheck.createScriptCheckFactory(
+                ProgressCheck handler = ScriptProgressCheck.createScriptCheckFactory(
                         getClass().getResource("/simpleHandler.js")).newInstance(new JSONObject());
 
                 new PackageScanner.Builder().withPackageListener(handler)

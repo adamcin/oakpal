@@ -56,13 +56,13 @@ import org.apache.jackrabbit.vault.packaging.PackagingService;
 import org.apache.jackrabbit.vault.packaging.VaultPackage;
 
 /**
- * Entry point for OakPAL Acceptance Library. See {@link PackageCheck} for the event listener interface.
+ * Entry point for OakPAL Acceptance Library. See {@link ProgressCheck} for the event listener interface.
  */
 @ProviderType
 public final class PackageScanner {
     private static final ErrorListener DEFAULT_ERROR_LISTENER = new DefaultErrorListener();
 
-    private final List<PackageCheck> packageChecks;
+    private final List<ProgressCheck> progressChecks;
 
     private final ErrorListener errorListener;
 
@@ -70,11 +70,11 @@ public final class PackageScanner {
 
     private final List<InitStage> initStages;
 
-    private PackageScanner(List<PackageCheck> packageChecks,
+    private PackageScanner(List<ProgressCheck> progressChecks,
                            ErrorListener errorListener,
                            List<File> preInstallPackages,
                            List<InitStage> initStages) {
-        this.packageChecks = packageChecks;
+        this.progressChecks = progressChecks;
         this.errorListener = errorListener;
         this.preInstallPackages = preInstallPackages;
         this.initStages = initStages;
@@ -86,7 +86,7 @@ public final class PackageScanner {
     public static class Builder {
         private final List<InitStage> initStages = new ArrayList<>();
 
-        private final List<PackageCheck> packageChecks = new ArrayList<>();
+        private final List<ProgressCheck> progressChecks = new ArrayList<>();
 
         private ErrorListener errorListener = DEFAULT_ERROR_LISTENER;
 
@@ -119,12 +119,12 @@ public final class PackageScanner {
         }
 
         /**
-         * Set a single instance of {@link PackageCheck} for the scan.
+         * Set a single instance of {@link ProgressCheck} for the scan.
          *
          * @param listener the package listeners
          * @return my builder self
          */
-        public Builder withPackageListener(PackageCheck... listener) {
+        public Builder withPackageListener(ProgressCheck... listener) {
             if (listener != null) {
                 return this.withPackageListeners(Arrays.asList(listener));
             }
@@ -132,14 +132,14 @@ public final class PackageScanner {
         }
 
         /**
-         * Set the list of {@link PackageCheck}s for the scan.
+         * Set the list of {@link ProgressCheck}s for the scan.
          *
          * @param listeners the list of packageListeners
          * @return my builder self
          */
-        public Builder withPackageListeners(List<? extends PackageCheck> listeners) {
+        public Builder withPackageListeners(List<? extends ProgressCheck> listeners) {
             if (listeners != null) {
-                this.packageChecks.addAll(listeners);
+                this.progressChecks.addAll(listeners);
             }
             return this;
         }
@@ -161,7 +161,7 @@ public final class PackageScanner {
 
         /**
          * Provide a list of package files to install before each scan. Install events raised during
-         * pre-install are not passed to each {@link PackageCheck}, but errors raised are passed to
+         * pre-install are not passed to each {@link ProgressCheck}, but errors raised are passed to
          * the {@link ErrorListener}.
          *
          * @param preInstallPackage the list of pre-install package files
@@ -177,7 +177,7 @@ public final class PackageScanner {
 
         /**
          * Provide a list of package files to install before each scan. Install events raised during
-         * pre-install are not passed to each {@link PackageCheck}, but errors raised are passed to
+         * pre-install are not passed to each {@link ProgressCheck}, but errors raised are passed to
          * the {@link ErrorListener}.
          *
          * @param preInstallPackages the list of pre-install package files
@@ -198,15 +198,15 @@ public final class PackageScanner {
          * @return a {@link PackageScanner}
          */
         public PackageScanner build() {
-            return new PackageScanner(packageChecks,
+            return new PackageScanner(progressChecks,
                     errorListener,
                     preInstallPackages,
                     initStages);
         }
     }
 
-    public List<PackageCheck> getPackageChecks() {
-        return packageChecks;
+    public List<ProgressCheck> getProgressChecks() {
+        return progressChecks;
     }
 
     public ErrorListener getErrorListener() {
@@ -245,7 +245,7 @@ public final class PackageScanner {
                 processPackageFile(admin, manager, file, true);
             }
 
-            packageChecks.forEach(PackageCheck::startedScan);
+            progressChecks.forEach(ProgressCheck::startedScan);
 
             if (files != null) {
                 for (File file : files) {
@@ -255,7 +255,7 @@ public final class PackageScanner {
         } catch (RepositoryException e) {
             throw new AbortedScanException(e);
         } finally {
-            packageChecks.forEach(PackageCheck::finishedScan);
+            progressChecks.forEach(ProgressCheck::finishedScan);
 
             if (admin != null) {
                 admin.logout();
@@ -269,7 +269,7 @@ public final class PackageScanner {
         List<CheckReport> reports = new ArrayList<>();
         reports.add(SimpleReport.generateReport(getErrorListener()));
 
-        List<CheckReport> listenerReports = packageChecks.stream()
+        List<CheckReport> listenerReports = progressChecks.stream()
                 .map(SimpleReport::generateReport)
                 .collect(Collectors.toList());
 
@@ -283,7 +283,7 @@ public final class PackageScanner {
         final PackageId packageId = jcrPackage.getPackage().getId();
         final SessionFacade inspectSession = new SessionFacade(admin, false);
         final ProgressTrackerListener tracker =
-                new ImporterListenerAdapter(packageId, packageChecks, inspectSession, preInstall);
+                new ImporterListenerAdapter(packageId, progressChecks, inspectSession, preInstall);
 
         ImportOptions options = new ImportOptions();
         options.setNonRecursive(true);
@@ -295,8 +295,14 @@ public final class PackageScanner {
         final VaultPackage vaultPackage = jcrPackage.getPackage();
 
         if (!preInstall) {
-            packageChecks.forEach(handler -> handler.beforeExtract(packageId,
-                    vaultPackage.getProperties(), vaultPackage.getMetaInf(), subpacks));
+            progressChecks.forEach(handler -> {
+                try {
+                    handler.beforeExtract(packageId, inspectSession,
+                            vaultPackage.getProperties(), vaultPackage.getMetaInf(), subpacks);
+                } catch (final RepositoryException e) {
+                    getErrorListener().onListenerException(e, handler, packageId);
+                }
+            });
         }
 
         jcrPackage.extract(options);
@@ -304,10 +310,10 @@ public final class PackageScanner {
         jcrPackage.close();
 
         if (!preInstall) {
-            packageChecks.forEach(handler -> {
+            progressChecks.forEach(handler -> {
                 try {
                     handler.afterExtract(packageId, inspectSession);
-                } catch (RepositoryException e) {
+                } catch (final RepositoryException e) {
                     errorListener.onListenerException(e, handler, packageId);
                 }
             });
@@ -324,7 +330,7 @@ public final class PackageScanner {
             jcrPackage = manager.open(packageId);
 
             if (!preInstall) {
-                packageChecks.forEach(handler -> handler.identifySubpackage(packageId, parentId));
+                progressChecks.forEach(handler -> handler.identifySubpackage(packageId, parentId));
             }
 
             processPackage(admin, manager, jcrPackage, preInstall);
@@ -347,7 +353,7 @@ public final class PackageScanner {
             final PackageId packageId = jcrPackage.getPackage().getId();
 
             if (!preInstall) {
-                packageChecks.forEach(handler -> {
+                progressChecks.forEach(handler -> {
                     try {
                         handler.identifyPackage(packageId, file);
                     } catch (Exception e) {
@@ -406,13 +412,13 @@ public final class PackageScanner {
     private class ImporterListenerAdapter implements ProgressTrackerListener {
         private final PackageId packageId;
 
-        private final List<PackageCheck> handlers;
+        private final List<ProgressCheck> handlers;
 
         private final SessionFacade session;
 
         private final boolean preInstall;
 
-        ImporterListenerAdapter(PackageId packageId, List<PackageCheck> handlers, SessionFacade session, boolean preInstall) {
+        ImporterListenerAdapter(PackageId packageId, List<ProgressCheck> handlers, SessionFacade session, boolean preInstall) {
             this.packageId = packageId;
             this.handlers = handlers;
             this.session = session;
@@ -426,7 +432,13 @@ public final class PackageScanner {
             }
             if (path != null && path.startsWith("/")) {
                 if ("D".equals(action) || "!".equals(action)) {
-                    handlers.forEach(handler -> handler.deletedPath(packageId, path));
+                    handlers.forEach(handler -> {
+                        try {
+                            handler.deletedPath(packageId, path, session);
+                        } catch (Exception e) {
+                            PackageScanner.this.getErrorListener().onListenerPathException(e, handler, packageId, path);
+                        }
+                    });
                 } else {
                     try {
                         Node node = session.getNode(path);

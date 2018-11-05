@@ -18,8 +18,8 @@ package net.adamcin.oakpal.core;
 
 import java.util.Collection;
 
-public class SimplePackageCheck implements PackageCheck {
-    private final ReportCollector collector = new ReportCollector();
+public class SimpleProgressCheck implements ProgressCheck {
+    protected final ReportCollector collector = new ReportCollector();
 
     protected void reportViolation(final Violation violation) {
         collector.reportViolation(violation);

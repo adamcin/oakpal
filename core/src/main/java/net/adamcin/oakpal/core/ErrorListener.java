@@ -65,25 +65,25 @@ public interface ErrorListener extends ScanListener, ViolationReporter {
     }
 
     /**
-     * Called when a {@link PackageCheck} throws an exception.
+     * Called when a {@link ProgressCheck} throws an exception.
      *
      * @param e         the error
      * @param listener  the listener
      * @param packageId the current package id
      */
-    default void onListenerException(final Exception e, final PackageCheck listener, final PackageId packageId) {
+    default void onListenerException(final Exception e, final ProgressCheck listener, final PackageId packageId) {
 
     }
 
     /**
-     * Called when a {@link PackageCheck} throws an exception when handling an imported path.
+     * Called when a {@link ProgressCheck} throws an exception when handling an imported path.
      *
      * @param e         the error
      * @param handler   the handler
      * @param packageId the current package id
      * @param path      the current path
      */
-    default void onListenerPathException(final Exception e, final PackageCheck handler, final PackageId packageId, final String path) {
+    default void onListenerPathException(final Exception e, final ProgressCheck handler, final PackageId packageId, final String path) {
 
     }
 

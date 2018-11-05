@@ -37,7 +37,7 @@ import org.apache.maven.plugins.annotations.ResolutionScope;
  * @since 0.1.0
  */
 @Mojo(name = "scan", requiresDependencyResolution = ResolutionScope.TEST, configurator = OakpalComponentConfigurator.HINT,
-  defaultPhase = LifecyclePhase.VERIFY)
+  defaultPhase = LifecyclePhase.INTEGRATION_TEST)
 public class ScanArtifactMojo extends AbstractScanMojo {
 
     /**

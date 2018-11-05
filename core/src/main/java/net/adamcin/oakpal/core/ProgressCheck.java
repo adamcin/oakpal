@@ -17,7 +17,6 @@
 package net.adamcin.oakpal.core;
 
 import java.io.File;
-import java.util.Collection;
 import java.util.List;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
@@ -32,7 +31,7 @@ import org.apache.jackrabbit.vault.packaging.PackageProperties;
  * Primary point of customization for the OakPAL framework.
  */
 @ConsumerType
-public interface PackageCheck extends ScanListener, ViolationReporter {
+public interface ProgressCheck extends ScanListener, ViolationReporter {
 
     /**
      * Return an optional label for displaying reports made by this reporter.
@@ -69,12 +68,13 @@ public interface PackageCheck extends ScanListener, ViolationReporter {
      * Called for each package before it is extracted.
      *
      * @param packageId         the package ID of the newly opened package
+     * @param inspectSession    session providing access to repository state
      * @param packageProperties the package properties
      * @param metaInf           the package meta information
      * @param subpackages       extracted subpackages
      */
-    default void beforeExtract(PackageId packageId, PackageProperties packageProperties,
-                               MetaInf metaInf, List<PackageId> subpackages) {
+    default void beforeExtract(PackageId packageId, Session inspectSession, PackageProperties packageProperties,
+                               MetaInf metaInf, List<PackageId> subpackages) throws RepositoryException {
 
     }
 
@@ -95,8 +95,9 @@ public interface PackageCheck extends ScanListener, ViolationReporter {
      *
      * @param packageId the current package
      * @param path      deleted path
+     * @param inspectSession    session providing access to repository state
      */
-    default void deletedPath(PackageId packageId, String path) {
+    default void deletedPath(PackageId packageId, String path, Session inspectSession) throws RepositoryException {
 
     }
 

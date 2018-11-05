@@ -33,47 +33,47 @@ public final class Locator {
     }
 
     /**
-     * Attempt to load a {@link PackageCheck} from the class path.
+     * Attempt to load a {@link ProgressCheck} from the class path.
      *
      * @param impl className or resourceName
-     * @return a new {@link PackageCheck} instance for the given name
+     * @return a new {@link ProgressCheck} instance for the given name
      * @throws Exception on any error or failure to find a resource for given name.
      */
-    public static PackageCheck loadPackageCheck(final String impl) throws Exception {
+    public static ProgressCheck loadPackageCheck(final String impl) throws Exception {
         return loadPackageCheck(impl, null);
     }
 
     /**
-     * Attempt to load a {@link PackageCheck} from a particular class loader.
+     * Attempt to load a {@link ProgressCheck} from a particular class loader.
      *
      * @param impl   className or resourceName
      * @param config provide an optional config object (may be ignored by the check.)
-     * @return a new {@link PackageCheck} instance for the given name
+     * @return a new {@link ProgressCheck} instance for the given name
      * @throws Exception on any error or failure to find a resource for given name.
      */
-    public static PackageCheck loadPackageCheck(final String impl, final JSONObject config) throws Exception {
+    public static ProgressCheck loadPackageCheck(final String impl, final JSONObject config) throws Exception {
         return loadPackageCheck(impl, config, Util.getDefaultClassLoader());
     }
 
     /**
-     * Attempt to load a {@link PackageCheck} from a particular class loader.
+     * Attempt to load a {@link ProgressCheck} from a particular class loader.
      *
      * @param impl        className or resourceName
      * @param config      provide an optional config object (may be ignored by the check.)
      * @param classLoader a specific classLoader to use
-     * @return a new {@link PackageCheck} instance for the given name
+     * @return a new {@link ProgressCheck} instance for the given name
      * @throws Exception on any error or failure to find a resource for given name.
      */
-    public static PackageCheck loadPackageCheck(final String impl, final JSONObject config,
-                                                final ClassLoader classLoader) throws Exception {
+    public static ProgressCheck loadPackageCheck(final String impl, final JSONObject config,
+                                                 final ClassLoader classLoader) throws Exception {
         if (!impl.contains("/") && !impl.contains("\\")) {
             try {
                 Class<?> clazz = classLoader.loadClass(impl);
                 if (PackageCheckFactory.class.isAssignableFrom(clazz)) {
                     return PackageCheckFactory.class.cast(clazz.getConstructor().newInstance())
                             .newInstance(config == null ? new JSONObject() : config);
-                } else if (PackageCheck.class.isAssignableFrom(clazz)) {
-                    return PackageCheck.class.cast(clazz.getConstructor().newInstance());
+                } else if (ProgressCheck.class.isAssignableFrom(clazz)) {
+                    return ProgressCheck.class.cast(clazz.getConstructor().newInstance());
                 } else {
                     throw new Exception("impl names class that does not implement PackageCheckFactory or PackageCheck: " +
                             clazz.getName());
@@ -81,7 +81,7 @@ public final class Locator {
             } catch (ClassNotFoundException e) {
                 final URL resourceUrl = classLoader.getResource(impl);
                 if (resourceUrl != null) {
-                    return ScriptPackageCheck.createScriptCheckFactory(resourceUrl)
+                    return ScriptProgressCheck.createScriptCheckFactory(resourceUrl)
                             .newInstance(config == null ? new JSONObject() : config);
                 } else {
                     throw e;
@@ -90,7 +90,7 @@ public final class Locator {
         } else {
             final URL resourceUrl = classLoader.getResource(impl);
             if (resourceUrl != null) {
-                return ScriptPackageCheck.createScriptCheckFactory(resourceUrl)
+                return ScriptProgressCheck.createScriptCheckFactory(resourceUrl)
                         .newInstance(config == null ? new JSONObject() : config);
             } else {
                 throw new Exception("Failed to find class path resource by name: " + impl);
@@ -101,11 +101,11 @@ public final class Locator {
     /**
      * Rename the provided package check with the provided alias.
      *
-     * @param packageCheck the check to rename.
-     * @param alias        the name to override {@link PackageCheck#getCheckName()}.
+     * @param progressCheck the check to rename.
+     * @param alias        the name to override {@link ProgressCheck#getCheckName()}.
      * @return the renamed package check.
      */
-    public static PackageCheck wrapWithAlias(final PackageCheck packageCheck, final String alias) {
-        return new PackageCheckAliasFacade(packageCheck, alias);
+    public static ProgressCheck wrapWithAlias(final ProgressCheck progressCheck, final String alias) {
+        return new ProgressCheckAliasFacade(progressCheck, alias);
     }
 }

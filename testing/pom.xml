@@ -15,7 +15,8 @@
   ~ limitations under the License.
   -->
 
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
@@ -34,9 +35,9 @@
     <inceptionYear>2017</inceptionYear>
 
     <scm>
-        <url>https://github.com/adamcin/${project.groupId}</url>
-        <developerConnection>scm:git:git@github.com:adamcin/${project.groupId}.git</developerConnection>
-        <connection>scm:git://github.com/adamcin/${project.groupId}.git</connection>
+        <url>https://github.com/adamcin/oakpal</url>
+        <developerConnection>scm:git:git@github.com:adamcin/oakpal.git</developerConnection>
+        <connection>scm:git://github.com/adamcin/oakpal.git</connection>
         <tag>HEAD</tag>
     </scm>
 
@@ -82,11 +83,7 @@
                 <artifactId>site-maven-plugin</artifactId>
                 <configuration>
                     <message>Creating site for ${project.artifactId} ${project.version}</message>
-                    <noJekyll>true</noJekyll>
-                    <repositoryOwner>adamcin</repositoryOwner>
-                    <repositoryName>${project.groupId}</repositoryName>
                     <path>${project.artifactId}</path>
-                    <merge>true</merge>
                 </configuration>
             </plugin>
         </plugins>

@@ -193,9 +193,11 @@ public class JSONObjectConverter extends AbstractConfigurationConverter {
     private static final Pattern DOUBLE_ESS_E_ESS_TO_DOUBLE_ESS = Pattern.compile("sses$");
     private static final Pattern I_E_ESS_TO_I = Pattern.compile("(?<=[a-z]{2})ies$");
     private static final Pattern I_E_ESS_TO_IE = Pattern.compile("ies$");
-    private static final Pattern PRECEDING_VOWEL_NOT_DOUBLE_ESS = Pattern.compile("^.*[aeiou].*[^s]s$");
+    // abyss -> abyss and types -> type means that y should be considered a vowel here
+    // whys -> why means that w should be considered a vowel here
+    private static final Pattern PRECEDING_VOWEL_NOT_DOUBLE_ESS = Pattern.compile("^.*[aeiouwy].*[^s]s$");
     private static final Pattern ESS_SUFFIX_TO_DROP = Pattern.compile("s$");
-    private static final Pattern REPLACEABLE_WHY_TO_I = Pattern.compile("(?<=[a-z][^aeiou])y");
+    private static final Pattern REPLACEABLE_WHY_TO_I = Pattern.compile("(?<=[a-z][^aeiou])y$");
 
     /**
      * Perform plural stemming on the provided key to normalize parent and child config element names for the purpose of

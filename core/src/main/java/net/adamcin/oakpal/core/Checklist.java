@@ -33,6 +33,7 @@ import org.json.JSONObject;
  */
 public final class Checklist {
     static final String KEY_NAME = "name";
+    static final String KEY_INIT = "init";
     static final String KEY_CND_NAMES = "cndUrls";
     static final String KEY_JCR_NAMESPACES = "jcrNamespaces";
     static final String KEY_JCR_PRIVILEGES = "jcrPrivileges";
@@ -190,6 +191,14 @@ public final class Checklist {
     static Checklist fromJSON(final String moduleName, final URL manifestUrl, final JSONObject json) {
         Builder builder = new Builder(moduleName);
         ofNullable(json.optString(KEY_NAME)).ifPresent(builder::withName);
+        ofNullable(json.optString(KEY_INIT)).ifPresent(init -> {
+            try {
+                Object initObjc = Util.getDefaultClassLoader().loadClass(init).getConstructor().newInstance();
+                ChecklistInitializer.class.cast(initObjc).init();
+            } catch (Exception e) {
+                // TODO do something with e
+            }
+        });
         if (manifestUrl != null && manifestUrl.toExternalForm().endsWith(JarFile.MANIFEST_NAME)) {
             ofNullable(json.optJSONArray(KEY_CND_NAMES))
                     .map(cndNames -> cndNames.toList().stream()
@@ -200,7 +209,10 @@ public final class Checklist {
         }
         ofNullable(json.optJSONArray(KEY_JCR_NAMESPACES))
                 .map(jcrNamespaces -> StreamSupport.stream(jcrNamespaces.spliterator(), false)
-                        .filter(elem -> {System.out.println(elem); return true;})
+                        .filter(elem -> {
+                            System.out.println(elem);
+                            return true;
+                        })
                         .filter(elem -> elem instanceof JSONObject)
                         .map(JSONObject.class::cast)
                         .map(JcrNs::fromJSON)

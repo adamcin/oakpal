@@ -20,7 +20,7 @@ import java.util.Collection;
 import java.util.stream.Collectors;
 
 /**
- * Type for collected {@link Violation}s from a particlular {@link PackageCheck}.
+ * Type for collected {@link Violation}s from a particlular {@link ProgressCheck}.
  */
 public interface CheckReport {
 

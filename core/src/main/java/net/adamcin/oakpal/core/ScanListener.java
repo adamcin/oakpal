@@ -18,7 +18,7 @@ package net.adamcin.oakpal.core;
 
 /**
  * Defines listener notifications for beginning and end of scan common to {@link ErrorListener} and
- * {@link PackageCheck}.
+ * {@link ProgressCheck}.
  */
 public interface ScanListener {
 

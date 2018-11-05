@@ -43,12 +43,12 @@
     <inceptionYear>2017</inceptionYear>
     <name>OakPAL - Parent</name>
     <description>Oak Package Acceptance Library</description>
-    <url>http://adamcin.net/${project.groupId}</url>
+    <url>http://adamcin.net/oakpal</url>
 
     <scm>
-        <url>https://github.com/adamcin/${project.groupId}</url>
-        <developerConnection>scm:git:git@github.com:adamcin/${project.groupId}.git</developerConnection>
-        <connection>scm:git://github.com/adamcin/${project.groupId}.git</connection>
+        <url>https://github.com/adamcin/oakpal</url>
+        <developerConnection>scm:git:git@github.com:adamcin/oakpal.git</developerConnection>
+        <connection>scm:git://github.com/adamcin/oakpal.git</connection>
         <tag>HEAD</tag>
     </scm>
 
@@ -73,7 +73,7 @@
 
     <issueManagement>
         <system>github</system>
-        <url>http://github.com/adamcin/${project.groupId}/issues/</url>
+        <url>https://github.com/adamcin/oakpal/issues/</url>
     </issueManagement>
 
     <developers>
@@ -82,8 +82,8 @@
             <name>Mark Adamcin</name>
             <email>adamcin@gmail.com</email>
             <url>http://adamcin.net</url>
-            <organization>Infield Digital</organization>
-            <organizationUrl>https://www.infielddigital.com</organizationUrl>
+            <organization>Bounteous</organization>
+            <organizationUrl>https://www.bounteous.com</organizationUrl>
             <roles>
                 <role>architect</role>
                 <role>developer</role>
@@ -247,7 +247,7 @@
                     <noJekyll>true</noJekyll>
                     <merge>true</merge>
                     <repositoryOwner>adamcin</repositoryOwner>
-                    <repositoryName>${project.groupId}</repositoryName>
+                    <repositoryName>oakpal</repositoryName>
                 </configuration>
             </plugin>
         </plugins>

@@ -10,6 +10,10 @@
       "impl": "net.adamcin.oakpal.core.checks.Paths"
     },
     {
+      "name": "jcrProperties",
+      "impl": "net.adamcin.oakpal.core.checks.JcrProperties"
+    },
+    {
       "name": "subpackages",
       "impl": "net.adamcin.oakpal.core.checks.Subpackages"
     },

@@ -35,6 +35,11 @@ public class JSONObjectConverterTest {
         cases.put("some_people_like_snakes", "snake");
         cases.put("snake", "snake");
         cases.put("some.people.like.dots", "dot");
+        cases.put("denyNodeTypes", "type");
+        cases.put("denyNodeType", "type");
+        cases.put("abyss", "abyss");
+        cases.put("why", "whi");
+        cases.put("whys", "whi");
 
         for (Map.Entry<String, String> entry : cases.entrySet()) {
             Assert.assertEquals("should stem to", entry.getValue(),

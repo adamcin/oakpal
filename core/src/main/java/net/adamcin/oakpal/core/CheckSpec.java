@@ -38,7 +38,7 @@ public class CheckSpec {
      * The direct classpath lookup name for a particular check. If not provided, indicates that a check should be
      * looked up by name from a catalog on the classpath.
      *
-     * @return className or script resource name of a {@link PackageCheck} or {@link PackageCheckFactory}.
+     * @return className or script resource name of a {@link ProgressCheck} or {@link PackageCheckFactory}.
      */
     public String getImpl() {
         return impl;

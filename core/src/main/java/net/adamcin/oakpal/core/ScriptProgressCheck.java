@@ -42,54 +42,52 @@ import org.apache.jackrabbit.vault.packaging.PackageProperties;
 import org.json.JSONObject;
 
 /**
- * The {@link ScriptPackageCheck} uses the {@link Invocable} interface from JSR223 to listen for scan events and optionally
- * report check violations.
+ * The {@link ScriptProgressCheck} uses the {@link Invocable} interface from JSR223 to listen for scan events and
+ * optionally report check violations.
  * <p>
  * You may implement only the methods you need to enforce your package check rules.
- * </p>
  * <dl>
  * <dt>getCheckName()</dt>
- * <dd>{@link PackageCheck#getCheckName()}</dd>
+ * <dd>{@link ProgressCheck#getCheckName()}</dd>
  * <dt>startedScan()</dt>
- * <dd>{@link PackageCheck#startedScan()}</dd>
+ * <dd>{@link ProgressCheck#startedScan()}</dd>
  * <dt>identifyPackage(packageId, packageFile)</dt>
- * <dd>{@link PackageCheck#identifyPackage(PackageId, File)}</dd>
+ * <dd>{@link ProgressCheck#identifyPackage(PackageId, File)}</dd>
  * <dt>identifySubpackage(packageId, parentPackageId)</dt>
- * <dd>{@link PackageCheck#identifySubpackage(PackageId, PackageId)}</dd>
- * <dt>beforeExtract()</dt>
- * <dd>{@link PackageCheck#beforeExtract(PackageId, PackageProperties, MetaInf, List)}</dd>
- * <dt>importedPath()</dt>
- * <dd>{@link PackageCheck#importedPath(PackageId, String, Node)}</dd>
- * <dt>deletedPath()</dt>
- * <dd>{@link PackageCheck#deletedPath(PackageId, String)}</dd>
- * <dt>afterExtract()</dt>
- * <dd>{@link PackageCheck#afterExtract(PackageId, Session)}</dd>
+ * <dd>{@link ProgressCheck#identifySubpackage(PackageId, PackageId)}</dd>
+ * <dt>beforeExtract(packageId, inspectSession, packageProperties, metaInf, subpackageIds)</dt>
+ * <dd>{@link ProgressCheck#beforeExtract(PackageId, Session, PackageProperties, MetaInf, List)}</dd>
+ * <dt>importedPath(packageId, path, node)</dt>
+ * <dd>{@link ProgressCheck#importedPath(PackageId, String, Node)}</dd>
+ * <dt>deletedPath(packageId, path, inspectSession)</dt>
+ * <dd>{@link ProgressCheck#deletedPath(PackageId, String, Session)}</dd>
+ * <dt>afterExtract(packageId, inspectSession)</dt>
+ * <dd>{@link ProgressCheck#afterExtract(PackageId, Session)}</dd>
  * <dt>finishedScan()</dt>
- * <dd>{@link PackageCheck#finishedScan()}</dd>
+ * <dd>{@link ProgressCheck#finishedScan()}</dd>
  * </dl>
  * <p>
  * To report package violations, a {@link ScriptHelper} is bound to the global variable "oakpal".
- * </p>
  */
 @ProviderType
-public final class ScriptPackageCheck implements PackageCheck {
+public final class ScriptProgressCheck implements ProgressCheck {
     public static final String BINDING_SCRIPT_HELPER = "oakpal";
     public static final String BINDING_CHECK_CONFIG = "config";
-    public static final String INVOKE_ON_BEGIN_SCAN = "startedScan";
-    public static final String INVOKE_ON_BEGIN_PACKAGE = "identifyPackage";
-    public static final String INVOKE_ON_BEGIN_SUBPACKAGE = "identifySubpackage";
-    public static final String INVOKE_ON_OPEN = "beforeExtract";
-    public static final String INVOKE_ON_IMPORT_PATH = "importedPath";
-    public static final String INVOKE_ON_DELETE_PATH = "deletedPath";
-    public static final String INVOKE_ON_CLOSE = "afterExtract";
-    public static final String INVOKE_ON_END_SCAN = "finishedScan";
-    public static final String INVOKE_GET_LABEL = "getCheckName";
+    public static final String INVOKE_ON_STARTED_SCAN = "startedScan";
+    public static final String INVOKE_ON_IDENTIFY_PACKAGE = "identifyPackage";
+    public static final String INVOKE_ON_IDENTIFY_SUBPACKAGE = "identifySubpackage";
+    public static final String INVOKE_ON_BEFORE_EXTRACT = "beforeExtract";
+    public static final String INVOKE_ON_IMPORTED_PATH = "importedPath";
+    public static final String INVOKE_ON_DELETED_PATH = "deletedPath";
+    public static final String INVOKE_ON_AFTER_EXTRACT = "afterExtract";
+    public static final String INVOKE_ON_FINISHED_SCAN = "finishedScan";
+    public static final String INVOKE_GET_CHECK_NAME = "getCheckName";
 
     private final Invocable script;
     private final ScriptHelper helper;
     private final URL scriptUrl;
 
-    private ScriptPackageCheck(final Invocable script, final ScriptHelper helper, final URL scriptUrl) {
+    private ScriptProgressCheck(final Invocable script, final ScriptHelper helper, final URL scriptUrl) {
         this.script = script;
         this.helper = helper;
         this.scriptUrl = scriptUrl;
@@ -107,7 +105,7 @@ public final class ScriptPackageCheck implements PackageCheck {
     @Override
     public String getCheckName() {
         try {
-            Object result = this.script.invokeFunction(INVOKE_GET_LABEL);
+            Object result = this.script.invokeFunction(INVOKE_GET_CHECK_NAME);
             if (result != null) {
                 return String.valueOf(result);
             } else {
@@ -124,7 +122,7 @@ public final class ScriptPackageCheck implements PackageCheck {
     public void startedScan() {
         try {
             helper.collector.clearViolations();
-            this.script.invokeFunction(INVOKE_ON_BEGIN_SCAN);
+            this.script.invokeFunction(INVOKE_ON_STARTED_SCAN);
         } catch (NoSuchMethodException ignored) {
         } catch (ScriptException e) {
             throw new RuntimeException(e);
@@ -132,9 +130,9 @@ public final class ScriptPackageCheck implements PackageCheck {
     }
 
     @Override
-    public void identifyPackage(PackageId packageId, File file) {
+    public void identifyPackage(final PackageId packageId, final File file) {
         try {
-            this.script.invokeFunction(INVOKE_ON_BEGIN_PACKAGE, packageId, file);
+            this.script.invokeFunction(INVOKE_ON_IDENTIFY_PACKAGE, packageId, file);
         } catch (NoSuchMethodException ignored) {
         } catch (ScriptException e) {
             throw new RuntimeException(e);
@@ -142,9 +140,9 @@ public final class ScriptPackageCheck implements PackageCheck {
     }
 
     @Override
-    public void identifySubpackage(PackageId packageId, PackageId parentId) {
+    public void identifySubpackage(final PackageId packageId, final PackageId parentId) {
         try {
-            this.script.invokeFunction(INVOKE_ON_BEGIN_SUBPACKAGE, packageId, parentId);
+            this.script.invokeFunction(INVOKE_ON_IDENTIFY_SUBPACKAGE, packageId, parentId);
         } catch (NoSuchMethodException ignored) {
         } catch (ScriptException e) {
             throw new RuntimeException(e);
@@ -152,9 +150,11 @@ public final class ScriptPackageCheck implements PackageCheck {
     }
 
     @Override
-    public void beforeExtract(PackageId packageId, PackageProperties packageProperties, MetaInf metaInf, List<PackageId> subpackages) {
+    public void beforeExtract(final PackageId packageId, final Session inspectSession,
+                              final PackageProperties packageProperties, final MetaInf metaInf,
+                              final List<PackageId> subpackages) throws RepositoryException {
         try {
-            this.script.invokeFunction(INVOKE_ON_OPEN, packageId, packageProperties,
+            this.script.invokeFunction(INVOKE_ON_BEFORE_EXTRACT, inspectSession, packageId, packageProperties,
                     metaInf, subpackages.toArray(new PackageId[subpackages.size()]));
         } catch (NoSuchMethodException ignored) {
         } catch (ScriptException e) {
@@ -163,9 +163,9 @@ public final class ScriptPackageCheck implements PackageCheck {
     }
 
     @Override
-    public void importedPath(PackageId packageId, String path, Node node) throws RepositoryException {
+    public void importedPath(final PackageId packageId, final String path, final Node node) throws RepositoryException {
         try {
-            this.script.invokeFunction(INVOKE_ON_IMPORT_PATH, packageId, path, node);
+            this.script.invokeFunction(INVOKE_ON_IMPORTED_PATH, packageId, path, node);
         } catch (NoSuchMethodException ignored) {
         } catch (ScriptException e) {
             if (e.getCause() instanceof RepositoryException) {
@@ -176,9 +176,10 @@ public final class ScriptPackageCheck implements PackageCheck {
     }
 
     @Override
-    public void deletedPath(PackageId packageId, String path) {
+    public void deletedPath(final PackageId packageId, final String path, final Session inspectSession)
+            throws RepositoryException {
         try {
-            this.script.invokeFunction(INVOKE_ON_DELETE_PATH, packageId, path);
+            this.script.invokeFunction(INVOKE_ON_DELETED_PATH, packageId, path);
         } catch (NoSuchMethodException ignored) {
         } catch (ScriptException e) {
             throw new RuntimeException(e);
@@ -186,9 +187,9 @@ public final class ScriptPackageCheck implements PackageCheck {
     }
 
     @Override
-    public void afterExtract(PackageId packageId, Session inspectSession) throws RepositoryException {
+    public void afterExtract(final PackageId packageId, final Session inspectSession) throws RepositoryException {
         try {
-            this.script.invokeFunction(INVOKE_ON_CLOSE, packageId, inspectSession);
+            this.script.invokeFunction(INVOKE_ON_AFTER_EXTRACT, packageId, inspectSession);
         } catch (NoSuchMethodException ignored) {
         } catch (ScriptException e) {
             if (e.getCause() instanceof RepositoryException) {
@@ -201,7 +202,7 @@ public final class ScriptPackageCheck implements PackageCheck {
     @Override
     public void finishedScan() {
         try {
-            this.script.invokeFunction(INVOKE_ON_END_SCAN);
+            this.script.invokeFunction(INVOKE_ON_FINISHED_SCAN);
         } catch (NoSuchMethodException ignored) {
         } catch (ScriptException e) {
             throw new RuntimeException(e);
@@ -243,7 +244,7 @@ public final class ScriptPackageCheck implements PackageCheck {
         }
 
         @Override
-        public PackageCheck newInstance(final JSONObject config) throws Exception {
+        public ProgressCheck newInstance(final JSONObject config) throws Exception {
             try (InputStream is = scriptUrl.openStream()) {
                 Bindings scriptBindings = new SimpleBindings();
                 if (config != null) {
@@ -256,7 +257,7 @@ public final class ScriptPackageCheck implements PackageCheck {
 
                 engine.setBindings(scriptBindings, ScriptContext.ENGINE_SCOPE);
                 engine.eval(new InputStreamReader(is, Charset.forName("UTF-8")));
-                return new ScriptPackageCheck((Invocable) engine, helper, scriptUrl);
+                return new ScriptProgressCheck((Invocable) engine, helper, scriptUrl);
             }
         }
     }
@@ -275,7 +276,8 @@ public final class ScriptPackageCheck implements PackageCheck {
         return createScriptCheckFactory(engine, scriptUrl);
     }
 
-    public static PackageCheckFactory createScriptCheckFactory(String engineName, URL scriptUrl) throws Exception {
+    public static PackageCheckFactory createScriptCheckFactory(final String engineName, final URL scriptUrl)
+            throws Exception {
         ScriptEngine engine = new ScriptEngineManager().getEngineByName(engineName);
         if (engine == null) {
             throw new Exception("Failed to load ScriptEngine by name: " + engineName);
@@ -283,7 +285,8 @@ public final class ScriptPackageCheck implements PackageCheck {
         return createScriptCheckFactory(engine, scriptUrl);
     }
 
-    public static PackageCheckFactory createScriptCheckFactory(ScriptEngine engine, URL scriptUrl) throws Exception {
+    public static PackageCheckFactory createScriptCheckFactory(final ScriptEngine engine, final URL scriptUrl)
+            throws Exception {
         return new ScriptPackageCheckFactory(engine, scriptUrl);
     }
 }

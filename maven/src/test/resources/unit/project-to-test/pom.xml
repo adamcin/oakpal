@@ -32,15 +32,9 @@
                 <groupId>net.adamcin.oakpal</groupId>
                 <artifactId>oakpal-maven-plugin</artifactId>
                 <configuration>
-                    <classPathChecks>
-                        <classPathCheck>net.adamcin.oakpal.maven.checks.SimpleJavaCheck</classPathCheck>
-                    </classPathChecks>
                     <cndNames>
                         <cndName>test-classpath-nodetypes.cnd</cndName>
                     </cndNames>
-                    <cndFiles>
-                        <cndFile>simpleCnd.cnd</cndFile>
-                    </cndFiles>
                     <jcrNamespaces>
                         <jcrNamespace>
                             <prefix>oakpal1</prefix>
@@ -56,30 +50,6 @@
                         </forcedRoot>
                     </forcedRoots>
                     <slingNodeTypes>true</slingNodeTypes>
-                    <scriptPaths>
-                        <scriptPath>simpleReporter.js</scriptPath>
-                    </scriptPaths>
-                    <adhocCheckConfig>
-                        <foo>bar</foo>
-                        <bars>
-                            <bar>one</bar>
-                            <bar>two</bar>
-                            <bar>three</bar>
-                            <bar>
-                                <one>two</one>
-                                <red>blue</red>
-                            </bar>
-                        </bars>
-                        <someMap>
-                            <cars>
-                                <car>false</car>
-                                <car implementation="java.lang.Boolean">false</car>
-                            </cars>
-                            <bats>
-                                <bob>false</bob>
-                            </bats>
-                        </someMap>
-                    </adhocCheckConfig>
                     <failOnSeverity>SEVERE</failOnSeverity>
                     <checks>
                         <check>
@@ -101,6 +71,14 @@
                             <name>acHandling</name>
                             <config>
                                 <allowedModes implementation="java.util.List"/>
+                            </config>
+                        </check>
+                        <check>
+                            <name>jcrProperties</name>
+                            <config>
+                                <denyNodeTypes>
+                                    <denyNodeType>nt:unstructured</denyNodeType>
+                                </denyNodeTypes>
                             </config>
                         </check>
                         <check>

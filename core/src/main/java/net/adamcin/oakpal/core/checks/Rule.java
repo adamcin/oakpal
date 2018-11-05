@@ -31,6 +31,9 @@ import org.json.JSONObject;
  * Standard Rule tuple capturing ALLOW/DENY and a regex pattern.
  */
 public final class Rule {
+    public static final Rule DEFAULT_ALLOW = new Rule(RuleType.ALLOW, Pattern.compile(".*"));
+    public static final Rule DEFAULT_DENY = new Rule(RuleType.DENY, Pattern.compile(".*"));
+
     public static final String CONFIG_TYPE = "type";
     public static final String CONFIG_PATTERN = "pattern";
     private final RuleType type;
@@ -49,11 +52,28 @@ public final class Rule {
         return pattern;
     }
 
+    public boolean isDeny() {
+        return getType() == RuleType.DENY;
+    }
+
+    public boolean isAllow() {
+        return getType() == RuleType.ALLOW;
+    }
+
+    public boolean matches(String value) {
+        return getPattern().matcher(value).matches();
+    }
+
+    @Override
+    public String toString() {
+        return getType().name() + ":" + getPattern().pattern();
+    }
+
     public enum RuleType {
         ALLOW, DENY
     }
 
-    public static List<Rule> fromJSON(final JSONArray rulesArray) throws JSONException {
+    public static List<Rule> fromJSON(final JSONArray rulesArray) {
         List<JSONObject> ruleJsons = new ArrayList<>();
         List<Rule> rules = new ArrayList<>();
         Optional.ofNullable(rulesArray).map(array -> StreamSupport.stream(array.spliterator(), true)
@@ -67,7 +87,7 @@ public final class Rule {
         return rules;
     }
 
-    public static Rule fromJSON(final JSONObject ruleJson) throws JSONException {
+    public static Rule fromJSON(final JSONObject ruleJson) {
         return new Rule(Rule.RuleType.valueOf(ruleJson.getString(CONFIG_TYPE).toUpperCase()),
                 Pattern.compile(ruleJson.getString(CONFIG_PATTERN)));
     }

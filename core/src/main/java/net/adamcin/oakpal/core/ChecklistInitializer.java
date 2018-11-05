@@ -16,21 +16,13 @@
 
 package net.adamcin.oakpal.core;
 
-import org.json.JSONObject;
-
 /**
- * A factory for creating {@link ProgressCheck}s that accepts a config map.
- *
- * @since 0.5.0
+ * Optional type to initialize state for a checklist's checks, such as for registering an unknown ScriptEngine.
  */
-public interface PackageCheckFactory {
+public interface ChecklistInitializer {
 
     /**
-     * Returns a new check with the provided config.
-     *
-     * @param config an arbitrary config object
-     * @return new PackageCheck, optionally taking the provided config into account.
-     * @throws Exception for whatever reason instance creation fails.
+     * Called by the {@link ChecklistPlanner} when the checklist is discovered.
      */
-    ProgressCheck newInstance(final JSONObject config) throws Exception;
+    void init();
 }

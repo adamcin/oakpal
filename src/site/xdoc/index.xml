@@ -20,7 +20,73 @@
     </properties>
     <body>
         <section name="About OakPAL">
-            <p>About OakPAL</p>
+            <p>
+                OakPAL was inspired by my continuing attempts to improve the validation features of the CRX Content
+                Package Deployer Plugin for Jenkins. It relies on another library I created called
+                granite-client-packman. The validation features I added to that library began to hit significant
+                limitations because I was approaching the task from a static analysis perspective. It's easy to
+                statically examine a package for the content that it will create in a repository, because this content
+                exists in the artifact itself, and is predictably shaped by the package's workspace filter. It is also
+                relatively easy to check package metadata for completeness and conformance to CI assumptions and to
+                parse DocView XML files to ensure well-formedness.
+            </p>
+
+            <p>
+                However, static package analysis leaves some major gaps and edge cases unaddressed:
+            </p>
+
+            <ol>
+                <li>
+                    Inability to make deterministic assertions about what existing content will be deleted or changed
+                    upon
+                    package installation.
+                </li>
+                <li>
+                    Inability to account for NodeType constraints.
+                </li>
+                <li>
+                    Inability to perform analysis of multiple packages that will be installed in sequence.
+                </li>
+            </ol>
+
+            <p>
+                After ultimately failing to completely address the above issues with heuristics and broad and/or
+                high-level restrictions on ACHandling and FilterSet import modes, I finally realized that the only way
+                to properly test a package is by installing it, and watching (listening?) for what happens to the target
+                repository.
+            </p>
+
+            <p>
+                The CRX Jenkins plugin (and the content-package-maven-plugin) make it possible to install packages in
+                AEM servers over HTTP, but the simple protocol returns only limited information about errors, you have
+                to account for transport errors and authentication, and the heavyweight nature of the application makes
+                it painful to implement a CI process that can reset an AEM server to an exact precondition state.
+            </p>
+
+            <p>
+                OakPAL was designed to fill this gap, by providing:
+            </p>
+            <ol>
+                <li>
+                    A model for repeatable repository state initialization using InitStages and preinstall packages.
+                </li>
+                <li>
+                    A PackageScanner class with a fluent Builder API that encapsulates the creation of a fresh Oak
+                    repository, state initialization, and package installation for every set of package files.
+                </li>
+                <li>
+                    A pluggable listener API with classpath discovery of third-party Checklists, ProgressChecks, and
+                    ScriptProgressChecks, which receive progress tracker events along with read-only access to
+                    incremental
+                    repository state, and which can report Violations at the end of a scan.
+                </li>
+            </ol>
+
+            <p>
+                The first integration target for this library is Maven, via the oakpal-maven-plugin. Depending on
+                interest, future integrations would likely include the Jenkins CRX plugin and a command-line interface
+                deployable with Docker.
+            </p>
         </section>
     </body>
 </document>

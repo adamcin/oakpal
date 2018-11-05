@@ -17,23 +17,22 @@
 package net.adamcin.oakpal.maven.checks;
 
 import java.util.List;
-import javax.jcr.Node;
 import javax.jcr.RepositoryException;
+import javax.jcr.Session;
 
-import net.adamcin.oakpal.core.SimplePackageCheck;
+import net.adamcin.oakpal.core.SimpleProgressCheck;
 import net.adamcin.oakpal.core.SimpleViolation;
 import net.adamcin.oakpal.core.Violation;
 import org.apache.jackrabbit.vault.fs.config.MetaInf;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.apache.jackrabbit.vault.packaging.PackageProperties;
 
-public class SimpleJavaCheck extends SimplePackageCheck {
+public class SimpleJavaCheck extends SimpleProgressCheck {
 
     @Override
-    public void beforeExtract(final PackageId packageId,
-                              final PackageProperties packageProperties,
-                              final MetaInf metaInf,
-                              final List<PackageId> subpackages) {
+    public void beforeExtract(final PackageId packageId, final Session inspectSession,
+                              final PackageProperties packageProperties, final MetaInf metaInf,
+                              final List<PackageId> subpackages) throws RepositoryException {
 
         reportViolation(new SimpleViolation(Violation.Severity.MINOR,
                 packageProperties.getACHandling().toString(), packageId));

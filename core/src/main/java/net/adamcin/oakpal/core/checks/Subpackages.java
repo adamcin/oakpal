@@ -19,9 +19,9 @@ package net.adamcin.oakpal.core.checks;
 import java.util.List;
 import java.util.Optional;
 
-import net.adamcin.oakpal.core.PackageCheck;
+import net.adamcin.oakpal.core.ProgressCheck;
 import net.adamcin.oakpal.core.PackageCheckFactory;
-import net.adamcin.oakpal.core.SimplePackageCheck;
+import net.adamcin.oakpal.core.SimpleProgressCheck;
 import net.adamcin.oakpal.core.SimpleViolation;
 import net.adamcin.oakpal.core.Violation;
 import org.apache.jackrabbit.vault.packaging.PackageId;
@@ -53,7 +53,7 @@ public class Subpackages implements PackageCheckFactory {
     public static final String CONFIG_RULES = "rules";
     public static final String CONFIG_DENY_ALL = "denyAll";
 
-    class Check extends SimplePackageCheck {
+    class Check extends SimpleProgressCheck {
         private final List<Rule> rules;
         private final boolean denyAll;
 
@@ -76,7 +76,7 @@ public class Subpackages implements PackageCheckFactory {
                     }
                 }
 
-                Optional.ofNullable(lastMatch).filter(rule -> rule.getType() == Rule.RuleType.DENY).ifPresent(rule -> {
+                Optional.ofNullable(lastMatch).filter(Rule::isDeny).ifPresent(rule -> {
                     reportViolation(new SimpleViolation(Violation.Severity.MAJOR,
                             String.format("subpackage %s included by %s matches deny pattern %s",
                                     packageId.toString(), parentId.toString(),
@@ -87,7 +87,7 @@ public class Subpackages implements PackageCheckFactory {
     }
 
     @Override
-    public PackageCheck newInstance(final JSONObject config) throws Exception {
+    public ProgressCheck newInstance(final JSONObject config) throws Exception {
         List<Rule> rules = Rule.fromJSON(config.optJSONArray(CONFIG_RULES));
 
         final boolean denyAll = config.has(CONFIG_DENY_ALL) && config.optBoolean(CONFIG_DENY_ALL);
