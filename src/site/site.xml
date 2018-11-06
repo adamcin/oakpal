@@ -24,13 +24,6 @@
     <custom>
         <fluidoSkin>
             <facebookLike />
-            <googlePlusOne />
-            <!--
-            <gitHub>
-                <projectId>adamcin/scalamojo-maven-plugin</projectId>
-                <ribbonColor>black</ribbonColor>
-            </gitHub>
-            -->
         </fluidoSkin>
     </custom>
 
@@ -38,12 +31,6 @@
         <name>OakPAL - Oak Package Acceptance Library</name>
         <href>http://adamcin.net/oakpal/index.html</href>
     </bannerLeft>
-
-    <!--
-    <bannerRight>
-        <src>http://adamcin.net/net.adamcin.oakpal/recap-graniteui/images/recap_package_thumbnail.png</src>
-    </bannerRight>
-    -->
 
     <publishDate position="left" format="yyyy-MM-dd HH:mm" />
     <version position="left"/>
@@ -65,10 +52,6 @@
             <item name="Report Issues" href="https://github.com/adamcin/oakpal/issues"/>
         </menu>
         <menu ref="reports" inherit="bottom"/>
-        <menu name="Projects @ adamcin.net" inherit="bottom">
-            <item name="Scala Mojo Maven Plugin" href="http://adamcin.net/scalamojo-maven-plugin"/>
-            <item name="VLT Pack Maven Plugin" href="http://adamcin.net/vltpack-maven-plugin"/>
-            <item name="Snag Jar Maven Plugin" href="http://adamcin.net/snagjar-maven-plugin"/>
-        </menu>
+
     </body>
 </project>

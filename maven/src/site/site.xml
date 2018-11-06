@@ -25,14 +25,5 @@
             <item name="Writing a Script Check" href="writing-a-script-check.html" />
             <item name="JavaDocs" href="apidocs/index.html" />
         </menu>
-        <!--
-        <menu ref="reports" />
-        <menu ref="modules" />
-        <menu name="Projects @ adamcin.net">
-            <item name="Scala Mojo Maven Plugin" href="http://adamcin.net/scalamojo-maven-plugin"/>
-            <item name="VLT Pack Maven Plugin" href="http://adamcin.net/vltpack-maven-plugin"/>
-            <item name="Snag Jar Maven Plugin" href="http://adamcin.net/snagjar-maven-plugin"/>
-        </menu>
-        -->
     </body>
 </project>
