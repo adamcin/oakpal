@@ -17,7 +17,6 @@
 package net.adamcin.oakpal.core.checks;
 
 import java.util.List;
-import java.util.Optional;
 
 import net.adamcin.oakpal.core.ProgressCheck;
 import net.adamcin.oakpal.core.ProgressCheckFactory;
@@ -63,25 +62,30 @@ public class Subpackages implements ProgressCheckFactory {
         }
 
         @Override
+        public String getCheckName() {
+            return Subpackages.this.getClass().getSimpleName();
+        }
+
+        @Override
         public void identifySubpackage(final PackageId packageId, final PackageId parentId) {
             if (denyAll) {
                 reportViolation(new SimpleViolation(Violation.Severity.MAJOR,
                         String.format("subpackage %s included by %s. no subpackages are allowed.",
                                 packageId, parentId), packageId));
             } else if (!rules.isEmpty()) {
-                Rule lastMatch = null;
+                Rule lastMatch = Rule.DEFAULT_ALLOW;
                 for (Rule rule : rules) {
                     if (rule.getPattern().matcher(packageId.toString()).matches()) {
                         lastMatch = rule;
                     }
                 }
 
-                Optional.ofNullable(lastMatch).filter(Rule::isDeny).ifPresent(rule -> {
+                if (lastMatch.isDeny()) {
                     reportViolation(new SimpleViolation(Violation.Severity.MAJOR,
                             String.format("subpackage %s included by %s matches deny pattern %s",
                                     packageId.toString(), parentId.toString(),
-                                    rule.getPattern().pattern()), packageId));
-                });
+                                    lastMatch.getPattern().pattern()), packageId));
+                }
             }
         }
     }

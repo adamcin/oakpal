@@ -79,7 +79,7 @@
             </p>
             <p>
                 Save the output as a file under <tt>src/test/resources</tt> in your ui.apps module and add the
-                <tt>&lt;cndUrls&gt;/&lt;cndName&gt;</tt>
+                <tt>&lt;cndNames&gt;/&lt;cndName&gt;</tt>
                 parameter to your oakpal-maven-plugin configuration with the
                 path to the file.
                 <div class="source">
@@ -89,9 +89,9 @@
         &lt;artifactId&gt;${project.artifactId}&lt;/artifactId&gt;
         &lt;version&gt;${project.version}&lt;/version&gt;
         &lt;configuration&gt;
-            &lt;cndUrls&gt;
+            &lt;cndNames>
                 &lt;cndName&gt;[your-cnd-filename]&lt;/cndName&gt;
-            &lt;/cndUrls&gt;
+            &lt;/cndNames&gt;
         &lt;/configuration&gt;
         &lt;executions&gt;
             &lt;execution&gt;
