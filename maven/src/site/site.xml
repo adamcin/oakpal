@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <!--
-  ~ Copyright 2017 Mark Adamcin
+  ~ Copyright 2018 Mark Adamcin
   ~
   ~ Licensed under the Apache License, Version 2.0 (the "License");
   ~ you may not use this file except in compliance with the License.
@@ -16,43 +16,8 @@
   -->
 
 <project name="${project.name}">
-    <skin>
-        <groupId>org.apache.maven.skins</groupId>
-        <artifactId>maven-fluido-skin</artifactId>
-        <version>1.5</version>
-    </skin>
-    <googleAnalyticsAccountId>UA-37073514-1</googleAnalyticsAccountId>
-    <custom>
-        <fluidoSkin>
-            <facebookLike />
-            <googlePlusOne />
-            <!--
-            <gitHub>
-                <projectId>adamcin/scalamojo-maven-plugin</projectId>
-                <ribbonColor>black</ribbonColor>
-            </gitHub>
-            -->
-        </fluidoSkin>
-    </custom>
-
-    <bannerLeft>
-        <name>${project.name}</name>
-        <href>${project.url}</href>
-    </bannerLeft>
-
-    <publishDate position="left" format="yyyy-MM-dd HH:mm" />
-    <version position="left"/>
-    <poweredBy>
-        <logo name="Build with Maven" href="http://maven.apache.org" img="http://maven.apache.org/images/logos/maven-feather.png" />
-    </poweredBy>
 
     <body>
-        <!--
-        <links>
-            <item name="Wiki" href="http://wiki.github.com/adamcin/${project.groupId}/"/>
-            <item name="FAQ" href="http://wiki.github.com/adamcin/${project.groupId}/frequently-asked-questions"/>
-        </links>
-        -->
         <menu name="Overview">
             <item name="Introduction" href="index.html" />
             <item name="Goals" href="plugin-info.html" />
