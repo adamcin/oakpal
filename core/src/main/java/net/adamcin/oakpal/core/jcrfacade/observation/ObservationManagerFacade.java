@@ -56,7 +56,8 @@ public class ObservationManagerFacade implements ObservationManager {
     }
 
     @Override
-    public void setUserData(String userData) throws RepositoryException { }
+    public void setUserData(String userData) throws RepositoryException {
+    }
 
     @Override
     public EventJournal getEventJournal() throws RepositoryException {

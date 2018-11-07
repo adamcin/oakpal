@@ -65,4 +65,13 @@ public final class SimpleViolation implements Violation {
         List<PackageId> packages = new ArrayList<>(violation.getPackages());
         return new SimpleViolation(severity, description, packages);
     }
+
+    @Override
+    public String toString() {
+        return "SimpleViolation{" +
+                "severity=" + severity +
+                ", description='" + description + '\'' +
+                ", packages=" + packages +
+                '}';
+    }
 }

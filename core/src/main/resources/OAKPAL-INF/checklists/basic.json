@@ -7,19 +7,37 @@
     },
     {
       "name": "paths",
-      "impl": "net.adamcin.oakpal.core.checks.Paths"
+      "impl": "net.adamcin.oakpal.core.checks.Paths",
+      "config": {
+        "denyAllDeletes": true
+      }
     },
     {
       "name": "jcrProperties",
-      "impl": "net.adamcin.oakpal.core.checks.JcrProperties"
+      "impl": "net.adamcin.oakpal.core.checks.JcrProperties",
+      "skip": true
     },
     {
       "name": "subpackages",
-      "impl": "net.adamcin.oakpal.core.checks.Subpackages"
+      "impl": "net.adamcin.oakpal.core.checks.Subpackages",
+      "config": {
+        "denyAll": true
+      }
     },
     {
       "name": "acHandling",
-      "impl": "net.adamcin.oakpal.core.checks.AcHandling"
+      "impl": "net.adamcin.oakpal.core.checks.AcHandling",
+      "config": {
+        "levelSet": "only_add"
+      }
+    },
+    {
+      "name": "filterSets",
+      "impl": "net.adamcin.oakpal.core.checks.FilterSets"
+    },
+    {
+      "name": "overlaps",
+      "impl": "net.adamcin.oakpal.core.checks.Overlaps"
     }
   ]
 }

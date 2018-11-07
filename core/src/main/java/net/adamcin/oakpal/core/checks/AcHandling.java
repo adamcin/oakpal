@@ -17,7 +17,6 @@
 package net.adamcin.oakpal.core.checks;
 
 import static java.util.Optional.ofNullable;
-import static org.apache.jackrabbit.vault.fs.io.AccessControlHandling.CLEAR;
 import static org.apache.jackrabbit.vault.fs.io.AccessControlHandling.IGNORE;
 import static org.apache.jackrabbit.vault.fs.io.AccessControlHandling.MERGE;
 import static org.apache.jackrabbit.vault.fs.io.AccessControlHandling.MERGE_PRESERVE;
@@ -59,6 +58,14 @@ import org.json.JSONObject;
  *         "allowedModes": ["merge_preserve"]
  *     }
  * </pre>
+ * <p>
+ * {@code config} options:
+ * <dl>
+ * <dt>{@code allowedModes}</dt>
+ * <dd>An explicit list of allowed {@link AccessControlHandling} modes.</dd>
+ * <dt>{@code levelSet}</dt>
+ * <dd>A single </dd>
+ * </dl>
  */
 public class AcHandling implements ProgressCheckFactory {
     public static final String CONFIG_ALLOWED_MODES = "allowedModes";
@@ -76,33 +83,33 @@ public class AcHandling implements ProgressCheckFactory {
         /**
          * Allow all acHandling modes except for {@link AccessControlHandling#CLEAR}.
          */
-        NO_CLEAR(Collections.singletonList(CLEAR)),
+        NO_CLEAR(Arrays.asList(OVERWRITE, MERGE, MERGE_PRESERVE, IGNORE)),
 
         /**
-         * (Default levelSet) Prevent blindly destructive modes. Package can still overwrite existing permissions for
+         * (Default levelSet) Prevent blindly destructive modes. Package can still replace existing permissions for
          * any principal identified in ACEs included in the package
          */
-        NO_UNSAFE(Arrays.asList(CLEAR, OVERWRITE)),
+        NO_UNSAFE(Arrays.asList(MERGE, MERGE_PRESERVE, IGNORE)),
 
         /**
          * Allow only {@link AccessControlHandling#MERGE_PRESERVE} or {@link AccessControlHandling#IGNORE}. This results
          * in only allowing additive ACE changes.
          */
-        ONLY_ADD(Arrays.asList(CLEAR, OVERWRITE, MERGE)),
+        ONLY_ADD(Arrays.asList(MERGE_PRESERVE, IGNORE)),
 
         /**
          * Prevent any ACL changes by requiring {@link AccessControlHandling#IGNORE}.
          */
-        ONLY_IGNORE(Arrays.asList(CLEAR, OVERWRITE, MERGE, MERGE_PRESERVE));
+        ONLY_IGNORE(Collections.singletonList(IGNORE));
 
-        private final List<AccessControlHandling> forbiddenModes;
+        private final List<AccessControlHandling> allowedModes;
 
-        ACHandlingLevelSet(final List<AccessControlHandling> forbiddenModes) {
-            this.forbiddenModes = forbiddenModes;
+        ACHandlingLevelSet(final List<AccessControlHandling> allowedModes) {
+            this.allowedModes = allowedModes;
         }
 
-        public List<AccessControlHandling> getForbiddenModes() {
-            return forbiddenModes;
+        public List<AccessControlHandling> getAllowedModes() {
+            return allowedModes;
         }
     }
 
@@ -137,10 +144,10 @@ public class AcHandling implements ProgressCheckFactory {
                                     packageMode, allowedModes), packageId));
                 }
             } else {
-                if (this.levelSet.getForbiddenModes().contains(packageMode)) {
+                if (!this.levelSet.getAllowedModes().contains(packageMode)) {
                     reportViolation(new SimpleViolation(Violation.Severity.MAJOR,
-                            String.format("acHandling mode %s is forbidden. forbidden acHandling values in levelSet:%s are %s",
-                                    packageMode, this.levelSet.name().toLowerCase(), this.levelSet.getForbiddenModes())));
+                            String.format("acHandling mode %s is forbidden. allowed acHandling values in levelSet:%s are %s",
+                                    packageMode, this.levelSet.name().toLowerCase(), this.levelSet.getAllowedModes())));
                 }
             }
         }

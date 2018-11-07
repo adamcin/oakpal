@@ -51,6 +51,9 @@
                     </forcedRoots>
                     <slingNodeTypes>true</slingNodeTypes>
                     <failOnSeverity>SEVERE</failOnSeverity>
+                    <checklists>
+                        <checklist>basic</checklist>
+                    </checklists>
                     <checks>
                         <check>
                             <name>echo</name>
@@ -74,7 +77,7 @@
                             </config>
                         </check>
                         <check>
-                            <name>jcrProperties</name>
+                            <template>jcrProperties</template>
                             <config>
                                 <denyNodeTypes>
                                     <denyNodeType>nt:unstructured</denyNodeType>

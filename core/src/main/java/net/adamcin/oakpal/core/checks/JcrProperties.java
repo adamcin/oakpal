@@ -27,11 +27,9 @@ import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.nodetype.NodeTypeDefinition;
-import javax.jcr.util.TraversingItemVisitor;
 
 import net.adamcin.oakpal.core.ProgressCheck;
 import net.adamcin.oakpal.core.ProgressCheckFactory;
-import net.adamcin.oakpal.core.ReportCollector;
 import net.adamcin.oakpal.core.SimpleProgressCheck;
 import net.adamcin.oakpal.core.SimpleViolation;
 import net.adamcin.oakpal.core.Violation;
@@ -45,7 +43,7 @@ import org.json.JSONObject;
  * A complex check for enforcing characteristics of JCR Properties of imported nodes and their descendants within the
  * scope of the workspace filter.
  * <p>
- * Configuration options:
+ * {@code config} options:
  * <dl>
  * <dt>{@code scopePaths} ({@link Rule}{@code []})</dt>
  * <dd>A list of rules, with each pattern matched against an import path, and the {@code type}
@@ -143,40 +141,11 @@ public class JcrProperties implements ProgressCheckFactory {
                 }
             }
             if (lastMatch.isAllow()) {
-                node.accept(new CheckItemVisitor(this.collector, packageId, this.denyNodeTypes,
-                        this.scopeNodeTypes, this.propertyChecks));
+                this.checkNode(packageId, node);
             }
         }
-    }
 
-
-    class CheckItemVisitor extends TraversingItemVisitor.Default {
-        private final ReportCollector collector;
-        private final List<String> denyNodeTypes;
-        private final List<String> scopeNodeTypes;
-        private final List<JcrPropertyConstraints> propertyChecks;
-        private final PackageId packageId;
-        private Node deniedByType = null;
-
-        public CheckItemVisitor(final ReportCollector collector,
-                                final PackageId packageId,
-                                final List<String> denyNodeTypes,
-                                final List<String> scopeNodeTypes,
-                                final List<JcrPropertyConstraints> propertyChecks) {
-            super(false, -1);
-            this.collector = collector;
-            this.packageId = packageId;
-            this.denyNodeTypes = denyNodeTypes;
-            this.scopeNodeTypes = scopeNodeTypes;
-            this.propertyChecks = propertyChecks;
-        }
-
-        @Override
-        protected void entering(final Node node, final int level) throws RepositoryException {
-            if (deniedByType != null) {
-                return;
-            }
-
+        void checkNode(final PackageId packageId, final Node node) throws RepositoryException {
             for (String denyNodeType : denyNodeTypes) {
                 if (node.isNodeType(denyNodeType)) {
                     collector.reportViolation(new SimpleViolation(Violation.Severity.MAJOR,
@@ -188,7 +157,6 @@ public class JcrProperties implements ProgressCheckFactory {
                                             .collect(Collectors.toList()),
                                     denyNodeType),
                             packageId));
-                    deniedByType = node;
                     return;
                 }
             }
@@ -203,13 +171,6 @@ public class JcrProperties implements ProgressCheckFactory {
                 for (JcrPropertyConstraints check : propertyChecks) {
                     check.evaluate(packageId, node).ifPresent(collector::reportViolation);
                 }
-            }
-        }
-
-        @Override
-        protected void leaving(final Node node, final int level) throws RepositoryException {
-            if (node == deniedByType) {
-                deniedByType = null;
             }
         }
     }

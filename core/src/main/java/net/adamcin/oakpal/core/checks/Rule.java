@@ -24,11 +24,20 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
 
 /**
- * Standard Rule tuple capturing ALLOW/DENY and a regex pattern.
+ * Standard Rule tuple capturing a rule type (allow/deny) and a regex pattern.
+ * <p>
+ * {@code config} options:
+ * <dl>
+ * <dt>{@code type}</dt>
+ * <dd>The {@link RuleType} of the rule: {@code allow} or {@code deny}. The meaning of this value is usually
+ * dependent on context.</dd>
+ * <dt>{@code pattern}</dt>
+ * <dd>A regular expression pattern matched against the full context value (start [{@code ^}] and end [{@code $}]
+ * are assumed).</dd>
+ * </dl>
  */
 public final class Rule {
     public static final Rule DEFAULT_ALLOW = new Rule(RuleType.ALLOW, Pattern.compile(".*"));

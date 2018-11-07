@@ -407,7 +407,7 @@ abstract class AbstractScanMojo extends AbstractMojo {
 
         PackageScanner.Builder scannerBuilder = new PackageScanner.Builder()
                 .withErrorListener(errorListener)
-                .withPackageListeners(allChecks)
+                .withProgressChecks(allChecks)
                 .withInitStages(checklistPlanner.getInitStages())
                 .withInitStage(builder.build())
                 .withPreInstallPackages(preInstall);

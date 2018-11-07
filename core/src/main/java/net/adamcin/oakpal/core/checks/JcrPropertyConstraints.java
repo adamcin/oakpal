@@ -37,6 +37,27 @@ import org.json.JSONObject;
 
 /**
  * Encapsulation of constraints on a JCR property for the {@link JcrProperties} check.
+ * <p>
+ * {@code config} options:
+ * <dl>
+ * <dt>{@code name}</dt>
+ * <dd>The property name to apply restrictions to.</dd>
+ * <dt>{@code denyIfAbsent}</dt>
+ * <dd>Report violation if this property is absent on nodes within scope.</dd>
+ * <dt>{@code denyIfPresent}</dt>
+ * <dd>Report violation if this property is present on nodes within scope.</dd>
+ * <dt>{@code denyIfMultivalued}</dt>
+ * <dd>Report violation if this property has more than one value.</dd>
+ * <dt>{@code requireType}</dt>
+ * <dd>Require a specific property type. Must be a valid name for {@link PropertyType#valueFromName(String)}, e.g.
+ * Binary, Boolean, Date, Decimal, Double, Long, Name, Path, Reference, String, WeakReference, or URI.</dd>
+ * <dt>{@code valueRules}</dt>
+ * <dd>A list of patterns to match against string values of this property. All rules are applied in sequence to each
+ * value of the property. If the type of the last rule to match any value is DENY, a violation is reported.</dd>
+ * <dt>{@code severity}</dt>
+ * <dd>(default: {@link net.adamcin.oakpal.core.Violation.Severity#MAJOR}) specify the severity if a violation is
+ * reported by this set of constraints.</dd>
+ * </dl>
  */
 public final class JcrPropertyConstraints {
     public static final String CONFIG_NAME = "name";
@@ -45,25 +66,29 @@ public final class JcrPropertyConstraints {
     public static final String CONFIG_DENY_IF_MULTIVALUED = "denyIfMultivalued";
     public static final String CONFIG_REQUIRE_TYPE = "requireType";
     public static final String CONFIG_VALUE_RULES = "valueRules";
+    public static final String CONFIG_SEVERITY = "severity";
     private final String name;
     private final boolean denyIfAbsent;
     private final boolean denyIfPresent;
     private final boolean denyIfMultivalued;
     private final String requireType;
     private final List<Rule> valueRules;
+    private final Violation.Severity severity;
 
     public JcrPropertyConstraints(final String name,
                                   final boolean denyIfAbsent,
                                   final boolean denyIfPresent,
                                   final boolean denyIfMultivalued,
                                   final String requireType,
-                                  final List<Rule> valueRules) {
+                                  final List<Rule> valueRules,
+                                  final Violation.Severity severity) {
         this.name = name;
         this.denyIfAbsent = denyIfAbsent;
         this.denyIfPresent = denyIfPresent;
         this.denyIfMultivalued = denyIfMultivalued;
         this.requireType = requireType;
         this.valueRules = valueRules;
+        this.severity = severity;
     }
 
     public String getName() {
@@ -90,9 +115,13 @@ public final class JcrPropertyConstraints {
         return valueRules;
     }
 
+    public Violation.Severity getSeverity() {
+        return severity;
+    }
+
     Violation constructViolation(final PackageId packageId, final Node node, final String reason)
             throws RepositoryException {
-        return new SimpleViolation(Violation.Severity.MAJOR,
+        return new SimpleViolation(getSeverity(),
                 String.format("%s (t: %s, m: %s): %s -> %s",
                         node.getPath(),
                         node.getPrimaryNodeType().getName(),
@@ -120,8 +149,8 @@ public final class JcrPropertyConstraints {
                 return Optional.of(constructViolation(packageId, node, "property is multivalued"));
             }
 
-            if (getRequireType() != null && !getRequireType().equals(PropertyType
-                    .nameFromValue(property.getType()))) {
+            if (getRequireType() != null && !getRequireType().isEmpty()
+                    && !getRequireType().equals(PropertyType.nameFromValue(property.getType()))) {
                 return Optional.of(constructViolation(packageId, node,
                         String.format("required type mismatch: %s != %s",
                                 PropertyType.nameFromValue(property.getType()), getRequireType())));
@@ -178,6 +207,11 @@ public final class JcrPropertyConstraints {
                 && checkJson.getBoolean(CONFIG_DENY_IF_MULTIVALUED);
         final String requireType = checkJson.optString(CONFIG_REQUIRE_TYPE);
         final List<Rule> valueRules = Rule.fromJSON(checkJson.optJSONArray(CONFIG_VALUE_RULES));
-        return new JcrPropertyConstraints(name, denyIfAbsent, denyIfPresent, denyIfMultivalued, requireType, valueRules);
+        final Violation.Severity severity = checkJson.has(CONFIG_SEVERITY)
+                ? Violation.Severity.valueOf(checkJson.getString(CONFIG_SEVERITY).toUpperCase())
+                : Violation.Severity.MAJOR;
+
+        return new JcrPropertyConstraints(name, denyIfAbsent, denyIfPresent, denyIfMultivalued, requireType, valueRules,
+                severity);
     }
 }

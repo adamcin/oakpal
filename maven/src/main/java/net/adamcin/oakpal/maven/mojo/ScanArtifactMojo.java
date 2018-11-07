@@ -32,7 +32,7 @@ import org.apache.maven.plugins.annotations.ResolutionScope;
 
 /**
  * Scans the main project artifact by simulating package installation and listening for violations reported by the
- * configured {@code scriptReporters}.
+ * configured {@code checks}.
  *
  * @since 0.1.0
  */

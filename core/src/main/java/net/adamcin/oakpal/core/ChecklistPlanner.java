@@ -103,6 +103,12 @@ public final class ChecklistPlanner {
         return checklists.stream();
     }
 
+    private Stream<Checklist> getAllChecklists() {
+        List<Checklist> allChecklists = new ArrayList<>(checklists);
+        allChecklists.addAll(inactiveChecklists);
+        return allChecklists.stream();
+    }
+
     public List<CheckSpec> getEffectiveCheckSpecs(final List<CheckSpec> checkOverrides) {
         Map<String, CheckSpec> overlaid = new LinkedHashMap<>();
         List<CheckSpec> overrides = new ArrayList<>();
@@ -141,10 +147,25 @@ public final class ChecklistPlanner {
                             // select base specs that each override spec overrides
                             .filter(spec::overrides)
                             // take optional head and overlay with override, or return override itself
-                            .findFirst().map(spec::overlay).orElse(spec);
-                    // if merged spec has impl, add it
-                    if (merged.getImpl() != null) {
-                        toReturn.add(merged);
+                            .findFirst()
+                            .map(spec::overlay)
+                            .filter(CheckSpec::notSkipped)
+                            .orElse(spec);
+
+                    if (merged.mustInherit()) {
+                        CheckSpec extended = getAllChecklists()
+                                .flatMap(checklist -> checklist.getChecks().stream())
+                                .filter(merged::inherits)
+                                .findFirst().map(merged::inherit).orElse(merged);
+                        // if extended spec has impl, add it
+                        if (extended.getImpl() != null) {
+                            toReturn.add(extended);
+                        }
+                    } else {
+                        // if merged spec has impl, add it
+                        if (merged.getImpl() != null) {
+                            toReturn.add(merged);
+                        }
                     }
                 });
         return toReturn;

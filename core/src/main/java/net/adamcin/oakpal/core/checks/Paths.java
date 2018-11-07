@@ -46,7 +46,18 @@ import org.json.JSONObject;
  *     }
  * </pre>
  * <p>
- * Rules are evaluated top-to-bottom. The type of the last rule to match is the effective action taken for the element.
+ * {@code config} options:
+ * <dl>
+ * <dt>{@code rules}</dt>
+ * <dd>A list of {@link Rule} elements. Rules are evaluated top-to-bottom. The type of the last rule to match is
+ * the effective action taken for the element. Any affected path matching a DENY rule will be reported as a
+ * violation.</dd>
+ * <dt>{@code denyAllDeletes}</dt>
+ * <dd>By default any affected path matching a DENY rule will be reported as a violation regardless of the nature
+ * of the change. Set this true to also report a violation if ANY delete is detected, because that is generally
+ * indicative of an existing path (forced root or preInstallPackage) being inadvertently captured by this package's
+ * workspace filter.</dd>
+ * </dl>
  */
 public class Paths implements ProgressCheckFactory {
     public static final String CONFIG_RULES = "rules";

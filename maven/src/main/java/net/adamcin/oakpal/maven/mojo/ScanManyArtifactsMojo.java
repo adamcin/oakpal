@@ -39,10 +39,10 @@ import org.apache.maven.plugins.annotations.ResolutionScope;
 
 /**
  * Scans a list of artifacts by simulating package installation and listening for violations reported by the
- * configured {@code scriptReporters}. This goal supports the use of script reporters that must evaluate the side
- * effects of installing packages in combination, such as for detection of workspace filter overlap. More simply,
- * this goal can be used in a sidecar project to scan multiple artifacts produced by previous builds using a common
- * set of script reporters.
+ * configured {@code checks}. This goal supports the use of {@link net.adamcin.oakpal.core.ProgressCheck}s that must
+ * evaluate the side effects of installing packages in combination, such as for detection of workspace filter overlap.
+ * More simply, this goal can be used in a sidecar project to scan multiple artifacts produced by previous builds using
+ * a common library of checklists.
  *
  * @since 0.3.0
  */

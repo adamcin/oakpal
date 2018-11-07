@@ -77,6 +77,7 @@ public interface Violation {
 
     /**
      * Describes the nature of the violation.
+     *
      * @return the description
      */
     String getDescription();

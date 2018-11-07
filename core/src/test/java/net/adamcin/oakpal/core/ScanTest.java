@@ -64,7 +64,7 @@ public class ScanTest {
                     }
                 };
 
-                new PackageScanner.Builder().withPackageListener(listener).build().scanPackage(package10);
+                new PackageScanner.Builder().withProgressChecks(listener).build().scanPackage(package10);
             }
         });
     }
@@ -102,7 +102,7 @@ public class ScanTest {
                     }
                 };
 
-                new PackageScanner.Builder().withPackageListener(handler).build().scanPackage(fullcoverage);
+                new PackageScanner.Builder().withProgressChecks(handler).build().scanPackage(fullcoverage);
             }
         });
     }
@@ -117,7 +117,7 @@ public class ScanTest {
                 ProgressCheck handler = ScriptProgressCheck.createScriptCheckFactory(
                         getClass().getResource("/simpleHandler.js")).newInstance(new JSONObject());
 
-                new PackageScanner.Builder().withPackageListener(handler)
+                new PackageScanner.Builder().withProgressChecks(handler)
                         .build().scanPackage(fullcoverage).stream()
                         .flatMap(r -> r.getViolations().stream())
                         .forEach(violation -> LOGGER.info("[{} violation] {}", violation.getSeverity(),
@@ -125,4 +125,5 @@ public class ScanTest {
             }
         });
     }
+
 }

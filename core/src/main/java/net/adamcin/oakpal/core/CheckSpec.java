@@ -26,11 +26,13 @@ import org.json.JSONObject;
 public class CheckSpec {
     static final String KEY_IMPL = "impl";
     static final String KEY_NAME = "name";
+    static final String KEY_TEMPLATE = "template";
     static final String KEY_SKIP = "skip";
     static final String KEY_CONFIG = "config";
 
     private String impl;
     private String name;
+    private String template;
     private boolean skip;
     private JSONObject config;
 
@@ -70,6 +72,24 @@ public class CheckSpec {
     }
 
     /**
+     * If specified, inherit the impl and config of another {@link CheckSpec}, following the same rules of {@code name}
+     * matching that apply to {@link #getName()}.
+     *
+     * @return the checkName to inherit from
+     */
+    public String getTemplate() {
+        return template;
+    }
+
+    public void setTemplate(final String template) {
+        this.template = template;
+    }
+
+    public boolean mustInherit() {
+        return this.getTemplate() != null && !this.getTemplate().trim().isEmpty();
+    }
+
+    /**
      * Whether to skip this check during a scan. Only useful to set in a parameterized context or as an override for a
      * checklist spec.
      *
@@ -103,8 +123,10 @@ public class CheckSpec {
     }
 
     public boolean overrides(final CheckSpec other) {
-        return String.valueOf(other.getName()).equals(String.valueOf(this.getName()))
-                || (this.impl == null && String.valueOf(other.getName()).endsWith("/" + String.valueOf(this.getName())));
+        return !this.mustInherit() && !other.mustInherit()
+                && (String.valueOf(other.getName()).equals(String.valueOf(this.getName()))
+                || (this.impl == null
+                && String.valueOf(other.getName()).endsWith("/" + String.valueOf(this.getName()))));
     }
 
     public boolean isOverriddenBy(final CheckSpec other) {
@@ -116,6 +138,27 @@ public class CheckSpec {
         composite.setName(other.getName());
         composite.setSkip(this.isSkip() || other.isSkip());
         composite.setImpl(ofNullable(this.getImpl()).orElse(other.getImpl()));
+        composite.setConfig(merge(other.getConfig(), this.getConfig()));
+        return composite;
+    }
+
+    public boolean inherits(final CheckSpec other) {
+        return this.mustInherit() && !other.mustInherit() && !this.overrides(other)
+                && !this.getTemplate().equals(this.getName())
+                && other.getName() != null && !other.getName().isEmpty()
+                && (String.valueOf(other.getName()).equals(String.valueOf(this.getTemplate()))
+                || String.valueOf(other.getName()).endsWith("/" + String.valueOf(this.getTemplate())));
+    }
+
+    public boolean isInheritedBy(final CheckSpec other) {
+        return other.inherits(this);
+    }
+
+    public CheckSpec inherit(final CheckSpec other) {
+        final CheckSpec composite = new CheckSpec();
+        composite.setImpl(ofNullable(this.getImpl()).orElse(other.getImpl()));
+        composite.setName(ofNullable(this.getName()).orElse(other.getName()));
+        composite.setSkip(this.isSkip());
         composite.setConfig(merge(other.getConfig(), this.getConfig()));
         return composite;
     }
@@ -136,6 +179,7 @@ public class CheckSpec {
         final CheckSpec checkSpec = new CheckSpec();
         ofNullable(json.optString(KEY_IMPL)).ifPresent(checkSpec::setImpl);
         ofNullable(json.optString(KEY_NAME)).ifPresent(checkSpec::setName);
+        ofNullable(json.optString(KEY_TEMPLATE)).ifPresent(checkSpec::setTemplate);
         if (json.has(KEY_SKIP)) {
             checkSpec.setSkip(json.optBoolean(KEY_SKIP));
         }

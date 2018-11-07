@@ -46,7 +46,15 @@ import org.json.JSONObject;
  *     }
  * </pre>
  * <p>
- * Rules are evaluated top-to-bottom. The type of the last rule to match is the effective action taken for the element.
+ * {@code config} options:
+ * <dl>
+ * <dt>{@code rules}</dt>
+ * <dd>A list of {@link Rule} elements. Rules are evaluated top-to-bottom. The type of the last rule to match is
+ * the effective action taken for the element. Any affected packageId matching a DENY rule will be reported as a
+ * violation.</dd>
+ * <dt>{@code denyAll}</dt>
+ * <dd>Set to true to report a violation for any subpackage installation.</dd>
+ * </dl>
  */
 public class Subpackages implements ProgressCheckFactory {
     public static final String CONFIG_RULES = "rules";
@@ -75,7 +83,10 @@ public class Subpackages implements ProgressCheckFactory {
             } else if (!rules.isEmpty()) {
                 Rule lastMatch = Rule.DEFAULT_ALLOW;
                 for (Rule rule : rules) {
-                    if (rule.getPattern().matcher(packageId.toString()).matches()) {
+                    System.out.printf("packageId: %s, pattern: %s, matches: %s\n", packageId.toString(),
+                            rule.getPattern().pattern(), rule.matches(packageId.toString()));
+
+                    if (rule.matches(packageId.toString())) {
                         lastMatch = rule;
                     }
                 }

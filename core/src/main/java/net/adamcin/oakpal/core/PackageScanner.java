@@ -121,12 +121,12 @@ public final class PackageScanner {
         /**
          * Set a single instance of {@link ProgressCheck} for the scan.
          *
-         * @param listener the package listeners
+         * @param progressCheck the progress checks
          * @return my builder self
          */
-        public Builder withPackageListener(ProgressCheck... listener) {
-            if (listener != null) {
-                return this.withPackageListeners(Arrays.asList(listener));
+        public Builder withProgressChecks(ProgressCheck... progressCheck) {
+            if (progressCheck != null) {
+                return this.withProgressChecks(Arrays.asList(progressCheck));
             }
             return this;
         }
@@ -134,12 +134,12 @@ public final class PackageScanner {
         /**
          * Set the list of {@link ProgressCheck}s for the scan.
          *
-         * @param listeners the list of packageListeners
+         * @param progressChecks the list of packageListeners
          * @return my builder self
          */
-        public Builder withPackageListeners(List<? extends ProgressCheck> listeners) {
-            if (listeners != null) {
-                this.progressChecks.addAll(listeners);
+        public Builder withProgressChecks(List<? extends ProgressCheck> progressChecks) {
+            if (progressChecks != null) {
+                this.progressChecks.addAll(progressChecks);
             }
             return this;
         }
@@ -225,6 +225,27 @@ public final class PackageScanner {
         }
     }
 
+    /**
+     * Execute a scan by installing each of the provided package files in sequence. The scan proceeds in the following
+     * order:
+     * <ol>
+     * <li>{@link #initRepository()} creates an fresh Oak repository.</li>
+     * <li>{@link #loginAdmin(Repository)} opens an admin user JCR session.</li>
+     * <li>{@link InitStage#initSession(Session, ErrorListener)} is called for each registered {@link InitStage}</li>
+     * <li>{@link #processPackageFile(Session, JcrPackageManager, File, boolean)} is performed for each of the
+     * {@link #preInstallPackages}</li>
+     * <li>Each registered {@link ProgressCheck} receives a {@link ProgressCheck#startedScan()} event.</li>
+     * <li>{@link #processPackageFile(Session, JcrPackageManager, File, boolean)} is performed for each of the elements
+     * of the {@code files} array.</li>
+     * <li>Each registered {@link ProgressCheck} receives a {@link ProgressCheck#finishedScan()} event.</li>
+     * <li>The admin session is closed.</li>
+     * <li>The repository is shutdown.</li>
+     * </ol>
+     *
+     * @param files a list of FileVault content package files to be installed in sequence.
+     * @return a list of any CheckReports reported during the scan.
+     * @throws AbortedScanException for any errors that terminate the scan.
+     */
     public List<CheckReport> scanPackages(List<File> files) throws AbortedScanException {
         Session admin = null;
         Repository scanRepo = null;
@@ -280,6 +301,7 @@ public final class PackageScanner {
 
     private void processPackage(Session admin, JcrPackageManager manager, JcrPackage jcrPackage, final boolean preInstall)
             throws IOException, PackageException, RepositoryException {
+
         final PackageId packageId = jcrPackage.getPackage().getId();
         final SessionFacade inspectSession = new SessionFacade(admin, false);
         final ProgressTrackerListener tracker =
@@ -293,6 +315,9 @@ public final class PackageScanner {
         List<PackageId> subpacks = Arrays.asList(jcrPackage.extractSubpackages(options));
 
         final VaultPackage vaultPackage = jcrPackage.getPackage();
+        if (!vaultPackage.isValid()) {
+            throw new PackageException("Package is not valid: " + packageId);
+        }
 
         if (!preInstall) {
             progressChecks.forEach(handler -> {
