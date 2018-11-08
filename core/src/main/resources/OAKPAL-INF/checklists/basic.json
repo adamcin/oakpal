@@ -2,20 +2,11 @@
   "name": "basic",
   "checks": [
     {
-      "name": "echo",
-      "impl": "net.adamcin.oakpal.core.checks.Echo"
-    },
-    {
       "name": "paths",
       "impl": "net.adamcin.oakpal.core.checks.Paths",
       "config": {
         "denyAllDeletes": true
       }
-    },
-    {
-      "name": "jcrProperties",
-      "impl": "net.adamcin.oakpal.core.checks.JcrProperties",
-      "skip": true
     },
     {
       "name": "subpackages",
@@ -38,6 +29,16 @@
     {
       "name": "overlaps",
       "impl": "net.adamcin.oakpal.core.checks.Overlaps"
+    },
+    {
+      "name": "echo",
+      "impl": "net.adamcin.oakpal.core.checks.Echo",
+      "skip": true
+    },
+    {
+      "name": "jcrProperties",
+      "impl": "net.adamcin.oakpal.core.checks.JcrProperties",
+      "skip": true
     }
   ]
 }

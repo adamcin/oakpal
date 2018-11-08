@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document>
+    <properties>
+        <title>The Basic Checklist</title>
+    </properties>
+    <body>
+        <h1>The Basic Checklist</h1>
+        <section name="How Checklists are Discovered">
+            <p>
+                OakPAL Checklists are discovered by scanning MANIFEST.MF files on the classpath for
+                <code>Oakpal-Checklist</code> headers, which each define a comma-separated lists of JAR-relative
+                resource paths. The MANIFEST.MF should also use a <code>Bundle-SymbolicName</code> or
+                <code>Automatic-Module-Name</code> header to declare a module name for its exported checklists.
+            </p>
+            <p>For example, the oakpal-core jar exports a single checklist,
+                <code>
+                    <a href="${project.scm.url}/blob/master/core/src/main/resources/OAKPAL-INF/checklists/basic.json">
+                        OAKPAL-INF/checklists/basic.json
+                    </a>
+                </code>
+                checklist, and identifies itself as
+                <code>net.adamcin.oakpal.core</code>, in
+                <a href="${project.scm.url}/blob/master/core/src/main/resources/META-INF/MANIFEST.MF">
+                    META-INF/MANIFEST.MF</a>.
+            </p>
+            <p>
+                Discovered checklists are referenceable by <code>module/name</code>, as in
+                <code>net.adamcin.oakpal.core/basic</code>, or for shorthand, just <code>name</code>, as in
+                <code>basic</code>. Shorthand is matched according to the order of checklist discovery on the classpath.
+            </p>
+        </section>
+        <section name="The Structure of a Checklist">
+            <p>Checklists are json files that match the basic structure of this example:</p>
+            <div class="source">
+<pre>
+{
+    "name": "acmeAemChecks",
+    "checks": [
+        {
+            "name": "require-acme-metadata",
+            "impl": "com.example.acme.oakpal.checks.RequireAcmeMetadataCheck"
+        },
+        {
+            "name": "OSGi Configs Check",
+            "impl": "com.example.acme.oakpal.checks.OsgiConfigsProgressCheckFactory",
+            "config": {
+                "installerPaths": ["/libs","/apps"]
+            }
+        },
+        {
+            "name": "No embedded clientlibs",
+            "impl": "OAKPAL-INF/checks/noClientLibEmbed.js",
+            "config": {
+                "allow": true,
+                "boo": false
+            }
+        }
+    ]
+}
+</pre>
+            </div>
+            <p>
+                A checklist basically has a <code>name</code> and a list of <code>checks</code>, which represent
+                <code>CheckSpecs</code>. Each check spec must have at least a <code>name</code>, and an
+                <code>impl</code>
+                representing a className of a <code>ProgressCheckFactory</code> or
+                <code>ProgressCheck</code>
+                implementation, or a classpath resource name to locate a script progress check. For script checks and
+                <code>ProgressCheckFactory</code>
+                implementations, you can specify an optional <code>config</code> object to
+                serve as a default configuration when this check spec is loaded.
+            </p>
+            <p>For a real example, refer to the <a href="the-basic-checklist.html">the basic checklist</a>.
+            </p>
+        </section>
+    </body>
+</document>

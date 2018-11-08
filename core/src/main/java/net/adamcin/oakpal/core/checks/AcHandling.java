@@ -64,7 +64,8 @@ import org.json.JSONObject;
  * <dt>{@code allowedModes}</dt>
  * <dd>An explicit list of allowed {@link AccessControlHandling} modes.</dd>
  * <dt>{@code levelSet}</dt>
- * <dd>A single </dd>
+ * <dd>(default: {@code no_unsafe}) One of {@code no_clear}, {@code no_unsafe}, {@code only_add}, or {@code only_ignore},
+ * matching the values in {@link ACHandlingLevelSet}.</dd>
  * </dl>
  */
 public class AcHandling implements ProgressCheckFactory {

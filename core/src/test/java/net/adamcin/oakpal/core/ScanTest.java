@@ -126,4 +126,19 @@ public class ScanTest {
         });
     }
 
+    @Test
+    public void testConstraintViolation() {
+        TestBody.test(new TestBody() {
+            @Override
+            protected void execute() throws Exception {
+                File cvp = TestPackageUtil.prepareTestPackageFromFolder("cvp.zip",
+                        new File("src/test/resources/constraint_violator_package"));
+
+                new PackageScanner.Builder().build().scanPackage(cvp).stream()
+                        .flatMap(r -> r.getViolations().stream())
+                        .forEach(violation -> LOGGER.info("[{} violation] {}", violation.getSeverity(),
+                                violation.getDescription()));
+            }
+        });
+    }
 }

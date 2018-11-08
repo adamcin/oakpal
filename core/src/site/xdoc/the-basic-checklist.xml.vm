@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document>
+    <properties>
+        <title>The Basic Checklist</title>
+    </properties>
+    <body>
+        <h1>The Basic Checklist</h1>
+        <section name="Default Configuration">
+
+        <p>The full name of the basic checklist is <code>
+            <a href="${project.scm.url}/blob/master/core/src/main/resources/OAKPAL-INF/checklists/basic.json">
+                    net.adamcin.oakpal.core/basic</a></code>.
+        </p>
+        <div class="source">
+<pre>
+{
+  "name": "basic",
+  "checks": [
+    {
+      "name": "paths",
+      "impl": "net.adamcin.oakpal.core.checks.Paths",
+      "config": {
+        "denyAllDeletes": true
+      }
+    },
+    {
+      "name": "subpackages",
+      "impl": "net.adamcin.oakpal.core.checks.Subpackages",
+      "config": {
+        "denyAll": true
+      }
+    },
+    {
+      "name": "acHandling",
+      "impl": "net.adamcin.oakpal.core.checks.AcHandling",
+      "config": {
+        "levelSet": "only_add"
+      }
+    },
+    {
+      "name": "filterSets",
+      "impl": "net.adamcin.oakpal.core.checks.FilterSets"
+    },
+    {
+      "name": "overlaps",
+      "impl": "net.adamcin.oakpal.core.checks.Overlaps"
+    },
+    {
+      "name": "echo",
+      "impl": "net.adamcin.oakpal.core.checks.Echo",
+      "skip": true
+    },
+    {
+      "name": "jcrProperties",
+      "impl": "net.adamcin.oakpal.core.checks.JcrProperties",
+      "skip": true
+    }
+  ]
+}
+</pre>
+            </div>
+
+        </section>
+        <section name="Check Reference">
+            <dl>
+                <dt><code>paths</code> (<code>net.adamcin.oakpal.core/basic/paths</code>)</dt>
+                <dd>see <a href="apidocs/net/adamcin/oakpal/core/checks/Paths.html">net.adamcin.oakpal.core.checks.Paths</a></dd>
+                <dt><code>subpackages</code> (<code>net.adamcin.oakpal.core/basic/subpackages</code>)</dt>
+                <dd>see <a href="apidocs/net/adamcin/oakpal/core/checks/Subpackages.html">net.adamcin.oakpal.core.checks.Subpackages</a></dd>
+                <dt><code>acHandling</code> (<code>net.adamcin.oakpal.core/basic/acHandling</code>)</dt>
+                <dd>see <a href="apidocs/net/adamcin/oakpal/core/checks/AcHandling.html">net.adamcin.oakpal.core.checks.AcHandling</a></dd>
+                <dt><code>filterSets</code> (<code>net.adamcin.oakpal.core/basic/filterSets</code>)</dt>
+                <dd>see <a href="apidocs/net/adamcin/oakpal/core/checks/FilterSets.html">net.adamcin.oakpal.core.checks.FilterSets</a></dd>
+                <dt><code>overlaps</code> (<code>net.adamcin.oakpal.core/basic/overlaps</code>)</dt>
+                <dd>see <a href="apidocs/net/adamcin/oakpal/core/checks/Overlaps.html">net.adamcin.oakpal.core.checks.Overlaps</a></dd>
+                <dt><code>echo</code> (<code>net.adamcin.oakpal.core/basic/echo</code>)</dt>
+                <dd>(skipped, template-only) see <a href="apidocs/net/adamcin/oakpal/core/checks/Echo.html">net.adamcin.oakpal.core.checks.Echo</a></dd>
+                <dt><code>jcrProperties</code> (<code>net.adamcin.oakpal.core/basic/jcrProperties</code>)</dt>
+                <dd>(skipped, template-only) see <a href="apidocs/net/adamcin/oakpal/core/checks/JcrProperties.html">net.adamcin.oakpal.core.checks.JcrProperties</a></dd>
+            </dl>
+        </section>
+    </body>
+</document>

@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="utf-8" ?>
 <!--
   ~ Copyright 2018 Mark Adamcin
   ~
@@ -13,14 +14,6 @@
   ~ See the License for the specific language governing permissions and
   ~ limitations under the License.
   -->
-
-<project name="${project.name}">
-    <body>
-        <menu name="Overview">
-            <item name="Introduction" href="index.html" />
-            <item name="JavaDocs" href="apidocs/index.html" />
-            <item name="Publishing a Checklist" href="publishing-a-checklist.html" />
-            <item name="The Basic Checklist" href="the-basic-checklist.html" />
-        </menu>
-    </body>
-</project>
+<workspaceFilter version="1.0">
+    <filter root="/apps/acme"/>
+</workspaceFilter>

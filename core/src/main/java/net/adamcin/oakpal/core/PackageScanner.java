@@ -52,6 +52,7 @@ import org.apache.jackrabbit.vault.packaging.JcrPackage;
 import org.apache.jackrabbit.vault.packaging.JcrPackageManager;
 import org.apache.jackrabbit.vault.packaging.PackageException;
 import org.apache.jackrabbit.vault.packaging.PackageId;
+import org.apache.jackrabbit.vault.packaging.Packaging;
 import org.apache.jackrabbit.vault.packaging.PackagingService;
 import org.apache.jackrabbit.vault.packaging.VaultPackage;
 
@@ -62,6 +63,8 @@ import org.apache.jackrabbit.vault.packaging.VaultPackage;
 public final class PackageScanner {
     private static final ErrorListener DEFAULT_ERROR_LISTENER = new DefaultErrorListener();
 
+    private final Packaging packagingService;
+
     private final List<ProgressCheck> progressChecks;
 
     private final ErrorListener errorListener;
@@ -70,10 +73,12 @@ public final class PackageScanner {
 
     private final List<InitStage> initStages;
 
-    private PackageScanner(List<ProgressCheck> progressChecks,
-                           ErrorListener errorListener,
-                           List<File> preInstallPackages,
-                           List<InitStage> initStages) {
+    private PackageScanner(final Packaging packagingService,
+                           final List<ProgressCheck> progressChecks,
+                           final ErrorListener errorListener,
+                           final List<File> preInstallPackages,
+                           final List<InitStage> initStages) {
+        this.packagingService = packagingService;
         this.progressChecks = progressChecks;
         this.errorListener = errorListener;
         this.preInstallPackages = preInstallPackages;
@@ -84,6 +89,8 @@ public final class PackageScanner {
      * Use the builder to construct the {@link PackageScanner}.
      */
     public static class Builder {
+        private Packaging packagingService;
+
         private final List<InitStage> initStages = new ArrayList<>();
 
         private final List<ProgressCheck> progressChecks = new ArrayList<>();
@@ -91,6 +98,20 @@ public final class PackageScanner {
         private ErrorListener errorListener = DEFAULT_ERROR_LISTENER;
 
         private List<File> preInstallPackages = Collections.emptyList();
+
+
+        /**
+         * Provide a {@link Packaging} service for use in retrieving a {@link JcrPackageManager} for an admin session.
+         * <p>
+         * Currently only supported when using this in an OSGi context.
+         *
+         * @param packagingService a specific service to use, configured with alternative package registries.
+         * @return my builder self
+         */
+        public Builder withPackagingService(final Packaging packagingService) {
+            this.packagingService = packagingService;
+            return this;
+        }
 
         /**
          * Add a single instance of {@link InitStage} (or more) to the scan.
@@ -198,7 +219,8 @@ public final class PackageScanner {
          * @return a {@link PackageScanner}
          */
         public PackageScanner build() {
-            return new PackageScanner(progressChecks,
+            return new PackageScanner(packagingService,
+                    progressChecks,
                     errorListener,
                     preInstallPackages,
                     initStages);
@@ -260,7 +282,13 @@ public final class PackageScanner {
                 initStage.initSession(admin, getErrorListener());
             }
 
-            JcrPackageManager manager = PackagingService.getPackageManager(admin);
+            final JcrPackageManager manager;
+
+            if (packagingService != null) {
+                manager = packagingService.getPackageManager(admin);
+            } else {
+                manager = PackagingService.getPackageManager(admin);
+            }
 
             for (File file : preInstallPackages) {
                 processPackageFile(admin, manager, file, true);
