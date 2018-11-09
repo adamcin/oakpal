@@ -48,13 +48,13 @@ import org.json.JSONObject;
  * <dt>{@code JSONObject}</dt>
  * <dd>Parse as a JSONObject literal, as in
  * <pre>
- * &lt;foo&gt;{"bar":true}&lt;/foo&gt;
+ * &lt;foo hint="JSONObject"&gt;{"bar":true}&lt;/foo&gt;
  * </pre>
  * </dd>
  * <dt>{@code JSONArray}</dt>
  * <dd>Parse as a JSONArray literal, as in
  * <pre>
- * &lt;foo&gt;["bar","alice"]&lt;/foo&gt;
+ * &lt;foo hint="JSONArray"&gt;["bar","alice"]&lt;/foo&gt;
  * </pre>
  * </dd>
  * </dl>

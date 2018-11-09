@@ -106,7 +106,102 @@
             </p>
         </section>
 
-        <section name="3. Write a Script Check">
+        <section name="3. Activate the Basic Checklist">
+            <p>
+                The <a href="../core/the-basic-checklist.html">basic checklist</a> implements some sane default package
+                acceptance rules, like disallowing subpackages, deletion of existing paths, unsafe acHandling modes, and
+                preventing workspace filter overlaps between multiple packages.
+            </p>
+            <p>
+                To accept the defaults, just add the
+                <tt>&lt;checklists&gt;&lt;checklist&gt;basic&lt;/checklist&gt;&lt;/checklists&gt;</tt> element to your
+                config.
+            </p>
+            <div class="source">
+<pre>
+    &lt;plugin&gt;
+        &lt;groupId&gt;${project.groupId}&lt;/groupId&gt;
+        &lt;artifactId&gt;${project.artifactId}&lt;/artifactId&gt;
+        &lt;version&gt;${project.version}&lt;/version&gt;
+        &lt;configuration&gt;
+            &lt;cndNames>
+                &lt;cndName&gt;[your-cnd-filename]&lt;/cndName&gt;
+            &lt;/cndNames&gt;
+            &lt;checklists&gt;
+                &lt;checklist&gt;basic&lt;/checklist&gt;
+            &lt;/checklists&gt;
+        &lt;/configuration&gt;
+        &lt;executions&gt;
+            &lt;execution&gt;
+                &lt;goals&gt;
+                    &lt;goal&gt;scan&lt;/goal&gt;
+                &lt;/goals&gt;
+            &lt;/execution&gt;
+        &lt;/executions&gt;
+    &lt;/plugin&gt;
+</pre>
+            </div>
+
+            <p>
+                To override the default configuration of a basic check, just add a
+                <tt>&lt;checks&gt;/&lt;check&gt;</tt> element to your
+                plugin configuration. Specify the <tt>name</tt> of the basic check you wish to override, and provide a
+                <tt>&lt;config&gt;</tt> element with custom values, or specify &lt;skip&gt;true&lt;/skip&gt; to disable
+                the check altogether.
+            </p>
+
+            <div class="source">
+<pre>
+    &lt;plugin&gt;
+        &lt;groupId&gt;${project.groupId}&lt;/groupId&gt;
+        &lt;artifactId&gt;${project.artifactId}&lt;/artifactId&gt;
+        &lt;version&gt;${project.version}&lt;/version&gt;
+        &lt;configuration&gt;
+            &lt;cndNames>
+                &lt;cndName&gt;[your-cnd-filename]&lt;/cndName&gt;
+            &lt;/cndNames&gt;
+            &lt;checklists&gt;
+                &lt;checklist&gt;basic&lt;/checklist&gt;
+            &lt;/checklists&gt;
+            &lt;checks&gt;
+                &lt;check&gt;
+                    &lt;name&gt;paths&lt;/name&gt;
+                    &lt;config&gt;
+                        &lt;rules&gt;
+                            &lt;rule&gt;
+                                &lt;type&gt;deny&lt;/type&gt;
+                                &lt;pattern&gt;/etc(/.*)?&lt;/pattern&gt;
+                            &lt;/rule&gt;
+                        &lt;/rules&gt;
+                    &lt;/config&gt;
+                &lt;/check&gt;
+                &lt;check&gt;
+                    &lt;name&gt;subpackages&lt;/name&gt;
+                    &lt;skip&gt;true&lt;/skip&gt;
+                &lt;/check&gt;
+                &lt;!-- to use checks that are skipped by default, you need to reference their name in a template element --&gt;
+                &lt;check&gt;
+                    &lt;name&gt;myEcho&lt;/name&gt;
+                    &lt;template&gt;echo&lt;/template&gt;
+                &lt;/check&gt;
+            &lt;/checks&gt;
+        &lt;/configuration&gt;
+        &lt;executions&gt;
+            &lt;execution&gt;
+                &lt;goals&gt;
+                    &lt;goal&gt;scan&lt;/goal&gt;
+                &lt;/goals&gt;
+            &lt;/execution&gt;
+        &lt;/executions&gt;
+    &lt;/plugin&gt;
+</pre>
+            </div>
+            <p>
+                Check &lt;config&gt; elements are transformed to the JSON format expected by the
+                <tt>ProgressCheckFactory</tt> by the <a href="apidocs/net/adamcin/oakpal/maven/component/JSONObjectConverter.html">JSONObjectConverter</a>.
+            </p>
+        </section>
+        <section name="4. Write a Script Check">
             <p>Follow these instructions to <a href="writing-a-script-check.html">create a script check for your
                 package build</a>.</p>
         </section>
