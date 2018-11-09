@@ -35,6 +35,25 @@
 <pre>
 {
     "name": "acmeAemChecks",
+    "cndNames": [
+        "OAKPAL-INF/nodetypes/acme.cnd"
+    ],
+    "jcrNamespaces": [
+        {
+            "prefix": "sling",
+            "uri": "http://sling.apache.org/jcr/sling/1.0"
+        }
+    ],
+    "jcrPrivileges": [
+        "acme:distributeRedditGold"
+    ],
+    "forcedRoots: [
+        {
+            "path": "/content/acme",
+            "primaryType": "sling:Folder",
+            "mixinTypes": []
+        }
+    ],
     "checks": [
         {
             "name": "require-acme-metadata",
@@ -70,6 +89,26 @@
                 implementations, you can specify an optional <code>config</code> object to
                 serve as a default configuration when this check spec is loaded.
             </p>
+            <p>
+                A checklist may also specify a few optional properties that the <tt>OakMachine</tt> can load before each
+                scan as an <tt>InitStage</tt>. When the checklist is actively selected in the maven plugin, these resources
+                will be used to to initialize the repository to a state that serves as a starting context for checks.
+            </p>
+            <dl>
+                <dt><tt>cndNames</tt></dt>
+                <dl>Specify an array of CND (compact nodetype definition) files that should be installed in the repository
+                    prior to the scan</dl>
+                <dt><tt>jcrNamespaces</tt></dt>
+                <dd>Specify a list of JCR namespace prefix-to-uri mappings in order to register new ones, or to remap
+                    a registered namespace to a different prefix in the scan session.</dd>
+                <dt><tt>jcrPrivileges</tt></dt>
+                <dd>Register a list of JCR privileges to support the installation of rep:policy nodes that reference
+                    them.</dd>
+                <dt><tt>forcedRoots</tt></dt>
+                <dd>Specify a list of root paths to create (akin to using <tt>mkdir -p</tt>), and optionally specify a
+                    primary type and/or a list of mixin types to apply to the leaf node. Intermediate paths will be
+                    created as <tt>nt:unstructured</tt> nodes.</dd>
+            </dl>
             <p>For a real example, refer to the <a href="the-basic-checklist.html">the basic checklist</a>.
             </p>
         </section>

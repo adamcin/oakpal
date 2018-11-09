@@ -24,17 +24,20 @@ import java.util.Collections;
 import java.util.List;
 import java.util.jar.JarFile;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import org.json.JSONObject;
 
 /**
- * Representation of a
+ * It's a list of checks, along with initStage properties allowing jars to share CNDs, JCR namespaces and privileges,
+ * and forced roots.
  */
 public final class Checklist {
     static final String KEY_NAME = "name";
     static final String KEY_INIT = "init";
-    static final String KEY_CND_NAMES = "cndUrls";
+    static final String KEY_CND_URLS = "cndUrls";
+    static final String KEY_CND_NAMES = "cndNames";
     static final String KEY_JCR_NAMESPACES = "jcrNamespaces";
     static final String KEY_JCR_PRIVILEGES = "jcrPrivileges";
     static final String KEY_FORCED_ROOTS = "forcedRoots";
@@ -199,14 +202,28 @@ public final class Checklist {
                 // TODO do something with e
             }
         });
+        List<URL> cndUrls = new ArrayList<>();
         if (manifestUrl != null && manifestUrl.toExternalForm().endsWith(JarFile.MANIFEST_NAME)) {
             ofNullable(json.optJSONArray(KEY_CND_NAMES))
                     .map(cndNames -> cndNames.toList().stream()
                             .map(String::valueOf)
                             .collect(Collectors.toList()))
                     .map(names -> Util.resolveManifestResources(manifestUrl, names))
-                    .ifPresent(builder::withCndUrls);
+                    .ifPresent(cndUrls::addAll);
         }
+        ofNullable(json.optJSONArray(KEY_CND_URLS))
+                .map(urls -> urls.toList().stream()
+                        .map(String::valueOf)
+                        .flatMap(cndUrlString -> {
+                            try {
+                                return Stream.of(new URL(cndUrlString));
+                            } catch (Exception e) {
+                                return Stream.empty();
+                            }
+                        })
+                        .collect(Collectors.toList()))
+                .ifPresent(cndUrls::addAll);
+        builder.withCndUrls(cndUrls);
         ofNullable(json.optJSONArray(KEY_JCR_NAMESPACES))
                 .map(jcrNamespaces -> StreamSupport.stream(jcrNamespaces.spliterator(), false)
                         .filter(elem -> {
