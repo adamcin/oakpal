@@ -96,8 +96,8 @@
             </p>
             <dl>
                 <dt><tt>cndNames</tt></dt>
-                <dl>Specify an array of CND (compact nodetype definition) files that should be installed in the repository
-                    prior to the scan</dl>
+                <dd>Specify an array of CND (compact nodetype definition) files that should be installed in the repository
+                    prior to the scan</dd>
                 <dt><tt>jcrNamespaces</tt></dt>
                 <dd>Specify a list of JCR namespace prefix-to-uri mappings in order to register new ones, or to remap
                     a registered namespace to a different prefix in the scan session.</dd>
