@@ -46,7 +46,7 @@ public interface ProgressCheck extends ScanListener, ViolationReporter {
     /**
      * Called after the package is uploaded to the package manager at the beginning of the scan. Track subsequent
      * events using the package ID provided to this method. This method will only be called once for each package
-     * provided to {@link PackageScanner#scanPackage(File...)}.
+     * provided to {@link OakMachine#scanPackage(File...)}.
      *
      * @param packageId the package ID of the newly opened package
      * @param file      the package file that will be opened

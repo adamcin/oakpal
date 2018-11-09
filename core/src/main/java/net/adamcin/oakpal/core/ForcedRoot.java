@@ -18,6 +18,7 @@ package net.adamcin.oakpal.core;
 
 import static java.util.Optional.ofNullable;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -61,6 +62,24 @@ public final class ForcedRoot {
         this.mixinTypes = mixinTypes;
     }
 
+    public ForcedRoot withPath(final String path) {
+        this.path = path;
+        return this;
+    }
+
+    public ForcedRoot withPrimaryType(final String primaryType) {
+        this.primaryType = primaryType;
+        return this;
+    }
+
+    public ForcedRoot withMixinTypes(final String... mixinTypes) {
+        if (mixinTypes != null) {
+            this.mixinTypes = Arrays.asList(mixinTypes);
+        } else {
+            this.mixinTypes = null;
+        }
+        return this;
+    }
 
     /**
      * Map a JSON object to a {@link ForcedRoot}.

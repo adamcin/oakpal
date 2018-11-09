@@ -47,7 +47,7 @@ final class CNDURLInstaller {
     private final ErrorListener errorListener;
 
     /**
-     * Create a new scanner. Finds MANIFEST.MF Sling-Nodetypes entries on construction.
+     * Create a new installer. Finds MANIFEST.MF Sling-Nodetypes entries on construction.
      *
      * @throws IOException if the classloader can't scan.
      */
@@ -133,10 +133,10 @@ final class CNDURLInstaller {
             if (iteration > MAX_ITERATIONS) {
                 break;
             } else if (iteration == MAX_ITERATIONS) {
-                registerNodeTypesAndRemoveSucceeds(remainingNodeTypeResources, nodeTypeManager,
+                tryRegisterNodeTypes(remainingNodeTypeResources, nodeTypeManager,
                         namespaceRegistry, valueFactory, true);
             } else {
-                registerNodeTypesAndRemoveSucceeds(remainingNodeTypeResources, nodeTypeManager,
+                tryRegisterNodeTypes(remainingNodeTypeResources, nodeTypeManager,
                         namespaceRegistry, valueFactory, false);
             }
         }
@@ -150,11 +150,11 @@ final class CNDURLInstaller {
      * @param namespaceRegistry
      * @param valueFactory
      */
-    private void registerNodeTypesAndRemoveSucceeds(final List<URL> nodeTypeResources,
-                                                    final NodeTypeManager nodeTypeManager,
-                                                    final NamespaceRegistry namespaceRegistry,
-                                                    final ValueFactory valueFactory,
-                                                    final boolean logErrors) {
+    private void tryRegisterNodeTypes(final List<URL> nodeTypeResources,
+                                      final NodeTypeManager nodeTypeManager,
+                                      final NamespaceRegistry namespaceRegistry,
+                                      final ValueFactory valueFactory,
+                                      final boolean logErrors) {
         Iterator<URL> namedResources = nodeTypeResources.iterator();
         while (namedResources.hasNext()) {
             final URL namedResource = namedResources.next();

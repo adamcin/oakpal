@@ -32,8 +32,23 @@ import javax.jcr.SimpleCredentials;
 
 import aQute.bnd.annotation.ProviderType;
 import net.adamcin.oakpal.core.jcrfacade.SessionFacade;
+import org.apache.jackrabbit.oak.InitialContent;
+import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.jcr.repository.RepositoryImpl;
+import org.apache.jackrabbit.oak.plugins.commit.ConflictValidatorProvider;
+import org.apache.jackrabbit.oak.plugins.commit.JcrConflictHandler;
+import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
+import org.apache.jackrabbit.oak.plugins.index.property.OrderedPropertyIndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexProvider;
+import org.apache.jackrabbit.oak.plugins.index.reference.ReferenceEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.reference.ReferenceIndexProvider;
+import org.apache.jackrabbit.oak.plugins.name.NameValidatorProvider;
+import org.apache.jackrabbit.oak.plugins.name.NamespaceEditorProvider;
+import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
+import org.apache.jackrabbit.oak.plugins.observation.ChangeCollectorProvider;
+import org.apache.jackrabbit.oak.plugins.version.VersionHook;
 import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.security.user.RandomAuthorizableNodeName;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
@@ -43,6 +58,7 @@ import org.apache.jackrabbit.oak.spi.security.user.AuthorizableNodeName;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.action.AccessControlAction;
+import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 import org.apache.jackrabbit.vault.fs.api.ProgressTrackerListener;
@@ -60,7 +76,7 @@ import org.apache.jackrabbit.vault.packaging.VaultPackage;
  * Entry point for OakPAL Acceptance Library. See {@link ProgressCheck} for the event listener interface.
  */
 @ProviderType
-public final class PackageScanner {
+public final class OakMachine {
     private static final ErrorListener DEFAULT_ERROR_LISTENER = new DefaultErrorListener();
 
     private final Packaging packagingService;
@@ -73,11 +89,11 @@ public final class PackageScanner {
 
     private final List<InitStage> initStages;
 
-    private PackageScanner(final Packaging packagingService,
-                           final List<ProgressCheck> progressChecks,
-                           final ErrorListener errorListener,
-                           final List<File> preInstallPackages,
-                           final List<InitStage> initStages) {
+    private OakMachine(final Packaging packagingService,
+                       final List<ProgressCheck> progressChecks,
+                       final ErrorListener errorListener,
+                       final List<File> preInstallPackages,
+                       final List<InitStage> initStages) {
         this.packagingService = packagingService;
         this.progressChecks = progressChecks;
         this.errorListener = errorListener;
@@ -86,7 +102,7 @@ public final class PackageScanner {
     }
 
     /**
-     * Use the builder to construct the {@link PackageScanner}.
+     * Use the builder to construct the {@link OakMachine}.
      */
     public static class Builder {
         private Packaging packagingService;
@@ -214,12 +230,12 @@ public final class PackageScanner {
         }
 
         /**
-         * Construct a {@link PackageScanner} from the {@link Builder} state.
+         * Construct a {@link OakMachine} from the {@link Builder} state.
          *
-         * @return a {@link PackageScanner}
+         * @return a {@link OakMachine}
          */
-        public PackageScanner build() {
-            return new PackageScanner(packagingService,
+        public OakMachine build() {
+            return new OakMachine(packagingService,
                     progressChecks,
                     errorListener,
                     preInstallPackages,
@@ -359,6 +375,7 @@ public final class PackageScanner {
         }
 
         jcrPackage.extract(options);
+        admin.save();
 
         jcrPackage.close();
 
@@ -443,9 +460,26 @@ public final class PackageScanner {
         securityProps.put(UserConfiguration.NAME, ConfigurationParameters.of(userProps));
         securityProps.put(AuthorizationConfiguration.NAME, ConfigurationParameters.of(authzProps));
 
-        Jcr jcr = new Jcr();
+        Oak oak = new Oak();
+        Jcr jcr = new Jcr(oak, false);
+        Oak.OakDefaultComponents defs = Oak.OakDefaultComponents.INSTANCE;
         Repository repository = jcr
                 .with(new SecurityProviderImpl(ConfigurationParameters.of(securityProps)))
+                .with(new VersionHook())
+                .with(new DefaultWhiteboard())
+                .with(new InitialContent())
+                .with(new NameValidatorProvider())
+                .with(new NamespaceEditorProvider())
+                .with(new TypeEditorProvider(true))
+                .with(new ConflictValidatorProvider())
+                .with(new ChangeCollectorProvider())
+                .with(JcrConflictHandler.createJcrConflictHandler())
+                .with(new ReferenceIndexProvider())
+                .with(new PropertyIndexProvider())
+                .with(new NodeTypeIndexProvider())
+                .with(new PropertyIndexEditorProvider())
+                .with(new ReferenceEditorProvider())
+                .with(new OrderedPropertyIndexEditorProvider())
                 .withAtomicCounter()
                 .createRepository();
 
@@ -489,7 +523,7 @@ public final class PackageScanner {
                         try {
                             handler.deletedPath(packageId, path, session);
                         } catch (Exception e) {
-                            PackageScanner.this.getErrorListener().onListenerPathException(e, handler, packageId, path);
+                            OakMachine.this.getErrorListener().onListenerPathException(e, handler, packageId, path);
                         }
                     });
                 } else {
@@ -499,11 +533,11 @@ public final class PackageScanner {
                             try {
                                 handler.importedPath(packageId, path, node);
                             } catch (Exception e) {
-                                PackageScanner.this.getErrorListener().onListenerPathException(e, handler, packageId, path);
+                                OakMachine.this.getErrorListener().onListenerPathException(e, handler, packageId, path);
                             }
                         });
                     } catch (RepositoryException e) {
-                        PackageScanner.this.getErrorListener().onImporterException(e, packageId, path);
+                        OakMachine.this.getErrorListener().onImporterException(e, packageId, path);
                     }
                 }
             }
@@ -511,7 +545,7 @@ public final class PackageScanner {
 
         @Override
         public void onError(Mode mode, String path, Exception e) {
-            PackageScanner.this.getErrorListener().onImporterException(e, packageId, path);
+            OakMachine.this.getErrorListener().onImporterException(e, packageId, path);
         }
     }
 }

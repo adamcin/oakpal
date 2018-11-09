@@ -16,6 +16,8 @@
 
 package net.adamcin.oakpal.core;
 
+import static org.junit.Assert.assertEquals;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -64,7 +66,7 @@ public class ScanTest {
                     }
                 };
 
-                new PackageScanner.Builder().withProgressChecks(listener).build().scanPackage(package10);
+                new OakMachine.Builder().withProgressChecks(listener).build().scanPackage(package10);
             }
         });
     }
@@ -102,7 +104,7 @@ public class ScanTest {
                     }
                 };
 
-                new PackageScanner.Builder().withProgressChecks(handler).build().scanPackage(fullcoverage);
+                new OakMachine.Builder().withProgressChecks(handler).build().scanPackage(fullcoverage);
             }
         });
     }
@@ -117,7 +119,7 @@ public class ScanTest {
                 ProgressCheck handler = ScriptProgressCheck.createScriptCheckFactory(
                         getClass().getResource("/simpleHandler.js")).newInstance(new JSONObject());
 
-                new PackageScanner.Builder().withProgressChecks(handler)
+                new OakMachine.Builder().withProgressChecks(handler)
                         .build().scanPackage(fullcoverage).stream()
                         .flatMap(r -> r.getViolations().stream())
                         .forEach(violation -> LOGGER.info("[{} violation] {}", violation.getSeverity(),
@@ -134,7 +136,18 @@ public class ScanTest {
                 File cvp = TestPackageUtil.prepareTestPackageFromFolder("cvp.zip",
                         new File("src/test/resources/constraint_violator_package"));
 
-                new PackageScanner.Builder().build().scanPackage(cvp).stream()
+                ProgressCheck check = new SimpleProgressCheck() {
+                    @Override
+                    public void afterExtract(final PackageId packageId, final Session inspectSession) throws RepositoryException {
+                        assertEquals("title should be persisted.", "Doc",
+                                inspectSession.getNode("/apps/acme/docs").getProperty("jcr:title").getString());
+                    }
+                };
+
+                new OakMachine.Builder().withInitStage(
+                        new InitStage.Builder().withForcedRoot("/apps/acme/docs").build())
+                        .withProgressChecks(check).build()
+                        .scanPackage(cvp).stream()
                         .flatMap(r -> r.getViolations().stream())
                         .forEach(violation -> LOGGER.info("[{} violation] {}", violation.getSeverity(),
                                 violation.getDescription()));

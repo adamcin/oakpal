@@ -36,7 +36,7 @@ import net.adamcin.oakpal.core.ForcedRoot;
 import net.adamcin.oakpal.core.InitStage;
 import net.adamcin.oakpal.core.JcrNs;
 import net.adamcin.oakpal.core.Locator;
-import net.adamcin.oakpal.core.PackageScanner;
+import net.adamcin.oakpal.core.OakMachine;
 import net.adamcin.oakpal.core.ProgressCheck;
 import net.adamcin.oakpal.core.SlingNodetypesScanner;
 import net.adamcin.oakpal.core.Violation;
@@ -316,7 +316,7 @@ abstract class AbstractScanMojo extends AbstractMojo {
         }
     }
 
-    protected PackageScanner.Builder getBuilder() throws MojoExecutionException {
+    protected OakMachine.Builder getBuilder() throws MojoExecutionException {
         final ErrorListener errorListener = new DefaultErrorListener();
 
         final List<ProgressCheck> allChecks = new ArrayList<>();
@@ -405,13 +405,13 @@ abstract class AbstractScanMojo extends AbstractMojo {
             }
         }
 
-        PackageScanner.Builder scannerBuilder = new PackageScanner.Builder()
+        OakMachine.Builder machineBuilder = new OakMachine.Builder()
                 .withErrorListener(errorListener)
                 .withProgressChecks(allChecks)
                 .withInitStages(checklistPlanner.getInitStages())
                 .withInitStage(builder.build())
                 .withPreInstallPackages(preInstall);
 
-        return scannerBuilder;
+        return machineBuilder;
     }
 }

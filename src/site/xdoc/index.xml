@@ -75,7 +75,7 @@
                     A model for repeatable repository state initialization using InitStages and preinstall packages.
                 </li>
                 <li>
-                    A PackageScanner class with a fluent Builder API that encapsulates the creation of a fresh Oak
+                    An OakMachine class with a fluent Builder API that encapsulates the creation of a fresh Oak
                     repository, state initialization, and package installation for every set of package files.
                 </li>
                 <li>

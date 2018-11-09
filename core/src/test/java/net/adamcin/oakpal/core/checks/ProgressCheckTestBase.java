@@ -24,7 +24,7 @@ import java.util.List;
 import java.util.Optional;
 
 import net.adamcin.oakpal.core.CheckReport;
-import net.adamcin.oakpal.core.PackageScanner;
+import net.adamcin.oakpal.core.OakMachine;
 import net.adamcin.oakpal.core.ProgressCheck;
 import net.adamcin.oakpal.testing.TestPackageUtil;
 import org.slf4j.Logger;
@@ -44,7 +44,7 @@ public class ProgressCheckTestBase {
         for (String filen : filename) {
             artifacts.add(TestPackageUtil.prepareTestPackage(filen));
         }
-        Optional<CheckReport> reports = new PackageScanner.Builder().withProgressChecks(check)
+        Optional<CheckReport> reports = new OakMachine.Builder().withProgressChecks(check)
                 .build().scanPackages(artifacts).stream()
                 .filter(report -> check.getCheckName().equals(report.getCheckName()))
                 .findFirst();
