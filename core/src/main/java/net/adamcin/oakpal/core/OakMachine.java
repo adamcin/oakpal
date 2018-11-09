@@ -462,7 +462,6 @@ public final class OakMachine {
 
         Oak oak = new Oak();
         Jcr jcr = new Jcr(oak, false);
-        Oak.OakDefaultComponents defs = Oak.OakDefaultComponents.INSTANCE;
         Repository repository = jcr
                 .with(new SecurityProviderImpl(ConfigurationParameters.of(securityProps)))
                 .with(new VersionHook())
