@@ -47,7 +47,8 @@ public class VerifyMojo extends AbstractMojo {
     public boolean skip;
 
     /**
-     * Specify additional summary files to verify.
+     * Specify additional summary files to verify. Non-existent files are ignored, but any failure to read an existing
+     * file will throw a {@link MojoExecutionException}.
      *
      * @since 1.1.0
      */

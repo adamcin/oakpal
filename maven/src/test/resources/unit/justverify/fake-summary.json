@@ -1,0 +1,89 @@
+{"reports": [
+  {
+    "violations": [],
+    "checkName": "DefaultErrorListener"
+  },
+  {
+    "violations": [
+      {
+        "severity": "MAJOR",
+        "description": "imported path /tmp/fullcoverage matches deny pattern /tmp/fullcoverage(/.*)?",
+        "packages": ["my_packages:fullcoverage"]
+      },
+      {
+        "severity": "MAJOR",
+        "description": "imported path /tmp/fullcoverage/a matches deny pattern /tmp/fullcoverage(/.*)?",
+        "packages": ["my_packages:fullcoverage"]
+      },
+      {
+        "severity": "MAJOR",
+        "description": "imported path /tmp/fullcoverage/b matches deny pattern /tmp/fullcoverage(/.*)?",
+        "packages": ["my_packages:fullcoverage"]
+      },
+      {
+        "severity": "MAJOR",
+        "description": "deleted path /tmp/fullcoverage/c. All deletions are denied.",
+        "packages": ["my_packages:fullcoverage"]
+      },
+      {
+        "severity": "MAJOR",
+        "description": "imported path /tmp/fullcoverage/a/aa matches deny pattern /tmp/fullcoverage(/.*)?",
+        "packages": ["my_packages:fullcoverage"]
+      }
+    ],
+    "checkName": "paths"
+  },
+  {
+    "violations": [],
+    "checkName": "net.adamcin.oakpal.core/basic/subpackages"
+  },
+  {
+    "violations": [{
+      "severity": "MAJOR",
+      "description": "acHandling mode IGNORE is forbidden. acHandling values in allowedModes are []",
+      "packages": ["my_packages:fullcoverage"]
+    }],
+    "checkName": "acHandling"
+  },
+  {
+    "violations": [],
+    "checkName": "net.adamcin.oakpal.core/basic/filterSets"
+  },
+  {
+    "violations": [],
+    "checkName": "net.adamcin.oakpal.core/basic/overlaps"
+  },
+  {
+    "violations": [
+      {
+        "severity": "MAJOR",
+        "description": "/tmp/fullcoverage (t: nt:unstructured, m: [vlt:FullCoverage]): denied node type nt:unstructured",
+        "packages": ["my_packages:fullcoverage"]
+      },
+      {
+        "severity": "MAJOR",
+        "description": "/tmp/fullcoverage/a (t: nt:unstructured, m: []): denied node type nt:unstructured",
+        "packages": ["my_packages:fullcoverage"]
+      },
+      {
+        "severity": "MAJOR",
+        "description": "/tmp/fullcoverage/b (t: nt:unstructured, m: []): denied node type nt:unstructured",
+        "packages": ["my_packages:fullcoverage"]
+      },
+      {
+        "severity": "MAJOR",
+        "description": "/tmp/fullcoverage/a/aa (t: nt:unstructured, m: []): denied node type nt:unstructured",
+        "packages": ["my_packages:fullcoverage"]
+      }
+    ],
+    "checkName": "net.adamcin.oakpal.core/basic/jcrProperties"
+  },
+  {
+    "violations": [{
+      "severity": "MINOR",
+      "description": "keys: [barFoo, foo]",
+      "packages": []
+    }],
+    "checkName": "Script Check: Test Output"
+  }
+]}

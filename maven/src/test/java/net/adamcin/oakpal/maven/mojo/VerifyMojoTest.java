@@ -24,7 +24,7 @@ import org.codehaus.plexus.ContainerConfiguration;
 import org.junit.Rule;
 import org.junit.Test;
 
-public class ScanArtifactMojoTest extends OakpalMojoTestCaseBase {
+public class VerifyMojoTest extends OakpalMojoTestCaseBase {
 
     @Rule
     public MojoRule rule = new MojoRule() {
@@ -54,7 +54,7 @@ public class ScanArtifactMojoTest extends OakpalMojoTestCaseBase {
 
     @Test
     public void testExecute() throws Exception {
-        File pom = getTestFile("src/test/resources/unit/happyscan/pom.xml");
+        File pom = getTestFile("src/test/resources/unit/justverify/pom.xml");
         assertNotNull(pom);
         assertTrue(pom.exists());
 
@@ -63,7 +63,7 @@ public class ScanArtifactMojoTest extends OakpalMojoTestCaseBase {
         pair.getProject().getArtifact().setFile(TestPackageUtil.prepareTestPackage("fullcoverage.zip"));
 
         try {
-            ScanArtifactMojo myMojo = (ScanArtifactMojo) lookupConfiguredMojo(pair.getProject(), "scan");
+            VerifyMojo myMojo = (VerifyMojo) lookupConfiguredMojo(pair.getProject(), "verify");
             assertNotNull("myMojo null", myMojo);
             myMojo.execute();
         } catch (Exception e) {

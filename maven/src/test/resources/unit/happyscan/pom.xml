@@ -20,10 +20,10 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>org.apache.maven.plugin.my.unit</groupId>
-    <artifactId>project-to-test</artifactId>
+    <artifactId>happyscan</artifactId>
     <version>1.0-SNAPSHOT</version>
     <packaging>jar</packaging>
-    <name>Test MyMojo</name>
+    <name>Test ScanArtifactsMojo</name>
 
     <build>
         <testOutputDirectory>src/test/resources</testOutputDirectory>

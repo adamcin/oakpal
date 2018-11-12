@@ -225,23 +225,21 @@ abstract class AbstractMojo extends org.apache.maven.plugin.AbstractMojo {
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
-        if (IT_PHASES.contains(execution.getLifecyclePhase())) {
-            boolean skip = isIndividuallySkipped();
-            if (skip || skipITs || skipTests) {
-                getLog().info("skipping [skip=" + skip + "][skipITs=" + skipITs + "][skipTests=" + skipTests + "]");
-                return;
-            } else {
-                File parentFile = summaryFile.getParentFile();
-                if (!(parentFile.isDirectory() || parentFile.mkdirs())) {
-                    throw new MojoExecutionException("Failed to create report summary directory " + parentFile.getPath());
-                }
-                ClassLoader oldCl = Thread.currentThread().getContextClassLoader();
-                try {
-                    Thread.currentThread().setContextClassLoader(getContainerClassLoader());
-                    executeGuardedIntegrationTest();
-                } finally {
-                    Thread.currentThread().setContextClassLoader(oldCl);
-                }
+        boolean skip = isIndividuallySkipped();
+        if (skip || skipITs || skipTests) {
+            getLog().info("skipping [skip=" + skip + "][skipITs=" + skipITs + "][skipTests=" + skipTests + "]");
+            return;
+        } else {
+            File parentFile = summaryFile.getParentFile();
+            if (!(parentFile.isDirectory() || parentFile.mkdirs())) {
+                throw new MojoExecutionException("Failed to create report summary directory " + parentFile.getPath());
+            }
+            ClassLoader oldCl = Thread.currentThread().getContextClassLoader();
+            try {
+                Thread.currentThread().setContextClassLoader(getContainerClassLoader());
+                executeGuardedIntegrationTest();
+            } finally {
+                Thread.currentThread().setContextClassLoader(oldCl);
             }
         }
     }
