@@ -62,7 +62,6 @@ public class ScanManyArtifactsMojo extends AbstractScanMojo {
      * Specify a list of content-package artifacts to download and scan in sequence.
      * <p>
      * For example:
-     * <p>
      * <pre>
      * &lt;scanArtifacts&gt;
      *   &lt;scanArtifact&gt;
@@ -94,7 +93,6 @@ public class ScanManyArtifactsMojo extends AbstractScanMojo {
      * {@code scanArtifacts}.
      * <p>
      * For example:
-     * <p>
      * <pre>
      * &lt;scanFiles&gt;
      *   &lt;scanFile&gt;target/myPackages/firstPackage.zip&lt;/scanFile&gt;
