@@ -266,7 +266,12 @@ abstract class AbstractScanMojo extends AbstractMojo {
     protected List<String> checklists = new ArrayList<>();
 
     /**
-     * Defer build failure for a subsequent verify goal.
+     * If violations are reported, defer the build failure until a subsequent verify goal. Set this to true when build
+     * has more than one scan execution, so that all errors can be reported. Otherwise, the first execution with
+     * failure-level violations will fail the build before the subsequent scan executions have a chance to run.
+     * <p>
+     * If this is set to true, be sure the {@code verify} goal has been activated for the build, otherwise violations
+     * will not be printed and failure-level violations will be implicitly ignored.
      *
      * @since 1.1.0
      */
