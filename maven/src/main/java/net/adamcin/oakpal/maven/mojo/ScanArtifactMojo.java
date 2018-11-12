@@ -17,11 +17,13 @@
 package net.adamcin.oakpal.maven.mojo;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 
 import net.adamcin.oakpal.core.AbortedScanException;
 import net.adamcin.oakpal.core.CheckReport;
+import net.adamcin.oakpal.core.ReportMapper;
 import net.adamcin.oakpal.maven.component.OakpalComponentConfigurator;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
@@ -37,7 +39,7 @@ import org.apache.maven.plugins.annotations.ResolutionScope;
  * @since 0.1.0
  */
 @Mojo(name = "scan", requiresDependencyResolution = ResolutionScope.TEST, configurator = OakpalComponentConfigurator.HINT,
-  defaultPhase = LifecyclePhase.INTEGRATION_TEST)
+        defaultPhase = LifecyclePhase.INTEGRATION_TEST)
 public class ScanArtifactMojo extends AbstractScanMojo {
 
     /**
@@ -57,15 +59,26 @@ public class ScanArtifactMojo extends AbstractScanMojo {
                 .flatMap(p -> Optional.ofNullable(p.getArtifact()))
                 .flatMap(a -> Optional.ofNullable(a.getFile()));
         if (packageArtifact.isPresent() && packageArtifact.get().exists()) {
+            List<CheckReport> reports;
             try {
-
-                List<CheckReport> reports = getBuilder().build().scanPackage(packageArtifact.get());
-                reactToReports(reports, false);
-
+                reports = getBuilder().build().scanPackage(packageArtifact.get());
             } catch (AbortedScanException e) {
                 String currentFilePath = e.getCurrentPackageFile()
                         .map(f -> "Failed package: " + f.getAbsolutePath()).orElse("");
                 throw new MojoExecutionException("Failed to execute package scan. " + currentFilePath, e);
+            }
+
+            try {
+                ReportMapper.writeReportsToFile(reports, summaryFile);
+                getLog().info("Check report summary written to " + summaryFile.getPath());
+            } catch (final IOException e) {
+                throw new MojoExecutionException("Failed to write summary reports.", e);
+            }
+
+            if (deferBuildFailure) {
+                getLog().info("Evaluation of check reports has been deferred by 'deferBuildFailure=true'.");
+            } else {
+                reactToReports(reports, false);
             }
         } else {
             throw new MojoExecutionException("Failed to resolve file for project artifact.");

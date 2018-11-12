@@ -25,9 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 
-import net.adamcin.oakpal.core.CheckReport;
 import net.adamcin.oakpal.core.CheckSpec;
 import net.adamcin.oakpal.core.ChecklistPlanner;
 import net.adamcin.oakpal.core.DefaultErrorListener;
@@ -39,11 +37,8 @@ import net.adamcin.oakpal.core.Locator;
 import net.adamcin.oakpal.core.OakMachine;
 import net.adamcin.oakpal.core.ProgressCheck;
 import net.adamcin.oakpal.core.SlingNodetypesScanner;
-import net.adamcin.oakpal.core.Violation;
-import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.apache.maven.model.Dependency;
 import org.apache.maven.plugin.MojoExecutionException;
-import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.codehaus.plexus.util.StringUtils;
 
@@ -271,50 +266,12 @@ abstract class AbstractScanMojo extends AbstractMojo {
     protected List<String> checklists = new ArrayList<>();
 
     /**
-     * Specify the minimum violation severity level that will trigger plugin execution failure. Valid options are
-     * {@link net.adamcin.oakpal.core.Violation.Severity#MINOR},
-     * {@link net.adamcin.oakpal.core.Violation.Severity#MAJOR}, and
-     * {@link net.adamcin.oakpal.core.Violation.Severity#SEVERE}.
-     * <p>
-     * FYI: FileVault Importer errors are reported as MAJOR by default.
-     * </p>
+     * Defer build failure for a subsequent verify goal.
      *
-     * @since 0.1.0
+     * @since 1.1.0
      */
-    @Parameter(defaultValue = "MAJOR")
-    protected Violation.Severity failOnSeverity = Violation.Severity.MAJOR;
-
-    protected void reactToReports(List<CheckReport> reports, boolean logPackageId) throws MojoFailureException {
-        String errorMessage = String.format("** Violations were reported at or above severity: %s **", failOnSeverity);
-
-        List<CheckReport> nonEmptyReports = reports.stream()
-                .filter(r -> !r.getViolations().isEmpty())
-                .collect(Collectors.toList());
-        boolean shouldFail = nonEmptyReports.stream().anyMatch(r -> !r.getViolations(failOnSeverity).isEmpty());
-
-        if (!nonEmptyReports.isEmpty()) {
-            getLog().info("OakPAL Check Reports");
-        }
-        for (CheckReport r : nonEmptyReports) {
-            getLog().info(String.format("  %s", String.valueOf(r.getCheckName())));
-            for (Violation v : r.getViolations()) {
-                Set<PackageId> packageIds = new LinkedHashSet<>(v.getPackages());
-                String violLog = logPackageId && !packageIds.isEmpty()
-                        ? String.format("   +- <%s> %s %s", v.getSeverity(), v.getDescription(), packageIds)
-                        : String.format("   +- <%s> %s", v.getSeverity(), v.getDescription());
-                if (v.getSeverity().isLessSevereThan(failOnSeverity)) {
-                    getLog().info(" " + violLog);
-                } else {
-                    getLog().error("" + violLog);
-                }
-            }
-        }
-
-        if (shouldFail) {
-            getLog().error(errorMessage);
-            throw new MojoFailureException(errorMessage);
-        }
-    }
+    @Parameter
+    protected boolean deferBuildFailure;
 
     protected OakMachine.Builder getBuilder() throws MojoExecutionException {
         final ErrorListener errorListener = new DefaultErrorListener();

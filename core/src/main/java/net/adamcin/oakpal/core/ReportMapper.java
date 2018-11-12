@@ -46,7 +46,7 @@ import org.json.JSONTokener;
  */
 public final class ReportMapper {
     public static final String KEY_REPORTS = "reports";
-    public static final String KEY_CHECK_NAME = "reporterUrl";
+    public static final String KEY_CHECK_NAME = "checkName";
     public static final String KEY_VIOLATIONS = "violations";
     public static final String KEY_DESCRIPTION = "description";
     public static final String KEY_SEVERITY = "severity";

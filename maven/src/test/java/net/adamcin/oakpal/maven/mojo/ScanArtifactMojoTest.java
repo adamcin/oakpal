@@ -66,6 +66,7 @@ public class ScanArtifactMojoTest extends OakpalMojoTestCaseBase {
         try {
             ScanArtifactMojo myMojo = (ScanArtifactMojo) lookupConfiguredMojo(pair.getProject(), "scan");
             assertNotNull("myMojo null", myMojo);
+            myMojo.summaryFile.getParentFile().mkdirs();
             ClassLoader oldCl = Thread.currentThread().getContextClassLoader();
             try {
                 Thread.currentThread().setContextClassLoader(myMojo.getContainerClassLoader());

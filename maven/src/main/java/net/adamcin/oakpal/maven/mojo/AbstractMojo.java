@@ -22,11 +22,15 @@ import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import net.adamcin.oakpal.core.CheckReport;
+import net.adamcin.oakpal.core.Violation;
+import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.artifact.repository.DefaultRepositoryRequest;
 import org.apache.maven.artifact.repository.RepositoryRequest;
@@ -82,6 +86,26 @@ abstract class AbstractMojo extends org.apache.maven.plugin.AbstractMojo {
      */
     @Parameter(property = "skipTests")
     protected boolean skipTests;
+
+    /**
+     * The summary file to read integration test results from.
+     */
+    @Parameter(defaultValue = "${project.build.directory}/oakpal-reports/oakpal-summary.json", required = true)
+    protected File summaryFile;
+
+    /**
+     * Specify the minimum violation severity level that will trigger plugin execution failure. Valid options are
+     * {@link net.adamcin.oakpal.core.Violation.Severity#MINOR},
+     * {@link net.adamcin.oakpal.core.Violation.Severity#MAJOR}, and
+     * {@link net.adamcin.oakpal.core.Violation.Severity#SEVERE}.
+     * <p>
+     * FYI: FileVault Importer errors are reported as MAJOR by default.
+     * </p>
+     *
+     * @since 0.1.0
+     */
+    @Parameter(defaultValue = "MAJOR")
+    protected Violation.Severity failOnSeverity = Violation.Severity.MAJOR;
 
     protected Optional<MavenProject> getProject() {
         return Optional.ofNullable(project);
@@ -162,6 +186,39 @@ abstract class AbstractMojo extends org.apache.maven.plugin.AbstractMojo {
         }
     }
 
+    protected void reactToReports(List<CheckReport> reports, boolean logPackageId) throws MojoFailureException {
+        String errorMessage = String.format("** Violations were reported at or above severity: %s **", failOnSeverity);
+
+        List<CheckReport> nonEmptyReports = reports.stream()
+                .filter(r -> !r.getViolations().isEmpty())
+                .collect(Collectors.toList());
+        boolean shouldFail = nonEmptyReports.stream().anyMatch(r -> !r.getViolations(failOnSeverity).isEmpty());
+
+        if (!nonEmptyReports.isEmpty()) {
+            getLog().info("OakPAL Check Reports");
+        }
+        for (CheckReport r : nonEmptyReports) {
+            getLog().info(String.format("  %s", String.valueOf(r.getCheckName())));
+            for (Violation v : r.getViolations()) {
+                Set<PackageId> packageIds = new LinkedHashSet<>(v.getPackages());
+                String violLog = logPackageId && !packageIds.isEmpty()
+                        ? String.format("   +- <%s> %s %s", v.getSeverity(), v.getDescription(), packageIds)
+                        : String.format("   +- <%s> %s", v.getSeverity(), v.getDescription());
+                if (v.getSeverity().isLessSevereThan(failOnSeverity)) {
+                    getLog().info(" " + violLog);
+                } else {
+                    getLog().error("" + violLog);
+                }
+            }
+        }
+
+        if (shouldFail) {
+            getLog().error(errorMessage);
+            throw new MojoFailureException(errorMessage);
+        }
+    }
+
+
     void executeGuardedIntegrationTest() throws MojoExecutionException, MojoFailureException {
 
     }
@@ -174,6 +231,10 @@ abstract class AbstractMojo extends org.apache.maven.plugin.AbstractMojo {
                 getLog().info("skipping [skip=" + skip + "][skipITs=" + skipITs + "][skipTests=" + skipTests + "]");
                 return;
             } else {
+                File parentFile = summaryFile.getParentFile();
+                if (!(parentFile.isDirectory() || parentFile.mkdirs())) {
+                    throw new MojoExecutionException("Failed to create report summary directory " + parentFile.getPath());
+                }
                 ClassLoader oldCl = Thread.currentThread().getContextClassLoader();
                 try {
                     Thread.currentThread().setContextClassLoader(getContainerClassLoader());

@@ -17,6 +17,7 @@
 package net.adamcin.oakpal.maven.mojo;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -25,6 +26,7 @@ import java.util.stream.Collectors;
 
 import net.adamcin.oakpal.core.AbortedScanException;
 import net.adamcin.oakpal.core.CheckReport;
+import net.adamcin.oakpal.core.ReportMapper;
 import net.adamcin.oakpal.maven.component.OakpalComponentConfigurator;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.artifact.repository.DefaultRepositoryRequest;
@@ -58,9 +60,9 @@ public class ScanManyArtifactsMojo extends AbstractScanMojo {
 
     /**
      * Specify a list of content-package artifacts to download and scan in sequence.
-     *
+     * <p>
      * For example:
-     *
+     * <p>
      * <pre>
      * &lt;scanArtifacts&gt;
      *   &lt;scanArtifact&gt;
@@ -83,7 +85,6 @@ public class ScanManyArtifactsMojo extends AbstractScanMojo {
      *   &lt;/scanArtifact&gt;
      * &lt;/scanArtifacts&gt;
      * </pre>
-     *
      */
     @Parameter(name = "scanArtifacts")
     protected List<Dependency> scanArtifacts = new ArrayList<>();
@@ -91,16 +92,15 @@ public class ScanManyArtifactsMojo extends AbstractScanMojo {
     /**
      * Specify a list of local package files to add to the list to scan. These will be installed after those listed in
      * {@code scanArtifacts}.
-     *
+     * <p>
      * For example:
-     *
+     * <p>
      * <pre>
      * &lt;scanFiles&gt;
      *   &lt;scanFile&gt;target/myPackages/firstPackage.zip&lt;/scanFile&gt;
      *   &lt;scanFile&gt;target/myPackages/secondPackage.zip&lt;/scanFile&gt;
      * &lt;/scanFiles&gt;
      * </pre>
-     *
      */
     @Parameter(name = "scanFiles")
     protected List<File> scanFiles = new ArrayList<>();
@@ -145,15 +145,26 @@ public class ScanManyArtifactsMojo extends AbstractScanMojo {
             resolvedArtifacts.addAll(scanFiles);
         }
 
+        List<CheckReport> reports;
         try {
-            List<CheckReport> reports = getBuilder().build().scanPackages(resolvedArtifacts);
-
-            reactToReports(reports, true);
-
+            reports = getBuilder().build().scanPackages(resolvedArtifacts);
         } catch (AbortedScanException e) {
             String currentFilePath = e.getCurrentPackageFile()
                     .map(f -> "Failed package: " + f.getAbsolutePath()).orElse("");
             throw new MojoExecutionException("Failed to execute package scan. " + currentFilePath, e);
+        }
+
+        try {
+            ReportMapper.writeReportsToFile(reports, summaryFile);
+            getLog().info("Check report summary written to " + summaryFile.getPath());
+        } catch (final IOException e) {
+            throw new MojoExecutionException("Failed to write summary reports.", e);
+        }
+
+        if (deferBuildFailure) {
+            getLog().info("Evaluation of check reports has been deferred by 'deferBuildFailure=true'.");
+        } else {
+            reactToReports(reports, true);
         }
     }
 }
