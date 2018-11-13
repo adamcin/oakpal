@@ -226,10 +226,6 @@ public final class Checklist {
         builder.withCndUrls(cndUrls);
         ofNullable(json.optJSONArray(KEY_JCR_NAMESPACES))
                 .map(jcrNamespaces -> StreamSupport.stream(jcrNamespaces.spliterator(), false)
-                        .filter(elem -> {
-                            System.out.println(elem);
-                            return true;
-                        })
                         .filter(elem -> elem instanceof JSONObject)
                         .map(JSONObject.class::cast)
                         .map(JcrNs::fromJSON)
