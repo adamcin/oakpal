@@ -89,11 +89,24 @@ public final class ForcedRoot {
      */
     static ForcedRoot fromJSON(final JSONObject json) {
         final ForcedRoot forcedRoot = new ForcedRoot();
-        ofNullable(json.optString(KEY_PATH)).ifPresent(forcedRoot::setPath);
-        ofNullable(json.optString(KEY_PRIMARY_TYPE)).ifPresent(forcedRoot::setPrimaryType);
+        if (json.has(KEY_PATH)) {
+            forcedRoot.setPath(json.getString(KEY_PATH));
+        }
+        if (json.has(KEY_PRIMARY_TYPE)) {
+            forcedRoot.setPrimaryType(json.getString(KEY_PRIMARY_TYPE));
+        }
         ofNullable(json.optJSONArray(KEY_MIXIN_TYPES))
                 .map(types -> types.toList().stream().map(String::valueOf).collect(Collectors.toList()))
                 .ifPresent(forcedRoot::setMixinTypes);
         return forcedRoot;
+    }
+
+    @Override
+    public String toString() {
+        JSONObject ret = new JSONObject();
+        ret.put(KEY_PATH, getPath());
+        ret.put(KEY_PRIMARY_TYPE, getPrimaryType());
+        ret.put(KEY_MIXIN_TYPES, getMixinTypes());
+        return ret.toString();
     }
 }

@@ -282,7 +282,7 @@ abstract class AbstractScanMojo extends AbstractMojo {
         final ErrorListener errorListener = new DefaultErrorListener();
 
         final List<ProgressCheck> allChecks = new ArrayList<>();
-        final ChecklistPlanner checklistPlanner = new ChecklistPlanner(errorListener, checklists);
+        final ChecklistPlanner checklistPlanner = new ChecklistPlanner(checklists);
         checklistPlanner.discoverChecklists();
 
         for (CheckSpec checkSpec : checklistPlanner.getEffectiveCheckSpecs(checks)) {

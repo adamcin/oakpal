@@ -177,13 +177,33 @@ public class CheckSpec {
      */
     static CheckSpec fromJSON(final JSONObject json) {
         final CheckSpec checkSpec = new CheckSpec();
-        ofNullable(json.optString(KEY_IMPL)).ifPresent(checkSpec::setImpl);
-        ofNullable(json.optString(KEY_NAME)).ifPresent(checkSpec::setName);
-        ofNullable(json.optString(KEY_TEMPLATE)).ifPresent(checkSpec::setTemplate);
+        if (json.has(KEY_IMPL)) {
+            checkSpec.setImpl(json.getString(KEY_IMPL));
+        }
+        if (json.has(KEY_NAME)) {
+            checkSpec.setName(json.getString(KEY_NAME));
+        }
+        if (json.has(KEY_TEMPLATE)) {
+            checkSpec.setTemplate(json.getString(KEY_TEMPLATE));
+        }
         if (json.has(KEY_SKIP)) {
             checkSpec.setSkip(json.optBoolean(KEY_SKIP));
         }
-        ofNullable(json.optJSONObject(KEY_CONFIG)).ifPresent(checkSpec::setConfig);
+        if (json.has(KEY_CONFIG)) {
+            checkSpec.setConfig(json.getJSONObject(KEY_CONFIG));
+        }
+
         return checkSpec;
+    }
+
+    @Override
+    public String toString() {
+        JSONObject obj = new JSONObject();
+        obj.put(KEY_NAME, getName());
+        obj.put(KEY_IMPL, getImpl());
+        obj.put(KEY_CONFIG, getConfig());
+        obj.put(KEY_TEMPLATE, getTemplate());
+        obj.put(KEY_SKIP, isSkip());
+        return obj.toString();
     }
 }

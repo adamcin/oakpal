@@ -31,23 +31,23 @@ import java.util.stream.Stream;
 
 import org.json.JSONObject;
 import org.json.JSONTokener;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Discoverer of checklists and computer of checkSpecs.
  */
 public final class ChecklistPlanner {
+    private static final Logger LOGGER = LoggerFactory.getLogger(ChecklistPlanner.class);
     public static final String OAKPAL_CHECKLIST = "Oakpal-Checklist";
     public static final String BUNDLE_SYMBOLICNAME = "Bundle-SymbolicName";
     public static final String AUTOMATIC_MODULE_NAME = "Automatic-Module-Name";
 
-    private final ErrorListener errorListener;
     private final Set<String> activeChecklistIds = new LinkedHashSet<>();
     private final List<Checklist> checklists = new ArrayList<>();
     private final List<Checklist> inactiveChecklists = new ArrayList<>();
 
-    public ChecklistPlanner(final ErrorListener errorListener,
-                            final List<String> activeChecklistIds) {
-        this.errorListener = errorListener;
+    public ChecklistPlanner(final List<String> activeChecklistIds) {
         this.activeChecklistIds.addAll(activeChecklistIds);
     }
 
@@ -58,22 +58,18 @@ public final class ChecklistPlanner {
     public void discoverChecklists(final ClassLoader classLoader) {
         try {
             Map<URL, List<JSONObject>> parsed = parseChecklists(classLoader);
-            // TODO defer selection
             selectChecklists(constructChecklists(parsed));
         } catch (final Exception e) {
-            // TODO send to errorListener
-            e.printStackTrace(System.err);
+            LOGGER.debug("[discoverChecklists(ClassLoader)] error occurred during discovery", e);
         }
     }
 
     public void discoverChecklists(final List<File> files) {
         try {
             Map<URL, List<JSONObject>> parsed = parseChecklists(files);
-            // TODO defer selection
             selectChecklists(constructChecklists(parsed));
         } catch (final Exception e) {
-            // TODO send to errorListener
-            e.printStackTrace(System.err);
+            LOGGER.debug("[discoverChecklists(List<File>)] error occurred during discovery", e);
         }
     }
 
@@ -112,12 +108,18 @@ public final class ChecklistPlanner {
     public List<CheckSpec> getEffectiveCheckSpecs(final List<CheckSpec> checkOverrides) {
         Map<String, CheckSpec> overlaid = new LinkedHashMap<>();
         List<CheckSpec> overrides = new ArrayList<>();
+
         if (checkOverrides != null) {
             overrides.addAll(checkOverrides);
+        }
+        if (LOGGER.isTraceEnabled()) {
+            LOGGER.trace("[getEffectiveCheckSpecs] checkOverrides: {}", checkOverrides);
         }
 
         // first accum checks selected via selected checklists
         getSelectedChecklists()
+                // debug filter
+                .filter(Util.traceFilter(LOGGER, "[getEffectiveCheckSpecs] selected checklist: {}"))
                 // Stream<Checklist> -> Stream<CheckSpec>
                 .flatMap(checklist -> checklist.getChecks().stream())
                 // apply overrides to each base spec
@@ -133,6 +135,10 @@ public final class ChecklistPlanner {
 
         List<CheckSpec> toReturn = new ArrayList<>(overlaid.values());
 
+        if (LOGGER.isTraceEnabled()) {
+            LOGGER.trace("[getEffectiveCheckSpecs] selectedChecklistChecks: {}", toReturn);
+        }
+
         // stream overrides to identify remaining specs
         overrides.stream()
                 // filter out skipped overrides
@@ -140,7 +146,7 @@ public final class ChecklistPlanner {
                 // filter out overrides that already applied
                 .filter(spec -> overlaid.values().stream().noneMatch(spec::overrides))
                 // find first base spec to override among inactive checklists
-                .forEach(spec -> {
+                .forEachOrdered(spec -> {
                     CheckSpec merged = inactiveChecklists.stream()
                             // Stream<Checklist> -> Stream<CheckSpec>
                             .flatMap(checklist -> checklist.getChecks().stream())
@@ -168,12 +174,25 @@ public final class ChecklistPlanner {
                         }
                     }
                 });
+
+        LOGGER.trace("[getEffectiveCheckSpecs] effective check specs: {}", toReturn);
         return toReturn;
     }
 
     private CheckSpec applyOverrides(final List<CheckSpec> checkOverrides, final CheckSpec base) {
-        return checkOverrides.stream()
-                .filter(base::isOverriddenBy).reduce(base, CheckSpec::overlay);
+        CheckSpec merged = base;
+        if (LOGGER.isTraceEnabled()) {
+            LOGGER.trace("[applyOverrides] base: {}", base);
+        }
+        List<CheckSpec> applicable = checkOverrides.stream().filter(base::isOverriddenBy)
+                .collect(Collectors.toList());
+        for (CheckSpec spec : applicable) {
+            merged = spec.overlay(merged);
+            if (LOGGER.isTraceEnabled()) {
+                LOGGER.trace("[applyOverrides] spec: {}, merged: {}", spec, merged);
+            }
+        }
+        return merged;
     }
 
     public static List<Checklist> constructChecklists(final Map<URL, List<JSONObject>> parsed) throws Exception {
@@ -182,8 +201,6 @@ public final class ChecklistPlanner {
             final URL manifestUrl = entry.getKey();
             final String moduleName = bestModuleName(manifestUrl);
             entry.getValue().forEach(json -> checklists.add(Checklist.fromJSON(moduleName, manifestUrl, json)));
-            if (!entry.getValue().isEmpty()) {
-            }
         }
         return checklists;
     }

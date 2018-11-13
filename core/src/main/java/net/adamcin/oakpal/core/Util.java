@@ -28,12 +28,17 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Predicate;
 import java.util.jar.Attributes;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public final class Util {
+    private static final Logger LOGGER = LoggerFactory.getLogger(Util.class);
 
     private Util() {
         // do nothing
@@ -59,9 +64,12 @@ public final class Util {
     public static List<URL> resolveManifestResources(final URL manifestUrl, final List<String> resources) {
         return resources.stream()
                 .map(name -> {
+                    final String relPath = "../" + name;
                     try {
-                        return Optional.of(new URL(manifestUrl, "../" + name));
+                        return Optional.of(new URL(manifestUrl, relPath));
                     } catch (final MalformedURLException e) {
+                        LOGGER.debug("[resolveManifestResources] malformed url: manifestUrl={}, relPath={}, error={}",
+                                manifestUrl, relPath, e.getMessage());
                         return Optional.<URL>empty();
                     }
                 })
@@ -115,4 +123,27 @@ public final class Util {
                 ? Thread.currentThread().getContextClassLoader()
                 : Util.class.getClassLoader();
     }
+
+    public static <T> Predicate<T> debugFilter(final Logger logger, final String format) {
+        if (logger.isDebugEnabled()) {
+            return item -> {
+                logger.debug(format, item);
+                return true;
+            };
+        } else {
+            return item -> true;
+        }
+    }
+
+    public static <T> Predicate<T> traceFilter(final Logger logger, final String format) {
+        if (logger.isTraceEnabled()) {
+            return item -> {
+                logger.trace(format, item);
+                return true;
+            };
+        } else {
+            return item -> true;
+        }
+    }
+
 }

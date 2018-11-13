@@ -28,12 +28,16 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * It's a list of checks, along with initStage properties allowing jars to share CNDs, JCR namespaces and privileges,
  * and forced roots.
  */
 public final class Checklist {
+    private static final Logger LOGGER = LoggerFactory.getLogger(Checklist.class);
+
     static final String KEY_NAME = "name";
     static final String KEY_INIT = "init";
     static final String KEY_CND_URLS = "cndUrls";
@@ -186,25 +190,44 @@ public final class Checklist {
         }
     }
 
+    @Override
+    public String toString() {
+        return "Checklist{" +
+                "moduleName='" + moduleName + '\'' +
+                ", name='" + name + '\'' +
+                ", cndUrls=" + cndUrls +
+                ", jcrNamespaces=" + jcrNamespaces +
+                ", jcrPrivileges=" + jcrPrivileges +
+                ", forcedRoots=" + forcedRoots +
+                ", checks=" + checks +
+                '}';
+    }
+
     /**
      * @param moduleName module name is required at this point.
      * @param json       check list blob
      * @return the new package checklist
      */
     static Checklist fromJSON(final String moduleName, final URL manifestUrl, final JSONObject json) {
+        LOGGER.trace("[fromJSON] module: {}, manifestUrl: {}, json: {}", moduleName, manifestUrl, json);
         Builder builder = new Builder(moduleName);
-        ofNullable(json.optString(KEY_NAME)).ifPresent(builder::withName);
-        ofNullable(json.optString(KEY_INIT)).ifPresent(init -> {
+        if (json.has(KEY_NAME)) {
+            builder.withName(json.getString(KEY_NAME));
+        }
+        if (json.has(KEY_INIT)) {
+            final String init = json.getString(KEY_INIT);
             try {
                 Object initObjc = Util.getDefaultClassLoader().loadClass(init).getConstructor().newInstance();
                 ChecklistInitializer.class.cast(initObjc).init();
             } catch (Exception e) {
-                // TODO do something with e
+                LOGGER.debug("[fromJSON#init] ChecklistInitializer error", e);
             }
-        });
+        }
+
         List<URL> cndUrls = new ArrayList<>();
         if (manifestUrl != null && manifestUrl.toExternalForm().endsWith(JarFile.MANIFEST_NAME)) {
             ofNullable(json.optJSONArray(KEY_CND_NAMES))
+                    .filter(Util.traceFilter(LOGGER, "[fromJSON#cndNames] cndNames: {}"))
                     .map(cndNames -> cndNames.toList().stream()
                             .map(String::valueOf)
                             .collect(Collectors.toList()))
@@ -218,6 +241,7 @@ public final class Checklist {
                             try {
                                 return Stream.of(new URL(cndUrlString));
                             } catch (Exception e) {
+                                LOGGER.debug("[fromJSON#cndUrls] ignoring error", e);
                                 return Stream.empty();
                             }
                         })
@@ -249,6 +273,9 @@ public final class Checklist {
                         .map(CheckSpec::fromJSON)
                         .collect(Collectors.toList()))
                 .ifPresent(builder::withChecks);
+        if (LOGGER.isTraceEnabled()) {
+            LOGGER.trace("[fromJSON] builder.build(): {}", builder.build());
+        }
         return builder.build();
     }
 }

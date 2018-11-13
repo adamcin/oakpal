@@ -16,8 +16,6 @@
 
 package net.adamcin.oakpal.core;
 
-import static java.util.Optional.ofNullable;
-
 import org.json.JSONObject;
 
 /**
@@ -64,8 +62,16 @@ public final class JcrNs {
      */
     static JcrNs fromJSON(final JSONObject json) {
         JcrNs jcrNs = new JcrNs();
-        ofNullable(json.optString(KEY_PREFIX)).ifPresent(jcrNs::setPrefix);
-        ofNullable(json.optString(KEY_URI)).ifPresent(jcrNs::setUri);
+        jcrNs.setPrefix(json.getString(KEY_PREFIX));
+        jcrNs.setUri(json.getString(KEY_URI));
         return jcrNs;
+    }
+
+    @Override
+    public String toString() {
+        JSONObject ret = new JSONObject();
+        ret.put(KEY_PREFIX, getPrefix());
+        ret.put(KEY_URI, getUri());
+        return ret.toString();
     }
 }
