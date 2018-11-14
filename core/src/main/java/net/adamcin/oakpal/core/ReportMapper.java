@@ -115,8 +115,7 @@ public final class ReportMapper {
         JSONArray vPackages = jsonViolation.optJSONArray(KEY_PACKAGES);
         if (vPackages != null) {
             packages = StreamSupport.stream(vPackages.spliterator(), false)
-                    .filter(v -> v instanceof JSONString)
-                    .map(v -> Optional.ofNullable(PackageId.fromString(v.toString())))
+                    .map(v -> Optional.ofNullable(PackageId.fromString(String.valueOf(v))))
                     .filter(Optional::isPresent).map(Optional::get)
                     .collect(Collectors.toList());
         }

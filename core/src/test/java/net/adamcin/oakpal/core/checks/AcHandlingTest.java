@@ -17,6 +17,7 @@
 package net.adamcin.oakpal.core.checks;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import net.adamcin.commons.testing.junit.TestBody;
 import net.adamcin.oakpal.core.CheckReport;
@@ -37,6 +38,8 @@ public class AcHandlingTest extends ProgressCheckTestBase {
                 CheckReport report = scanWithCheck(check, "test_childnodeorder.zip");
                 logViolations("level_set:no_unsafe", report);
                 assertEquals("no violations", 0, report.getViolations().size());
+                assertTrue("all violations have packageIds", report.getViolations().stream()
+                        .allMatch(viol -> !viol.getPackages().isEmpty()));
             }
         });
         TestBody.test(new TestBody() {
@@ -48,6 +51,8 @@ public class AcHandlingTest extends ProgressCheckTestBase {
                 CheckReport report = scanWithCheck(check, "test_childnodeorder.zip");
                 logViolations("level_set:only_ignore", report);
                 assertEquals("one violation", 1, report.getViolations().size());
+                assertTrue("all violations have packageIds", report.getViolations().stream()
+                        .allMatch(viol -> !viol.getPackages().isEmpty()));
             }
         });
     }
@@ -63,6 +68,8 @@ public class AcHandlingTest extends ProgressCheckTestBase {
                 CheckReport report = scanWithCheck(check, "test_childnodeorder.zip");
                 logViolations("allowedModes:merge_preserve", report);
                 assertEquals("no violations", 0, report.getViolations().size());
+                assertTrue("all violations have packageIds", report.getViolations().stream()
+                        .allMatch(viol -> !viol.getPackages().isEmpty()));
             }
         });
         TestBody.test(new TestBody() {
@@ -74,6 +81,8 @@ public class AcHandlingTest extends ProgressCheckTestBase {
                 CheckReport report = scanWithCheck(check, "test_childnodeorder.zip");
                 logViolations("allowedModes:ignore", report);
                 assertEquals("one violation", 1, report.getViolations().size());
+                assertTrue("all violations have packageIds", report.getViolations().stream()
+                        .allMatch(viol -> !viol.getPackages().isEmpty()));
             }
         });
     }

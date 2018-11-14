@@ -17,6 +17,7 @@
 package net.adamcin.oakpal.core.checks;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import net.adamcin.commons.testing.junit.TestBody;
 import net.adamcin.oakpal.core.CheckReport;
@@ -35,6 +36,8 @@ public class FilterSetsTest extends ProgressCheckTestBase {
                 ProgressCheck handler = new FilterSets().newInstance(new JSONObject());
                 CheckReport report = scanWithCheck(handler, "testrootimport.zip");
                 assertEquals("one violation", 1, report.getViolations().size());
+                assertTrue("all violations have packageIds", report.getViolations().stream()
+                        .allMatch(viol -> !viol.getPackages().isEmpty()));
             }
         });
 
@@ -46,6 +49,8 @@ public class FilterSetsTest extends ProgressCheckTestBase {
 
                 CheckReport report = scanWithCheck(handler, "testrootimport.zip");
                 assertEquals("no violations", 0, report.getViolations().size());
+                assertTrue("all violations have packageIds", report.getViolations().stream()
+                        .allMatch(viol -> !viol.getPackages().isEmpty()));
             }
         });
     }
@@ -61,6 +66,8 @@ public class FilterSetsTest extends ProgressCheckTestBase {
                 assertEquals("one violation", 1, report.getViolations().size());
                 assertEquals("is severity", Violation.Severity.MINOR,
                         report.getViolations().iterator().next().getSeverity());
+                assertTrue("all violations have packageIds", report.getViolations().stream()
+                        .allMatch(viol -> !viol.getPackages().isEmpty()));
             }
         });
         TestBody.test(new TestBody() {
@@ -73,6 +80,8 @@ public class FilterSetsTest extends ProgressCheckTestBase {
                 assertEquals("one violation", 1, report.getViolations().size());
                 assertEquals("is severity", Violation.Severity.SEVERE,
                         report.getViolations().iterator().next().getSeverity());
+                assertTrue("all violations have packageIds", report.getViolations().stream()
+                        .allMatch(viol -> !viol.getPackages().isEmpty()));
             }
         });
     }
@@ -88,6 +97,8 @@ public class FilterSetsTest extends ProgressCheckTestBase {
                 assertEquals("one violation", 1, report.getViolations().size());
                 assertEquals("is severity", Violation.Severity.MAJOR,
                         report.getViolations().iterator().next().getSeverity());
+                assertTrue("all violations have packageIds", report.getViolations().stream()
+                        .allMatch(viol -> !viol.getPackages().isEmpty()));
             }
         });
         TestBody.test(new TestBody() {
@@ -98,6 +109,8 @@ public class FilterSetsTest extends ProgressCheckTestBase {
                 CheckReport report = scanWithCheck(handler, "tmp_foo_bar_test_nofilter.zip");
 
                 assertEquals("no violations", 0, report.getViolations().size());
+                assertTrue("all violations have packageIds", report.getViolations().stream()
+                        .allMatch(viol -> !viol.getPackages().isEmpty()));
             }
         });
     }

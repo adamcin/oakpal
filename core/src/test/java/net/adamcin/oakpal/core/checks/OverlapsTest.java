@@ -17,6 +17,7 @@
 package net.adamcin.oakpal.core.checks;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import net.adamcin.commons.testing.junit.TestBody;
 import net.adamcin.oakpal.core.CheckReport;
@@ -34,6 +35,8 @@ public class OverlapsTest extends ProgressCheckTestBase {
                 CheckReport report = scanWithCheck(check, "test_a-1.0.zip", "test_b-1.0.zip");
                 logViolations("testOverlaps:none", report);
                 assertEquals("no violations", 0, report.getViolations().size());
+                assertTrue("all violations have packageIds", report.getViolations().stream()
+                        .allMatch(viol -> !viol.getPackages().isEmpty()));
             }
         });
         TestBody.test(new TestBody() {
@@ -43,6 +46,8 @@ public class OverlapsTest extends ProgressCheckTestBase {
                 CheckReport report = scanWithCheck(check, "tmp_foo.zip", "tmp_foo_bar.zip", "tmp_foo_bar_test.zip");
                 logViolations("testOverlaps:[foo, foo_bar, foo_bar_test]", report);
                 assertEquals("two violations", 2, report.getViolations().size());
+                assertTrue("all violations have packageIds", report.getViolations().stream()
+                        .allMatch(viol -> !viol.getPackages().isEmpty()));
             }
         });
         TestBody.test(new TestBody() {
@@ -52,6 +57,8 @@ public class OverlapsTest extends ProgressCheckTestBase {
                 CheckReport report = scanWithCheck(check, "tmp_foo_bar_test.zip", "tmp_foo_bar.zip", "tmp_foo.zip");
                 logViolations("testOverlaps:[foo_bar_test, foo_bar, foo]", report);
                 assertEquals("two violations", 2, report.getViolations().size());
+                assertTrue("all violations have packageIds", report.getViolations().stream()
+                        .allMatch(viol -> !viol.getPackages().isEmpty()));
             }
         });
     }

@@ -148,7 +148,8 @@ public class AcHandling implements ProgressCheckFactory {
                 if (!this.levelSet.getAllowedModes().contains(packageMode)) {
                     reportViolation(new SimpleViolation(Violation.Severity.MAJOR,
                             String.format("acHandling mode %s is forbidden. allowed acHandling values in levelSet:%s are %s",
-                                    packageMode, this.levelSet.name().toLowerCase(), this.levelSet.getAllowedModes())));
+                                    packageMode, this.levelSet.name().toLowerCase(), this.levelSet.getAllowedModes()),
+                            packageId));
                 }
             }
         }
