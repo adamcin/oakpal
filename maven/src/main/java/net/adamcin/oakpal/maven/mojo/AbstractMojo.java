@@ -22,7 +22,6 @@ import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -186,7 +185,7 @@ abstract class AbstractMojo extends org.apache.maven.plugin.AbstractMojo {
         }
     }
 
-    protected void reactToReports(List<CheckReport> reports, boolean logPackageId) throws MojoFailureException {
+    protected void reactToReports(List<CheckReport> reports) throws MojoFailureException {
         String errorMessage = String.format("** Violations were reported at or above severity: %s **", failOnSeverity);
 
         List<CheckReport> nonEmptyReports = reports.stream()
@@ -200,8 +199,10 @@ abstract class AbstractMojo extends org.apache.maven.plugin.AbstractMojo {
         for (CheckReport r : nonEmptyReports) {
             getLog().info(String.format("  %s", String.valueOf(r.getCheckName())));
             for (Violation v : r.getViolations()) {
-                Set<PackageId> packageIds = new LinkedHashSet<>(v.getPackages());
-                String violLog = logPackageId && !packageIds.isEmpty()
+                Set<String> packageIds = v.getPackages().stream()
+                        .map(PackageId::getDownloadName)
+                        .collect(Collectors.toSet());
+                String violLog = !packageIds.isEmpty()
                         ? String.format("   +- <%s> %s %s", v.getSeverity(), v.getDescription(), packageIds)
                         : String.format("   +- <%s> %s", v.getSeverity(), v.getDescription());
                 if (v.getSeverity().isLessSevereThan(failOnSeverity)) {

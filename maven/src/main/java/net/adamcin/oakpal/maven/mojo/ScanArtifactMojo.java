@@ -78,7 +78,7 @@ public class ScanArtifactMojo extends AbstractScanMojo {
             if (deferBuildFailure) {
                 getLog().info("Evaluation of check reports has been deferred by 'deferBuildFailure=true'.");
             } else {
-                reactToReports(reports, true);
+                reactToReports(reports);
             }
         } else {
             throw new MojoExecutionException("Failed to resolve file for project artifact.");

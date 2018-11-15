@@ -74,7 +74,7 @@ public class VerifyMojo extends AbstractMojo {
             throw new MojoExecutionException("Failed to read check report summary file.", e);
         }
 
-        reactToReports(reports, true);
+        reactToReports(reports);
     }
 
     private List<CheckReport> readReportsFromFile(final File summaryFile) throws Exception {
