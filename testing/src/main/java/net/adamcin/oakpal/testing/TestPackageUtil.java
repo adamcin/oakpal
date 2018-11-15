@@ -43,15 +43,16 @@ public class TestPackageUtil {
     static final Properties properties = new Properties();
 
     static {
-        try {
-            properties.load(TestPackageUtil.class.getResourceAsStream("/test-packages.properties"));
-            testPackagesSrc = properties.getProperty(PN_TEST_PACKAGES_SRC);
-            testPackagesRoot = properties.getProperty(PN_TEST_PACKAGES_ROOT);
-            (new File(testPackagesRoot)).mkdir();
+        try (InputStream propsIn = TestPackageUtil.class.getResourceAsStream("/test-packages.properties")) {
+            if (propsIn != null) {
+                properties.load(propsIn);
+            }
         } catch (IOException e) {
             log.error("Failed to load test-packages.properties");
-            testPackagesRoot = "<invalid_root>";
         }
+        testPackagesSrc = properties.getProperty(PN_TEST_PACKAGES_SRC, "/oakpal-testing/test-packages/");
+        testPackagesRoot = properties.getProperty(PN_TEST_PACKAGES_ROOT, "target/test-packages");
+        (new File(testPackagesRoot)).mkdir();
     }
 
     public static File prepareTestPackage(final String filename) throws IOException {
