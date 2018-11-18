@@ -16,11 +16,14 @@
 
 package net.adamcin.oakpal.core;
 
+import static net.adamcin.oakpal.core.OakMachine.NT_UNDECLARED;
+
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -282,11 +285,15 @@ public final class InitStage {
         }
 
         if (!forcedRoots.isEmpty()) {
+            List<ForcedRoot> roots = new ArrayList<>(forcedRoots.values());
+            roots.sort(Comparator.comparing(root -> root.getPath().length()));
             for (ForcedRoot root : forcedRoots.values()) {
                 try {
-                    final String primaryType = root.getPrimaryType() != null ? root.getPrimaryType() : "nt:unstructured";
+                    final String primaryType = root.getPrimaryType() != null
+                            ? root.getPrimaryType()
+                            : NT_UNDECLARED;
                     final List<String> mixinTypes = root.getMixinTypes() != null ? root.getMixinTypes() : Collections.emptyList();
-                    Node rootNode = JcrUtils.getOrCreateByPath(root.getPath(), primaryType, admin);
+                    Node rootNode = JcrUtils.getOrCreateByPath(root.getPath(), NT_UNDECLARED, primaryType, admin, false);
                     for (String mixinType : mixinTypes) {
                         rootNode.addMixin(mixinType);
                     }

@@ -80,8 +80,8 @@ public class Subpackages implements ProgressCheckFactory {
                 reportViolation(new SimpleViolation(Violation.Severity.MAJOR,
                         String.format("subpackage %s included by %s. no subpackages are allowed.",
                                 packageId, parentId), packageId));
-            } else if (!rules.isEmpty()) {
-                Rule lastMatch = Rule.DEFAULT_ALLOW;
+            } else {
+                Rule lastMatch = Rule.fuzzyDefaultAllow(rules);
                 for (Rule rule : rules) {
                     System.out.printf("packageId: %s, pattern: %s, matches: %s\n", packageId.toString(),
                             rule.getPattern().pattern(), rule.matches(packageId.toString()));

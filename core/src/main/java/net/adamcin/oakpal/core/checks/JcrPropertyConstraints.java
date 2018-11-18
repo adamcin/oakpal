@@ -166,7 +166,7 @@ public final class JcrPropertyConstraints {
             }
 
             for (String value : values) {
-                Rule lastMatch = Rule.DEFAULT_ALLOW;
+                Rule lastMatch = Rule.fuzzyDefaultAllow(getValueRules());
                 for (Rule rule : getValueRules()) {
                     if (rule.matches(value)) {
                         lastMatch = rule;

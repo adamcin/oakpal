@@ -40,6 +40,7 @@ import org.slf4j.LoggerFactory;
 public final class ChecklistPlanner {
     private static final Logger LOGGER = LoggerFactory.getLogger(ChecklistPlanner.class);
     public static final String OAKPAL_CHECKLIST = "Oakpal-Checklist";
+    public static final String OAKPAL_MODULENAME = "Oakpal-ModuleName";
     public static final String BUNDLE_SYMBOLICNAME = "Bundle-SymbolicName";
     public static final String AUTOMATIC_MODULE_NAME = "Automatic-Module-Name";
 
@@ -243,6 +244,10 @@ public final class ChecklistPlanner {
     private static String bestModuleName(final URL manifestUrl) throws Exception {
         try (InputStream is = manifestUrl.openStream()) {
             final Manifest manifest = new Manifest(is);
+            List<String> omns = Util.getManifestHeaderValues(manifest, OAKPAL_MODULENAME);
+            if (!omns.isEmpty()) {
+                return omns.get(0);
+            }
             List<String> bsns = Util.getManifestHeaderValues(manifest, BUNDLE_SYMBOLICNAME);
             if (!bsns.isEmpty()) {
                 return bsns.get(0);

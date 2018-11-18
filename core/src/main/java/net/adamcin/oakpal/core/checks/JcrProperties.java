@@ -134,7 +134,7 @@ public class JcrProperties implements ProgressCheckFactory {
                 return;
             }
 
-            Rule lastMatch = scopePaths.isEmpty() ? Rule.DEFAULT_ALLOW : Rule.DEFAULT_DENY;
+            Rule lastMatch = Rule.fuzzyDefaultAllow(scopePaths);
             for (Rule rule : scopePaths) {
                 if (rule.matches(path)) {
                     lastMatch = rule;

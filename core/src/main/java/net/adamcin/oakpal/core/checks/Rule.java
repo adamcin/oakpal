@@ -53,6 +53,34 @@ public final class Rule {
         this.pattern = pattern;
     }
 
+    /**
+     * Return {@link #DEFAULT_ALLOW}, unless first element in rules list is an explicit allow, in which
+     * case return {@link #DEFAULT_DENY}
+     *
+     * @param rules rules list
+     * @return usually {@link #DEFAULT_ALLOW}, but sometimes {@link #DEFAULT_DENY}
+     */
+    public static Rule fuzzyDefaultAllow(final List<Rule> rules) {
+        if (rules != null && !rules.isEmpty() && rules.get(0).isAllow()) {
+            return DEFAULT_DENY;
+        }
+        return DEFAULT_ALLOW;
+    }
+
+    /**
+     * Return {@link #DEFAULT_DENY}, unless first element in rules list is an explicit deny, in which
+     * case return {@link #DEFAULT_ALLOW}
+     *
+     * @param rules rules list
+     * @return usually {@link #DEFAULT_DENY}, but sometimes {@link #DEFAULT_ALLOW}
+     */
+    public static Rule fuzzyDefaultDeny(final List<Rule> rules) {
+        if (rules != null && !rules.isEmpty() && rules.get(0).isDeny()) {
+            return DEFAULT_ALLOW;
+        }
+        return DEFAULT_DENY;
+    }
+
     public RuleType getType() {
         return type;
     }
@@ -79,7 +107,22 @@ public final class Rule {
     }
 
     public enum RuleType {
-        ALLOW, DENY
+        ALLOW("INCLUDE"), DENY("EXCLUDE");
+        private final String inex;
+
+        RuleType(final String inex) {
+            this.inex = inex;
+        }
+
+        public static RuleType fromName(final String name) {
+            final String ucn = name;
+            for (RuleType value : RuleType.values()) {
+                if (value.inex.equalsIgnoreCase(ucn) || value.name().equalsIgnoreCase(ucn)) {
+                    return value;
+                }
+            }
+            throw new IllegalArgumentException("RuleType not recognized: " + name);
+        }
     }
 
     public static List<Rule> fromJSON(final JSONArray rulesArray) {
@@ -97,7 +140,7 @@ public final class Rule {
     }
 
     public static Rule fromJSON(final JSONObject ruleJson) {
-        return new Rule(Rule.RuleType.valueOf(ruleJson.getString(CONFIG_TYPE).toUpperCase()),
+        return new Rule(Rule.RuleType.fromName(ruleJson.getString(CONFIG_TYPE)),
                 Pattern.compile(ruleJson.getString(CONFIG_PATTERN)));
     }
 }

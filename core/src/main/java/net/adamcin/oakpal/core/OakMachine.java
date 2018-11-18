@@ -25,13 +25,18 @@ import java.util.List;
 import java.util.Properties;
 import java.util.stream.Collectors;
 import javax.jcr.Node;
+import javax.jcr.PropertyType;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
+import javax.jcr.nodetype.NodeTypeTemplate;
+import javax.jcr.version.OnParentVersionAction;
 
 import aQute.bnd.annotation.ProviderType;
 import net.adamcin.oakpal.core.jcrfacade.SessionFacade;
+import org.apache.jackrabbit.commons.cnd.DefinitionBuilderFactory;
+import org.apache.jackrabbit.commons.cnd.TemplateBuilderFactory;
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.jcr.Jcr;
@@ -51,6 +56,7 @@ import org.apache.jackrabbit.oak.plugins.observation.ChangeCollectorProvider;
 import org.apache.jackrabbit.oak.plugins.version.VersionHook;
 import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.security.user.RandomAuthorizableNodeName;
+import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
@@ -77,6 +83,11 @@ import org.apache.jackrabbit.vault.packaging.VaultPackage;
  */
 @ProviderType
 public final class OakMachine {
+    public static final String NS_URI_OAKPAL = "oakpaltmp";
+    public static final String NS_PREFIX_OAKPAL = "oakpal";
+    public static final String LN_UNDECLARED = "Undeclared";
+    public static final String NT_UNDECLARED = "{" + NS_URI_OAKPAL + "}" +  LN_UNDECLARED;
+
     private static final ErrorListener DEFAULT_ERROR_LISTENER = new DefaultErrorListener();
 
     private final Packaging packagingService;
@@ -294,6 +305,8 @@ public final class OakMachine {
 
             admin = loginAdmin(scanRepo);
 
+            addOakpalTypes(admin);
+
             for (InitStage initStage : this.initStages) {
                 initStage.initSession(admin, getErrorListener());
             }
@@ -341,6 +354,45 @@ public final class OakMachine {
         reports.addAll(listenerReports);
 
         return Collections.unmodifiableList(reports);
+    }
+
+    private void addOakpalTypes(final Session admin) throws RepositoryException {
+        TemplateBuilderFactory builderFactory = new TemplateBuilderFactory(admin);
+        builderFactory.setNamespace(NS_PREFIX_OAKPAL, NS_URI_OAKPAL);
+
+        DefinitionBuilderFactory.AbstractNodeTypeDefinitionBuilder<NodeTypeTemplate> builder =
+                builderFactory.newNodeTypeDefinitionBuilder();
+
+        builder.setName(NT_UNDECLARED);
+        builder.addSupertype(NodeTypeConstants.NT_FOLDER);
+
+        DefinitionBuilderFactory.AbstractPropertyDefinitionBuilder<NodeTypeTemplate> multiDef =
+                builder.newPropertyDefinitionBuilder();
+
+        multiDef.setRequiredType(PropertyType.UNDEFINED);
+        multiDef.setMultiple(true);
+        multiDef.setOnParentVersion(OnParentVersionAction.IGNORE);
+        multiDef.setName(NodeTypeConstants.RESIDUAL_NAME);
+        multiDef.build();
+
+        DefinitionBuilderFactory.AbstractPropertyDefinitionBuilder<NodeTypeTemplate> propDef =
+                builder.newPropertyDefinitionBuilder();
+        propDef.setRequiredType(PropertyType.UNDEFINED);
+        propDef.setOnParentVersion(OnParentVersionAction.IGNORE);
+        propDef.setName(NodeTypeConstants.RESIDUAL_NAME);
+        propDef.build();
+
+        DefinitionBuilderFactory.AbstractNodeDefinitionBuilder<NodeTypeTemplate> nodeDef =
+                builder.newNodeDefinitionBuilder();
+
+        nodeDef.addRequiredPrimaryType(NodeTypeConstants.NT_BASE);
+        nodeDef.setDefaultPrimaryType(NT_UNDECLARED);
+        nodeDef.setOnParentVersion(OnParentVersionAction.IGNORE);
+        nodeDef.setName(NodeTypeConstants.RESIDUAL_NAME);
+        nodeDef.setAllowsSameNameSiblings(true);
+        nodeDef.build();
+
+        admin.getWorkspace().getNodeTypeManager().registerNodeType(builder.build(), false);
     }
 
     private void processPackage(Session admin, JcrPackageManager manager, JcrPackage jcrPackage, final boolean preInstall)

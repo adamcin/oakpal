@@ -80,8 +80,8 @@ public class Paths implements ProgressCheckFactory {
         @Override
         public void importedPath(final PackageId packageId, final String path, final Node node)
                 throws RepositoryException {
-            Rule lastMatch = Rule.DEFAULT_ALLOW;
 
+            Rule lastMatch = Rule.fuzzyDefaultAllow(rules);
             for (Rule rule : rules) {
                 if (rule.matches(path)) {
                     lastMatch = rule;
@@ -102,7 +102,7 @@ public class Paths implements ProgressCheckFactory {
                 reportViolation(new SimpleViolation(Violation.Severity.MAJOR,
                         String.format("deleted path %s. All deletions are denied.", path), packageId));
             } else {
-                Rule lastMatch = Rule.DEFAULT_ALLOW;
+                Rule lastMatch = Rule.fuzzyDefaultAllow(rules);
                 for (Rule rule : rules) {
                     if (rule.matches(path)) {
                         lastMatch = rule;
