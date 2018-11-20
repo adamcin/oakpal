@@ -20,26 +20,27 @@ import javax.jcr.ItemVisitor;
 import javax.jcr.Node;
 import javax.jcr.Property;
 import javax.jcr.RepositoryException;
+import javax.jcr.Session;
 
 /**
  * Wraps an {@link ItemVisitor} to wrap {@link Node} and {@link Property} instances.
  */
-public class ItemWrappingVisitor implements ItemVisitor {
+public class ItemWrappingVisitor<S extends Session> implements ItemVisitor {
     private final ItemVisitor delegate;
-    private final SessionFacade session;
+    private final SessionFacade<S> session;
 
-    public ItemWrappingVisitor(ItemVisitor delegate, SessionFacade session) {
+    public ItemWrappingVisitor(ItemVisitor delegate, SessionFacade<S> session) {
         this.delegate = delegate;
         this.session = session;
     }
 
     @Override
     public void visit(Property property) throws RepositoryException {
-        delegate.visit(new PropertyFacade(property, session));
+        delegate.visit(new PropertyFacade<>(property, session));
     }
 
     @Override
     public void visit(Node node) throws RepositoryException {
-        delegate.visit(new NodeFacade(node, session));
+        delegate.visit(new NodeFacade<>(node, session));
     }
 }

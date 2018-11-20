@@ -18,20 +18,21 @@ package net.adamcin.oakpal.core.jcrfacade.query;
 
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
+import javax.jcr.Session;
 import javax.jcr.Value;
 import javax.jcr.query.Row;
 
-import net.adamcin.oakpal.core.jcrfacade.NodeFacade;
 import net.adamcin.oakpal.core.jcrfacade.SessionFacade;
+import net.adamcin.oakpal.core.jcrfacade.NodeFacade;
 
 /**
  * Wraps {@link Row} to ensure returned nodes are wrapped appropriately.
  */
-public class RowFacade implements Row {
+public class RowFacade<S extends Session> implements Row {
     private final Row delegate;
-    private final SessionFacade session;
+    private final SessionFacade<S> session;
 
-    public RowFacade(Row delegate, SessionFacade session) {
+    public RowFacade(Row delegate, SessionFacade<S> session) {
         this.delegate = delegate;
         this.session = session;
     }

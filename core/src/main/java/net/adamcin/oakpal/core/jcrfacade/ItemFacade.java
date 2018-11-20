@@ -28,12 +28,12 @@ import net.adamcin.oakpal.core.ListenerReadOnlyException;
 /**
  * Base facade for {@link Item} and its subtypes.
  */
-public class ItemFacade<J extends Item> implements Item {
+public class ItemFacade<J extends Item, S extends Session> implements Item {
 
     protected final J delegate;
-    protected final SessionFacade session;
+    protected final SessionFacade<S> session;
 
-    public ItemFacade(J delegate, SessionFacade session) {
+    public ItemFacade(J delegate, SessionFacade<S> session) {
         this.delegate = delegate;
         this.session = session;
     }
@@ -90,7 +90,7 @@ public class ItemFacade<J extends Item> implements Item {
 
     @Override
     public void accept(ItemVisitor visitor) throws RepositoryException {
-        delegate.accept(new ItemWrappingVisitor(visitor, session));
+        delegate.accept(new ItemWrappingVisitor<>(visitor, session));
     }
 
     @Override
@@ -108,7 +108,7 @@ public class ItemFacade<J extends Item> implements Item {
         throw new ListenerReadOnlyException();
     }
 
-    public static Item ensureBestWrapper(Item primaryItem, SessionFacade session) {
+    public static Item ensureBestWrapper(Item primaryItem, SessionFacade<?> session) {
         if (primaryItem instanceof ItemFacade) {
             return primaryItem;
         } else if (primaryItem instanceof Node) {

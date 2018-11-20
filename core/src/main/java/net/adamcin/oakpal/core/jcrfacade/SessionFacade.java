@@ -35,26 +35,49 @@ import javax.jcr.security.AccessControlManager;
 import net.adamcin.oakpal.core.ListenerReadOnlyException;
 import net.adamcin.oakpal.core.jcrfacade.retention.RetentionManagerFacade;
 import net.adamcin.oakpal.core.jcrfacade.security.AccessControlManagerFacade;
+import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.xml.sax.ContentHandler;
 import org.xml.sax.SAXException;
 
 /**
- * Wraps a {@link javax.jcr.Session} to guards against writes by listeners.
+ * Base class for wrapping a {@link Session} to guards against writes by listeners.
  */
-public class SessionFacade implements Session {
+public abstract class SessionFacade<S extends Session> implements Session {
 
-    private final Session delegate;
-    private final WorkspaceFacade workspace;
+    protected final S delegate;
+    private final WorkspaceFacade<S> workspace;
     private final RepositoryFacade repository;
 
     private boolean notProtected;
 
-    public SessionFacade(Session delegate, boolean notProtected) {
+    protected SessionFacade(S delegate, boolean notProtected) {
         this.delegate = delegate;
-        this.workspace = new WorkspaceFacade(delegate.getWorkspace(), this);
+        this.workspace = new WorkspaceFacade<>(delegate.getWorkspace(), this);
         this.repository = new RepositoryFacade(delegate.getRepository());
         this.notProtected = notProtected;
+    }
+
+    public static Session findBestWrapper(final Session session, final boolean notProtected) {
+        if (session instanceof JackrabbitSession) {
+            return new JackrabbitSessionFacade((JackrabbitSession) session, notProtected);
+        } else if (session != null) {
+            return new JcrSessionFacade(session, notProtected);
+        } else {
+            return null;
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    public static <T extends Session> SessionFacade<T> wrap(final T session, final Class<T> sessionType,
+                                                            final boolean notProtected) {
+        if (sessionType.isAssignableFrom(JackrabbitSessionFacade.class)) {
+            return (SessionFacade<T>) new JackrabbitSessionFacade((JackrabbitSession) session, notProtected);
+        } else if (sessionType.isAssignableFrom(JcrSessionFacade.class)) {
+            return (SessionFacade<T>) new JcrSessionFacade(session, notProtected);
+        } else {
+            throw new IllegalArgumentException("Invalid Session type: " + sessionType.getName());
+        }
     }
 
     @Override
@@ -90,7 +113,7 @@ public class SessionFacade implements Session {
     @Override
     public Session impersonate(Credentials credentials) throws RepositoryException {
         Session impersonateDelegate = delegate.impersonate(credentials);
-        return new SessionFacade(impersonateDelegate, true);
+        return SessionFacade.findBestWrapper(impersonateDelegate, true);
     }
 
     @Override
@@ -187,12 +210,13 @@ public class SessionFacade implements Session {
     }
 
     @Override
-    public void importXML(String parentAbsPath, InputStream in, int uuidBehavior) throws IOException, RepositoryException {
+    public void importXML(String parentAbsPath, InputStream in, int uuidBehavior) throws RepositoryException {
         throw new ListenerReadOnlyException();
     }
 
     @Override
-    public void exportSystemView(String absPath, ContentHandler contentHandler, boolean skipBinary, boolean noRecurse) throws SAXException, RepositoryException {
+    public void exportSystemView(String absPath, ContentHandler contentHandler, boolean skipBinary, boolean noRecurse)
+            throws SAXException, RepositoryException {
         delegate.exportSystemView(absPath, contentHandler, skipBinary, noRecurse);
     }
 

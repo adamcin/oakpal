@@ -18,6 +18,7 @@ package net.adamcin.oakpal.core.jcrfacade.query;
 
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
+import javax.jcr.Session;
 import javax.jcr.Value;
 import javax.jcr.query.Query;
 import javax.jcr.query.QueryResult;
@@ -28,11 +29,11 @@ import net.adamcin.oakpal.core.jcrfacade.SessionFacade;
 /**
  * Wraps {@link Query} to ensure returned objects are wrapped with appropriate facades.
  */
-public class QueryFacade implements Query {
+public class QueryFacade<S extends Session> implements Query {
     private final Query delegate;
-    private final SessionFacade session;
+    private final SessionFacade<S> session;
 
-    public QueryFacade(Query delegate, SessionFacade session) {
+    public QueryFacade(Query delegate, SessionFacade<S> session) {
         this.delegate = delegate;
         this.session = session;
     }
@@ -40,7 +41,7 @@ public class QueryFacade implements Query {
     @Override
     public QueryResult execute() throws RepositoryException {
         QueryResult internal = delegate.execute();
-        return new QueryResultFacade(internal, session);
+        return new QueryResultFacade<>(internal, session);
     }
 
     @Override

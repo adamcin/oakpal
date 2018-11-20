@@ -19,16 +19,14 @@ package net.adamcin.oakpal.core.jcrfacade;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.util.Calendar;
-import javax.jcr.AccessDeniedException;
 import javax.jcr.Binary;
 import javax.jcr.Item;
-import javax.jcr.ItemNotFoundException;
-import javax.jcr.NoSuchWorkspaceException;
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
 import javax.jcr.Property;
 import javax.jcr.PropertyIterator;
 import javax.jcr.RepositoryException;
+import javax.jcr.Session;
 import javax.jcr.Value;
 import javax.jcr.lock.Lock;
 import javax.jcr.nodetype.NodeDefinition;
@@ -44,9 +42,9 @@ import net.adamcin.oakpal.core.jcrfacade.version.VersionHistoryFacade;
 /**
  * Wraps {@link Node} to prevent writes.
  */
-public class NodeFacade<N extends Node> extends ItemFacade<N> implements Node {
+public class NodeFacade<N extends Node, S extends Session> extends ItemFacade<N, S> implements Node {
 
-    public NodeFacade(N delegate, SessionFacade session) {
+    public NodeFacade(N delegate, SessionFacade<S> session) {
         super(delegate, session);
     }
 
@@ -328,7 +326,7 @@ public class NodeFacade<N extends Node> extends ItemFacade<N> implements Node {
     }
 
     @Override
-    public String getCorrespondingNodePath(String workspaceName) throws ItemNotFoundException, NoSuchWorkspaceException, AccessDeniedException, RepositoryException {
+    public String getCorrespondingNodePath(String workspaceName) throws RepositoryException {
         return delegate.getCorrespondingNodePath(workspaceName);
     }
 
@@ -391,7 +389,7 @@ public class NodeFacade<N extends Node> extends ItemFacade<N> implements Node {
     @Override
     public Lock getLock() throws RepositoryException {
         Lock internal = delegate.getLock();
-        return new LockFacade(internal, session);
+        return new LockFacade<>(internal, session);
     }
 
     @Override
@@ -419,7 +417,7 @@ public class NodeFacade<N extends Node> extends ItemFacade<N> implements Node {
         return delegate.getAllowedLifecycleTransistions();
     }
 
-    public static Node wrap(Node primaryItem, SessionFacade session) {
+    public static Node wrap(Node primaryItem, SessionFacade<?> session) {
         if (primaryItem instanceof NodeFacade) {
             return primaryItem;
         } else if (primaryItem instanceof VersionHistory) {

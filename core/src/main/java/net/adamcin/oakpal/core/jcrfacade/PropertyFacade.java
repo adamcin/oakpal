@@ -23,6 +23,7 @@ import javax.jcr.Binary;
 import javax.jcr.Node;
 import javax.jcr.Property;
 import javax.jcr.RepositoryException;
+import javax.jcr.Session;
 import javax.jcr.Value;
 import javax.jcr.nodetype.PropertyDefinition;
 
@@ -31,9 +32,9 @@ import net.adamcin.oakpal.core.ListenerReadOnlyException;
 /**
  * Wraps {@link Property} to prevent writes.
  */
-public class PropertyFacade<P extends Property> extends ItemFacade<P> implements Property {
+public class PropertyFacade<P extends Property, S extends Session> extends ItemFacade<P, S> implements Property {
 
-    public PropertyFacade(P delegate, SessionFacade session) {
+    public PropertyFacade(P delegate, SessionFacade<S> session) {
         super(delegate, session);
     }
 

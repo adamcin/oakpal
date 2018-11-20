@@ -16,30 +16,14 @@
 
 package net.adamcin.oakpal.core.jcrfacade;
 
-import javax.jcr.Node;
-import javax.jcr.NodeIterator;
 import javax.jcr.Session;
 
 /**
- * Wraps {@link NodeIterator} to return {@link NodeFacade}-wrapped nodes.
+ * Wraps a {@link javax.jcr.Session} to guards against writes by listeners.
  */
-public class NodeIteratorFacade<S extends Session> extends RangeIteratorFacade<NodeIterator> implements NodeIterator {
+class JcrSessionFacade extends SessionFacade<Session> implements Session {
 
-    private final SessionFacade<S> session;
-
-    public NodeIteratorFacade(NodeIterator delegate, SessionFacade<S> session) {
-        super(delegate);
-        this.session = session;
-    }
-
-    @Override
-    public Node nextNode() {
-        Node internalNode = delegate.nextNode();
-        return new NodeFacade<>(internalNode, session);
-    }
-
-    @Override
-    public Object next() {
-        return nextNode();
+    JcrSessionFacade(Session delegate, boolean notProtected) {
+        super(delegate, notProtected);
     }
 }

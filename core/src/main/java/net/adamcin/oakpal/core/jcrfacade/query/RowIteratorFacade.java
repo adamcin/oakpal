@@ -16,19 +16,20 @@
 
 package net.adamcin.oakpal.core.jcrfacade.query;
 
+import javax.jcr.Session;
 import javax.jcr.query.Row;
 import javax.jcr.query.RowIterator;
 
-import net.adamcin.oakpal.core.jcrfacade.RangeIteratorFacade;
 import net.adamcin.oakpal.core.jcrfacade.SessionFacade;
+import net.adamcin.oakpal.core.jcrfacade.RangeIteratorFacade;
 
 /**
  * Wraps {@link RowIterator} to ensure returned objects are wrapped appropriately.
  */
-public class RowIteratorFacade extends RangeIteratorFacade<RowIterator> implements RowIterator {
-    private final SessionFacade session;
+public class RowIteratorFacade<S extends Session> extends RangeIteratorFacade<RowIterator> implements RowIterator {
+    private final SessionFacade<S> session;
 
-    public RowIteratorFacade(RowIterator delegate, SessionFacade session) {
+    public RowIteratorFacade(RowIterator delegate, SessionFacade<S> session) {
         super(delegate);
         this.session = session;
     }
@@ -36,7 +37,7 @@ public class RowIteratorFacade extends RangeIteratorFacade<RowIterator> implemen
     @Override
     public Row nextRow() {
         Row internal = delegate.nextRow();
-        return new RowFacade(internal, session);
+        return new RowFacade<>(internal, session);
     }
 
     @Override

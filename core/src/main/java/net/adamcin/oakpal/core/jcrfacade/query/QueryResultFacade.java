@@ -18,20 +18,21 @@ package net.adamcin.oakpal.core.jcrfacade.query;
 
 import javax.jcr.NodeIterator;
 import javax.jcr.RepositoryException;
+import javax.jcr.Session;
 import javax.jcr.query.QueryResult;
 import javax.jcr.query.RowIterator;
 
-import net.adamcin.oakpal.core.jcrfacade.NodeIteratorFacade;
 import net.adamcin.oakpal.core.jcrfacade.SessionFacade;
+import net.adamcin.oakpal.core.jcrfacade.NodeIteratorFacade;
 
 /**
  * Wraps {@link QueryResult} to ensure returned objects are wrapped appropriately.
  */
-public class QueryResultFacade implements QueryResult {
+public class QueryResultFacade<S extends Session> implements QueryResult {
     private final QueryResult delegate;
-    private final SessionFacade session;
+    private final SessionFacade<S> session;
 
-    public QueryResultFacade(QueryResult delegate, SessionFacade session) {
+    public QueryResultFacade(QueryResult delegate, SessionFacade<S> session) {
         this.delegate = delegate;
         this.session = session;
     }

@@ -19,18 +19,19 @@ package net.adamcin.oakpal.core.jcrfacade.version;
 import java.util.Calendar;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
+import javax.jcr.Session;
 import javax.jcr.version.Version;
 import javax.jcr.version.VersionHistory;
 
-import net.adamcin.oakpal.core.jcrfacade.NodeFacade;
 import net.adamcin.oakpal.core.jcrfacade.SessionFacade;
+import net.adamcin.oakpal.core.jcrfacade.NodeFacade;
 
 /**
  * Wraps {@link Version} to prevent writes.
  */
-public class VersionFacade<V extends Version> extends NodeFacade<V> implements Version {
+public class VersionFacade<V extends Version, S extends Session> extends NodeFacade<V, S> implements Version {
 
-    public VersionFacade(V delegate, SessionFacade session) {
+    public VersionFacade(V delegate, SessionFacade<S> session) {
         super(delegate, session);
     }
 

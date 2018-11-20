@@ -18,21 +18,22 @@ package net.adamcin.oakpal.core.jcrfacade.query;
 
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
+import javax.jcr.Session;
 import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
 import javax.jcr.query.qom.QueryObjectModelFactory;
 
-import net.adamcin.oakpal.core.jcrfacade.NodeFacade;
 import net.adamcin.oakpal.core.jcrfacade.SessionFacade;
+import net.adamcin.oakpal.core.jcrfacade.NodeFacade;
 
 /**
  * Wraps {@link QueryManager} to ensure returned items are wrapped with appropriate facades.
  */
-public class QueryManagerFacade implements QueryManager {
+public class QueryManagerFacade<S extends Session> implements QueryManager {
     private final QueryManager delegate;
-    private final SessionFacade session;
+    private final SessionFacade<S> session;
 
-    public QueryManagerFacade(QueryManager delegate, SessionFacade session) {
+    public QueryManagerFacade(QueryManager delegate, SessionFacade<S> session) {
         this.delegate = delegate;
         this.session = session;
     }
@@ -40,7 +41,7 @@ public class QueryManagerFacade implements QueryManager {
     @Override
     public Query createQuery(String statement, String language) throws RepositoryException {
         Query internal = delegate.createQuery(statement, language);
-        return new QueryFacade(internal, session);
+        return new QueryFacade<>(internal, session);
     }
 
     @Override

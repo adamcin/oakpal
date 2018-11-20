@@ -18,21 +18,22 @@ package net.adamcin.oakpal.core.jcrfacade.lock;
 
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
+import javax.jcr.Session;
 import javax.jcr.lock.Lock;
 
 import net.adamcin.oakpal.core.ListenerReadOnlyException;
-import net.adamcin.oakpal.core.jcrfacade.NodeFacade;
 import net.adamcin.oakpal.core.jcrfacade.SessionFacade;
+import net.adamcin.oakpal.core.jcrfacade.NodeFacade;
 
 /**
  * Wraps a {@link Lock} to block the associated {@link Node}.
  */
-public class LockFacade implements Lock {
+public class LockFacade<S extends Session> implements Lock {
 
     private final Lock delegate;
-    private final SessionFacade session;
+    private final SessionFacade<S> session;
 
-    public LockFacade(Lock delegate, SessionFacade session) {
+    public LockFacade(Lock delegate, SessionFacade<S> session) {
         this.delegate = delegate;
         this.session = session;
     }

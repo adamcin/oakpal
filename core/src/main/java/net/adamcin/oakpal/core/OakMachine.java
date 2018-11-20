@@ -86,7 +86,7 @@ public final class OakMachine {
     public static final String NS_URI_OAKPAL = "oakpaltmp";
     public static final String NS_PREFIX_OAKPAL = "oakpal";
     public static final String LN_UNDECLARED = "Undeclared";
-    public static final String NT_UNDECLARED = "{" + NS_URI_OAKPAL + "}" +  LN_UNDECLARED;
+    public static final String NT_UNDECLARED = "{" + NS_URI_OAKPAL + "}" + LN_UNDECLARED;
 
     private static final ErrorListener DEFAULT_ERROR_LISTENER = new DefaultErrorListener();
 
@@ -399,7 +399,7 @@ public final class OakMachine {
             throws IOException, PackageException, RepositoryException {
 
         final PackageId packageId = jcrPackage.getPackage().getId();
-        final SessionFacade inspectSession = new SessionFacade(admin, false);
+        final Session inspectSession = SessionFacade.findBestWrapper(admin, false);
         final ProgressTrackerListener tracker =
                 new ImporterListenerAdapter(packageId, progressChecks, inspectSession, preInstall);
 
@@ -552,11 +552,11 @@ public final class OakMachine {
 
         private final List<ProgressCheck> handlers;
 
-        private final SessionFacade session;
+        private final Session session;
 
         private final boolean preInstall;
 
-        ImporterListenerAdapter(PackageId packageId, List<ProgressCheck> handlers, SessionFacade session, boolean preInstall) {
+        ImporterListenerAdapter(PackageId packageId, List<ProgressCheck> handlers, Session session, boolean preInstall) {
             this.packageId = packageId;
             this.handlers = handlers;
             this.session = session;

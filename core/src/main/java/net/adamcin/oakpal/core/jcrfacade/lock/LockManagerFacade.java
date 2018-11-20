@@ -17,6 +17,7 @@
 package net.adamcin.oakpal.core.jcrfacade.lock;
 
 import javax.jcr.RepositoryException;
+import javax.jcr.Session;
 import javax.jcr.lock.Lock;
 import javax.jcr.lock.LockManager;
 
@@ -27,11 +28,11 @@ import net.adamcin.oakpal.core.jcrfacade.SessionFacade;
  * Wraps a {@link LockManager} to prevent lock modifications and to wrap
  * retrieved {@link Lock} instances.
  */
-public class LockManagerFacade implements LockManager {
+public class LockManagerFacade<S extends Session> implements LockManager {
     private final LockManager delegate;
-    private final SessionFacade session;
+    private final SessionFacade<S> session;
 
-    public LockManagerFacade(LockManager delegate, SessionFacade session) {
+    public LockManagerFacade(LockManager delegate, SessionFacade<S> session) {
         this.delegate = delegate;
         this.session = session;
     }
@@ -44,7 +45,7 @@ public class LockManagerFacade implements LockManager {
     @Override
     public Lock getLock(String absPath) throws RepositoryException {
         Lock internal = delegate.getLock(absPath);
-        return new LockFacade(internal, session);
+        return new LockFacade<>(internal, session);
     }
 
     @Override

@@ -16,7 +16,6 @@
 
 package net.adamcin.oakpal.core.jcrfacade;
 
-import java.io.IOException;
 import java.io.InputStream;
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.RepositoryException;
@@ -40,12 +39,12 @@ import org.xml.sax.ContentHandler;
 /**
  * Wraps {@link Workspace} to prevent writes.
  */
-public class WorkspaceFacade implements Workspace {
+public class WorkspaceFacade<S extends Session> implements Workspace {
 
-    private final SessionFacade session;
+    private final SessionFacade<S> session;
     private final Workspace delegate;
 
-    public WorkspaceFacade(Workspace delegate, SessionFacade session) {
+    public WorkspaceFacade(Workspace delegate, SessionFacade<S> session) {
         this.delegate = delegate;
         this.session = session;
     }
@@ -88,13 +87,13 @@ public class WorkspaceFacade implements Workspace {
     @Override
     public LockManager getLockManager() throws RepositoryException {
         LockManager internal = delegate.getLockManager();
-        return new LockManagerFacade(internal, session);
+        return new LockManagerFacade<>(internal, session);
     }
 
     @Override
     public QueryManager getQueryManager() throws RepositoryException {
         QueryManager internal = delegate.getQueryManager();
-        return new QueryManagerFacade(internal, session);
+        return new QueryManagerFacade<>(internal, session);
     }
 
     @Override
@@ -118,7 +117,7 @@ public class WorkspaceFacade implements Workspace {
     @Override
     public VersionManager getVersionManager() throws RepositoryException {
         VersionManager internal = delegate.getVersionManager();
-        return new VersionManagerFacade(internal, session);
+        return new VersionManagerFacade<>(internal, session);
     }
 
     @Override
@@ -132,7 +131,7 @@ public class WorkspaceFacade implements Workspace {
     }
 
     @Override
-    public void importXML(String parentAbsPath, InputStream in, int uuidBehavior) throws IOException, RepositoryException {
+    public void importXML(String parentAbsPath, InputStream in, int uuidBehavior) throws RepositoryException {
         throw new ListenerReadOnlyException();
     }
 

@@ -16,20 +16,22 @@
 
 package net.adamcin.oakpal.core.jcrfacade.version;
 
+import javax.jcr.Session;
 import javax.jcr.version.Version;
 import javax.jcr.version.VersionIterator;
 
-import net.adamcin.oakpal.core.jcrfacade.RangeIteratorFacade;
 import net.adamcin.oakpal.core.jcrfacade.SessionFacade;
+import net.adamcin.oakpal.core.jcrfacade.RangeIteratorFacade;
 
 /**
  * Wraps {@link VersionIterator} to return {@link VersionFacade}-wrapped versions.
  */
-public class VersionIteratorFacade extends RangeIteratorFacade<VersionIterator> implements VersionIterator {
+public class VersionIteratorFacade<S extends Session> extends RangeIteratorFacade<VersionIterator>
+        implements VersionIterator {
 
-    private final SessionFacade session;
+    private final SessionFacade<S> session;
 
-    public VersionIteratorFacade(VersionIterator delegate, SessionFacade session) {
+    public VersionIteratorFacade(VersionIterator delegate, SessionFacade<S> session) {
         super(delegate);
         this.session = session;
     }

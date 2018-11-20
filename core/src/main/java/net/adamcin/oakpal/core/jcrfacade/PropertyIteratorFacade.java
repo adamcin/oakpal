@@ -18,14 +18,15 @@ package net.adamcin.oakpal.core.jcrfacade;
 
 import javax.jcr.Property;
 import javax.jcr.PropertyIterator;
+import javax.jcr.Session;
 
 /**
  * Wraps {@link PropertyIterator} to wrap iterated {@link Property} with {@link PropertyFacade}.
  */
-public class PropertyIteratorFacade extends RangeIteratorFacade<PropertyIterator> implements PropertyIterator {
-    private final SessionFacade session;
+public class PropertyIteratorFacade<S extends Session> extends RangeIteratorFacade<PropertyIterator> implements PropertyIterator {
+    private final SessionFacade<S> session;
 
-    public PropertyIteratorFacade(PropertyIterator delegate, SessionFacade session) {
+    public PropertyIteratorFacade(PropertyIterator delegate, SessionFacade<S> session) {
         super(delegate);
         this.session = session;
     }

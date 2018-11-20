@@ -18,21 +18,23 @@ package net.adamcin.oakpal.core.jcrfacade.version;
 
 import javax.jcr.NodeIterator;
 import javax.jcr.RepositoryException;
+import javax.jcr.Session;
 import javax.jcr.version.Version;
 import javax.jcr.version.VersionHistory;
 import javax.jcr.version.VersionIterator;
 
 import net.adamcin.oakpal.core.ListenerReadOnlyException;
+import net.adamcin.oakpal.core.jcrfacade.SessionFacade;
 import net.adamcin.oakpal.core.jcrfacade.NodeFacade;
 import net.adamcin.oakpal.core.jcrfacade.NodeIteratorFacade;
-import net.adamcin.oakpal.core.jcrfacade.SessionFacade;
 
 /**
  * Wraps {@link VersionHistory} to prevent writes and to ensure only facades are returned.
  */
-public class VersionHistoryFacade<H extends VersionHistory> extends NodeFacade<H> implements VersionHistory {
+public class VersionHistoryFacade<H extends VersionHistory, S extends Session> extends NodeFacade<H, S>
+        implements VersionHistory {
 
-    public VersionHistoryFacade(H delegate, SessionFacade session) {
+    public VersionHistoryFacade(H delegate, SessionFacade<S> session) {
         super(delegate, session);
     }
 
