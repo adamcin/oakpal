@@ -16,18 +16,15 @@
 
 package net.adamcin.oakpal.core.jcrfacade.version;
 
-import javax.jcr.AccessDeniedException;
 import javax.jcr.NodeIterator;
-import javax.jcr.ReferentialIntegrityException;
 import javax.jcr.RepositoryException;
-import javax.jcr.UnsupportedRepositoryOperationException;
-import javax.jcr.version.LabelExistsVersionException;
 import javax.jcr.version.Version;
-import javax.jcr.version.VersionException;
 import javax.jcr.version.VersionHistory;
 import javax.jcr.version.VersionIterator;
 
+import net.adamcin.oakpal.core.ListenerReadOnlyException;
 import net.adamcin.oakpal.core.jcrfacade.NodeFacade;
+import net.adamcin.oakpal.core.jcrfacade.NodeIteratorFacade;
 import net.adamcin.oakpal.core.jcrfacade.SessionFacade;
 
 /**
@@ -51,71 +48,78 @@ public class VersionHistoryFacade<H extends VersionHistory> extends NodeFacade<H
 
     @Override
     public Version getRootVersion() throws RepositoryException {
-        return null;
+        Version internal = delegate.getRootVersion();
+        return new VersionFacade<>(internal, session);
     }
 
     @Override
     public VersionIterator getAllLinearVersions() throws RepositoryException {
-        return null;
+        VersionIterator internal = delegate.getAllLinearVersions();
+        return new VersionIteratorFacade(internal, session);
     }
 
     @Override
     public VersionIterator getAllVersions() throws RepositoryException {
-        return null;
+        VersionIterator internal = delegate.getAllVersions();
+        return new VersionIteratorFacade(internal, session);
     }
 
     @Override
     public NodeIterator getAllLinearFrozenNodes() throws RepositoryException {
-        return null;
+        NodeIterator internal = delegate.getAllLinearFrozenNodes();
+        return new NodeIteratorFacade(internal, session);
     }
 
     @Override
     public NodeIterator getAllFrozenNodes() throws RepositoryException {
-        return null;
+        NodeIterator internal = delegate.getAllFrozenNodes();
+        return new NodeIteratorFacade(internal, session);
     }
 
     @Override
-    public Version getVersion(String versionName) throws VersionException, RepositoryException {
-        return null;
+    public Version getVersion(String versionName) throws RepositoryException {
+        Version internal = delegate.getVersion(versionName);
+        return new VersionFacade<>(internal, session);
     }
 
     @Override
-    public Version getVersionByLabel(String label) throws VersionException, RepositoryException {
-        return null;
+    public Version getVersionByLabel(String label) throws RepositoryException {
+        Version internal = delegate.getVersionByLabel(label);
+        return new VersionFacade<>(internal, session);
     }
 
     @Override
-    public void addVersionLabel(String versionName, String label, boolean moveLabel) throws LabelExistsVersionException, VersionException, RepositoryException {
-
+    public void addVersionLabel(String versionName, String label, boolean moveLabel) throws RepositoryException {
+        throw new ListenerReadOnlyException();
     }
 
     @Override
-    public void removeVersionLabel(String label) throws VersionException, RepositoryException {
-
+    public void removeVersionLabel(String label) throws RepositoryException {
+        throw new ListenerReadOnlyException();
     }
 
     @Override
     public boolean hasVersionLabel(String label) throws RepositoryException {
-        return false;
+        return delegate.hasVersionLabel(label);
     }
 
     @Override
-    public boolean hasVersionLabel(Version version, String label) throws VersionException, RepositoryException {
-        return false;
+    public boolean hasVersionLabel(Version version, String label) throws RepositoryException {
+        return delegate.hasVersionLabel(version, label);
     }
 
     @Override
     public String[] getVersionLabels() throws RepositoryException {
-        return new String[0];
+        return delegate.getVersionLabels();
     }
 
     @Override
-    public String[] getVersionLabels(Version version) throws VersionException, RepositoryException {
-        return new String[0];
+    public String[] getVersionLabels(Version version) throws RepositoryException {
+        return delegate.getVersionLabels(version);
     }
 
     @Override
-    public void removeVersion(String versionName) throws ReferentialIntegrityException, AccessDeniedException, UnsupportedRepositoryOperationException, VersionException, RepositoryException {
-
+    public void removeVersion(String versionName) throws RepositoryException {
+        throw new ListenerReadOnlyException();
     }
 }

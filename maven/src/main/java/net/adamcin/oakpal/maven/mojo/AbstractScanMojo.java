@@ -278,45 +278,16 @@ abstract class AbstractScanMojo extends AbstractMojo {
     @Parameter
     protected boolean deferBuildFailure;
 
-    protected OakMachine.Builder getBuilder() throws MojoExecutionException {
-        final ErrorListener errorListener = new DefaultErrorListener();
-
-        final List<ProgressCheck> allChecks = new ArrayList<>();
-        final ChecklistPlanner checklistPlanner = new ChecklistPlanner(checklists);
-        checklistPlanner.discoverChecklists();
-
-        for (CheckSpec checkSpec : checklistPlanner.getEffectiveCheckSpecs(checks)) {
-            if (StringUtils.isEmpty(checkSpec.getImpl())) {
-                throw new MojoExecutionException("Please provide an 'impl' value for " + checkSpec.getName());
-            }
-
-            try {
-                ProgressCheck progressCheck = Locator.loadProgressCheck(checkSpec.getImpl(), checkSpec.getConfig());
-                if (StringUtils.isNotEmpty(checkSpec.getName())) {
-                    progressCheck = Locator.wrapWithAlias(progressCheck, checkSpec.getName());
-                }
-                allChecks.add(progressCheck);
-            } catch (final Exception e) {
-                throw new MojoExecutionException(String.format("Failed to load package check %s. (impl: %s)",
-                        Optional.ofNullable(checkSpec.getName()).orElse(""), checkSpec.getImpl()), e);
-            }
-        }
-
-        List<File> preInstall = new ArrayList<>();
-
-        if (preInstallArtifacts != null && !preInstallArtifacts.isEmpty()) {
-            List<File> preInstallResolved = resolveDependencies(preInstallArtifacts, false);
-            preInstall.addAll(preInstallResolved);
-        }
-
-        if (preInstallFiles != null) {
-            preInstall.addAll(preInstallFiles);
-        }
-
+    /**
+     * Construct an init stage purely from the relevant mojo parameters.
+     *
+     * @return a complete init stage
+     * @throws MojoExecutionException if an error occurs
+     */
+    protected InitStage getMojoInitStage() throws MojoExecutionException {
         InitStage.Builder builder = new InitStage.Builder();
 
         final Set<URL> unorderedCndUrls = new LinkedHashSet<>();
-
 
         if (cndNames != null) {
             try {
@@ -367,11 +338,51 @@ abstract class AbstractScanMojo extends AbstractMojo {
             }
         }
 
+        return builder.build();
+    }
+
+    protected OakMachine.Builder getBuilder() throws MojoExecutionException {
+        final ErrorListener errorListener = new DefaultErrorListener();
+
+        final List<ProgressCheck> allChecks = new ArrayList<>();
+        final ChecklistPlanner checklistPlanner = new ChecklistPlanner(checklists);
+        checklistPlanner.discoverChecklists();
+
+        for (CheckSpec checkSpec : checklistPlanner.getEffectiveCheckSpecs(checks)) {
+            if (StringUtils.isEmpty(checkSpec.getImpl())) {
+                throw new MojoExecutionException("Please provide an 'impl' value for " + checkSpec.getName());
+            }
+
+            try {
+                ProgressCheck progressCheck = Locator.loadProgressCheck(checkSpec.getImpl(), checkSpec.getConfig());
+                if (StringUtils.isNotEmpty(checkSpec.getName())) {
+                    progressCheck = Locator.wrapWithAlias(progressCheck, checkSpec.getName());
+                }
+                allChecks.add(progressCheck);
+            } catch (final Exception e) {
+                throw new MojoExecutionException(String.format("Failed to load package check %s. (impl: %s)",
+                        Optional.ofNullable(checkSpec.getName()).orElse(""), checkSpec.getImpl()), e);
+            }
+        }
+
+        List<File> preInstall = new ArrayList<>();
+
+        if (preInstallArtifacts != null && !preInstallArtifacts.isEmpty()) {
+            List<File> preInstallResolved = resolveDependencies(preInstallArtifacts, false);
+            preInstall.addAll(preInstallResolved);
+        }
+
+        if (preInstallFiles != null) {
+            preInstall.addAll(preInstallFiles);
+        }
+
         OakMachine.Builder machineBuilder = new OakMachine.Builder()
                 .withErrorListener(errorListener)
                 .withProgressChecks(allChecks)
+                // execute the mojo as an init stage first
+                .withInitStage(getMojoInitStage())
+                // followed by the checklist init stages
                 .withInitStages(checklistPlanner.getInitStages())
-                .withInitStage(builder.build())
                 .withPreInstallPackages(preInstall);
 
         return machineBuilder;
