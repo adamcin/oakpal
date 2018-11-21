@@ -48,7 +48,6 @@ public abstract class SessionFacade<S extends Session> implements Session {
     protected final S delegate;
     private final WorkspaceFacade<S> workspace;
     private final RepositoryFacade repository;
-
     private boolean notProtected;
 
     protected SessionFacade(S delegate, boolean notProtected) {

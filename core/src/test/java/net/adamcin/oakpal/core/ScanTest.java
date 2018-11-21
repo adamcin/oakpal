@@ -31,6 +31,9 @@ import javax.jcr.query.QueryResult;
 
 import net.adamcin.commons.testing.junit.TestBody;
 import net.adamcin.oakpal.testing.TestPackageUtil;
+import org.apache.jackrabbit.api.JackrabbitSession;
+import org.apache.jackrabbit.api.security.user.User;
+import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.vault.fs.config.MetaInf;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.apache.jackrabbit.vault.packaging.PackageProperties;
@@ -148,6 +151,36 @@ public class ScanTest {
                         new InitStage.Builder().withForcedRoot("/apps/acme/docs").build())
                         .withProgressChecks(check).build()
                         .scanPackage(cvp).stream()
+                        .flatMap(r -> r.getViolations().stream())
+                        .forEach(violation -> LOGGER.info("[{} violation] {}", violation.getSeverity(),
+                                violation.getDescription()));
+            }
+        });
+    }
+
+    @Test
+    public void testNewUserPackage() {
+        TestBody.test(new TestBody() {
+            @Override
+            protected void execute() throws Exception {
+                File nup = TestPackageUtil.prepareTestPackageFromFolder("nup.zip",
+                        new File("src/test/resources/new_user_package"));
+
+                ProgressCheck check = new SimpleProgressCheck() {
+                    @Override
+                    public void importedPath(final PackageId packageId, final String path, final Node node)
+                            throws RepositoryException {
+                        if (path.equals("/home/users/acme")) {
+                            UserManager manager = ((JackrabbitSession) node.getSession()).getUserManager();
+                            User user = (User) manager.getAuthorizableByPath(path);
+                            assertEquals("acme is acme", "acme", user.getID());
+                        }
+                    }
+                };
+
+                new OakMachine.Builder()
+                        .withProgressChecks(check).build()
+                        .scanPackage(nup).stream()
                         .flatMap(r -> r.getViolations().stream())
                         .forEach(violation -> LOGGER.info("[{} violation] {}", violation.getSeverity(),
                                 violation.getDescription()));
