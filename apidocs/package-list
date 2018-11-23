@@ -7,6 +7,7 @@ net.adamcin.oakpal.core.jcrfacade.observation
 net.adamcin.oakpal.core.jcrfacade.query
 net.adamcin.oakpal.core.jcrfacade.retention
 net.adamcin.oakpal.core.jcrfacade.security
+net.adamcin.oakpal.core.jcrfacade.security.user
 net.adamcin.oakpal.core.jcrfacade.version
 net.adamcin.oakpal.maven.component
 net.adamcin.oakpal.maven.mojo
