@@ -23,6 +23,7 @@ import javax.jcr.RepositoryException;
 import net.adamcin.oakpal.core.ListenerReadOnlyException;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
+import org.apache.jackrabbit.spi.commons.iterator.Iterators;
 
 public class GroupFacade extends AuthorizableFacade<Group> implements Group {
 
@@ -33,13 +34,13 @@ public class GroupFacade extends AuthorizableFacade<Group> implements Group {
     @Override
     public Iterator<Authorizable> getDeclaredMembers() throws RepositoryException {
         Iterator<Authorizable> internal = delegate.getDeclaredMembers();
-        return null;
+        return Iterators.transformIterator(internal, AuthorizableFacade::ensureBestWrapper);
     }
 
     @Override
     public Iterator<Authorizable> getMembers() throws RepositoryException {
         Iterator<Authorizable> internal = delegate.getMembers();
-        return null;
+        return Iterators.transformIterator(internal, AuthorizableFacade::ensureBestWrapper);
     }
 
     @Override

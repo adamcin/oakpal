@@ -75,7 +75,6 @@ import org.apache.jackrabbit.vault.packaging.JcrPackageManager;
 import org.apache.jackrabbit.vault.packaging.PackageException;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.apache.jackrabbit.vault.packaging.Packaging;
-import org.apache.jackrabbit.vault.packaging.PackagingService;
 import org.apache.jackrabbit.vault.packaging.VaultPackage;
 
 /**
@@ -316,7 +315,7 @@ public final class OakMachine {
             if (packagingService != null) {
                 manager = packagingService.getPackageManager(admin);
             } else {
-                manager = PackagingService.getPackageManager(admin);
+                manager = new DefaultPackagingService().getPackageManager(admin);
             }
 
             for (File file : preInstallPackages) {
