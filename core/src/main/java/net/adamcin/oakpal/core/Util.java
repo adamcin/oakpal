@@ -34,6 +34,8 @@ import java.util.jar.JarFile;
 import java.util.jar.Manifest;
 import java.util.stream.Collectors;
 
+import aQute.bnd.header.Parameters;
+import aQute.bnd.osgi.Domain;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,20 +47,9 @@ public final class Util {
     }
 
     public static List<String> getManifestHeaderValues(final Manifest manifest, final String headerName) {
-        List<String> values = new ArrayList<>();
-        Attributes mainAttribs = manifest.getMainAttributes();
-        String valueList = mainAttribs.getValue(headerName);
-        String[] valueArray = valueList != null
-                ? valueList.split(",")
-                : null;
-        if (valueArray != null) {
-            for (String value : valueArray) {
-                if (!value.trim().isEmpty()) {
-                    values.add(value.trim());
-                }
-            }
-        }
-        return values;
+        Domain domain = Domain.domain(manifest);
+        Parameters params = domain.getParameters(headerName);
+        return new ArrayList<>(params.keySet());
     }
 
     public static List<URL> resolveManifestResources(final URL manifestUrl, final List<String> resources) {

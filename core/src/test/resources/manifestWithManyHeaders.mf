@@ -1,0 +1,4 @@
+Manifest-Version: 1.0
+Numbers: one,two,three
+Paths: /test/one,/test/two;someattribute=3,/test/three;otherattr=4;otherattr2=eleventy
+Quotes: "/test/one","test/two;stillPath";someattribute=3,/test/three
