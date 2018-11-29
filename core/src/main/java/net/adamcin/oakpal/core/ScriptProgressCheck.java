@@ -23,7 +23,9 @@ import java.net.URL;
 import java.nio.charset.Charset;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -86,6 +88,7 @@ public final class ScriptProgressCheck implements ProgressCheck {
     private final Invocable script;
     private final ScriptHelper helper;
     private final URL scriptUrl;
+    private final Set<String> handlerMissCache = new HashSet<>();
 
     private ScriptProgressCheck(final Invocable script, final ScriptHelper helper, final URL scriptUrl) {
         this.script = script;
@@ -118,95 +121,111 @@ public final class ScriptProgressCheck implements ProgressCheck {
         }
     }
 
+    /**
+     * Script handler callback passed to {@link EventHandlerBody}.
+     */
+    @FunctionalInterface
+    private interface HandlerHandle {
+        void apply(Object... args) throws NoSuchMethodException, ScriptException;
+    }
+
+    /**
+     * Lambda type for event handler body logic to eliminate boilerplate exception handling.
+     */
+    @FunctionalInterface
+    private interface EventHandlerBody {
+        void apply(HandlerHandle handle) throws NoSuchMethodException, ScriptException;
+    }
+
+    /**
+     * Guards against script handler calls by remembering when NoSuchMethodExceptions are thrown when the script
+     * function named by the {@code methodName} argument is invoked.
+     *
+     * @param methodName the name of the handler function to invoke
+     * @param body       the ScriptProgressCheck adapter body logic to execute
+     */
+    private void guardHandler(final String methodName, final EventHandlerBody body) {
+        if (!handlerMissCache.contains(methodName)) {
+            try {
+                body.apply((args) -> this.script.invokeFunction(methodName, args));
+            } catch (NoSuchMethodException ignored) {
+                handlerMissCache.add(methodName);
+            } catch (ScriptException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    /**
+     * Guards against script handler calls by remembering when NoSuchMethodExceptions are thrown when the script
+     * function named by the {@code methodName} argument is invoked.
+     * Unlike {@link #guardHandler(String, EventHandlerBody)}, this method rethrows RepositoryExceptions to satisfy the
+     * contract of some progress check methods.
+     *
+     * @param methodName the name of the handler function to invoke
+     * @param body       the ScriptProgressCheck adapter body logic to execute
+     * @throws RepositoryException if a ScriptException is thrown with a RepositoryException cause
+     */
+    private void guardSessionHandler(final String methodName, final EventHandlerBody body) throws RepositoryException {
+        if (!handlerMissCache.contains(methodName)) {
+            try {
+                body.apply((args) -> this.script.invokeFunction(methodName, args));
+            } catch (NoSuchMethodException ignored) {
+                handlerMissCache.add(methodName);
+            } catch (ScriptException e) {
+                if (e.getCause() instanceof RepositoryException) {
+                    throw new ScriptRepositoryException(e);
+                }
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
     @Override
     public void startedScan() {
-        try {
+        guardHandler(INVOKE_ON_STARTED_SCAN, handle -> {
             helper.collector.clearViolations();
-            this.script.invokeFunction(INVOKE_ON_STARTED_SCAN);
-        } catch (NoSuchMethodException ignored) {
-        } catch (ScriptException e) {
-            throw new RuntimeException(e);
-        }
+            handle.apply();
+        });
     }
 
     @Override
     public void identifyPackage(final PackageId packageId, final File file) {
-        try {
-            this.script.invokeFunction(INVOKE_ON_IDENTIFY_PACKAGE, packageId, file);
-        } catch (NoSuchMethodException ignored) {
-        } catch (ScriptException e) {
-            throw new RuntimeException(e);
-        }
+        guardHandler(INVOKE_ON_IDENTIFY_PACKAGE, handle -> handle.apply(packageId, file));
     }
 
     @Override
     public void identifySubpackage(final PackageId packageId, final PackageId parentId) {
-        try {
-            this.script.invokeFunction(INVOKE_ON_IDENTIFY_SUBPACKAGE, packageId, parentId);
-        } catch (NoSuchMethodException ignored) {
-        } catch (ScriptException e) {
-            throw new RuntimeException(e);
-        }
+        guardHandler(INVOKE_ON_IDENTIFY_SUBPACKAGE, handle -> handle.apply(packageId, parentId));
     }
 
     @Override
     public void beforeExtract(final PackageId packageId, final Session inspectSession,
                               final PackageProperties packageProperties, final MetaInf metaInf,
                               final List<PackageId> subpackages) throws RepositoryException {
-        try {
-            this.script.invokeFunction(INVOKE_ON_BEFORE_EXTRACT, inspectSession, packageId, packageProperties,
-                    metaInf, subpackages.toArray(new PackageId[subpackages.size()]));
-        } catch (NoSuchMethodException ignored) {
-        } catch (ScriptException e) {
-            throw new RuntimeException(e);
-        }
+        guardSessionHandler(INVOKE_ON_BEFORE_EXTRACT, handle -> handle.apply(inspectSession, packageId, packageProperties,
+                metaInf, subpackages.toArray(new PackageId[subpackages.size()])));
     }
 
     @Override
     public void importedPath(final PackageId packageId, final String path, final Node node) throws RepositoryException {
-        try {
-            this.script.invokeFunction(INVOKE_ON_IMPORTED_PATH, packageId, path, node);
-        } catch (NoSuchMethodException ignored) {
-        } catch (ScriptException e) {
-            if (e.getCause() instanceof RepositoryException) {
-                throw (RepositoryException) e.getCause();
-            }
-            throw new RuntimeException(e);
-        }
+        guardSessionHandler(INVOKE_ON_IMPORTED_PATH, handle -> handle.apply(packageId, path, node));
     }
 
     @Override
     public void deletedPath(final PackageId packageId, final String path, final Session inspectSession)
             throws RepositoryException {
-        try {
-            this.script.invokeFunction(INVOKE_ON_DELETED_PATH, packageId, path);
-        } catch (NoSuchMethodException ignored) {
-        } catch (ScriptException e) {
-            throw new RuntimeException(e);
-        }
+        guardSessionHandler(INVOKE_ON_DELETED_PATH, handle -> handle.apply(packageId, path, inspectSession));
     }
 
     @Override
     public void afterExtract(final PackageId packageId, final Session inspectSession) throws RepositoryException {
-        try {
-            this.script.invokeFunction(INVOKE_ON_AFTER_EXTRACT, packageId, inspectSession);
-        } catch (NoSuchMethodException ignored) {
-        } catch (ScriptException e) {
-            if (e.getCause() instanceof RepositoryException) {
-                throw (RepositoryException) e.getCause();
-            }
-            throw new RuntimeException(e);
-        }
+        guardSessionHandler(INVOKE_ON_AFTER_EXTRACT, handle -> handle.apply(packageId, inspectSession));
     }
 
     @Override
     public void finishedScan() {
-        try {
-            this.script.invokeFunction(INVOKE_ON_FINISHED_SCAN);
-        } catch (NoSuchMethodException ignored) {
-        } catch (ScriptException e) {
-            throw new RuntimeException(e);
-        }
+        guardHandler(INVOKE_ON_FINISHED_SCAN, handle -> handle.apply());
     }
 
     @Override
