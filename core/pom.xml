@@ -21,7 +21,7 @@
     <parent>
         <groupId>net.adamcin.oakpal</groupId>
         <artifactId>oakpal</artifactId>
-        <version>1.1.8-SNAPSHOT</version>
+        <version>1.1.8</version>
         <relativePath>..</relativePath>
     </parent>
 
@@ -37,7 +37,7 @@
         <url>https://github.com/adamcin/oakpal</url>
         <developerConnection>scm:git:git@github.com:adamcin/oakpal.git</developerConnection>
         <connection>scm:git://github.com/adamcin/oakpal.git</connection>
-        <tag>HEAD</tag>
+        <tag>oakpal-1.1.8</tag>
     </scm>
 
     <properties>
