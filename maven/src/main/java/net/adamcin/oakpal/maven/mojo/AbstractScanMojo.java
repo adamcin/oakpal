@@ -66,7 +66,7 @@ abstract class AbstractScanMojo extends AbstractMojo {
      * @since 0.2.0
      */
     @Parameter(name = "preInstallArtifacts")
-    protected List<Dependency> preInstallArtifacts = new ArrayList<>();
+    protected List<DependencyFilter> preInstallArtifacts = new ArrayList<>();
 
     /**
      * Specify a list of content package files by path to pre-install, which have already been built or downloaded in a
@@ -368,7 +368,15 @@ abstract class AbstractScanMojo extends AbstractMojo {
         List<File> preInstall = new ArrayList<>();
 
         if (preInstallArtifacts != null && !preInstallArtifacts.isEmpty()) {
-            List<File> preInstallResolved = resolveDependencies(preInstallArtifacts, false);
+            List<Dependency> preInstallDeps = new ArrayList<>();
+            for (DependencyFilter depFilter : preInstallArtifacts) {
+                Dependency dep = project.getDependencies().stream()
+                        .filter(depFilter)
+                        .findFirst()
+                        .orElseGet(depFilter::toDependency);
+                preInstallDeps.add(dep);
+            }
+            List<File> preInstallResolved = resolveDependencies(preInstallDeps, false);
             preInstall.addAll(preInstallResolved);
         }
 
