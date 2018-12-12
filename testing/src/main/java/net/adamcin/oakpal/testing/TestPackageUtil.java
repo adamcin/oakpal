@@ -22,6 +22,8 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Properties;
 import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
@@ -38,7 +40,7 @@ public class TestPackageUtil {
 
     static final String PN_TEST_PACKAGES_SRC = "test-packages.src";
     static final String PN_TEST_PACKAGES_ROOT = "test-packages.root";
-    private static String testPackagesRoot;
+    private static Path testPackagesRoot;
     private static String testPackagesSrc;
     static final Properties properties = new Properties();
 
@@ -51,12 +53,14 @@ public class TestPackageUtil {
             log.error("Failed to load test-packages.properties");
         }
         testPackagesSrc = properties.getProperty(PN_TEST_PACKAGES_SRC, "/oakpal-testing/test-packages/");
-        testPackagesRoot = properties.getProperty(PN_TEST_PACKAGES_ROOT, "target/test-packages");
-        (new File(testPackagesRoot)).mkdir();
+        // replace legacy non-windows suffix if it exists, then force resolved test-packages subdir.
+        testPackagesRoot = Paths.get(properties.getProperty(PN_TEST_PACKAGES_ROOT, "target")
+                .replaceAll("/test-packages$", "")).resolve("test-packages");
+        testPackagesRoot.toFile().mkdir();
     }
 
     public static File prepareTestPackage(final String filename) throws IOException {
-        File file = new File(testPackagesRoot, filename);
+        File file = new File(testPackagesRoot.toFile(), filename);
         if (file.exists()) {
             file.delete();
         }
@@ -72,7 +76,7 @@ public class TestPackageUtil {
             throw new IOException("expected directory in srcFolder parameter for test package filename " +
                     String.valueOf(filename));
         }
-        File file = new File(testPackagesRoot, filename);
+        File file = new File(testPackagesRoot.toFile(), filename);
         if (file.exists()) {
             file.delete();
         }
@@ -88,7 +92,7 @@ public class TestPackageUtil {
         if (root == null || source == null) {
             throw new IllegalArgumentException("Cannot add from a null file");
         }
-        if (!(source.getPath() + "/").startsWith(root.getPath() + "/")) {
+        if (!(source.getPath() + File.separator).startsWith(root.getPath() + File.separator)) {
             throw new IllegalArgumentException("source must be the same file or a child of root");
         }
         final String relPath;
