@@ -61,7 +61,9 @@
         <junit.version>4.11</junit.version>
         <vault.version>3.2.4</vault.version>
         <jackrabbit.version>2.14.0</jackrabbit.version>
-        <oak.version>1.7.14</oak.version>
+        <!-- it is probably a good habit to stay at the latest even (not odd) minor release version of oak,
+        So if latest version is 1.9.x try to stay at 1.8.max -->
+        <oak.version>1.8.9</oak.version>
         <maven.bundle.plugin.version>3.3.0</maven.bundle.plugin.version>
     </properties>
 
