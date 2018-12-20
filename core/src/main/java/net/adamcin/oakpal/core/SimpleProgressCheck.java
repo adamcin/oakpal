@@ -18,11 +18,28 @@ package net.adamcin.oakpal.core;
 
 import java.util.Collection;
 
+import org.apache.jackrabbit.vault.packaging.PackageId;
+
+/**
+ * Simple implementation of a {@link ProgressCheck} with convenient methods for reporting and collecting violations.
+ */
 public class SimpleProgressCheck implements ProgressCheck {
     protected final ReportCollector collector = new ReportCollector();
 
     protected void reportViolation(final Violation violation) {
         collector.reportViolation(violation);
+    }
+
+    protected final void minorViolation(final String description, PackageId... packages) {
+        this.reportViolation(new SimpleViolation(Violation.Severity.MINOR, description, packages));
+    }
+
+    protected final void majorViolation(final String description, PackageId... packages) {
+        this.reportViolation(new SimpleViolation(Violation.Severity.MAJOR, description, packages));
+    }
+
+    protected final void severeViolation(final String description, PackageId... packages) {
+        this.reportViolation(new SimpleViolation(Violation.Severity.SEVERE, description, packages));
     }
 
     @Override

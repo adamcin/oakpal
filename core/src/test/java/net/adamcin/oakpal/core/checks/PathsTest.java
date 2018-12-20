@@ -84,14 +84,15 @@ public class PathsTest extends ProgressCheckTestBase {
         TestBody.test(new TestBody() {
             @Override
             protected void execute() throws Exception {
-                ProgressCheck check = new Paths().newInstance(
-                    new JSONObject(
-                        "{\"rules\": [{\"type\": \"deny\",\"pattern\": \"/etc(/.*)?\"}],\"severity\":\"whoops\"}"));
-                CheckReport report = scanWithCheck(check, "test-package-with-etc.zip");
-                logViolations("level_set:no_unsafe", report);
-                assertEquals("violations", 6, report.getViolations().size());
-                assertTrue("all violations are MAJOR", report.getViolations().stream()
-                    .allMatch(viol -> viol.getSeverity().equals(Violation.Severity.MAJOR)));
+                boolean threw = false;
+                try {
+                    ProgressCheck check = new Paths().newInstance(
+                            new JSONObject(
+                                    "{\"rules\": [{\"type\": \"deny\",\"pattern\": \"/etc(/.*)?\"}],\"severity\":\"whoops\"}"));
+                } catch (IllegalArgumentException e) {
+                    threw = true;
+                }
+                assertTrue("bad severity should cause exception on construction.", threw);
             }
         });
     }

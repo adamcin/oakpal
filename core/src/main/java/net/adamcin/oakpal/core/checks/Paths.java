@@ -42,7 +42,8 @@ import org.json.JSONObject;
  *             "type": "allow",
  *             "pattern": "/etc/tags/acme(/.*)?"
  *         }],
- *         "denyAllDeletes": true
+ *         "denyAllDeletes": true,
+ *         "severity": "minor"
  *     }
  * </pre>
  * <p>
@@ -66,16 +67,26 @@ public final class Paths implements ProgressCheckFactory {
     public static final String CONFIG_DENY_ALL_DELETES = "denyAllDeletes";
     public static final String CONFIG_SEVERITY = "severity";
 
-    public static final class Check extends SimpleProgressCheck {
+    @Override
+    public ProgressCheck newInstance(final JSONObject config) throws Exception {
+        List<Rule> rules = Rule.fromJSON(config.optJSONArray(CONFIG_RULES));
+
+        final boolean denyAllDeletes = config.has(CONFIG_DENY_ALL_DELETES)
+                && config.optBoolean(CONFIG_DENY_ALL_DELETES);
+
+        final Violation.Severity severity = config.has(CONFIG_SEVERITY)
+                ? Violation.Severity.valueOf(config.optString(CONFIG_SEVERITY).toUpperCase())
+                : Violation.Severity.MAJOR;
+
+        return new Check(rules, denyAllDeletes, severity);
+    }
+
+    static final class Check extends SimpleProgressCheck {
         private final List<Rule> rules;
         private final boolean denyAllDeletes;
         private final Violation.Severity severity;
 
-        public Check(final List<Rule> rules, final boolean denyAllDeletes) {
-            this(rules, denyAllDeletes, Violation.Severity.MAJOR);
-        }
-
-        public Check(final List<Rule> rules, final boolean denyAllDeletes, final Violation.Severity severity) {
+        Check(final List<Rule> rules, final boolean denyAllDeletes, final Violation.Severity severity) {
             this.rules = rules;
             this.denyAllDeletes = denyAllDeletes;
             this.severity = severity;
@@ -125,23 +136,5 @@ public final class Paths implements ProgressCheckFactory {
                 }
             }
         }
-    }
-
-    @Override
-    public ProgressCheck newInstance(final JSONObject config) throws Exception {
-        List<Rule> rules = Rule.fromJSON(config.optJSONArray(CONFIG_RULES));
-
-        final boolean denyAllDeletes = config.has(CONFIG_DENY_ALL_DELETES)
-                && config.optBoolean(CONFIG_DENY_ALL_DELETES);
-
-        Violation.Severity severity = null;
-        try {
-            if (config.has(CONFIG_SEVERITY)) {
-                severity = Violation.Severity.valueOf(config.optString(CONFIG_SEVERITY).toUpperCase());
-            }
-        } catch (Exception e) {
-        }
-
-        return new Check(rules, denyAllDeletes, severity == null ? Violation.Severity.MAJOR : severity);
     }
 }
