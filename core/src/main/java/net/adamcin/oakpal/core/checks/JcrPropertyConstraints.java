@@ -30,6 +30,7 @@ import javax.jcr.Value;
 import javax.jcr.nodetype.NodeTypeDefinition;
 
 import net.adamcin.oakpal.core.SimpleViolation;
+import net.adamcin.oakpal.core.Util;
 import net.adamcin.oakpal.core.Violation;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.json.JSONArray;
@@ -67,6 +68,29 @@ public final class JcrPropertyConstraints {
     public static final String CONFIG_REQUIRE_TYPE = "requireType";
     public static final String CONFIG_VALUE_RULES = "valueRules";
     public static final String CONFIG_SEVERITY = "severity";
+
+    public static JcrPropertyConstraints fromJSON(final JSONObject checkJson) {
+        final String name = checkJson.getString(CONFIG_NAME);
+        final boolean denyIfAbsent = checkJson.has(CONFIG_DENY_IF_ABSENT)
+                && checkJson.getBoolean(CONFIG_DENY_IF_ABSENT);
+        final boolean denyIfPresent = checkJson.has(CONFIG_DENY_IF_PRESENT)
+                && checkJson.getBoolean(CONFIG_DENY_IF_PRESENT);
+        final boolean denyIfMultivalued = checkJson.has(CONFIG_DENY_IF_MULTIVALUED)
+                && checkJson.getBoolean(CONFIG_DENY_IF_MULTIVALUED);
+        final String requireType = checkJson.optString(CONFIG_REQUIRE_TYPE);
+        final List<Rule> valueRules = Rule.fromJSON(checkJson.optJSONArray(CONFIG_VALUE_RULES));
+        final Violation.Severity severity = checkJson.has(CONFIG_SEVERITY)
+                ? Violation.Severity.valueOf(checkJson.getString(CONFIG_SEVERITY).toUpperCase())
+                : Violation.Severity.MAJOR;
+
+        return new JcrPropertyConstraints(name, denyIfAbsent, denyIfPresent, denyIfMultivalued, requireType, valueRules,
+                severity);
+    }
+
+    public static List<JcrPropertyConstraints> fromJSON(final JSONArray rulesArray) {
+        return Util.fromJSONArray(rulesArray, JcrPropertyConstraints::fromJSON);
+    }
+
     private final String name;
     private final boolean denyIfAbsent;
     private final boolean denyIfPresent;
@@ -183,35 +207,4 @@ public final class JcrPropertyConstraints {
         return Optional.empty();
     }
 
-    public static List<JcrPropertyConstraints> fromJSON(final JSONArray rulesArray) {
-        List<JSONObject> checkJsons = new ArrayList<>();
-        List<JcrPropertyConstraints> checks = new ArrayList<>();
-        Optional.ofNullable(rulesArray).map(array -> StreamSupport.stream(array.spliterator(), true)
-                .filter(json -> json instanceof JSONObject)
-                .map(JSONObject.class::cast).collect(Collectors.toList()))
-                .ifPresent(checkJsons::addAll);
-
-        for (JSONObject json : checkJsons) {
-            checks.add(fromJSON(json));
-        }
-        return checks;
-    }
-
-    public static JcrPropertyConstraints fromJSON(final JSONObject checkJson) {
-        final String name = checkJson.getString(CONFIG_NAME);
-        final boolean denyIfAbsent = checkJson.has(CONFIG_DENY_IF_ABSENT)
-                && checkJson.getBoolean(CONFIG_DENY_IF_ABSENT);
-        final boolean denyIfPresent = checkJson.has(CONFIG_DENY_IF_PRESENT)
-                && checkJson.getBoolean(CONFIG_DENY_IF_PRESENT);
-        final boolean denyIfMultivalued = checkJson.has(CONFIG_DENY_IF_MULTIVALUED)
-                && checkJson.getBoolean(CONFIG_DENY_IF_MULTIVALUED);
-        final String requireType = checkJson.optString(CONFIG_REQUIRE_TYPE);
-        final List<Rule> valueRules = Rule.fromJSON(checkJson.optJSONArray(CONFIG_VALUE_RULES));
-        final Violation.Severity severity = checkJson.has(CONFIG_SEVERITY)
-                ? Violation.Severity.valueOf(checkJson.getString(CONFIG_SEVERITY).toUpperCase())
-                : Violation.Severity.MAJOR;
-
-        return new JcrPropertyConstraints(name, denyIfAbsent, denyIfPresent, denyIfMultivalued, requireType, valueRules,
-                severity);
-    }
 }

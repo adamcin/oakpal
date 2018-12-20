@@ -28,14 +28,17 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.function.Predicate;
-import java.util.jar.Attributes;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import aQute.bnd.header.Parameters;
 import aQute.bnd.osgi.Domain;
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -137,4 +140,17 @@ public final class Util {
         }
     }
 
+    public static <T> List<T> fromJSONArray(final JSONArray jsonArray, Function<JSONObject, T> mapper) {
+        List<JSONObject> onlyObjects = new ArrayList<>();
+        List<T> results = new ArrayList<>();
+        Optional.ofNullable(jsonArray).map(array -> StreamSupport.stream(array.spliterator(), true)
+                .filter(json -> json instanceof JSONObject)
+                .map(JSONObject.class::cast).collect(Collectors.toList()))
+                .ifPresent(onlyObjects::addAll);
+
+        for (JSONObject json : onlyObjects) {
+            results.add(mapper.apply(json));
+        }
+        return results;
+    }
 }

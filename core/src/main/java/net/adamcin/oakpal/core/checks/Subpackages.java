@@ -56,22 +56,31 @@ import org.json.JSONObject;
  * <dd>Set to true to report a violation for any subpackage installation.</dd>
  * </dl>
  */
-public class Subpackages implements ProgressCheckFactory {
+public final class Subpackages implements ProgressCheckFactory {
     public static final String CONFIG_RULES = "rules";
     public static final String CONFIG_DENY_ALL = "denyAll";
 
-    class Check extends SimpleProgressCheck {
+    @Override
+    public ProgressCheck newInstance(final JSONObject config) throws Exception {
+        List<Rule> rules = Rule.fromJSON(config.optJSONArray(CONFIG_RULES));
+
+        final boolean denyAll = config.has(CONFIG_DENY_ALL) && config.optBoolean(CONFIG_DENY_ALL);
+
+        return new Check(rules, denyAll);
+    }
+
+    static final class Check extends SimpleProgressCheck {
         private final List<Rule> rules;
         private final boolean denyAll;
 
-        public Check(final List<Rule> rules, final boolean denyAll) {
+        Check(final List<Rule> rules, final boolean denyAll) {
             this.rules = rules;
             this.denyAll = denyAll;
         }
 
         @Override
         public String getCheckName() {
-            return Subpackages.this.getClass().getSimpleName();
+            return Subpackages.class.getSimpleName();
         }
 
         @Override
@@ -101,12 +110,5 @@ public class Subpackages implements ProgressCheckFactory {
         }
     }
 
-    @Override
-    public ProgressCheck newInstance(final JSONObject config) throws Exception {
-        List<Rule> rules = Rule.fromJSON(config.optJSONArray(CONFIG_RULES));
 
-        final boolean denyAll = config.has(CONFIG_DENY_ALL) && config.optBoolean(CONFIG_DENY_ALL);
-
-        return new Check(rules, denyAll);
-    }
 }

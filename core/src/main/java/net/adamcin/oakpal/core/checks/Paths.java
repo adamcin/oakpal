@@ -59,11 +59,11 @@ import org.json.JSONObject;
  * workspace filter.</dd>
  * </dl>
  */
-public class Paths implements ProgressCheckFactory {
+public final class Paths implements ProgressCheckFactory {
     public static final String CONFIG_RULES = "rules";
     public static final String CONFIG_DENY_ALL_DELETES = "denyAllDeletes";
 
-    public class Check extends SimpleProgressCheck {
+    public static final class Check extends SimpleProgressCheck {
         private final List<Rule> rules;
         private final boolean denyAllDeletes;
 
@@ -74,7 +74,7 @@ public class Paths implements ProgressCheckFactory {
 
         @Override
         public String getCheckName() {
-            return Paths.this.getClass().getSimpleName();
+            return Paths.class.getSimpleName();
         }
 
         @Override

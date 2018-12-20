@@ -93,20 +93,36 @@ import org.json.JSONObject;
  *     }
  * </pre>
  */
-public class JcrProperties implements ProgressCheckFactory {
+public final class JcrProperties implements ProgressCheckFactory {
     public static final String CONFIG_SCOPE_PATHS = "scopePaths";
     public static final String CONFIG_DENY_NODE_TYPES = "denyNodeTypes";
     public static final String CONFIG_SCOPE_NODE_TYPES = "scopeNodeTypes";
     public static final String CONFIG_PROPERTIES = "properties";
 
-    class Check extends SimpleProgressCheck {
+    @Override
+    public ProgressCheck newInstance(final JSONObject config) throws Exception {
+        List<Rule> pathScope = Rule.fromJSON(config.optJSONArray(CONFIG_SCOPE_PATHS));
+        List<String> denyNodeTypes = ofNullable(config.optJSONArray(CONFIG_DENY_NODE_TYPES))
+                .map(array -> StreamSupport.stream(array.spliterator(), false)
+                        .map(String::valueOf).collect(Collectors.toList()))
+                .orElse(Collections.emptyList());
+        List<String> nodeTypeScope = ofNullable(config.optJSONArray(CONFIG_SCOPE_NODE_TYPES))
+                .map(array -> StreamSupport.stream(array.spliterator(), false)
+                        .map(String::valueOf).collect(Collectors.toList()))
+                .orElse(Collections.emptyList());
+        List<JcrPropertyConstraints> propertyChecks = JcrPropertyConstraints
+                .fromJSON(config.optJSONArray(CONFIG_PROPERTIES));
+        return new Check(pathScope, denyNodeTypes, nodeTypeScope, propertyChecks);
+    }
+
+    static class Check extends SimpleProgressCheck {
         private final List<Rule> scopePaths;
         private final List<String> denyNodeTypes;
         private final List<String> scopeNodeTypes;
         private final List<JcrPropertyConstraints> propertyChecks;
         private WorkspaceFilter wspFilter;
 
-        public Check(final List<Rule> scopePaths,
+        Check(final List<Rule> scopePaths,
                      final List<String> denyNodeTypes,
                      final List<String> scopeNodeTypes,
                      final List<JcrPropertyConstraints> propertyChecks) {
@@ -118,7 +134,7 @@ public class JcrProperties implements ProgressCheckFactory {
 
         @Override
         public String getCheckName() {
-            return JcrProperties.this.getClass().getSimpleName();
+            return JcrProperties.class.getSimpleName();
         }
 
         @Override
@@ -173,21 +189,5 @@ public class JcrProperties implements ProgressCheckFactory {
                 }
             }
         }
-    }
-
-    @Override
-    public ProgressCheck newInstance(final JSONObject config) throws Exception {
-        List<Rule> pathScope = Rule.fromJSON(config.optJSONArray(CONFIG_SCOPE_PATHS));
-        List<String> denyNodeTypes = ofNullable(config.optJSONArray(CONFIG_DENY_NODE_TYPES))
-                .map(array -> StreamSupport.stream(array.spliterator(), false)
-                        .map(String::valueOf).collect(Collectors.toList()))
-                .orElse(Collections.emptyList());
-        List<String> nodeTypeScope = ofNullable(config.optJSONArray(CONFIG_SCOPE_NODE_TYPES))
-                .map(array -> StreamSupport.stream(array.spliterator(), false)
-                        .map(String::valueOf).collect(Collectors.toList()))
-                .orElse(Collections.emptyList());
-        List<JcrPropertyConstraints> propertyChecks = JcrPropertyConstraints
-                .fromJSON(config.optJSONArray(CONFIG_PROPERTIES));
-        return new Check(pathScope, denyNodeTypes, nodeTypeScope, propertyChecks);
     }
 }

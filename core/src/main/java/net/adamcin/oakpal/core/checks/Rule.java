@@ -16,69 +16,67 @@
 
 package net.adamcin.oakpal.core.checks;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
+import net.adamcin.oakpal.core.Util;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 /**
- * Standard Rule tuple capturing a rule type (allow/deny) and a regex pattern.
+ * Standard Rule tuple capturing a rule type (include/exclude or allow/deny) and a regex pattern.
  * <p>
  * {@code config} options:
  * <dl>
  * <dt>{@code type}</dt>
- * <dd>The {@link RuleType} of the rule: {@code allow} or {@code deny}. The meaning of this value is usually
- * dependent on context.</dd>
+ * <dd>The {@link RuleType} of the rule: {@code include} or {@code exclude} (or {@code allow} or {@code deny}). The
+ * meaning of this value is usually dependent on context.</dd>
  * <dt>{@code pattern}</dt>
  * <dd>A regular expression pattern matched against the full context value (start [{@code ^}] and end [{@code $}]
  * are assumed).</dd>
  * </dl>
  */
 public final class Rule {
-    public static final Rule DEFAULT_ALLOW = new Rule(RuleType.ALLOW, Pattern.compile(".*"));
-    public static final Rule DEFAULT_DENY = new Rule(RuleType.DENY, Pattern.compile(".*"));
+    /**
+     * A default INCLUDE rule that matches everything.
+     */
+    public static final Rule DEFAULT_INCLUDE = new Rule(RuleType.INCLUDE, Pattern.compile(".*"));
+
+    /**
+     * A default EXCLUDE rule that matches everything.
+     */
+    public static final Rule DEFAULT_EXCLUDE = new Rule(RuleType.EXCLUDE, Pattern.compile(".*"));
+
+    /**
+     * A default ALLOW rule that matches everything.
+     */
+    public static final Rule DEFAULT_ALLOW = DEFAULT_INCLUDE;
+
+    /**
+     * A default DENY rule that matches everything.
+     */
+    public static final Rule DEFAULT_DENY = DEFAULT_EXCLUDE;
 
     public static final String CONFIG_TYPE = "type";
     public static final String CONFIG_PATTERN = "pattern";
     private final RuleType type;
     private final Pattern pattern;
 
-    private Rule(final RuleType type, final Pattern pattern) {
+    /**
+     * Create a new rule.
+     *
+     * @param type    {@link RuleType#INCLUDE} or {@link RuleType#EXCLUDE} (or {@link RuleType#ALLOW or {@link RuleType#DENY})
+     * @param pattern a compiled regular expression pattern
+     */
+    public Rule(final RuleType type, final Pattern pattern) {
+        if (type == null) {
+            throw new NullPointerException("RuleType type");
+        }
+        if (pattern == null) {
+            throw new NullPointerException("Pattern pattern");
+        }
         this.type = type;
         this.pattern = pattern;
-    }
-
-    /**
-     * Return {@link #DEFAULT_ALLOW}, unless first element in rules list is an explicit allow, in which
-     * case return {@link #DEFAULT_DENY}
-     *
-     * @param rules rules list
-     * @return usually {@link #DEFAULT_ALLOW}, but sometimes {@link #DEFAULT_DENY}
-     */
-    public static Rule fuzzyDefaultAllow(final List<Rule> rules) {
-        if (rules != null && !rules.isEmpty() && rules.get(0).isAllow()) {
-            return DEFAULT_DENY;
-        }
-        return DEFAULT_ALLOW;
-    }
-
-    /**
-     * Return {@link #DEFAULT_DENY}, unless first element in rules list is an explicit deny, in which
-     * case return {@link #DEFAULT_ALLOW}
-     *
-     * @param rules rules list
-     * @return usually {@link #DEFAULT_DENY}, but sometimes {@link #DEFAULT_ALLOW}
-     */
-    public static Rule fuzzyDefaultDeny(final List<Rule> rules) {
-        if (rules != null && !rules.isEmpty() && rules.get(0).isDeny()) {
-            return DEFAULT_ALLOW;
-        }
-        return DEFAULT_DENY;
     }
 
     public RuleType getType() {
@@ -89,14 +87,53 @@ public final class Rule {
         return pattern;
     }
 
-    public boolean isDeny() {
-        return getType() == RuleType.DENY;
+    /**
+     * Readability alias for {@link #isAllow()} when the rule is used in the more abstract context of scope
+     * definition.
+     *
+     * @return true if the matched value should be included.
+     */
+    public boolean isInclude() {
+        return getType() == RuleType.INCLUDE || getType() == RuleType.ALLOW;
     }
 
+    /**
+     * Readability alias for {@link #isDeny()} when the rule is used in the more abstract context of scope
+     * definition.
+     *
+     * @return true if the matched value should be excluded.
+     */
+    public boolean isExclude() {
+        return !isInclude();
+    }
+
+    /**
+     * Readability alias for {@link #isInclude()} when the rule is used in the more abstract context of scope
+     * definition.
+     *
+     * @return true if the matched value should be allowed.
+     */
     public boolean isAllow() {
-        return getType() == RuleType.ALLOW;
+        return isInclude();
     }
 
+    /**
+     * Readability alias for {@link #isExclude()} when the rule is used in the more literal context of acceptable vs
+     * unacceptable values.
+     *
+     * @return true if the matched value should be denied.
+     */
+    public boolean isDeny() {
+        return isExclude();
+    }
+
+    /**
+     * Conventional usage of the rule's {@link Pattern} to match the entirety of the provided string value. The nature
+     * of the value is not considered.
+     *
+     * @param value a string value
+     * @return true if the pattern matches
+     */
     public boolean matches(String value) {
         return getPattern().matcher(value).matches();
     }
@@ -107,17 +144,11 @@ public final class Rule {
     }
 
     public enum RuleType {
-        ALLOW("INCLUDE"), DENY("EXCLUDE");
-        private final String inex;
-
-        RuleType(final String inex) {
-            this.inex = inex;
-        }
+        INCLUDE, EXCLUDE, ALLOW, DENY;
 
         public static RuleType fromName(final String name) {
-            final String ucn = name;
             for (RuleType value : RuleType.values()) {
-                if (value.inex.equalsIgnoreCase(ucn) || value.name().equalsIgnoreCase(ucn)) {
+                if (value.name().equalsIgnoreCase(name)) {
                     return value;
                 }
             }
@@ -125,22 +156,76 @@ public final class Rule {
         }
     }
 
+    /**
+     * Conveniently creates a list of Rules from the conventional use case of a JSON array containing a list of rule
+     * JSON objects to be evaluated in sequence.
+     *
+     * @param rulesArray a JSON array where calling {@link #fromJSON(JSONObject)} on each element will construct a
+     *                   valid {@link Rule}
+     * @return a list of rules to be evaluated in sequence.
+     */
     public static List<Rule> fromJSON(final JSONArray rulesArray) {
-        List<JSONObject> ruleJsons = new ArrayList<>();
-        List<Rule> rules = new ArrayList<>();
-        Optional.ofNullable(rulesArray).map(array -> StreamSupport.stream(array.spliterator(), true)
-                .filter(json -> json instanceof JSONObject)
-                .map(JSONObject.class::cast).collect(Collectors.toList()))
-                .ifPresent(ruleJsons::addAll);
-
-        for (JSONObject json : ruleJsons) {
-            rules.add(fromJSON(json));
-        }
-        return rules;
+        return Util.fromJSONArray(rulesArray, Rule::fromJSON);
     }
 
+    /**
+     * Construct a single rule from a JSON object with keys {@code type} and {@code pattern}.
+     *
+     * @param ruleJson a single rule config object
+     * @return a new rule
+     */
     public static Rule fromJSON(final JSONObject ruleJson) {
         return new Rule(Rule.RuleType.fromName(ruleJson.getString(CONFIG_TYPE)),
                 Pattern.compile(ruleJson.getString(CONFIG_PATTERN)));
+    }
+
+    /**
+     * Return {@link #DEFAULT_ALLOW}, unless first element in rules list is an explicit allow, in which
+     * case return {@link #DEFAULT_DENY}.
+     *
+     * @param rules rules list
+     * @return usually {@link #DEFAULT_ALLOW}, but sometimes {@link #DEFAULT_DENY}
+     */
+    public static Rule fuzzyDefaultAllow(final List<Rule> rules) {
+        return fuzzyDefaultInclude(rules);
+    }
+
+    /**
+     * Return {@link #DEFAULT_DENY}, unless first element in rules list is an explicit deny, in which
+     * case return {@link #DEFAULT_ALLOW}.
+     *
+     * @param rules rules list
+     * @return usually {@link #DEFAULT_EXCLUDE}, but sometimes {@link #DEFAULT_INCLUDE}
+     */
+    public static Rule fuzzyDefaultDeny(final List<Rule> rules) {
+        return fuzzyDefaultExclude(rules);
+    }
+
+    /**
+     * Return {@link #DEFAULT_INCLUDE}, unless first element in rules list is an explicit include, in which
+     * case return {@link #DEFAULT_EXCLUDE}.
+     *
+     * @param rules rules list
+     * @return usually {@link #DEFAULT_INCLUDE}, but sometimes {@link #DEFAULT_EXCLUDE}
+     */
+    public static Rule fuzzyDefaultInclude(final List<Rule> rules) {
+        if (rules != null && !rules.isEmpty() && rules.get(0).isAllow()) {
+            return DEFAULT_EXCLUDE;
+        }
+        return DEFAULT_INCLUDE;
+    }
+
+    /**
+     * Return {@link #DEFAULT_EXCLUDE}, unless first element in rules list is an explicit exclude, in which
+     * case return {@link #DEFAULT_INCLUDE}.
+     *
+     * @param rules rules list
+     * @return usually {@link #DEFAULT_EXCLUDE}, but sometimes {@link #DEFAULT_INCLUDE}
+     */
+    public static Rule fuzzyDefaultExclude(final List<Rule> rules) {
+        if (rules != null && !rules.isEmpty() && rules.get(0).isDeny()) {
+            return DEFAULT_INCLUDE;
+        }
+        return DEFAULT_EXCLUDE;
     }
 }

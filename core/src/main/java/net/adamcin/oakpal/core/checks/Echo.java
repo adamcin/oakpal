@@ -31,7 +31,7 @@ import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.apache.jackrabbit.vault.packaging.PackageProperties;
 
 /**
- * Simple verbose package check that logs all scan events to standard out.
+ * Simple verbose package check that logs all scan events to standard out. Extend to override methods.
  */
 public class Echo implements ProgressCheck {
 
@@ -40,6 +40,12 @@ public class Echo implements ProgressCheck {
         return Collections.emptyList();
     }
 
+    /**
+     * Override this method to use a logger instead of System.out, for example.
+     *
+     * @param message
+     * @param formatArgs
+     */
     protected void echo(final String message, Object... formatArgs) {
         System.out.println("[ECHO] " + String.format(message, formatArgs));
     }

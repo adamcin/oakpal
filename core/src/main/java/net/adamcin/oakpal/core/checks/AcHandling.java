@@ -68,9 +68,28 @@ import org.json.JSONObject;
  * matching the values in {@link ACHandlingLevelSet}.</dd>
  * </dl>
  */
-public class AcHandling implements ProgressCheckFactory {
+public final class AcHandling implements ProgressCheckFactory {
     public static final String CONFIG_ALLOWED_MODES = "allowedModes";
     public static final String CONFIG_LEVEL_SET = "levelSet";
+
+    @Override
+    public ProgressCheck newInstance(final JSONObject config) throws Exception {
+        if (config.has(CONFIG_ALLOWED_MODES)) {
+            List<String> jsonAllowedModes = StreamSupport
+                    .stream(config.getJSONArray(CONFIG_ALLOWED_MODES).spliterator(), false)
+                    .map(String::valueOf).collect(Collectors.toList());
+            List<AccessControlHandling> allowedModes = new ArrayList<>();
+            for (String mode : jsonAllowedModes) {
+                allowedModes.add(AccessControlHandling.valueOf(mode.toUpperCase()));
+            }
+            return new Check(ACHandlingLevelSet.EXPLICIT, allowedModes);
+        } else if (config.has(CONFIG_LEVEL_SET)) {
+            ACHandlingLevelSet levelSet = ACHandlingLevelSet.valueOf(config.getString(CONFIG_LEVEL_SET).toUpperCase());
+            return new Check(levelSet, Collections.emptyList());
+        } else {
+            return new Check(ACHandlingLevelSet.NO_UNSAFE, Collections.emptyList());
+        }
+    }
 
     /**
      * Encapsulation of incrementally wider sets of forbidden acHandling modes as discrete levels.
@@ -114,11 +133,11 @@ public class AcHandling implements ProgressCheckFactory {
         }
     }
 
-    class Check extends SimpleProgressCheck {
+    static final class Check extends SimpleProgressCheck {
         final ACHandlingLevelSet levelSet;
         final List<AccessControlHandling> allowedModes;
 
-        public Check(final ACHandlingLevelSet levelSet,
+        Check(final ACHandlingLevelSet levelSet,
                      final List<AccessControlHandling> allowedModes) {
             this.levelSet = levelSet;
             this.allowedModes = allowedModes;
@@ -126,7 +145,7 @@ public class AcHandling implements ProgressCheckFactory {
 
         @Override
         public String getCheckName() {
-            return AcHandling.this.getClass().getSimpleName();
+            return AcHandling.class.getSimpleName();
         }
 
         @Override
@@ -152,25 +171,6 @@ public class AcHandling implements ProgressCheckFactory {
                             packageId));
                 }
             }
-        }
-    }
-
-    @Override
-    public ProgressCheck newInstance(final JSONObject config) throws Exception {
-        if (config.has(CONFIG_ALLOWED_MODES)) {
-            List<String> jsonAllowedModes = StreamSupport
-                    .stream(config.getJSONArray(CONFIG_ALLOWED_MODES).spliterator(), false)
-                    .map(String::valueOf).collect(Collectors.toList());
-            List<AccessControlHandling> allowedModes = new ArrayList<>();
-            for (String mode : jsonAllowedModes) {
-                allowedModes.add(AccessControlHandling.valueOf(mode.toUpperCase()));
-            }
-            return new Check(ACHandlingLevelSet.EXPLICIT, allowedModes);
-        } else if (config.has(CONFIG_LEVEL_SET)) {
-            ACHandlingLevelSet levelSet = ACHandlingLevelSet.valueOf(config.getString(CONFIG_LEVEL_SET).toUpperCase());
-            return new Check(levelSet, Collections.emptyList());
-        } else {
-            return new Check(ACHandlingLevelSet.NO_UNSAFE, Collections.emptyList());
         }
     }
 }

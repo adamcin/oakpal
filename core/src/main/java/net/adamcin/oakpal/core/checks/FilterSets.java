@@ -54,18 +54,30 @@ import org.json.JSONObject;
  * <dd>Set to true to suppress violations for filterSets with a root path of /.</dd>
  * </dl>
  */
-public class FilterSets implements ProgressCheckFactory {
+public final class FilterSets implements ProgressCheckFactory {
     public static final String CONFIG_IMPORT_MODE_SEVERITY = "importModeSeverity";
     public static final String CONFIG_ALLOW_EMPTY_FILTER = "allowEmptyFilter";
     public static final String CONFIG_ALLOW_ROOT_FILTER = "allowRootFilter";
     public static final Violation.Severity DEFAULT_IMPORT_MODE_SEVERITY = Violation.Severity.MINOR;
 
-    class Check extends SimpleProgressCheck {
+    @Override
+    public ProgressCheck newInstance(final JSONObject config) throws Exception {
+        final Violation.Severity importModeSeverity = config.has(CONFIG_IMPORT_MODE_SEVERITY)
+                ? Violation.Severity.valueOf(config.getString(CONFIG_IMPORT_MODE_SEVERITY).toUpperCase())
+                : DEFAULT_IMPORT_MODE_SEVERITY;
+        final boolean allowEmptyFilter = config.has(CONFIG_ALLOW_EMPTY_FILTER)
+                && config.getBoolean(CONFIG_ALLOW_EMPTY_FILTER);
+        final boolean allowRootFilter = config.has(CONFIG_ALLOW_ROOT_FILTER)
+                && config.getBoolean(CONFIG_ALLOW_ROOT_FILTER);
+        return new Check(importModeSeverity, allowEmptyFilter, allowRootFilter);
+    }
+
+    static final class Check extends SimpleProgressCheck {
         final Violation.Severity importModeSeverity;
         final boolean allowEmptyFilter;
         final boolean allowRootFilter;
 
-        public Check(final Violation.Severity importModeSeverity, final boolean allowEmptyFilter, final boolean allowRootFilter) {
+        Check(final Violation.Severity importModeSeverity, final boolean allowEmptyFilter, final boolean allowRootFilter) {
             this.importModeSeverity = importModeSeverity;
             this.allowEmptyFilter = allowEmptyFilter;
             this.allowRootFilter = allowRootFilter;
@@ -73,7 +85,7 @@ public class FilterSets implements ProgressCheckFactory {
 
         @Override
         public String getCheckName() {
-            return FilterSets.this.getClass().getSimpleName();
+            return FilterSets.class.getSimpleName();
         }
 
         @Override
@@ -101,17 +113,5 @@ public class FilterSets implements ProgressCheckFactory {
                 }
             }
         }
-    }
-
-    @Override
-    public ProgressCheck newInstance(final JSONObject config) throws Exception {
-        final Violation.Severity importModeSeverity = config.has(CONFIG_IMPORT_MODE_SEVERITY)
-                ? Violation.Severity.valueOf(config.getString(CONFIG_IMPORT_MODE_SEVERITY).toUpperCase())
-                : DEFAULT_IMPORT_MODE_SEVERITY;
-        final boolean allowEmptyFilter = config.has(CONFIG_ALLOW_EMPTY_FILTER)
-                && config.getBoolean(CONFIG_ALLOW_EMPTY_FILTER);
-        final boolean allowRootFilter = config.has(CONFIG_ALLOW_ROOT_FILTER)
-                && config.getBoolean(CONFIG_ALLOW_ROOT_FILTER);
-        return new Check(importModeSeverity, allowEmptyFilter, allowRootFilter);
     }
 }

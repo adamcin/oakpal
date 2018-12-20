@@ -54,23 +54,30 @@ import org.json.JSONObject;
  * the highest severity encountered.</dd>
  * </dl>
  */
-public class Overlaps implements ProgressCheckFactory {
+public final class Overlaps implements ProgressCheckFactory {
     public static final String CONFIG_REPORT_ALL_OVERLAPS = "reportAllOverlaps";
 
-    class Check extends SimpleProgressCheck {
+    @Override
+    public ProgressCheck newInstance(final JSONObject config) throws Exception {
+        final boolean reportAllOverlaps = config.has(CONFIG_REPORT_ALL_OVERLAPS)
+                && config.getBoolean(CONFIG_REPORT_ALL_OVERLAPS);
+        return new Check(reportAllOverlaps);
+    }
+
+    static final class Check extends SimpleProgressCheck {
 
         final Map<PackageId, WorkspaceFilter> filters = new HashMap<>();
         final Map<PackageId, Violation.Severity> reported = new HashMap<>();
 
         final boolean reportAllOverlaps;
 
-        public Check(final boolean reportAllOverlaps) {
+        Check(final boolean reportAllOverlaps) {
             this.reportAllOverlaps = reportAllOverlaps;
         }
 
         @Override
         public String getCheckName() {
-            return Overlaps.this.getClass().getSimpleName();
+            return Overlaps.class.getSimpleName();
         }
 
         @Override
@@ -91,7 +98,7 @@ public class Overlaps implements ProgressCheckFactory {
             return entry -> entry.getValue().contains(path);
         }
 
-        public void findOverlaps(final PackageId currentPackageId, final String path,
+        void findOverlaps(final PackageId currentPackageId, final String path,
                                  final Violation.Severity severity) {
             // fast escape! no need to belabor the point.
             if (!reportAllOverlaps
@@ -133,12 +140,5 @@ public class Overlaps implements ProgressCheckFactory {
             // any deletions should be considered major overlap violations.
             findOverlaps(packageId, path, Violation.Severity.MAJOR);
         }
-    }
-
-    @Override
-    public ProgressCheck newInstance(final JSONObject config) throws Exception {
-        final boolean reportAllOverlaps = config.has(CONFIG_REPORT_ALL_OVERLAPS)
-                && config.getBoolean(CONFIG_REPORT_ALL_OVERLAPS);
-        return new Check(reportAllOverlaps);
     }
 }
