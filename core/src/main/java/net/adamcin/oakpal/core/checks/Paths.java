@@ -57,19 +57,28 @@ import org.json.JSONObject;
  * of the change. Set this true to also report a violation if ANY delete is detected, because that is generally
  * indicative of an existing path (forced root or preInstallPackage) being inadvertently captured by this package's
  * workspace filter.</dd>
+ * <dt>{@code severity}</dt>
+ * <dd>By default, the severity of violations created by this check is MAJOR, but can be set to MINOR or SEVERE.</dd>
  * </dl>
  */
 public final class Paths implements ProgressCheckFactory {
     public static final String CONFIG_RULES = "rules";
     public static final String CONFIG_DENY_ALL_DELETES = "denyAllDeletes";
+    public static final String CONFIG_SEVERITY = "severity";
 
     public static final class Check extends SimpleProgressCheck {
         private final List<Rule> rules;
         private final boolean denyAllDeletes;
+        private final Violation.Severity severity;
 
         public Check(final List<Rule> rules, final boolean denyAllDeletes) {
+            this(rules, denyAllDeletes, Violation.Severity.MAJOR);
+        }
+
+        public Check(final List<Rule> rules, final boolean denyAllDeletes, final Violation.Severity severity) {
             this.rules = rules;
             this.denyAllDeletes = denyAllDeletes;
+            this.severity = severity;
         }
 
         @Override
@@ -89,7 +98,7 @@ public final class Paths implements ProgressCheckFactory {
             }
 
             if (lastMatch.isDeny()) {
-                reportViolation(new SimpleViolation(Violation.Severity.MAJOR,
+                reportViolation(new SimpleViolation(severity,
                         String.format("imported path %s matches deny pattern %s", path,
                                 lastMatch.getPattern().pattern()), packageId));
             }
@@ -99,7 +108,7 @@ public final class Paths implements ProgressCheckFactory {
         public void deletedPath(final PackageId packageId, final String path, final Session inspectSession)
                 throws RepositoryException {
             if (this.denyAllDeletes) {
-                reportViolation(new SimpleViolation(Violation.Severity.MAJOR,
+                reportViolation(new SimpleViolation(severity,
                         String.format("deleted path %s. All deletions are denied.", path), packageId));
             } else {
                 Rule lastMatch = Rule.fuzzyDefaultAllow(rules);
@@ -110,7 +119,7 @@ public final class Paths implements ProgressCheckFactory {
                 }
 
                 if (lastMatch.isDeny()) {
-                    reportViolation(new SimpleViolation(Violation.Severity.MAJOR,
+                    reportViolation(new SimpleViolation(severity,
                             String.format("deleted path %s matches deny rule %s", path,
                                     lastMatch.getPattern().pattern()), packageId));
                 }
@@ -125,6 +134,14 @@ public final class Paths implements ProgressCheckFactory {
         final boolean denyAllDeletes = config.has(CONFIG_DENY_ALL_DELETES)
                 && config.optBoolean(CONFIG_DENY_ALL_DELETES);
 
-        return new Check(rules, denyAllDeletes);
+        Violation.Severity severity = null;
+        try {
+            if (config.has(CONFIG_SEVERITY)) {
+                severity = Violation.Severity.valueOf(config.optString(CONFIG_SEVERITY).toUpperCase());
+            }
+        } catch (Exception e) {
+        }
+
+        return new Check(rules, denyAllDeletes, severity == null ? Violation.Severity.MAJOR : severity);
     }
 }
