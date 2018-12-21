@@ -21,7 +21,6 @@ import static org.junit.Assert.assertNotNull;
 
 import java.io.InputStream;
 
-import net.adamcin.commons.testing.junit.TestBody;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 import org.junit.Test;
@@ -29,22 +28,17 @@ import org.junit.Test;
 public class ChecklistTest {
 
     @Test
-    public void testFromJSON() {
-        TestBody.test(new TestBody() {
-            @Override
-            protected void execute() throws Exception {
-                try (InputStream is = getClass().getResourceAsStream("/simpleChecklist.json")) {
-                    Checklist checklist = Checklist.fromJSON("core-tests", null,
-                            new JSONObject(new JSONTokener(is)));
+    public void testFromJSON() throws Exception {
+        TestUtil.testBlock(() -> {
+            try (InputStream is = getClass().getResourceAsStream("/simpleChecklist.json")) {
+                Checklist checklist = Checklist.fromJSON("core-tests", null,
+                        new JSONObject(new JSONTokener(is)));
 
-                    assertNotNull("checklist should not be null", checklist);
-                    assertEquals("checklist moduleName", "core-tests", checklist.getModuleName());
-                    assertEquals("checklist name", "simpleChecklist", checklist.getName());
-                    assertEquals("checklist jcr prefix", "oakpal", checklist.getJcrNamespaces().get(0).getPrefix());
-                }
+                assertNotNull("checklist should not be null", checklist);
+                assertEquals("checklist moduleName", "core-tests", checklist.getModuleName());
+                assertEquals("checklist name", "simpleChecklist", checklist.getName());
+                assertEquals("checklist jcr prefix", "oakpal", checklist.getJcrNamespaces().get(0).getPrefix());
             }
         });
-
-
     }
 }

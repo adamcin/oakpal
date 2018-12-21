@@ -24,143 +24,119 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 
-import net.adamcin.commons.testing.junit.TestBody;
 import net.adamcin.oakpal.core.CheckReport;
 import net.adamcin.oakpal.core.ProgressCheck;
+import net.adamcin.oakpal.core.TestUtil;
 import org.junit.Test;
 
 public class JcrPropertiesTest extends ProgressCheckTestBase {
 
     @Test
-    public void testDenyIfAbsent() {
-        TestBody.test(new TestBody() {
-            @Override
-            protected void execute() throws Exception {
-                ProgressCheck check = new JcrProperties().newInstance(obj()
-                        .key("properties", arr()
-                                .and(key("name", "double_man").key("denyIfAbsent", false)))
-                        .get());
-                CheckReport report = scanWithCheck(check, "double_properties.zip");
-                logViolations("double_man, no scope", report);
-                assertEquals("no violations", 0, report.getViolations().size());
-                assertTrue("all violations have packageIds", report.getViolations().stream()
-                        .allMatch(viol -> !viol.getPackages().isEmpty()));
-            }
+    public void testDenyIfAbsent() throws Exception {
+        TestUtil.testBlock(() -> {
+            ProgressCheck check = new JcrProperties().newInstance(obj()
+                    .key("properties", arr()
+                            .and(key("name", "double_man").key("denyIfAbsent", false)))
+                    .get());
+            CheckReport report = scanWithCheck(check, "double_properties.zip");
+            logViolations("double_man, no scope", report);
+            assertEquals("no violations", 0, report.getViolations().size());
+            assertTrue("all violations have packageIds", report.getViolations().stream()
+                    .allMatch(viol -> !viol.getPackages().isEmpty()));
         });
-        TestBody.test(new TestBody() {
-            @Override
-            protected void execute() throws Exception {
-                ProgressCheck check = new JcrProperties().newInstance(obj()
-                        .key("properties", arr()
-                                .and(key("name", "double_man").key("denyIfAbsent", true)))
-                        .key("scopePaths", arr()
-                                .and(key("pattern", "/tmp/jcr:content").key("type", "allow")))
-                        .get());
-                CheckReport report = scanWithCheck(check, "double_properties.zip");
-                assertEquals("one violation", 1, report.getViolations().size());
-                assertTrue("all violations have packageIds", report.getViolations().stream()
-                        .allMatch(viol -> !viol.getPackages().isEmpty()));
-            }
+        TestUtil.testBlock(() -> {
+            ProgressCheck check = new JcrProperties().newInstance(obj()
+                    .key("properties", arr()
+                            .and(key("name", "double_man").key("denyIfAbsent", true)))
+                    .key("scopePaths", arr()
+                            .and(key("pattern", "/tmp/jcr:content").key("type", "allow")))
+                    .get());
+            CheckReport report = scanWithCheck(check, "double_properties.zip");
+            assertEquals("one violation", 1, report.getViolations().size());
+            assertTrue("all violations have packageIds", report.getViolations().stream()
+                    .allMatch(viol -> !viol.getPackages().isEmpty()));
         });
-        TestBody.test(new TestBody() {
-            @Override
-            protected void execute() throws Exception {
-                ProgressCheck check = new JcrProperties().newInstance(obj()
-                        .key("properties", arr()
-                                .and(key("name", "double_man").key("denyIfAbsent", false)))
-                        .key("scopePaths", arr()
-                                .and(key("pattern", "/tmp/jcr:content").key("type", "allow")))
-                        .get());
-                CheckReport report = scanWithCheck(check, "double_properties.zip");
-                logViolations("double_man, with scope", report);
-                assertEquals("no violations", 0, report.getViolations().size());
-                assertTrue("all violations have packageIds", report.getViolations().stream()
-                        .allMatch(viol -> !viol.getPackages().isEmpty()));
-            }
+        TestUtil.testBlock(() -> {
+            ProgressCheck check = new JcrProperties().newInstance(obj()
+                    .key("properties", arr()
+                            .and(key("name", "double_man").key("denyIfAbsent", false)))
+                    .key("scopePaths", arr()
+                            .and(key("pattern", "/tmp/jcr:content").key("type", "allow")))
+                    .get());
+            CheckReport report = scanWithCheck(check, "double_properties.zip");
+            logViolations("double_man, with scope", report);
+            assertEquals("no violations", 0, report.getViolations().size());
+            assertTrue("all violations have packageIds", report.getViolations().stream()
+                    .allMatch(viol -> !viol.getPackages().isEmpty()));
         });
     }
 
     @Test
-    public void testDenyIfPresent() {
-        TestBody.test(new TestBody() {
-            @Override
-            protected void execute() throws Exception {
-                ProgressCheck check = new JcrProperties().newInstance(obj()
-                        .key("properties", arr()
-                                .and(key("name", "double_nan").key("denyIfPresent", false)))
-                        .get());
-                CheckReport report = scanWithCheck(check, "double_properties.zip");
-                logViolations("double_nan, no scope", report);
-                assertEquals("no violations", 0, report.getViolations().size());
-                assertTrue("all violations have packageIds", report.getViolations().stream()
-                        .allMatch(viol -> !viol.getPackages().isEmpty()));
-            }
+    public void testDenyIfPresent() throws Exception {
+        TestUtil.testBlock(() -> {
+            ProgressCheck check = new JcrProperties().newInstance(obj()
+                    .key("properties", arr()
+                            .and(key("name", "double_nan").key("denyIfPresent", false)))
+                    .get());
+            CheckReport report = scanWithCheck(check, "double_properties.zip");
+            logViolations("double_nan, no scope", report);
+            assertEquals("no violations", 0, report.getViolations().size());
+            assertTrue("all violations have packageIds", report.getViolations().stream()
+                    .allMatch(viol -> !viol.getPackages().isEmpty()));
         });
-        TestBody.test(new TestBody() {
-            @Override
-            protected void execute() throws Exception {
-                ProgressCheck check = new JcrProperties().newInstance(obj()
-                        .key("properties", arr()
-                                .and(key("name", "double_nan").key("denyIfPresent", true)))
-                        .key("scopePaths", arr()
-                                .and(key("pattern", "/tmp/jcr:content").key("type", "allow")))
-                        .get());
-                CheckReport report = scanWithCheck(check, "double_properties.zip");
-                assertEquals("one violation", 1, report.getViolations().size());
-                assertTrue("all violations have packageIds", report.getViolations().stream()
-                        .allMatch(viol -> !viol.getPackages().isEmpty()));
-            }
+        TestUtil.testBlock(() -> {
+            ProgressCheck check = new JcrProperties().newInstance(obj()
+                    .key("properties", arr()
+                            .and(key("name", "double_nan").key("denyIfPresent", true)))
+                    .key("scopePaths", arr()
+                            .and(key("pattern", "/tmp/jcr:content").key("type", "allow")))
+                    .get());
+            CheckReport report = scanWithCheck(check, "double_properties.zip");
+            assertEquals("one violation", 1, report.getViolations().size());
+            assertTrue("all violations have packageIds", report.getViolations().stream()
+                    .allMatch(viol -> !viol.getPackages().isEmpty()));
         });
-        TestBody.test(new TestBody() {
-            @Override
-            protected void execute() throws Exception {
-                ProgressCheck check = new JcrProperties().newInstance(obj()
-                        .key("properties", arr()
-                                .and(key("name", "double_nan").key("denyIfPresent", false)))
-                        .key("scopePaths", arr()
-                                .and(key("pattern", "/tmp/jcr:content").key("type", "allow")))
-                        .get());
-                CheckReport report = scanWithCheck(check, "double_properties.zip");
-                logViolations("double_nan, with scope", report);
-                assertEquals("no violations", 0, report.getViolations().size());
-                assertTrue("all violations have packageIds", report.getViolations().stream()
-                        .allMatch(viol -> !viol.getPackages().isEmpty()));
-            }
+        TestUtil.testBlock(() -> {
+            ProgressCheck check = new JcrProperties().newInstance(obj()
+                    .key("properties", arr()
+                            .and(key("name", "double_nan").key("denyIfPresent", false)))
+                    .key("scopePaths", arr()
+                            .and(key("pattern", "/tmp/jcr:content").key("type", "allow")))
+                    .get());
+            CheckReport report = scanWithCheck(check, "double_properties.zip");
+            logViolations("double_nan, with scope", report);
+            assertEquals("no violations", 0, report.getViolations().size());
+            assertTrue("all violations have packageIds", report.getViolations().stream()
+                    .allMatch(viol -> !viol.getPackages().isEmpty()));
         });
     }
 
     @Test
-    public void testRequireType() {
-        TestBody.test(new TestBody() {
-            @Override
-            protected void execute() throws Exception {
-                ProgressCheck check = new JcrProperties().newInstance(obj()
-                        .key("properties", arr()
-                                .and(key("name", "double_nan").key("requireType", "Double"))
-                                .and(key("name", "double_neg_inf").key("requireType", "Double"))
-                        )
-                        .get());
-                CheckReport report = scanWithCheck(check, "double_properties.zip");
-                assertEquals("no violations", 0, report.getViolations().size());
-                assertTrue("all violations have packageIds", report.getViolations().stream()
-                        .allMatch(viol -> !viol.getPackages().isEmpty()));
-            }
+    public void testRequireType() throws Exception {
+        TestUtil.testBlock(() -> {
+            ProgressCheck check = new JcrProperties().newInstance(obj()
+                    .key("properties", arr()
+                            .and(key("name", "double_nan").key("requireType", "Double"))
+                            .and(key("name", "double_neg_inf").key("requireType", "Double"))
+                    )
+                    .get());
+            CheckReport report = scanWithCheck(check, "double_properties.zip");
+            assertEquals("no violations", 0, report.getViolations().size());
+            assertTrue("all violations have packageIds", report.getViolations().stream()
+                    .allMatch(viol -> !viol.getPackages().isEmpty()));
         });
-        TestBody.test(new TestBody() {
-            @Override
-            protected void execute() throws Exception {
-                ProgressCheck check = new JcrProperties().newInstance(obj()
-                        .key("properties", arr()
-                                .and(key("name", "double_nan").key("requireType", "String"))
-                                .and(key("name", "double_neg_inf").key("requireType", "String"))
-                        )
-                        .get());
-                CheckReport report = scanWithCheck(check, "double_properties.zip");
-                LOGGER.info("violations: {}", new ArrayList<>(report.getViolations()));
-                assertEquals("two violations", 2, report.getViolations().size());
-                assertTrue("all violations have packageIds", report.getViolations().stream()
-                        .allMatch(viol -> !viol.getPackages().isEmpty()));
-            }
+        TestUtil.testBlock(() -> {
+            ProgressCheck check = new JcrProperties().newInstance(obj()
+                    .key("properties", arr()
+                            .and(key("name", "double_nan").key("requireType", "String"))
+                            .and(key("name", "double_neg_inf").key("requireType", "String"))
+                    )
+                    .get());
+            CheckReport report = scanWithCheck(check, "double_properties.zip");
+            LOGGER.info("violations: {}", new ArrayList<>(report.getViolations()));
+            assertEquals("two violations", 2, report.getViolations().size());
+            assertTrue("all violations have packageIds", report.getViolations().stream()
+                    .allMatch(viol -> !viol.getPackages().isEmpty()));
         });
     }
 }

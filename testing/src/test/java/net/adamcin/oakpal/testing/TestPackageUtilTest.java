@@ -16,7 +16,8 @@
 
 package net.adamcin.oakpal.testing;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.util.Enumeration;
@@ -25,48 +26,36 @@ import java.util.Set;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
-import net.adamcin.commons.testing.junit.TestBody;
 import org.junit.Test;
 
 public class TestPackageUtilTest {
 
     @Test
-    public void testPrepareTestPackage() {
-        TestBody.test(new TestBody() {
-            @Override
-            protected void execute() throws Exception {
-                File fullCoverage = TestPackageUtil.prepareTestPackage("fullcoverage.zip");
-                assertTrue("fullcoverage.zip should exist", fullCoverage.exists());
+    public void testPrepareTestPackage() throws Exception {
+        File fullCoverage = TestPackageUtil.prepareTestPackage("fullcoverage.zip");
+        assertTrue("fullcoverage.zip should exist", fullCoverage.exists());
 
-                File simple = TestPackageUtil.prepareTestPackage("package_1.0.zip");
-                assertTrue("package_1.0.zip should exist", simple.exists());
-            }
-        });
+        File simple = TestPackageUtil.prepareTestPackage("package_1.0.zip");
+        assertTrue("package_1.0.zip should exist", simple.exists());
     }
 
     @Test
-    public void testPrepareTestPackageFromFolder() {
-        TestBody.test(new TestBody() {
-            @Override
-            protected void execute() throws Exception {
-                File simple = TestPackageUtil.prepareTestPackageFromFolder("simple-1.0.zip", new File("src/test/resources/extracted/simple"));
-                assertTrue("simple-1.0.zip should exist", simple.exists());
+    public void testPrepareTestPackageFromFolder() throws Exception {
+        File simple = TestPackageUtil.prepareTestPackageFromFolder("simple-1.0.zip", new File("src/test/resources/extracted/simple"));
+        assertTrue("simple-1.0.zip should exist", simple.exists());
 
-                JarFile simpleJar = new JarFile(simple);
-                Set<String> entryNames = new HashSet<>();
-                for (Enumeration<JarEntry> entries = simpleJar.entries(); entries.hasMoreElements(); ) {
-                    String entryName = entries.nextElement().getName();
-                    entryNames.add(entryName);
-                }
+        JarFile simpleJar = new JarFile(simple);
+        Set<String> entryNames = new HashSet<>();
+        for (Enumeration<JarEntry> entries = simpleJar.entries(); entries.hasMoreElements(); ) {
+            String entryName = entries.nextElement().getName();
+            entryNames.add(entryName);
+        }
 
-                for (String entryName : entryNames) {
-                    assertFalse("entryName must not begin with a slash: " + entryName, entryName.startsWith("/"));
-                }
+        for (String entryName : entryNames) {
+            assertFalse("entryName must not begin with a slash: " + entryName, entryName.startsWith("/"));
+        }
 
-                assertTrue("must contain jcr_root/apps/oakpal/.content.xml", entryNames.contains("jcr_root/apps/oakpal/.content.xml"));
-
-            }
-        });
+        assertTrue("must contain jcr_root/apps/oakpal/.content.xml", entryNames.contains("jcr_root/apps/oakpal/.content.xml"));
     }
 
 }

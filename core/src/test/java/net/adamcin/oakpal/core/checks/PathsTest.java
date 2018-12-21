@@ -21,9 +21,9 @@ import static net.adamcin.oakpal.core.OrgJson.obj;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import net.adamcin.commons.testing.junit.TestBody;
 import net.adamcin.oakpal.core.CheckReport;
 import net.adamcin.oakpal.core.ProgressCheck;
+import net.adamcin.oakpal.core.TestUtil;
 import net.adamcin.oakpal.core.Violation;
 import org.json.JSONObject;
 import org.junit.Test;
@@ -31,82 +31,70 @@ import org.junit.Test;
 public class PathsTest extends ProgressCheckTestBase {
 
     @Test
-    public void testDefaultSeverity() {
-        TestBody.test(new TestBody() {
-            @Override
-            protected void execute() throws Exception {
-                JSONObject config = obj()
-                        .key("rules", arr()
-                                .and(obj().key("type", "deny").key("pattern", "/etc(/.*)?")))
-                        .get();
-                ProgressCheck check = new Paths().newInstance(config);
-                CheckReport report = scanWithCheck(check, "test-package-with-etc.zip");
-                logViolations("level_set:no_unsafe", report);
-                assertEquals("violations", 6, report.getViolations().size());
-                assertTrue("all violations are MAJOR", report.getViolations().stream()
-                        .allMatch(viol -> viol.getSeverity().equals(Violation.Severity.MAJOR)));
-            }
+    public void testDefaultSeverity() throws Exception {
+        TestUtil.testBlock(() -> {
+            JSONObject config = obj()
+                    .key("rules", arr()
+                            .and(obj().key("type", "deny").key("pattern", "/etc(/.*)?")))
+                    .get();
+            ProgressCheck check = new Paths().newInstance(config);
+            CheckReport report = scanWithCheck(check, "test-package-with-etc.zip");
+            logViolations("level_set:no_unsafe", report);
+            assertEquals("violations", 6, report.getViolations().size());
+            assertTrue("all violations are MAJOR", report.getViolations().stream()
+                    .allMatch(viol -> viol.getSeverity().equals(Violation.Severity.MAJOR)));
         });
     }
 
     @Test
-    public void testCustomSeverity() {
-        TestBody.test(new TestBody() {
-            @Override
-            protected void execute() throws Exception {
-                JSONObject config = obj()
-                        .key("rules", arr()
-                                .and(obj().key("type", "deny").key("pattern", "/etc(/.*)?")))
-                        .key("severity", "SEVERE")
-                        .get();
-                ProgressCheck check = new Paths().newInstance(config);
-                CheckReport report = scanWithCheck(check, "test-package-with-etc.zip");
-                logViolations("level_set:no_unsafe", report);
-                assertEquals("violations", 6, report.getViolations().size());
-                assertTrue("all violations are SEVERE", report.getViolations().stream()
-                        .allMatch(viol -> viol.getSeverity().equals(Violation.Severity.SEVERE)));
-            }
+    public void testCustomSeverity() throws Exception {
+        TestUtil.testBlock(() -> {
+            JSONObject config = obj()
+                    .key("rules", arr()
+                            .and(obj().key("type", "deny").key("pattern", "/etc(/.*)?")))
+                    .key("severity", "SEVERE")
+                    .get();
+            ProgressCheck check = new Paths().newInstance(config);
+            CheckReport report = scanWithCheck(check, "test-package-with-etc.zip");
+            logViolations("level_set:no_unsafe", report);
+            assertEquals("violations", 6, report.getViolations().size());
+            assertTrue("all violations are SEVERE", report.getViolations().stream()
+                    .allMatch(viol -> viol.getSeverity().equals(Violation.Severity.SEVERE)));
         });
     }
 
     @Test
-    public void testCustomSeverityMixedCase() {
-        TestBody.test(new TestBody() {
-            @Override
-            protected void execute() throws Exception {
-                JSONObject config = obj()
-                        .key("rules", arr()
-                                .and(obj().key("type", "deny").key("pattern", "/etc(/.*)?")))
-                        .key("severity", "minor")
-                        .get();
-                ProgressCheck check = new Paths().newInstance(config);
-                CheckReport report = scanWithCheck(check, "test-package-with-etc.zip");
-                logViolations("level_set:no_unsafe", report);
-                assertEquals("violations", 6, report.getViolations().size());
-                assertTrue("all violations are MINOR", report.getViolations().stream()
-                        .allMatch(viol -> viol.getSeverity().equals(Violation.Severity.MINOR)));
-            }
+    public void testCustomSeverityMixedCase() throws Exception {
+        TestUtil.testBlock(() -> {
+            JSONObject config = obj()
+                    .key("rules", arr()
+                            .and(obj().key("type", "deny").key("pattern", "/etc(/.*)?")))
+                    .key("severity", "minor")
+                    .get();
+            ProgressCheck check = new Paths().newInstance(config);
+            CheckReport report = scanWithCheck(check, "test-package-with-etc.zip");
+            logViolations("level_set:no_unsafe", report);
+            assertEquals("violations", 6, report.getViolations().size());
+            assertTrue("all violations are MINOR", report.getViolations().stream()
+                    .allMatch(viol -> viol.getSeverity().equals(Violation.Severity.MINOR)));
         });
     }
 
     @Test
-    public void testBadSeverity() {
-        TestBody.test(new TestBody() {
-            @Override
-            protected void execute() throws Exception {
-                boolean threw = false;
-                try {
-                    JSONObject config = obj()
-                            .key("rules", arr()
-                                    .and(obj().key("type", "deny").key("pattern", "/etc(/.*)?")))
-                            .key("severity", "whoops")
-                            .get();
-                    ProgressCheck check = new Paths().newInstance(config);
-                } catch (IllegalArgumentException e) {
-                    threw = true;
-                }
-                assertTrue("bad severity should cause exception on construction.", threw);
+    public void testBadSeverity() throws Exception {
+        TestUtil.testBlock(() -> {
+            boolean threw = false;
+            try {
+                JSONObject config = obj()
+                        .key("rules", arr()
+                                .and(obj().key("type", "deny").key("pattern", "/etc(/.*)?")))
+                        .key("severity", "whoops")
+                        .get();
+                ProgressCheck check = new Paths().newInstance(config);
+            } catch (IllegalArgumentException e) {
+                threw = true;
             }
+            assertTrue("bad severity should cause exception on construction.", threw);
         });
     }
 }

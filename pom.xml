@@ -58,7 +58,6 @@
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
         <slf4j.version>1.7.21</slf4j.version>
-        <junit.version>4.11</junit.version>
         <vault.version>3.2.4</vault.version>
         <jackrabbit.version>2.14.0</jackrabbit.version>
         <!-- it is probably a good habit to stay at the latest even (not odd) minor release version of oak,
@@ -414,7 +413,7 @@
             <dependency>
                 <groupId>junit</groupId>
                 <artifactId>junit</artifactId>
-                <version>${junit.version}</version>
+                <version>4.12</version>
                 <scope>test</scope>
             </dependency>
             <dependency>
@@ -427,13 +426,6 @@
                 <groupId>ch.qos.logback</groupId>
                 <artifactId>logback-classic</artifactId>
                 <version>1.0.7</version>
-                <scope>test</scope>
-            </dependency>
-
-            <dependency>
-                <groupId>net.adamcin.commons</groupId>
-                <artifactId>net.adamcin.commons.testing</artifactId>
-                <version>[0.9.0,1.0.0)</version>
                 <scope>test</scope>
             </dependency>
         </dependencies>

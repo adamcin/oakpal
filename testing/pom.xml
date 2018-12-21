@@ -132,8 +132,9 @@
             <version>2.5</version>
         </dependency>
         <dependency>
-            <groupId>net.adamcin.commons</groupId>
-            <artifactId>net.adamcin.commons.testing</artifactId>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>

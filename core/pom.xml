@@ -169,10 +169,5 @@
             <version>2.5</version>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>net.adamcin.commons</groupId>
-            <artifactId>net.adamcin.commons.testing</artifactId>
-            <scope>test</scope>
-        </dependency>
     </dependencies>
 </project>

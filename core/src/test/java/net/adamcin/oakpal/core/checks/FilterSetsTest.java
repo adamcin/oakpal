@@ -16,51 +16,43 @@
 
 package net.adamcin.oakpal.core.checks;
 
+import static net.adamcin.oakpal.core.OrgJson.key;
 import static net.adamcin.oakpal.core.OrgJson.obj;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import net.adamcin.commons.testing.junit.TestBody;
 import net.adamcin.oakpal.core.CheckReport;
 import net.adamcin.oakpal.core.ProgressCheck;
+import net.adamcin.oakpal.core.TestUtil;
 import net.adamcin.oakpal.core.Violation;
-import org.json.JSONObject;
 import org.junit.Test;
 
 public class FilterSetsTest extends ProgressCheckTestBase {
 
     @Test
-    public void testRootImport() {
-        TestBody.test(new TestBody() {
-            @Override
-            protected void execute() throws Exception {
-                ProgressCheck handler = new FilterSets().newInstance(new JSONObject());
-                CheckReport report = scanWithCheck(handler, "testrootimport.zip");
-                assertEquals("one violation", 1, report.getViolations().size());
-                assertTrue("all violations have packageIds", report.getViolations().stream()
-                        .allMatch(viol -> !viol.getPackages().isEmpty()));
-            }
+    public void testRootImport() throws Exception {
+        TestUtil.testBlock(() -> {
+            ProgressCheck handler = new FilterSets().newInstance(obj().get());
+            CheckReport report = scanWithCheck(handler, "testrootimport.zip");
+            assertEquals("one violation", 1, report.getViolations().size());
+            assertTrue("all violations have packageIds", report.getViolations().stream()
+                    .allMatch(viol -> !viol.getPackages().isEmpty()));
         });
 
-        TestBody.test(new TestBody() {
-            @Override
-            protected void execute() throws Exception {
-                ProgressCheck handler = new FilterSets().newInstance(obj().key("allowRootFilter", true).get());
+        TestUtil.testBlock(() -> {
+            ProgressCheck handler = new FilterSets().newInstance(key("allowRootFilter", true).get());
 
-                CheckReport report = scanWithCheck(handler, "testrootimport.zip");
-                assertEquals("no violations", 0, report.getViolations().size());
-                assertTrue("all violations have packageIds", report.getViolations().stream()
-                        .allMatch(viol -> !viol.getPackages().isEmpty()));
-            }
+            CheckReport report = scanWithCheck(handler, "testrootimport.zip");
+            assertEquals("no violations", 0, report.getViolations().size());
+            assertTrue("all violations have packageIds", report.getViolations().stream()
+                    .allMatch(viol -> !viol.getPackages().isEmpty()));
         });
     }
 
     @Test
-    public void testModeMerge() {
-        TestBody.test(new TestBody() {
-            @Override
-            protected void execute() throws Exception {
-                ProgressCheck handler = new FilterSets().newInstance(new JSONObject());
+    public void testModeMerge() throws Exception {
+        TestUtil.testBlock(() -> {
+                ProgressCheck handler = new FilterSets().newInstance(obj().get());
                 CheckReport report = scanWithCheck(handler, "tmp_mode_merge.zip");
 
                 assertEquals("one violation", 1, report.getViolations().size());
@@ -68,12 +60,9 @@ public class FilterSetsTest extends ProgressCheckTestBase {
                         report.getViolations().iterator().next().getSeverity());
                 assertTrue("all violations have packageIds", report.getViolations().stream()
                         .allMatch(viol -> !viol.getPackages().isEmpty()));
-            }
         });
-        TestBody.test(new TestBody() {
-            @Override
-            protected void execute() throws Exception {
-                ProgressCheck handler = new FilterSets().newInstance(obj().key("importModeSeverity", "severe").get());
+        TestUtil.testBlock(() -> {
+                ProgressCheck handler = new FilterSets().newInstance(key("importModeSeverity", "severe").get());
                 CheckReport report = scanWithCheck(handler, "tmp_mode_merge.zip");
 
                 assertEquals("one violation", 1, report.getViolations().size());
@@ -81,16 +70,13 @@ public class FilterSetsTest extends ProgressCheckTestBase {
                         report.getViolations().iterator().next().getSeverity());
                 assertTrue("all violations have packageIds", report.getViolations().stream()
                         .allMatch(viol -> !viol.getPackages().isEmpty()));
-            }
         });
     }
 
     @Test
-    public void testEmptyFilter() {
-        TestBody.test(new TestBody() {
-            @Override
-            protected void execute() throws Exception {
-                ProgressCheck handler = new FilterSets().newInstance(new JSONObject());
+    public void testEmptyFilter() throws Exception {
+        TestUtil.testBlock(() -> {
+                ProgressCheck handler = new FilterSets().newInstance(obj().get());
                 CheckReport report = scanWithCheck(handler, "tmp_foo_bar_test_nofilter.zip");
 
                 assertEquals("one violation", 1, report.getViolations().size());
@@ -98,18 +84,14 @@ public class FilterSetsTest extends ProgressCheckTestBase {
                         report.getViolations().iterator().next().getSeverity());
                 assertTrue("all violations have packageIds", report.getViolations().stream()
                         .allMatch(viol -> !viol.getPackages().isEmpty()));
-            }
         });
-        TestBody.test(new TestBody() {
-            @Override
-            protected void execute() throws Exception {
-                ProgressCheck handler = new FilterSets().newInstance(obj().key("allowEmptyFilter", true).get());
+        TestUtil.testBlock(() -> {
+                ProgressCheck handler = new FilterSets().newInstance(key("allowEmptyFilter", true).get());
                 CheckReport report = scanWithCheck(handler, "tmp_foo_bar_test_nofilter.zip");
 
                 assertEquals("no violations", 0, report.getViolations().size());
                 assertTrue("all violations have packageIds", report.getViolations().stream()
                         .allMatch(viol -> !viol.getPackages().isEmpty()));
-            }
         });
     }
 }

@@ -26,6 +26,7 @@ import java.util.Optional;
 import net.adamcin.oakpal.core.CheckReport;
 import net.adamcin.oakpal.core.OakMachine;
 import net.adamcin.oakpal.core.ProgressCheck;
+import net.adamcin.oakpal.core.TestUtil;
 import net.adamcin.oakpal.testing.TestPackageUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,4 +52,5 @@ public class ProgressCheckTestBase {
         assertTrue(String.format("report for %s is present", check.getCheckName()), reports.isPresent());
         return reports.get();
     }
+
 }
