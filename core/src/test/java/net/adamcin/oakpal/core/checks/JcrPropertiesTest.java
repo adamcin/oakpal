@@ -16,6 +16,9 @@
 
 package net.adamcin.oakpal.core.checks;
 
+import static net.adamcin.oakpal.core.OrgJson.arr;
+import static net.adamcin.oakpal.core.OrgJson.key;
+import static net.adamcin.oakpal.core.OrgJson.obj;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -24,7 +27,6 @@ import java.util.ArrayList;
 import net.adamcin.commons.testing.junit.TestBody;
 import net.adamcin.oakpal.core.CheckReport;
 import net.adamcin.oakpal.core.ProgressCheck;
-import org.json.JSONObject;
 import org.junit.Test;
 
 public class JcrPropertiesTest extends ProgressCheckTestBase {
@@ -34,9 +36,10 @@ public class JcrPropertiesTest extends ProgressCheckTestBase {
         TestBody.test(new TestBody() {
             @Override
             protected void execute() throws Exception {
-                ProgressCheck check = new JcrProperties().newInstance(
-                        new JSONObject(
-                                "{\"properties\":[{\"name\":\"double_man\",\"denyIfAbsent\":false}]}"));
+                ProgressCheck check = new JcrProperties().newInstance(obj()
+                        .key("properties", arr()
+                                .and(key("name", "double_man").key("denyIfAbsent", false)))
+                        .get());
                 CheckReport report = scanWithCheck(check, "double_properties.zip");
                 logViolations("double_man, no scope", report);
                 assertEquals("no violations", 0, report.getViolations().size());
@@ -47,9 +50,12 @@ public class JcrPropertiesTest extends ProgressCheckTestBase {
         TestBody.test(new TestBody() {
             @Override
             protected void execute() throws Exception {
-                ProgressCheck check = new JcrProperties().newInstance(
-                        new JSONObject(
-                                "{\"properties\":[{\"name\":\"double_man\",\"denyIfAbsent\":true}],\"scopePaths\":[{\"pattern\":\"/tmp/jcr:content\",\"type\":\"allow\"}]}"));
+                ProgressCheck check = new JcrProperties().newInstance(obj()
+                        .key("properties", arr()
+                                .and(key("name", "double_man").key("denyIfAbsent", true)))
+                        .key("scopePaths", arr()
+                                .and(key("pattern", "/tmp/jcr:content").key("type", "allow")))
+                        .get());
                 CheckReport report = scanWithCheck(check, "double_properties.zip");
                 assertEquals("one violation", 1, report.getViolations().size());
                 assertTrue("all violations have packageIds", report.getViolations().stream()
@@ -59,9 +65,12 @@ public class JcrPropertiesTest extends ProgressCheckTestBase {
         TestBody.test(new TestBody() {
             @Override
             protected void execute() throws Exception {
-                ProgressCheck check = new JcrProperties().newInstance(
-                        new JSONObject(
-                                "{\"properties\":[{\"name\":\"double_man\",\"denyIfAbsent\":false}],\"scopePaths\":[{\"pattern\":\"/tmp/jcr:content\",\"type\":\"allow\"}]}"));
+                ProgressCheck check = new JcrProperties().newInstance(obj()
+                        .key("properties", arr()
+                                .and(key("name", "double_man").key("denyIfAbsent", false)))
+                        .key("scopePaths", arr()
+                                .and(key("pattern", "/tmp/jcr:content").key("type", "allow")))
+                        .get());
                 CheckReport report = scanWithCheck(check, "double_properties.zip");
                 logViolations("double_man, with scope", report);
                 assertEquals("no violations", 0, report.getViolations().size());
@@ -76,9 +85,10 @@ public class JcrPropertiesTest extends ProgressCheckTestBase {
         TestBody.test(new TestBody() {
             @Override
             protected void execute() throws Exception {
-                ProgressCheck check = new JcrProperties().newInstance(
-                        new JSONObject(
-                                "{\"properties\":[{\"name\":\"double_nan\",\"denyIfPresent\":false}]}"));
+                ProgressCheck check = new JcrProperties().newInstance(obj()
+                        .key("properties", arr()
+                                .and(key("name", "double_nan").key("denyIfPresent", false)))
+                        .get());
                 CheckReport report = scanWithCheck(check, "double_properties.zip");
                 logViolations("double_nan, no scope", report);
                 assertEquals("no violations", 0, report.getViolations().size());
@@ -89,9 +99,12 @@ public class JcrPropertiesTest extends ProgressCheckTestBase {
         TestBody.test(new TestBody() {
             @Override
             protected void execute() throws Exception {
-                ProgressCheck check = new JcrProperties().newInstance(
-                        new JSONObject(
-                                "{\"properties\":[{\"name\":\"double_nan\",\"denyIfPresent\":true}],\"scopePaths\":[{\"pattern\":\"/tmp/jcr:content\",\"type\":\"allow\"}]}"));
+                ProgressCheck check = new JcrProperties().newInstance(obj()
+                        .key("properties", arr()
+                                .and(key("name", "double_nan").key("denyIfPresent", true)))
+                        .key("scopePaths", arr()
+                                .and(key("pattern", "/tmp/jcr:content").key("type", "allow")))
+                        .get());
                 CheckReport report = scanWithCheck(check, "double_properties.zip");
                 assertEquals("one violation", 1, report.getViolations().size());
                 assertTrue("all violations have packageIds", report.getViolations().stream()
@@ -101,9 +114,12 @@ public class JcrPropertiesTest extends ProgressCheckTestBase {
         TestBody.test(new TestBody() {
             @Override
             protected void execute() throws Exception {
-                ProgressCheck check = new JcrProperties().newInstance(
-                        new JSONObject(
-                                "{\"properties\":[{\"name\":\"double_nan\",\"denyIfPresent\":false}],\"scopePaths\":[{\"pattern\":\"/tmp/jcr:content\",\"type\":\"allow\"}]}"));
+                ProgressCheck check = new JcrProperties().newInstance(obj()
+                        .key("properties", arr()
+                                .and(key("name", "double_nan").key("denyIfPresent", false)))
+                        .key("scopePaths", arr()
+                                .and(key("pattern", "/tmp/jcr:content").key("type", "allow")))
+                        .get());
                 CheckReport report = scanWithCheck(check, "double_properties.zip");
                 logViolations("double_nan, with scope", report);
                 assertEquals("no violations", 0, report.getViolations().size());
@@ -118,9 +134,12 @@ public class JcrPropertiesTest extends ProgressCheckTestBase {
         TestBody.test(new TestBody() {
             @Override
             protected void execute() throws Exception {
-                ProgressCheck check = new JcrProperties().newInstance(
-                        new JSONObject(
-                                "{\"properties\":[{\"name\":\"double_nan\",\"requireType\":\"Double\"},{\"name\":\"double_neg_inf\",\"requireType\":\"Double\"}]}"));
+                ProgressCheck check = new JcrProperties().newInstance(obj()
+                        .key("properties", arr()
+                                .and(key("name", "double_nan").key("requireType", "Double"))
+                                .and(key("name", "double_neg_inf").key("requireType", "Double"))
+                        )
+                        .get());
                 CheckReport report = scanWithCheck(check, "double_properties.zip");
                 assertEquals("no violations", 0, report.getViolations().size());
                 assertTrue("all violations have packageIds", report.getViolations().stream()
@@ -130,9 +149,12 @@ public class JcrPropertiesTest extends ProgressCheckTestBase {
         TestBody.test(new TestBody() {
             @Override
             protected void execute() throws Exception {
-                ProgressCheck check = new JcrProperties().newInstance(
-                        new JSONObject(
-                                "{\"properties\":[{\"name\":\"double_nan\",\"requireType\":\"String\"},{\"name\":\"double_neg_inf\",\"requireType\":\"String\"}]}"));
+                ProgressCheck check = new JcrProperties().newInstance(obj()
+                        .key("properties", arr()
+                                .and(key("name", "double_nan").key("requireType", "String"))
+                                .and(key("name", "double_neg_inf").key("requireType", "String"))
+                        )
+                        .get());
                 CheckReport report = scanWithCheck(check, "double_properties.zip");
                 LOGGER.info("violations: {}", new ArrayList<>(report.getViolations()));
                 assertEquals("two violations", 2, report.getViolations().size());

@@ -16,13 +16,14 @@
 
 package net.adamcin.oakpal.core.checks;
 
+import static net.adamcin.oakpal.core.OrgJson.arr;
+import static net.adamcin.oakpal.core.OrgJson.obj;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import net.adamcin.commons.testing.junit.TestBody;
 import net.adamcin.oakpal.core.CheckReport;
 import net.adamcin.oakpal.core.ProgressCheck;
-import org.json.JSONObject;
 import org.junit.Test;
 
 public class AcHandlingTest extends ProgressCheckTestBase {
@@ -32,9 +33,7 @@ public class AcHandlingTest extends ProgressCheckTestBase {
         TestBody.test(new TestBody() {
             @Override
             protected void execute() throws Exception {
-                ProgressCheck check = new AcHandling().newInstance(
-                        new JSONObject(
-                                "{\"levelSet\":\"no_unsafe\"}"));
+                ProgressCheck check = new AcHandling().newInstance(obj().key("levelSet", "no_unsafe").get());
                 CheckReport report = scanWithCheck(check, "test_childnodeorder.zip");
                 logViolations("level_set:no_unsafe", report);
                 assertEquals("no violations", 0, report.getViolations().size());
@@ -45,9 +44,7 @@ public class AcHandlingTest extends ProgressCheckTestBase {
         TestBody.test(new TestBody() {
             @Override
             protected void execute() throws Exception {
-                ProgressCheck check = new AcHandling().newInstance(
-                        new JSONObject(
-                                "{\"levelSet\":\"only_ignore\"}"));
+                ProgressCheck check = new AcHandling().newInstance(obj().key("levelSet", "only_ignore").get());
                 CheckReport report = scanWithCheck(check, "test_childnodeorder.zip");
                 logViolations("level_set:only_ignore", report);
                 assertEquals("one violation", 1, report.getViolations().size());
@@ -62,9 +59,8 @@ public class AcHandlingTest extends ProgressCheckTestBase {
         TestBody.test(new TestBody() {
             @Override
             protected void execute() throws Exception {
-                ProgressCheck check = new AcHandling().newInstance(
-                        new JSONObject(
-                                "{\"allowedModes\":[\"merge_preserve\"]}"));
+                ProgressCheck check =
+                        new AcHandling().newInstance(obj().key("allowedModes", arr("merge_preserve")).get());
                 CheckReport report = scanWithCheck(check, "test_childnodeorder.zip");
                 logViolations("allowedModes:merge_preserve", report);
                 assertEquals("no violations", 0, report.getViolations().size());
@@ -75,9 +71,8 @@ public class AcHandlingTest extends ProgressCheckTestBase {
         TestBody.test(new TestBody() {
             @Override
             protected void execute() throws Exception {
-                ProgressCheck check = new AcHandling().newInstance(
-                        new JSONObject(
-                                "{\"allowedModes\":[\"ignore\"]}"));
+                ProgressCheck check =
+                        new AcHandling().newInstance(obj().key("allowedModes", arr("ignore")).get());
                 CheckReport report = scanWithCheck(check, "test_childnodeorder.zip");
                 logViolations("allowedModes:ignore", report);
                 assertEquals("one violation", 1, report.getViolations().size());

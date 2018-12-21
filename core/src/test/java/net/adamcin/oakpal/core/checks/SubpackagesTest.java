@@ -16,13 +16,14 @@
 
 package net.adamcin.oakpal.core.checks;
 
+import static net.adamcin.oakpal.core.OrgJson.arr;
+import static net.adamcin.oakpal.core.OrgJson.key;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import net.adamcin.commons.testing.junit.TestBody;
 import net.adamcin.oakpal.core.CheckReport;
 import net.adamcin.oakpal.core.ProgressCheck;
-import org.json.JSONObject;
 import org.junit.Test;
 
 public class SubpackagesTest extends ProgressCheckTestBase {
@@ -32,9 +33,7 @@ public class SubpackagesTest extends ProgressCheckTestBase {
         TestBody.test(new TestBody() {
             @Override
             protected void execute() throws Exception {
-                ProgressCheck check = new Subpackages().newInstance(
-                        new JSONObject(
-                                "{\"denyAll\":false}"));
+                ProgressCheck check = new Subpackages().newInstance(key("denyAll", false).get());
                 CheckReport report = scanWithCheck(check, "subtest_with_content.zip");
                 logViolations("denyAll:false", report);
                 assertEquals("no violations", 0, report.getViolations().size());
@@ -45,9 +44,7 @@ public class SubpackagesTest extends ProgressCheckTestBase {
         TestBody.test(new TestBody() {
             @Override
             protected void execute() throws Exception {
-                ProgressCheck check = new Subpackages().newInstance(
-                        new JSONObject(
-                                "{\"denyAll\":true}"));
+                ProgressCheck check = new Subpackages().newInstance(key("denyAll", true).get());
                 CheckReport report = scanWithCheck(check, "subtest_with_content.zip");
                 logViolations("denyAll:false", report);
                 assertEquals("two violations", 2, report.getViolations().size());
@@ -62,9 +59,7 @@ public class SubpackagesTest extends ProgressCheckTestBase {
         TestBody.test(new TestBody() {
             @Override
             protected void execute() throws Exception {
-                ProgressCheck check = new Subpackages().newInstance(
-                        new JSONObject(
-                                "{\"rules\":[]}"));
+                ProgressCheck check = new Subpackages().newInstance(key("rules", arr()).get());
                 CheckReport report = scanWithCheck(check, "subtest_with_content.zip");
                 logViolations("testPatterns:[]", report);
                 assertEquals("no violations", 0, report.getViolations().size());
@@ -76,7 +71,7 @@ public class SubpackagesTest extends ProgressCheckTestBase {
             @Override
             protected void execute() throws Exception {
                 ProgressCheck check = new Subpackages().newInstance(
-                        new JSONObject("{\"rules\":[{\"type\":\"deny\",\"pattern\":\"my_packages:sub_.*\"}]}"));
+                        key("rules", arr(key("type", "deny").key("pattern", "my_packages:sub_.*"))).get());
                 CheckReport report = scanWithCheck(check, "subtest_with_content.zip");
                 logViolations("testPatterns:sub_.*", report);
                 assertEquals("two violations", 2, report.getViolations().size());
@@ -88,7 +83,10 @@ public class SubpackagesTest extends ProgressCheckTestBase {
             @Override
             protected void execute() throws Exception {
                 ProgressCheck check = new Subpackages().newInstance(
-                        new JSONObject("{\"rules\":[{\"type\":\"deny\",\"pattern\":\"my_packages:sub_.*\"},{\"type\":\"allow\",\"pattern\":\"my_packages:sub_a\"}]}"));
+                        key("rules", arr()
+                                .val(key("type", "deny").key("pattern", "my_packages:sub_.*"))
+                                .val(key("type", "allow").key("pattern", "my_packages:sub_a"))
+                        ).get());
                 CheckReport report = scanWithCheck(check, "subtest_with_content.zip");
                 logViolations("testPatterns:sub_.* - sub_a", report);
                 assertEquals("one violation", 1, report.getViolations().size());
@@ -100,7 +98,7 @@ public class SubpackagesTest extends ProgressCheckTestBase {
             @Override
             protected void execute() throws Exception {
                 ProgressCheck check = new Subpackages().newInstance(
-                        new JSONObject("{\"rules\":[{\"type\":\"deny\",\"pattern\":\"my_packages:sub_a\"}]}"));
+                        key("rules", arr(key("type", "deny").key("pattern", "my_packages:sub_a"))).get());
                 CheckReport report = scanWithCheck(check, "subtest_with_content.zip");
                 logViolations("testPatterns:sub_a", report);
                 assertEquals("one violation", 1, report.getViolations().size());
@@ -112,7 +110,7 @@ public class SubpackagesTest extends ProgressCheckTestBase {
             @Override
             protected void execute() throws Exception {
                 ProgressCheck check = new Subpackages().newInstance(
-                        new JSONObject("{\"rules\":[{\"type\":\"deny\",\"pattern\":\"my_packages:sub_b\"}]}"));
+                        key("rules", arr(key("type", "deny").key("pattern", "my_packages:sub_b"))).get());
                 CheckReport report = scanWithCheck(check, "subtest_with_content.zip");
                 logViolations("testPatterns:sub_b", report);
                 assertEquals("one violation", 1, report.getViolations().size());
@@ -124,7 +122,7 @@ public class SubpackagesTest extends ProgressCheckTestBase {
             @Override
             protected void execute() throws Exception {
                 ProgressCheck check = new Subpackages().newInstance(
-                        new JSONObject("{\"rules\":[{\"type\":\"deny\",\"pattern\":\"my_packages:sub_c\"}]}"));
+                        key("rules", arr(key("type", "deny").key("pattern", "my_packages:sub_c"))).get());
                 CheckReport report = scanWithCheck(check, "subtest_with_content.zip");
                 logViolations("testPatterns:sub_c", report);
                 assertEquals("one violation", 0, report.getViolations().size());

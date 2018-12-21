@@ -16,6 +16,7 @@
 
 package net.adamcin.oakpal.core.checks;
 
+import static net.adamcin.oakpal.core.OrgJson.obj;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -44,8 +45,7 @@ public class FilterSetsTest extends ProgressCheckTestBase {
         TestBody.test(new TestBody() {
             @Override
             protected void execute() throws Exception {
-                ProgressCheck handler = new FilterSets().newInstance(
-                        new JSONObject("{\"allowRootFilter\":true}"));
+                ProgressCheck handler = new FilterSets().newInstance(obj().key("allowRootFilter", true).get());
 
                 CheckReport report = scanWithCheck(handler, "testrootimport.zip");
                 assertEquals("no violations", 0, report.getViolations().size());
@@ -73,8 +73,7 @@ public class FilterSetsTest extends ProgressCheckTestBase {
         TestBody.test(new TestBody() {
             @Override
             protected void execute() throws Exception {
-                ProgressCheck handler = new FilterSets().newInstance(
-                        new JSONObject("{\"importModeSeverity\":\"severe\"}"));
+                ProgressCheck handler = new FilterSets().newInstance(obj().key("importModeSeverity", "severe").get());
                 CheckReport report = scanWithCheck(handler, "tmp_mode_merge.zip");
 
                 assertEquals("one violation", 1, report.getViolations().size());
@@ -104,8 +103,7 @@ public class FilterSetsTest extends ProgressCheckTestBase {
         TestBody.test(new TestBody() {
             @Override
             protected void execute() throws Exception {
-                ProgressCheck handler = new FilterSets().newInstance(
-                        new JSONObject("{\"allowEmptyFilter\":true}"));
+                ProgressCheck handler = new FilterSets().newInstance(obj().key("allowEmptyFilter", true).get());
                 CheckReport report = scanWithCheck(handler, "tmp_foo_bar_test_nofilter.zip");
 
                 assertEquals("no violations", 0, report.getViolations().size());

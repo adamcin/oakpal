@@ -16,15 +16,17 @@
 
 package net.adamcin.oakpal.core.checks;
 
+import static net.adamcin.oakpal.core.OrgJson.arr;
+import static net.adamcin.oakpal.core.OrgJson.obj;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import net.adamcin.commons.testing.junit.TestBody;
 import net.adamcin.oakpal.core.CheckReport;
 import net.adamcin.oakpal.core.ProgressCheck;
 import net.adamcin.oakpal.core.Violation;
 import org.json.JSONObject;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 public class PathsTest extends ProgressCheckTestBase {
 
@@ -33,14 +35,16 @@ public class PathsTest extends ProgressCheckTestBase {
         TestBody.test(new TestBody() {
             @Override
             protected void execute() throws Exception {
-                ProgressCheck check = new Paths().newInstance(
-                    new JSONObject(
-                        "{\"rules\": [{\"type\": \"deny\",\"pattern\": \"/etc(/.*)?\"}]}"));
+                JSONObject config = obj()
+                        .key("rules", arr()
+                                .and(obj().key("type", "deny").key("pattern", "/etc(/.*)?")))
+                        .get();
+                ProgressCheck check = new Paths().newInstance(config);
                 CheckReport report = scanWithCheck(check, "test-package-with-etc.zip");
                 logViolations("level_set:no_unsafe", report);
                 assertEquals("violations", 6, report.getViolations().size());
                 assertTrue("all violations are MAJOR", report.getViolations().stream()
-                    .allMatch(viol -> viol.getSeverity().equals(Violation.Severity.MAJOR)));
+                        .allMatch(viol -> viol.getSeverity().equals(Violation.Severity.MAJOR)));
             }
         });
     }
@@ -50,14 +54,17 @@ public class PathsTest extends ProgressCheckTestBase {
         TestBody.test(new TestBody() {
             @Override
             protected void execute() throws Exception {
-                ProgressCheck check = new Paths().newInstance(
-                    new JSONObject(
-                        "{\"rules\": [{\"type\": \"deny\",\"pattern\": \"/etc(/.*)?\"}],\"severity\":\"SEVERE\"}"));
+                JSONObject config = obj()
+                        .key("rules", arr()
+                                .and(obj().key("type", "deny").key("pattern", "/etc(/.*)?")))
+                        .key("severity", "SEVERE")
+                        .get();
+                ProgressCheck check = new Paths().newInstance(config);
                 CheckReport report = scanWithCheck(check, "test-package-with-etc.zip");
                 logViolations("level_set:no_unsafe", report);
                 assertEquals("violations", 6, report.getViolations().size());
                 assertTrue("all violations are SEVERE", report.getViolations().stream()
-                    .allMatch(viol -> viol.getSeverity().equals(Violation.Severity.SEVERE)));
+                        .allMatch(viol -> viol.getSeverity().equals(Violation.Severity.SEVERE)));
             }
         });
     }
@@ -67,14 +74,17 @@ public class PathsTest extends ProgressCheckTestBase {
         TestBody.test(new TestBody() {
             @Override
             protected void execute() throws Exception {
-                ProgressCheck check = new Paths().newInstance(
-                    new JSONObject(
-                        "{\"rules\": [{\"type\": \"deny\",\"pattern\": \"/etc(/.*)?\"}],\"severity\":\"minor\"}"));
+                JSONObject config = obj()
+                        .key("rules", arr()
+                                .and(obj().key("type", "deny").key("pattern", "/etc(/.*)?")))
+                        .key("severity", "minor")
+                        .get();
+                ProgressCheck check = new Paths().newInstance(config);
                 CheckReport report = scanWithCheck(check, "test-package-with-etc.zip");
                 logViolations("level_set:no_unsafe", report);
                 assertEquals("violations", 6, report.getViolations().size());
                 assertTrue("all violations are MINOR", report.getViolations().stream()
-                    .allMatch(viol -> viol.getSeverity().equals(Violation.Severity.MINOR)));
+                        .allMatch(viol -> viol.getSeverity().equals(Violation.Severity.MINOR)));
             }
         });
     }
@@ -86,9 +96,12 @@ public class PathsTest extends ProgressCheckTestBase {
             protected void execute() throws Exception {
                 boolean threw = false;
                 try {
-                    ProgressCheck check = new Paths().newInstance(
-                            new JSONObject(
-                                    "{\"rules\": [{\"type\": \"deny\",\"pattern\": \"/etc(/.*)?\"}],\"severity\":\"whoops\"}"));
+                    JSONObject config = obj()
+                            .key("rules", arr()
+                                    .and(obj().key("type", "deny").key("pattern", "/etc(/.*)?")))
+                            .key("severity", "whoops")
+                            .get();
+                    ProgressCheck check = new Paths().newInstance(config);
                 } catch (IllegalArgumentException e) {
                     threw = true;
                 }

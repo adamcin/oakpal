@@ -16,9 +16,12 @@
 
 package net.adamcin.oakpal.core.checks;
 
+import static net.adamcin.oakpal.core.OrgJson.key;
+
 import java.util.List;
 import java.util.regex.Pattern;
 
+import net.adamcin.oakpal.core.OrgJson;
 import net.adamcin.oakpal.core.Util;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -36,7 +39,7 @@ import org.json.JSONObject;
  * are assumed).</dd>
  * </dl>
  */
-public final class Rule {
+public final class Rule implements OrgJson.ObjectConvertible {
     /**
      * A default INCLUDE rule that matches everything.
      */
@@ -139,6 +142,11 @@ public final class Rule {
     }
 
     @Override
+    public JSONObject toJSON() {
+        return key(CONFIG_TYPE, getType().name()).key(CONFIG_PATTERN, getPattern().pattern()).get();
+    }
+
+    @Override
     public String toString() {
         return getType().name() + ":" + getPattern().pattern();
     }
@@ -209,7 +217,7 @@ public final class Rule {
      * @return usually {@link #DEFAULT_INCLUDE}, but sometimes {@link #DEFAULT_EXCLUDE}
      */
     public static Rule fuzzyDefaultInclude(final List<Rule> rules) {
-        if (rules != null && !rules.isEmpty() && rules.get(0).isAllow()) {
+        if (rules != null && !rules.isEmpty() && rules.get(0).isInclude()) {
             return DEFAULT_EXCLUDE;
         }
         return DEFAULT_INCLUDE;
@@ -223,7 +231,7 @@ public final class Rule {
      * @return usually {@link #DEFAULT_EXCLUDE}, but sometimes {@link #DEFAULT_INCLUDE}
      */
     public static Rule fuzzyDefaultExclude(final List<Rule> rules) {
-        if (rules != null && !rules.isEmpty() && rules.get(0).isDeny()) {
+        if (rules != null && !rules.isEmpty() && rules.get(0).isExclude()) {
             return DEFAULT_INCLUDE;
         }
         return DEFAULT_EXCLUDE;
