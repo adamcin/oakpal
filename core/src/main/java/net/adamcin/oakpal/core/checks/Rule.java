@@ -70,7 +70,8 @@ public final class Rule implements OrgJson.ObjectConvertible {
     /**
      * Create a new rule.
      *
-     * @param type    {@link RuleType#INCLUDE} or {@link RuleType#EXCLUDE} (or {@link RuleType#ALLOW or {@link RuleType#DENY})
+     * @param type    {@link RuleType#INCLUDE} or {@link RuleType#EXCLUDE}
+     *                                        (or {@link RuleType#ALLOW} or {@link RuleType#DENY})
      * @param pattern a compiled regular expression pattern
      */
     public Rule(final RuleType type, final Pattern pattern) {
