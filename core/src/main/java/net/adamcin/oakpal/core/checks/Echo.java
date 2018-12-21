@@ -43,8 +43,8 @@ public class Echo implements ProgressCheck {
     /**
      * Override this method to use a logger instead of System.out, for example.
      *
-     * @param message
-     * @param formatArgs
+     * @param message message to print
+     * @param formatArgs optional args to {@link String#format(String, Object...)}
      */
     protected void echo(final String message, Object... formatArgs) {
         System.out.println("[ECHO] " + String.format(message, formatArgs));
