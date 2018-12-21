@@ -32,20 +32,45 @@ import org.json.JSONObject;
  * Recommend using {@code import static net.adamcin.oakpal.core.OrgJson.*;}
  */
 public final class OrgJson {
+
+    /**
+     * Custom pojo types which should be usable within this DSL should implement this method to provide a
+     * {@link JSONObject}, which can be wrapped quickly by {@link #val(Object)}.
+     */
     public interface ObjectConvertible {
         JSONObject toJSON();
     }
 
+    /**
+     * Custom pojo types which should be usable within this DSL should implement this method to provide a
+     * {@link JSONArray}, which can be wrapped quickly by {@link #val(Object)}.
+     */
     public interface ArrayConvertible {
         JSONArray toJSON();
     }
 
+    /**
+     * Defines a method toValue which coalesces the underlying value to prevent over-wrapping by the
+     * {@link #val(Object)} method.
+     */
     public interface HasValue {
         Value toValue();
     }
 
+    /**
+     * Defines a get method returns the constructed type parameter.
+     *
+     * @param <TYPE>
+     */
     public interface As<TYPE> {
         TYPE get();
+    }
+
+    /**
+     * Type which allows a different fluent style for building keys, i.e. {@code key(String).val(obj)}.
+     */
+    public interface Cursor {
+        String getKey();
     }
 
     /**
@@ -55,7 +80,9 @@ public final class OrgJson {
      * @return a DSL-wrapped value
      */
     public static Value val(Object value) {
-        if (value instanceof ObjectConvertible) {
+        if (value instanceof Cursor) {
+            throw new IllegalArgumentException("dangling cursor for key: " + ((Cursor) value).getKey());
+        } else if (value instanceof ObjectConvertible) {
             return val(((ObjectConvertible) value).toJSON());
         } else if (value instanceof ArrayConvertible) {
             return val(((ArrayConvertible) value).toJSON());
@@ -78,15 +105,26 @@ public final class OrgJson {
 
     /**
      * Create an object, and add all the keys from the provided json object to it.
+     *
      * @param jsonObject a starting point
      * @return a new obj
      */
     public static Obj obj(final JSONObject jsonObject) {
-        final Obj object = new Obj();
         if (jsonObject != null) {
-            object.and(jsonObject.toMap());
+            return obj(jsonObject.toMap());
+        } else {
+            return new Obj();
         }
-        return object;
+    }
+
+    /**
+     * Create an object, and add all the keys from the provided map to it.
+     *
+     * @param map a starting point
+     * @return a new obj
+     */
+    public static Obj obj(final Map<?, ?> map) {
+        return new Obj().and(map);
     }
 
     /**
@@ -96,8 +134,19 @@ public final class OrgJson {
      * @param value the value
      * @return a key-value pair.
      */
-    public static Key key(String key, Object value) {
+    public static Key key(final String key, final Object value) {
         return new Key(key, value);
+    }
+
+    /**
+     * Begin a key-value pair without providing a value argument. {@code val(Object)} must be called to provide a value
+     * for the key-value pair before more keys are appended.
+     *
+     * @param key the key
+     * @return a cursor waiting for a value
+     */
+    public static KeyCursor key(final String key) {
+        return new KeyCursor(key);
     }
 
     /**
@@ -120,6 +169,12 @@ public final class OrgJson {
     public static final class Value implements HasValue, As<Object> {
         private final Object value;
 
+        /**
+         * Wraps the value with {@link JSONObject#wrap(Object)}. Nulls are allowed, Collections and Maps get special
+         * treatment, and org.json types are returned unwrapped.
+         *
+         * @param value the value to wrap.
+         */
         private Value(final Object value) {
             this.value = JSONObject.wrap(value);
         }
@@ -128,6 +183,12 @@ public final class OrgJson {
             return this.value;
         }
 
+        /**
+         * Conveniently allows one to start an array without the use of {@link #arr(Object...)}.
+         *
+         * @param value a second value to append to this one as a new 2-element array
+         * @return a new array
+         */
         public Arr val(final Object value) {
             return new Arr(this).val(value);
         }
@@ -135,6 +196,60 @@ public final class OrgJson {
         @Override
         public Value toValue() {
             return this;
+        }
+    }
+
+    /**
+     * Cursor type originating from a call to {@link OrgJson#key(String)}, and which therefore returns a lone
+     * {@link Key} for {@link KeyCursor#val(Object)}.
+     */
+    public static final class KeyCursor implements Cursor {
+        private final String key;
+
+        private KeyCursor(final String key) {
+            if (key == null) {
+                throw new NullPointerException("key");
+            }
+            this.key = key;
+        }
+
+        public Key val(final Object value) {
+            return key(this.key, value);
+        }
+
+        @Override
+        public String getKey() {
+            return this.key;
+        }
+    }
+
+    /**
+     * Cursor type originating from a call to {@link Key#key(String)} or {@link Obj#key(String)}, and which therefore
+     * returns a new {@link Obj} with the newly-finished key appended internally.
+     */
+    public static final class ObjCursor implements Cursor {
+        private final Obj obj;
+        private final String key;
+
+        private ObjCursor(final Obj obj, final String key) {
+            if (key == null) {
+                throw new NullPointerException("key");
+            }
+            this.obj = obj;
+            this.key = key;
+        }
+
+        public Obj val(final Object value) {
+            return obj.key(this.key, value);
+        }
+
+        public Obj getObj() {
+            return this.obj;
+        }
+
+        @Override
+        public String getKey() {
+            return key;
         }
     }
 
@@ -147,6 +262,9 @@ public final class OrgJson {
         private final Value value;
 
         private Key(final String key, final Object value) {
+            if (key == null) {
+                throw new NullPointerException("key");
+            }
             this.key = key;
             this.value = val(value);
         }
@@ -157,6 +275,10 @@ public final class OrgJson {
 
         Value getValue() {
             return value;
+        }
+
+        public ObjCursor key(final String key) {
+            return new ObjCursor(new Obj(this), key);
         }
 
         public Obj key(final String key, final Object value) {
@@ -215,6 +337,18 @@ public final class OrgJson {
         }
 
         /**
+         * Begin another {@link Key} instance without providing an associated value. {@code val(Object value)} must be
+         * called on the returned cursor to continue building the obj.
+         *
+         * @param key the key
+         * @return a cursor waiting for a val.
+         */
+        public ObjCursor key(final String key) {
+            return new ObjCursor(this, key);
+        }
+
+
+        /**
          * Append another {@link Key} instance. Essentially shorthand for {@code obj.and(key())} to use fewer parens
          * where desired.
          *
@@ -223,9 +357,7 @@ public final class OrgJson {
          * @return this obj
          */
         public Obj key(final String key, final Object value) {
-            if (key != null) {
-                this.entries.add(new Key(key, val(value)));
-            }
+            this.entries.add(new Key(key, val(value)));
             return this;
         }
 
