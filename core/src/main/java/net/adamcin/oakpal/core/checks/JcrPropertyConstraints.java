@@ -190,12 +190,7 @@ public final class JcrPropertyConstraints {
             }
 
             for (String value : values) {
-                Rule lastMatch = Rule.fuzzyDefaultAllow(getValueRules());
-                for (Rule rule : getValueRules()) {
-                    if (rule.matches(value)) {
-                        lastMatch = rule;
-                    }
-                }
+                final Rule lastMatch = Rule.lastMatch(getValueRules(), value);
                 if (lastMatch.isDeny()) {
                     return Optional.of(constructViolation(packageId, node,
                             String.format("value %s denied by pattern %s",

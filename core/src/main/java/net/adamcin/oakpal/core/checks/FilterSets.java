@@ -23,7 +23,6 @@ import javax.jcr.Session;
 import net.adamcin.oakpal.core.ProgressCheck;
 import net.adamcin.oakpal.core.ProgressCheckFactory;
 import net.adamcin.oakpal.core.SimpleProgressCheck;
-import net.adamcin.oakpal.core.SimpleViolation;
 import net.adamcin.oakpal.core.Violation;
 import org.apache.jackrabbit.vault.fs.api.ImportMode;
 import org.apache.jackrabbit.vault.fs.api.PathFilterSet;
@@ -95,20 +94,20 @@ public final class FilterSets implements ProgressCheckFactory {
             final WorkspaceFilter filter = metaInf.getFilter();
             if (filter == null || filter.getFilterSets().isEmpty()) {
                 if (!allowEmptyFilter) {
-                    reportViolation(new SimpleViolation(Violation.Severity.MAJOR,
-                            "empty workspace filter is not allowed", packageId));
+                    reportViolation(Violation.Severity.MAJOR,
+                            "empty workspace filter is not allowed", packageId);
                 }
             } else {
                 for (PathFilterSet filterSet : filter.getFilterSets()) {
                     if (filterSet.getImportMode() != ImportMode.REPLACE) {
-                        reportViolation(new SimpleViolation(importModeSeverity,
+                        reportViolation(importModeSeverity,
                                 String.format("non-default import mode %s defined for filterSet with root %s",
                                         filterSet.getImportMode(), filterSet.getRoot()),
-                                packageId));
+                                packageId);
                     }
                     if (!allowRootFilter && "/".equals(filterSet.getRoot())) {
-                        reportViolation(new SimpleViolation(Violation.Severity.MAJOR,
-                                "root filter sets are not allowed", packageId));
+                        reportViolation(Violation.Severity.MAJOR,
+                                "root filter sets are not allowed", packageId);
                     }
                 }
             }

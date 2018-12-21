@@ -115,7 +115,7 @@ public final class JcrProperties implements ProgressCheckFactory {
         return new Check(pathScope, denyNodeTypes, nodeTypeScope, propertyChecks);
     }
 
-    static class Check extends SimpleProgressCheck {
+    static final class Check extends SimpleProgressCheck {
         private final List<Rule> scopePaths;
         private final List<String> denyNodeTypes;
         private final List<String> scopeNodeTypes;
@@ -150,13 +150,8 @@ public final class JcrProperties implements ProgressCheckFactory {
                 return;
             }
 
-            Rule lastMatch = Rule.fuzzyDefaultAllow(scopePaths);
-            for (Rule rule : scopePaths) {
-                if (rule.matches(path)) {
-                    lastMatch = rule;
-                }
-            }
-            if (lastMatch.isAllow()) {
+            final Rule lastMatch = Rule.lastMatch(scopePaths, path);
+            if (lastMatch.isInclude()) {
                 this.checkNode(packageId, node);
             }
         }

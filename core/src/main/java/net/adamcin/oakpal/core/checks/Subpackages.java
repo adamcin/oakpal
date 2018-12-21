@@ -86,25 +86,16 @@ public final class Subpackages implements ProgressCheckFactory {
         @Override
         public void identifySubpackage(final PackageId packageId, final PackageId parentId) {
             if (denyAll) {
-                reportViolation(new SimpleViolation(Violation.Severity.MAJOR,
+                reportViolation(Violation.Severity.MAJOR,
                         String.format("subpackage %s included by %s. no subpackages are allowed.",
-                                packageId, parentId), packageId));
+                                packageId, parentId), packageId);
             } else {
-                Rule lastMatch = Rule.fuzzyDefaultAllow(rules);
-                for (Rule rule : rules) {
-                    System.out.printf("packageId: %s, pattern: %s, matches: %s\n", packageId.toString(),
-                            rule.getPattern().pattern(), rule.matches(packageId.toString()));
-
-                    if (rule.matches(packageId.toString())) {
-                        lastMatch = rule;
-                    }
-                }
-
+                final Rule lastMatch = Rule.lastMatch(rules, packageId.toString());
                 if (lastMatch.isDeny()) {
-                    reportViolation(new SimpleViolation(Violation.Severity.MAJOR,
+                    reportViolation(Violation.Severity.MAJOR,
                             String.format("subpackage %s included by %s matches deny pattern %s",
                                     packageId.toString(), parentId.toString(),
-                                    lastMatch.getPattern().pattern()), packageId));
+                                    lastMatch.getPattern().pattern()), packageId);
                 }
             }
         }

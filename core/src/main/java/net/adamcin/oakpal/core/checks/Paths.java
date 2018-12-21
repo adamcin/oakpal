@@ -74,9 +74,8 @@ public final class Paths implements ProgressCheckFactory {
         final boolean denyAllDeletes = config.has(CONFIG_DENY_ALL_DELETES)
                 && config.optBoolean(CONFIG_DENY_ALL_DELETES);
 
-        final Violation.Severity severity = config.has(CONFIG_SEVERITY)
-                ? Violation.Severity.valueOf(config.optString(CONFIG_SEVERITY).toUpperCase())
-                : Violation.Severity.MAJOR;
+        final Violation.Severity severity = Violation.Severity.valueOf(
+                config.optString(CONFIG_SEVERITY, Violation.Severity.MAJOR.name()).toUpperCase());
 
         return new Check(rules, denyAllDeletes, severity);
     }
@@ -109,9 +108,9 @@ public final class Paths implements ProgressCheckFactory {
             }
 
             if (lastMatch.isDeny()) {
-                reportViolation(new SimpleViolation(severity,
+                reportViolation(severity,
                         String.format("imported path %s matches deny pattern %s", path,
-                                lastMatch.getPattern().pattern()), packageId));
+                                lastMatch.getPattern().pattern()), packageId);
             }
         }
 
@@ -119,20 +118,14 @@ public final class Paths implements ProgressCheckFactory {
         public void deletedPath(final PackageId packageId, final String path, final Session inspectSession)
                 throws RepositoryException {
             if (this.denyAllDeletes) {
-                reportViolation(new SimpleViolation(severity,
-                        String.format("deleted path %s. All deletions are denied.", path), packageId));
+                reportViolation(severity,
+                        String.format("deleted path %s. All deletions are denied.", path), packageId);
             } else {
-                Rule lastMatch = Rule.fuzzyDefaultAllow(rules);
-                for (Rule rule : rules) {
-                    if (rule.matches(path)) {
-                        lastMatch = rule;
-                    }
-                }
-
+                final Rule lastMatch = Rule.lastMatch(rules, path);
                 if (lastMatch.isDeny()) {
-                    reportViolation(new SimpleViolation(severity,
+                    reportViolation(severity,
                             String.format("deleted path %s matches deny rule %s", path,
-                                    lastMatch.getPattern().pattern()), packageId));
+                                    lastMatch.getPattern().pattern()), packageId);
                 }
             }
         }

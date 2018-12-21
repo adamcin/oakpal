@@ -34,7 +34,6 @@ import javax.jcr.Session;
 import net.adamcin.oakpal.core.ProgressCheck;
 import net.adamcin.oakpal.core.ProgressCheckFactory;
 import net.adamcin.oakpal.core.SimpleProgressCheck;
-import net.adamcin.oakpal.core.SimpleViolation;
 import net.adamcin.oakpal.core.Violation;
 import org.apache.jackrabbit.vault.fs.config.MetaInf;
 import org.apache.jackrabbit.vault.fs.io.AccessControlHandling;
@@ -138,7 +137,7 @@ public final class AcHandling implements ProgressCheckFactory {
         final List<AccessControlHandling> allowedModes;
 
         Check(final ACHandlingLevelSet levelSet,
-                     final List<AccessControlHandling> allowedModes) {
+              final List<AccessControlHandling> allowedModes) {
             this.levelSet = levelSet;
             this.allowedModes = allowedModes;
         }
@@ -159,16 +158,16 @@ public final class AcHandling implements ProgressCheckFactory {
             AccessControlHandling packageMode = ofNullable(packageProperties.getACHandling()).orElse(IGNORE);
             if (this.levelSet == ACHandlingLevelSet.EXPLICIT) {
                 if (!allowedModes.contains(packageMode)) {
-                    reportViolation(new SimpleViolation(Violation.Severity.MAJOR,
+                    reportViolation(Violation.Severity.MAJOR,
                             String.format("acHandling mode %s is forbidden. acHandling values in allowedModes are %s",
-                                    packageMode, allowedModes), packageId));
+                                    packageMode, allowedModes), packageId);
                 }
             } else {
                 if (!this.levelSet.getAllowedModes().contains(packageMode)) {
-                    reportViolation(new SimpleViolation(Violation.Severity.MAJOR,
+                    reportViolation(Violation.Severity.MAJOR,
                             String.format("acHandling mode %s is forbidden. allowed acHandling values in levelSet:%s are %s",
                                     packageMode, this.levelSet.name().toLowerCase(), this.levelSet.getAllowedModes()),
-                            packageId));
+                            packageId);
                 }
             }
         }

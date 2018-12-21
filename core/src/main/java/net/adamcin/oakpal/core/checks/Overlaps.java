@@ -119,9 +119,9 @@ public final class Overlaps implements ProgressCheckFactory {
                 if (!reportAllOverlaps) {
                     reported.put(currentPackageId, severity);
                 }
-                reportViolation(new SimpleViolation(severity,
+                reportViolation(severity,
                         String.format("affected path %s overlaps %s", path, overlapping),
-                        currentPackageId));
+                        currentPackageId);
             }
         }
 

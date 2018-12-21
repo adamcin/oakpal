@@ -19,6 +19,8 @@ package net.adamcin.oakpal.core.checks;
 import static net.adamcin.oakpal.core.OrgJson.key;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.function.Function;
 import java.util.regex.Pattern;
 
 import net.adamcin.oakpal.core.OrgJson;
@@ -236,4 +238,38 @@ public final class Rule implements OrgJson.ObjectConvertible {
         }
         return DEFAULT_EXCLUDE;
     }
+
+    /**
+     * Evaluate the provided list of rules against the String value using the provided selector function to select the
+     * default rule when none match.
+     *
+     * @param rules         a list of rules to match against the value. the last one to match, if any, is returned.
+     * @param value         the string value to match against.
+     * @param selectDefault a function to select the default rule based on the specified list of rules.
+     * @return the last rule in the list that matches the value, or a default rule
+     */
+    public static Rule lastMatch(final List<Rule> rules,
+                                 final String value,
+                                 final Function<List<Rule>, Rule> selectDefault) {
+        Rule lastMatched = Optional.ofNullable(selectDefault).map(func -> func.apply(rules)).orElse(DEFAULT_INCLUDE);
+        for (Rule rule : rules) {
+            if (rule.matches(value)) {
+                lastMatched = rule;
+            }
+        }
+        return lastMatched;
+    }
+
+    /**
+     * Evaluate the provided list of rules against the String value, using {@link #fuzzyDefaultInclude(List)} to select
+     * the default rule when none match.
+     *
+     * @param rules a list of rules to match against the value. the last one to match, if any, is returned.
+     * @param value the string value to match against.
+     * @return the last rule in the list that matches the value, or a default rule
+     */
+    public static Rule lastMatch(final List<Rule> rules, final String value) {
+        return lastMatch(rules, value, Rule::fuzzyDefaultInclude);
+    }
+
 }
