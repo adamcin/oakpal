@@ -17,27 +17,26 @@
 package net.adamcin.oakpal.core.checks;
 
 import static net.adamcin.oakpal.core.OrgJson.arr;
-import static net.adamcin.oakpal.core.OrgJson.obj;
+import static net.adamcin.oakpal.core.OrgJson.key;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+
+import java.util.regex.Pattern;
 
 import net.adamcin.oakpal.core.CheckReport;
 import net.adamcin.oakpal.core.ProgressCheck;
 import net.adamcin.oakpal.core.TestUtil;
 import net.adamcin.oakpal.core.Violation;
-import org.json.JSONObject;
 import org.junit.Test;
 
 public class PathsTest extends ProgressCheckTestBase {
 
+    private static final Rule denyEtc = new Rule(Rule.RuleType.DENY, Pattern.compile("/etc(/.*)?"));
+
     @Test
     public void testDefaultSeverity() throws Exception {
         TestUtil.testBlock(() -> {
-            JSONObject config = obj()
-                    .key("rules", arr()
-                            .and(obj().key("type", "deny").key("pattern", "/etc(/.*)?")))
-                    .get();
-            ProgressCheck check = new Paths().newInstance(config);
+            ProgressCheck check = new Paths().newInstance(key("rules", arr(denyEtc)).get());
             CheckReport report = scanWithCheck(check, "test-package-with-etc.zip");
             logViolations("level_set:no_unsafe", report);
             assertEquals("violations", 6, report.getViolations().size());
@@ -49,12 +48,7 @@ public class PathsTest extends ProgressCheckTestBase {
     @Test
     public void testCustomSeverity() throws Exception {
         TestUtil.testBlock(() -> {
-            JSONObject config = obj()
-                    .key("rules", arr()
-                            .and(obj().key("type", "deny").key("pattern", "/etc(/.*)?")))
-                    .key("severity", "SEVERE")
-                    .get();
-            ProgressCheck check = new Paths().newInstance(config);
+            ProgressCheck check = new Paths().newInstance(key("severity", "SEVERE").key("rules", arr(denyEtc)).get());
             CheckReport report = scanWithCheck(check, "test-package-with-etc.zip");
             logViolations("level_set:no_unsafe", report);
             assertEquals("violations", 6, report.getViolations().size());
@@ -66,12 +60,7 @@ public class PathsTest extends ProgressCheckTestBase {
     @Test
     public void testCustomSeverityMixedCase() throws Exception {
         TestUtil.testBlock(() -> {
-            JSONObject config = obj()
-                    .key("rules", arr()
-                            .and(obj().key("type", "deny").key("pattern", "/etc(/.*)?")))
-                    .key("severity", "minor")
-                    .get();
-            ProgressCheck check = new Paths().newInstance(config);
+            ProgressCheck check = new Paths().newInstance(key("severity", "minor").key("rules", arr(denyEtc)).get());
             CheckReport report = scanWithCheck(check, "test-package-with-etc.zip");
             logViolations("level_set:no_unsafe", report);
             assertEquals("violations", 6, report.getViolations().size());
@@ -85,12 +74,7 @@ public class PathsTest extends ProgressCheckTestBase {
         TestUtil.testBlock(() -> {
             boolean threw = false;
             try {
-                JSONObject config = obj()
-                        .key("rules", arr()
-                                .and(obj().key("type", "deny").key("pattern", "/etc(/.*)?")))
-                        .key("severity", "whoops")
-                        .get();
-                ProgressCheck check = new Paths().newInstance(config);
+                ProgressCheck check = new Paths().newInstance(key("severity", "whoops").key("rules", arr(denyEtc)).get());
             } catch (IllegalArgumentException e) {
                 threw = true;
             }
