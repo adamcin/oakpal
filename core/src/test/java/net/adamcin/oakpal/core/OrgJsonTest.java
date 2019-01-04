@@ -62,6 +62,13 @@ public class OrgJsonTest {
                 obj(key("foo", "bar"), key("foo2", "bar2")).get().toMap(),
                 obj(key("foo", "bar")).and(key("foo2", "bar2")).get().toMap());
 
+        assertEquals("obj.arrKeys() retains order and duplicates",
+                "[\"one\",\"two\",\"three\",\"two\"]",
+                key("one", 1).key("two", 2).key("three", 3).key("two", -2).arrKeys().get().toString());
+
+        assertEquals("obj.arrVals() retains order and duplicates",
+                "[1,2,3,-2]",
+                key("one", 1).key("two", 2).key("three", 3).key("two", -2).arrVals().get().toString());
     }
 
     @Test
@@ -86,6 +93,10 @@ public class OrgJsonTest {
                 "[0,1,2,3,4]",
                 arr().val(0).val(1).val(2).val(3).val(4).get().toString());
 
+        assertEquals("easy numerical sequence as dotted vals, no arr() initiator",
+                "[0,1,2,3,4]",
+                val(0).val(1).val(2).val(3).val(4).get().toString());
+
         assertEquals("numerical sequence as arr().and()",
                 "[0,1,2,3,4]", arr(0, 1).and(2, 3, 4).get().toString());
     }
@@ -108,6 +119,7 @@ public class OrgJsonTest {
         assertTrue("arr is arr is JSONArray", val(val(arr())).get() instanceof JSONArray);
         assertTrue("JSONArray is JSONArray", val(arr().get()).get() instanceof JSONArray);
         assertTrue("JSONArray is JSONArray is JSONArray", val(val(arr().get())).get() instanceof JSONArray);
+
     }
 
     @Test
