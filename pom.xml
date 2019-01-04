@@ -325,15 +325,12 @@
         </profile>
         <profile>
             <id>coverage</id>
-            <properties>
-                <jacoco.version>0.8.2</jacoco.version>
-            </properties>
             <build>
                 <plugins>
                     <plugin>
                         <groupId>org.jacoco</groupId>
                         <artifactId>jacoco-maven-plugin</artifactId>
-                        <version>${jacoco.version}</version>
+                        <version>0.8.2</version>
                         <executions>
                             <execution>
                                 <id>default-prepare-agent</id>
@@ -363,6 +360,20 @@
                                 <phase>prepare-package</phase>
                                 <goals>
                                     <goal>report</goal>
+                                </goals>
+                            </execution>
+                            <execution>
+                                <id>its-prepare-agent</id>
+                                <phase>pre-integration-test</phase>
+                                <goals>
+                                    <goal>prepare-agent-integration</goal>
+                                </goals>
+                            </execution>
+                            <execution>
+                                <id>its-report</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>report-integration</goal>
                                 </goals>
                             </execution>
                         </executions>

@@ -23,16 +23,19 @@ import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Enumeration;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import aQute.bnd.header.Parameters;
@@ -140,10 +143,10 @@ public final class Util {
         }
     }
 
-    public static <T> List<T> fromJSONArray(final JSONArray jsonArray, Function<JSONObject, T> mapper) {
+    public static <T> List<T> fromJSONArray(final JSONArray jsonArray, final Function<JSONObject, T> mapper) {
         List<JSONObject> onlyObjects = new ArrayList<>();
         List<T> results = new ArrayList<>();
-        Optional.ofNullable(jsonArray).map(array -> StreamSupport.stream(array.spliterator(), true)
+        Optional.ofNullable(jsonArray).map(array -> StreamSupport.stream(array.spliterator(), false)
                 .filter(json -> json instanceof JSONObject)
                 .map(JSONObject.class::cast).collect(Collectors.toList()))
                 .ifPresent(onlyObjects::addAll);
@@ -151,6 +154,38 @@ public final class Util {
         for (JSONObject json : onlyObjects) {
             results.add(mapper.apply(json));
         }
-        return results;
+        return Collections.unmodifiableList(results);
+    }
+
+    public static List<String> fromJSONArrayAsStrings(final JSONArray jsonArray) {
+        return Optional.ofNullable(jsonArray)
+                .map(array -> StreamSupport.stream(array.spliterator(), false)
+                        .map(String::valueOf).collect(Collectors.toList()))
+                .orElse(Collections.emptyList());
+    }
+
+    public static <T> List<T> fromJSONArrayParsed(final JSONArray jsonArray,
+                                                  final StringElementParser<T> parser,
+                                                  final BiConsumer<String, Exception> errorConsumer) {
+        return Optional.ofNullable(jsonArray)
+                .map(elements -> StreamSupport.stream(elements.spliterator(), false)
+                        .map(String::valueOf)
+                        .flatMap(element -> {
+                            try {
+                                return Stream.of(parser.apply(element));
+                            } catch (Exception e) {
+                                if (errorConsumer != null) {
+                                    errorConsumer.accept(element, e);
+                                }
+                                return Stream.empty();
+                            }
+                        })
+                        .collect(Collectors.toList()))
+                .orElse(Collections.emptyList());
+    }
+
+    @FunctionalInterface
+    public interface StringElementParser<T> {
+        T apply(String element) throws Exception;
     }
 }

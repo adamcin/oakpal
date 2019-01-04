@@ -25,7 +25,6 @@ import java.util.List;
 import java.util.jar.JarFile;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 import org.json.JSONObject;
 import org.slf4j.Logger;
@@ -224,7 +223,6 @@ public final class Checklist {
             }
         }
 
-        List<URL> cndUrls = new ArrayList<>();
         if (manifestUrl != null && manifestUrl.toExternalForm().endsWith(JarFile.MANIFEST_NAME)) {
             ofNullable(json.optJSONArray(KEY_CND_NAMES))
                     .filter(Util.traceFilter(LOGGER, "[fromJSON#cndNames] cndNames: {}"))
@@ -232,50 +230,17 @@ public final class Checklist {
                             .map(String::valueOf)
                             .collect(Collectors.toList()))
                     .map(names -> Util.resolveManifestResources(manifestUrl, names))
-                    .ifPresent(cndUrls::addAll);
+                    .ifPresent(builder::withCndUrls);
         }
-        ofNullable(json.optJSONArray(KEY_CND_URLS))
-                .map(urls -> urls.toList().stream()
-                        .map(String::valueOf)
-                        .flatMap(cndUrlString -> {
-                            try {
-                                return Stream.of(new URL(cndUrlString));
-                            } catch (Exception e) {
-                                LOGGER.debug("[fromJSON#cndUrls] ignoring error", e);
-                                return Stream.empty();
-                            }
-                        })
-                        .collect(Collectors.toList()))
-                .ifPresent(cndUrls::addAll);
-        builder.withCndUrls(cndUrls);
-        ofNullable(json.optJSONArray(KEY_JCR_NAMESPACES))
-                .map(jcrNamespaces -> StreamSupport.stream(jcrNamespaces.spliterator(), false)
-                        .filter(elem -> elem instanceof JSONObject)
-                        .map(JSONObject.class::cast)
-                        .map(JcrNs::fromJSON)
-                        .collect(Collectors.toList()))
-                .ifPresent(builder::withJcrNamespaces);
-        ofNullable(json.optJSONArray(KEY_JCR_PRIVILEGES))
-                .map(privs -> StreamSupport.stream(privs.spliterator(), false)
-                        .map(String::valueOf).collect(Collectors.toList()))
-                .ifPresent(builder::withJcrPrivileges);
-        ofNullable(json.optJSONArray(KEY_FORCED_ROOTS))
-                .map(forcedRoots -> StreamSupport.stream(forcedRoots.spliterator(), false)
-                        .filter(elem -> elem instanceof JSONObject)
-                        .map(JSONObject.class::cast)
-                        .map(ForcedRoot::fromJSON)
-                        .collect(Collectors.toList()))
-                .ifPresent(builder::withForcedRoots);
-        ofNullable(json.optJSONArray(KEY_CHECKS))
-                .map(checks -> StreamSupport.stream(checks.spliterator(), false)
-                        .filter(elem -> elem instanceof JSONObject)
-                        .map(JSONObject.class::cast)
-                        .map(CheckSpec::fromJSON)
-                        .collect(Collectors.toList()))
-                .ifPresent(builder::withChecks);
-        if (LOGGER.isTraceEnabled()) {
-            LOGGER.trace("[fromJSON] builder.build(): {}", builder.build());
-        }
-        return builder.build();
+
+        builder.withCndUrls(Util.fromJSONArrayParsed(json.optJSONArray(KEY_CND_URLS), URL::new,
+                (element, error) -> LOGGER.debug("[fromJSON#cndUrls] ignoring error", error)));
+        builder.withJcrNamespaces(Util.fromJSONArray(json.optJSONArray(KEY_JCR_NAMESPACES), JcrNs::fromJSON));
+        builder.withJcrPrivileges(Util.fromJSONArrayAsStrings(json.optJSONArray(KEY_JCR_PRIVILEGES)));
+        builder.withForcedRoots(Util.fromJSONArray(json.optJSONArray(KEY_FORCED_ROOTS), ForcedRoot::fromJSON));
+        builder.withChecks(Util.fromJSONArray(json.optJSONArray(KEY_CHECKS), CheckSpec::fromJSON));
+        final Checklist checklist = builder.build();
+        LOGGER.trace("[fromJSON] builder.build(): {}", checklist);
+        return checklist;
     }
 }
