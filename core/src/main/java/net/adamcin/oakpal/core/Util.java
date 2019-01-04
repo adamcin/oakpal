@@ -20,7 +20,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -32,6 +31,7 @@ import java.util.Optional;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
 import java.util.stream.Collectors;
@@ -60,18 +60,13 @@ public final class Util {
 
     public static List<URL> resolveManifestResources(final URL manifestUrl, final List<String> resources) {
         return resources.stream()
-                .map(name -> {
-                    final String relPath = "../" + name;
-                    try {
-                        return Optional.of(new URL(manifestUrl, relPath));
-                    } catch (final MalformedURLException e) {
-                        LOGGER.debug("[resolveManifestResources] malformed url: manifestUrl={}, relPath={}, error={}",
-                                manifestUrl, relPath, e.getMessage());
-                        return Optional.<URL>empty();
-                    }
-                })
-                .filter(Optional::isPresent)
-                .map(Optional::get).collect(Collectors.toList());
+                .map(name -> "../" + name)
+                .flatMap(composeTry(Stream::of, Stream::empty,
+                        (relPath) -> new URL(manifestUrl, relPath),
+                        (relPath, error) ->
+                                LOGGER.debug("[resolveManifestResources] malformed url: manifestUrl={}, relPath={}, error={}",
+                                        manifestUrl, relPath, error.getMessage())))
+                .collect(Collectors.toList());
     }
 
     public static Map<URL, List<URL>> mapManifestHeaderResources(final String headerName, final ClassLoader classLoader) throws IOException {
@@ -122,25 +117,17 @@ public final class Util {
     }
 
     public static <T> Predicate<T> debugFilter(final Logger logger, final String format) {
-        if (logger.isDebugEnabled()) {
-            return item -> {
-                logger.debug(format, item);
-                return true;
-            };
-        } else {
-            return item -> true;
-        }
+        return item -> {
+            logger.debug(format, item);
+            return true;
+        };
     }
 
     public static <T> Predicate<T> traceFilter(final Logger logger, final String format) {
-        if (logger.isTraceEnabled()) {
-            return item -> {
-                logger.trace(format, item);
-                return true;
-            };
-        } else {
-            return item -> true;
-        }
+        return item -> {
+            logger.trace(format, item);
+            return true;
+        };
     }
 
     public static <T> List<T> fromJSONArray(final JSONArray jsonArray, final Function<JSONObject, T> mapper) {
@@ -165,27 +152,63 @@ public final class Util {
     }
 
     public static <T> List<T> fromJSONArrayParsed(final JSONArray jsonArray,
-                                                  final StringElementParser<T> parser,
+                                                  final TryFunction<String, T> parser,
                                                   final BiConsumer<String, Exception> errorConsumer) {
         return Optional.ofNullable(jsonArray)
                 .map(elements -> StreamSupport.stream(elements.spliterator(), false)
                         .map(String::valueOf)
-                        .flatMap(element -> {
-                            try {
-                                return Stream.of(parser.apply(element));
-                            } catch (Exception e) {
-                                if (errorConsumer != null) {
-                                    errorConsumer.accept(element, e);
-                                }
-                                return Stream.empty();
-                            }
-                        })
+                        .flatMap(composeTry(Stream::of, Stream::empty, parser, errorConsumer))
                         .collect(Collectors.toList()))
                 .orElse(Collections.emptyList());
     }
 
+    /**
+     * Composes four lambdas into a single function for use with flatMap() defined by {@link Stream}, {@link Optional},
+     * etc. Useful for eliminating clumsy try/catch blocks from lambdas.
+     *
+     * @param monadUnit the "unit" (or "single") function defined by the appropriate monad. I.E. Stream::of,
+     *                  Optional::of, or Optional::ofNullable.
+     * @param monadZero the "zero" (or "empty") function defined by the appropriate monad, as in Stream::empty,
+     *                  or Optional::empty
+     * @param onNext    some function that produces type {@code R} when given an object of type {@code T}, or fails
+     *                  with an Exception.
+     * @param onError   an optional consumer function to perform some logic when the parser function throws.
+     *                  Receives both the failing input and the caught Exception.
+     * @param <M>       The captured monad type, which must match the return types of the {@code monadUnit} and
+     *                  {@code monadEmpty} functions, but which is not involved in the {@code converter} or
+     *                  {@code errorConsumer} functions.
+     * @param <T>       The input type mapped by the monad, i.e. the String type in {@code Stream<String>}.
+     * @param <R>       The output type mapped by the monad, i.e. the URL type in {@code Stream<URL>}.
+     * @return a flatMappable function
+     */
+    public static <M, T, R> Function<T, M> composeTry(final Function<R, M> monadUnit,
+                                                      final Supplier<M> monadZero,
+                                                      final TryFunction<T, R> onNext,
+                                                      final BiConsumer<T, Exception> onError) {
+        final BiConsumer<T, Exception> consumeError = onError != null
+                ? onError
+                : (e, t) -> {
+        };
+
+        return (element) -> {
+            try {
+                return monadUnit.apply(onNext.apply(element));
+            } catch (final Exception e) {
+                consumeError.accept(element, e);
+                return monadZero.get();
+            }
+        };
+    }
+
+    /**
+     * Functional interface similar to {@link Function}, but which allows for throwing exceptions. Use with
+     * {@link #composeTry(Function, Supplier, TryFunction, BiConsumer)} to make suitable for {@code flatMap}.
+     *
+     * @param <T> input type
+     * @param <R> output type
+     */
     @FunctionalInterface
-    public interface StringElementParser<T> {
-        T apply(String element) throws Exception;
+    public interface TryFunction<T, R> {
+        R apply(T element) throws Exception;
     }
 }

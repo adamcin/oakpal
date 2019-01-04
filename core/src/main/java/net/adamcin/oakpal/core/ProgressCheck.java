@@ -22,7 +22,6 @@ import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
-import aQute.bnd.annotation.ProviderType;
 import org.apache.jackrabbit.vault.fs.config.MetaInf;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.apache.jackrabbit.vault.packaging.PackageProperties;
@@ -33,16 +32,15 @@ import org.apache.jackrabbit.vault.packaging.PackageProperties;
  * <p>
  * Some constraints for behavior:
  * <ol>
- *     <li>Once constructed, instances of this class should be immutable from the perspective of any other public API.</li>
- *     <li>The {@link OakMachine} will call these methods synchronously and in a single-threaded fashion.</li>
- *     <li>Mutation of the repository state exposed by {@link Session} is not allowed.</li>
- *     <li>Implementations of this which are referenced directly by a checklist must expose a zero-argument default
- *     constructor.</li>
- *     <li>If an implementation accepts parameters at construction, it must be constructed from a checklist-referenced
- *     {@link ProgressCheckFactory} in order to be loaded successfully.</li>
+ * <li>Once constructed, instances of this class should be immutable from the perspective of any other public API.</li>
+ * <li>The {@link OakMachine} will call these methods synchronously and in a single-threaded fashion.</li>
+ * <li>Mutation of the repository state exposed by {@link Session} is not allowed.</li>
+ * <li>Implementations of this which are referenced directly by a checklist must expose a zero-argument default
+ * constructor.</li>
+ * <li>If an implementation accepts parameters at construction, it must be constructed from a checklist-referenced
+ * {@link ProgressCheckFactory} in order to be loaded successfully.</li>
  * </ol>
  */
-@ProviderType
 public interface ProgressCheck extends ScanListener, ViolationReporter {
 
     /**

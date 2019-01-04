@@ -113,9 +113,8 @@ public final class ChecklistPlanner {
         if (checkOverrides != null) {
             overrides.addAll(checkOverrides);
         }
-        if (LOGGER.isTraceEnabled()) {
-            LOGGER.trace("[getEffectiveCheckSpecs] checkOverrides: {}", checkOverrides);
-        }
+
+        LOGGER.trace("[getEffectiveCheckSpecs] checkOverrides: {}", checkOverrides);
 
         // first accum checks selected via selected checklists
         getSelectedChecklists()
@@ -136,9 +135,7 @@ public final class ChecklistPlanner {
 
         List<CheckSpec> toReturn = new ArrayList<>(overlaid.values());
 
-        if (LOGGER.isTraceEnabled()) {
-            LOGGER.trace("[getEffectiveCheckSpecs] selectedChecklistChecks: {}", toReturn);
-        }
+        LOGGER.trace("[getEffectiveCheckSpecs] selectedChecklistChecks: {}", toReturn);
 
         // stream overrides to identify remaining specs
         overrides.stream()
@@ -182,16 +179,12 @@ public final class ChecklistPlanner {
 
     private CheckSpec applyOverrides(final List<CheckSpec> checkOverrides, final CheckSpec base) {
         CheckSpec merged = base;
-        if (LOGGER.isTraceEnabled()) {
-            LOGGER.trace("[applyOverrides] base: {}", base);
-        }
+        LOGGER.trace("[applyOverrides] base: {}", base);
         List<CheckSpec> applicable = checkOverrides.stream().filter(base::isOverriddenBy)
                 .collect(Collectors.toList());
         for (CheckSpec spec : applicable) {
             merged = spec.overlay(merged);
-            if (LOGGER.isTraceEnabled()) {
-                LOGGER.trace("[applyOverrides] spec: {}, merged: {}", spec, merged);
-            }
+            LOGGER.trace("[applyOverrides] spec: {}, merged: {}", spec, merged);
         }
         return merged;
     }

@@ -16,17 +16,33 @@
 
 package net.adamcin.oakpal.core;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.jar.Manifest;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.LoggerContext;
+import org.junit.Before;
 import org.junit.Test;
+import org.slf4j.impl.StaticLoggerBinder;
 
 public class UtilTest {
+
+    @Before
+    public void setUp() throws Exception {
+        assertTrue("make sure that we have bound the expected logback-classic slf4j impl. actual: " +
+                        StaticLoggerBinder.getSingleton().getLoggerFactoryClassStr(),
+                StaticLoggerBinder.getSingleton().getLoggerFactory() instanceof LoggerContext);
+    }
 
     @Test
     public void testGetManifestHeaderValues() throws IOException {
@@ -46,6 +62,27 @@ public class UtilTest {
             assertTrue("paths contains /test/two", paths.contains("/test/two"));
             assertTrue("paths contains /test/three", paths.contains("/test/three"));
         }
+    }
 
+    @Test
+    public void testDebugFilter() {
+        LoggerContext context = (LoggerContext) StaticLoggerBinder.getSingleton().getLoggerFactory();
+        Logger logger = context.getLogger("testDebugFilter");
+        logger.setLevel(Level.DEBUG);
+        assertEquals("debugFilter should not interfere with stream", Arrays.asList("one", "two", "three"),
+                Stream.of("one", "two", "three")
+                        .filter(Util.debugFilter(logger, "counting {}"))
+                        .collect(Collectors.toList()));
+    }
+
+    @Test
+    public void testTraceFilter() {
+        LoggerContext context = (LoggerContext) StaticLoggerBinder.getSingleton().getLoggerFactory();
+        Logger logger = context.getLogger("testTraceFilter");
+        logger.setLevel(Level.TRACE);
+        assertEquals("traceFilter should not interfere with stream", Arrays.asList("one", "two", "three"),
+                Stream.of("one", "two", "three")
+                        .filter(Util.traceFilter(logger, "counting {}"))
+                        .collect(Collectors.toList()));
     }
 }
