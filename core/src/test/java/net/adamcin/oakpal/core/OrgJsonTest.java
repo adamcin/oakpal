@@ -25,6 +25,9 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -39,6 +42,18 @@ public class OrgJsonTest {
         assertNotNull("obj().get() results in non-null JSONObject", object);
         assertTrue("obj().get() results in empty JSONObject", object.keySet().isEmpty());
 
+        JSONObject nullJSON = obj((JSONObject) null).get();
+        assertNotNull("obj((JSONObject) null).get() results in non-null JSONObject", nullJSON);
+        assertTrue("obj((JSONObject) null).get() results in empty JSONObject", nullJSON.keySet().isEmpty());
+
+        JSONObject reJSON = obj(key("color", "red").get()).get();
+        assertEquals("JSONObject to obj to JSONObject", "red", reJSON.getString("color"));
+
+        Map<String, Object> reMap = new HashMap<>();
+        reMap.put("color", "blue");
+        JSONObject reMapJSON = obj(reMap).get();
+        assertEquals("Map to obj to JSONObject", "blue", reMapJSON.getString("color"));
+
         assertEquals("obj deep equals obj(key, key) : obj().key(key, val).key(key2, val2)",
                 obj(key("foo", "bar"), key("foo2", "bar2")).get().toMap(),
                 obj().key("foo", "bar").key("foo2", "bar2").get().toMap());
@@ -46,14 +61,19 @@ public class OrgJsonTest {
         assertEquals("obj deep equals obj(key, key) : obj(key(key, val)).and(key(key2, val2))",
                 obj(key("foo", "bar"), key("foo2", "bar2")).get().toMap(),
                 obj(key("foo", "bar")).and(key("foo2", "bar2")).get().toMap());
+
     }
 
     @Test
     public void testArr() {
-        JSONArray array = arr().get();
 
+        JSONArray array = arr().get();
         assertNotNull("arr().get() results in non-null JSONArray", array);
         assertTrue("arr().get() results in empty JSONArray", !array.iterator().hasNext());
+
+        JSONArray nullArray = arr((Object[]) null).get();
+        assertNotNull("arr(null).get() results in non-null JSONArray", nullArray);
+        assertTrue("arr(null).get() results in empty JSONArray", !nullArray.iterator().hasNext());
 
         assertEquals("easy numerical sequence",
                 "[0,1,2,3,4]", arr(0, 1, 2, 3, 4).get().toString());
@@ -61,6 +81,10 @@ public class OrgJsonTest {
         assertEquals("easy numerical sequence as vals",
                 "[0,1,2,3,4]",
                 arr(val(0), val(1), val(2), val(3), val(4)).get().toString());
+
+        assertEquals("easy numerical sequence as dotted vals",
+                "[0,1,2,3,4]",
+                arr().val(0).val(1).val(2).val(3).val(4).get().toString());
 
         assertEquals("numerical sequence as arr().and()",
                 "[0,1,2,3,4]", arr(0, 1).and(2, 3, 4).get().toString());
@@ -84,6 +108,17 @@ public class OrgJsonTest {
         assertTrue("arr is arr is JSONArray", val(val(arr())).get() instanceof JSONArray);
         assertTrue("JSONArray is JSONArray", val(arr().get()).get() instanceof JSONArray);
         assertTrue("JSONArray is JSONArray is JSONArray", val(val(arr().get())).get() instanceof JSONArray);
+    }
+
+    @Test
+    public void testCursorVal() {
+        boolean keyCursorNull = false;
+        try {
+            key(null);
+        } catch (final NullPointerException e) {
+            keyCursorNull = true;
+        }
+        assertTrue("key(null) should throw NullPointerException", keyCursorNull);
 
         boolean keyCursorErred = false;
         try {
@@ -93,6 +128,14 @@ public class OrgJsonTest {
         }
         assertTrue("val(key()) should throw IllegalArgumentException", keyCursorErred);
 
+        boolean objCursorNull = false;
+        try {
+            obj().key(null);
+        } catch (final NullPointerException e) {
+            objCursorNull = true;
+        }
+        assertTrue("obj().key(null) should throw NullPointerException", objCursorNull);
+
         boolean objCursorErred = false;
         try {
             val(obj().key("noVal"));
@@ -100,11 +143,38 @@ public class OrgJsonTest {
             objCursorErred = true;
         }
         assertTrue("val(obj().key()) should throw IllegalArgumentException", objCursorErred);
+
+        OrgJson.Obj precursor = obj().key("foo", "bar");
+        assertEquals("obj().key(key).obj() should return precursor obj.",
+                precursor, precursor.key("cursor").getObj());
     }
 
+    @Test
+    public void testObjectConvertible() {
+        OrgJson.ObjectConvertible conv = () -> key("apple", "pie").get();
+        assertEquals("ObjectConvertible val is JSONObject",
+                "pie",
+                ((JSONObject) val(conv).get()).getString("apple"));
+    }
+
+    @Test
+    public void testArrayConvertible() {
+        OrgJson.ArrayConvertible conv = () -> arr("one", "two").get();
+        assertEquals("ArrayConvertible val is JSONArray",
+                "two",
+                ((JSONArray) val(conv).get()).getString(1));
+    }
 
     @Test
     public void testKey() throws JSONException {
+        boolean keyNull = false;
+        try {
+            key(null, "val");
+        } catch (final NullPointerException e) {
+            keyNull = true;
+        }
+        assertTrue("key(null, val) should throw NullPointerException", keyNull);
+
         assertEquals("key cursor getKey() returns input",
                 "foo", key("foo").getKey());
         assertEquals("key(key, val) is retrievable",
@@ -116,5 +186,9 @@ public class OrgJsonTest {
         assertEquals("key(key).val(val).key(key2).val(val2) is retrievable",
                 "bar2", key("foo").val("bar").key("foo2").val("bar2").get().getString("foo2"));
 
+        assertTrue("Key.toValue should return a JSONObject.",
+                key("foo", "bar").toValue().get() instanceof JSONObject);
+        assertEquals("Key.toValue obj should have appropriate key.", "bar",
+                ((JSONObject) key("foo", "bar").toValue().get()).getString("foo"));
     }
 }

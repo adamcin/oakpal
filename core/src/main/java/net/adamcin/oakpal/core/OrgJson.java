@@ -33,6 +33,10 @@ import org.json.JSONObject;
  */
 public final class OrgJson {
 
+    private OrgJson() {
+        // no construction
+    }
+
     /**
      * Custom pojo types which should be usable within this DSL should implement this method to provide a
      * {@link JSONObject}, which can be wrapped quickly by {@link #val(Object)}.
