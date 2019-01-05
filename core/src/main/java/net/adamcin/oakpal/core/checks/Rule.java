@@ -19,6 +19,7 @@ package net.adamcin.oakpal.core.checks;
 import static net.adamcin.oakpal.core.OrgJson.key;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.regex.Pattern;
@@ -55,12 +56,12 @@ public final class Rule implements OrgJson.ObjectConvertible {
     /**
      * A default ALLOW rule that matches everything.
      */
-    public static final Rule DEFAULT_ALLOW = DEFAULT_INCLUDE;
+    public static final Rule DEFAULT_ALLOW = new Rule(RuleType.ALLOW, Pattern.compile(".*"));
 
     /**
      * A default DENY rule that matches everything.
      */
-    public static final Rule DEFAULT_DENY = DEFAULT_EXCLUDE;
+    public static final Rule DEFAULT_DENY = new Rule(RuleType.DENY, Pattern.compile(".*"));
 
     public static final String CONFIG_TYPE = "type";
     public static final String CONFIG_PATTERN = "pattern";
@@ -152,6 +153,20 @@ public final class Rule implements OrgJson.ObjectConvertible {
     @Override
     public String toString() {
         return getType().name() + ":" + getPattern().pattern();
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Rule rule = (Rule) o;
+        return type == rule.type &&
+                pattern.pattern().equals(rule.pattern.pattern());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(type, pattern.pattern());
     }
 
     public enum RuleType {
