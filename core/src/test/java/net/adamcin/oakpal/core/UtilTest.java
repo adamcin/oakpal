@@ -17,13 +17,17 @@
 package net.adamcin.oakpal.core;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.jar.Manifest;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -84,5 +88,46 @@ public class UtilTest {
                 Stream.of("one", "two", "three")
                         .filter(Util.traceFilter(logger, "counting {}"))
                         .collect(Collectors.toList()));
+    }
+
+    @Test
+    public void testComposeTry() {
+        final AtomicInteger counter = new AtomicInteger(0);
+
+        assertEquals("skip divide by 0 with no side effects",
+                Arrays.asList(3, 4, 6, 12),
+                Stream.of(4, 3, 2, 1, 0)
+                        .flatMap(Util.composeTry(
+                                Stream::of,
+                                Stream::empty,
+                                (value) -> 12 / value, null))
+                        .collect(Collectors.toList()));
+
+        assertEquals("skip divide by 0 with counter update as side effect",
+                Arrays.asList(3, 4, 6, 12),
+                Stream.of(4, 3, 2, 1, 0)
+                        .flatMap(Util.composeTry(
+                                Stream::of,
+                                Stream::empty,
+                                (value) -> 12 / value,
+                                (element, error) -> counter.incrementAndGet()))
+                        .collect(Collectors.toList()));
+
+        assertEquals("counter should have incremented to 1", 1, counter.get());
+    }
+
+    @Test
+    public void testGetDefaultClassLoader() throws Exception {
+        final ClassLoader old = Thread.currentThread().getContextClassLoader();
+        try (URLClassLoader newCl = new URLClassLoader(new URL[0], getClass().getClassLoader())) {
+            Thread.currentThread().setContextClassLoader(newCl);
+            assertSame("default classLoader should be same as tccl when set",
+                    newCl, Util.getDefaultClassLoader());
+            Thread.currentThread().setContextClassLoader(null);
+            assertSame("default classLoader should be same as Util.class.getClassLoader() when tccl is null",
+                    Util.class.getClassLoader(), Util.getDefaultClassLoader());
+        } finally {
+            Thread.currentThread().setContextClassLoader(old);
+        }
     }
 }

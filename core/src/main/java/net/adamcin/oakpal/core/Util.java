@@ -27,7 +27,6 @@ import java.util.Enumeration;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -116,6 +115,15 @@ public final class Util {
                 : Util.class.getClassLoader();
     }
 
+    /**
+     * Logger function to inject into a stream by way of {@code filter()} method. Calls {@code logger.debug()} with the
+     * provided {@code format} string and the current stream element as a format argument.
+     *
+     * @param logger the logger to use
+     * @param format the SLF4j format string (use curly braces for placeholders)
+     * @param <T>    the captured type parameter for the stream element
+     * @return a single-argument predicate for use in a {@code Stream.filter()} method
+     */
     public static <T> Predicate<T> debugFilter(final Logger logger, final String format) {
         return item -> {
             logger.debug(format, item);
@@ -123,6 +131,15 @@ public final class Util {
         };
     }
 
+    /**
+     * Logger function to inject into a stream by way of {@code filter()} method. Calls {@code logger.trace()} with the
+     * provided {@code format} string and the current stream element as a format argument.
+     *
+     * @param logger the logger to use
+     * @param format the SLF4j format string (use curly braces for placeholders)
+     * @param <T>    the captured type parameter for the stream element
+     * @return a single-argument predicate for use in a {@code Stream.filter()} method
+     */
     public static <T> Predicate<T> traceFilter(final Logger logger, final String format) {
         return item -> {
             logger.trace(format, item);
@@ -131,59 +148,64 @@ public final class Util {
     }
 
     public static <T> List<T> fromJSONArray(final JSONArray jsonArray, final Function<JSONObject, T> mapper) {
-        List<JSONObject> onlyObjects = new ArrayList<>();
         List<T> results = new ArrayList<>();
-        Optional.ofNullable(jsonArray).map(array -> StreamSupport.stream(array.spliterator(), false)
+        List<JSONObject> onlyObjects = stream(jsonArray)
                 .filter(json -> json instanceof JSONObject)
-                .map(JSONObject.class::cast).collect(Collectors.toList()))
-                .ifPresent(onlyObjects::addAll);
+                .map(JSONObject.class::cast)
+                .collect(Collectors.toList());
 
         for (JSONObject json : onlyObjects) {
             results.add(mapper.apply(json));
         }
+
         return Collections.unmodifiableList(results);
     }
 
     public static List<String> fromJSONArrayAsStrings(final JSONArray jsonArray) {
-        return Optional.ofNullable(jsonArray)
-                .map(array -> StreamSupport.stream(array.spliterator(), false)
-                        .map(String::valueOf).collect(Collectors.toList()))
-                .orElse(Collections.emptyList());
+        return stream(jsonArray)
+                .map(String::valueOf)
+                .collect(Collectors.toList());
     }
 
     public static <T> List<T> fromJSONArrayParsed(final JSONArray jsonArray,
                                                   final TryFunction<String, T> parser,
                                                   final BiConsumer<String, Exception> errorConsumer) {
-        return Optional.ofNullable(jsonArray)
-                .map(elements -> StreamSupport.stream(elements.spliterator(), false)
-                        .map(String::valueOf)
-                        .flatMap(composeTry(Stream::of, Stream::empty, parser, errorConsumer))
-                        .collect(Collectors.toList()))
-                .orElse(Collections.emptyList());
+        return stream(jsonArray)
+                .map(String::valueOf)
+                .flatMap(composeTry(Stream::of, Stream::empty, parser, errorConsumer))
+                .collect(Collectors.toList());
+    }
+
+    public static Stream<Object> stream(final JSONArray jsonArray) {
+        if (jsonArray != null) {
+            return StreamSupport.stream(jsonArray.spliterator(), false);
+        } else {
+            return Stream.empty();
+        }
     }
 
     /**
-     * Composes four lambdas into a single function for use with flatMap() defined by {@link Stream}, {@link Optional},
-     * etc. Useful for eliminating clumsy try/catch blocks from lambdas.
+     * Composes four lambdas into a single function for use with flatMap() defined by {@link Stream},
+     * {@link java.util.Optional}, etc. Useful for eliminating clumsy try/catch blocks from lambdas.
      *
      * @param monadUnit the "unit" (or "single") function defined by the appropriate monad. I.E. Stream::of,
      *                  Optional::of, or Optional::ofNullable.
      * @param monadZero the "zero" (or "empty") function defined by the appropriate monad, as in Stream::empty,
      *                  or Optional::empty
-     * @param onNext    some function that produces type {@code R} when given an object of type {@code T}, or fails
+     * @param onElement some function that produces type {@code R} when given an object of type {@code T}, or fails
      *                  with an Exception.
      * @param onError   an optional consumer function to perform some logic when the parser function throws.
-     *                  Receives both the failing input and the caught Exception.
+     *                  Receives both the failing input element and the caught Exception.
      * @param <M>       The captured monad type, which must match the return types of the {@code monadUnit} and
-     *                  {@code monadEmpty} functions, but which is not involved in the {@code converter} or
-     *                  {@code errorConsumer} functions.
+     *                  {@code monadEmpty} functions, but which is not involved in the {@code onElement} or
+     *                  {@code onError} functions.
      * @param <T>       The input type mapped by the monad, i.e. the String type in {@code Stream<String>}.
      * @param <R>       The output type mapped by the monad, i.e. the URL type in {@code Stream<URL>}.
      * @return a flatMappable function
      */
     public static <M, T, R> Function<T, M> composeTry(final Function<R, M> monadUnit,
                                                       final Supplier<M> monadZero,
-                                                      final TryFunction<T, R> onNext,
+                                                      final TryFunction<T, R> onElement,
                                                       final BiConsumer<T, Exception> onError) {
         final BiConsumer<T, Exception> consumeError = onError != null
                 ? onError
@@ -192,9 +214,9 @@ public final class Util {
 
         return (element) -> {
             try {
-                return monadUnit.apply(onNext.apply(element));
-            } catch (final Exception e) {
-                consumeError.accept(element, e);
+                return monadUnit.apply(onElement.apply(element));
+            } catch (final Exception error) {
+                consumeError.accept(element, error);
                 return monadZero.get();
             }
         };
