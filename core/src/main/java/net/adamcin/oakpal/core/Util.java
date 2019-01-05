@@ -59,7 +59,7 @@ public final class Util {
 
     public static List<URL> resolveManifestResources(final URL manifestUrl, final List<String> resources) {
         return resources.stream()
-                .map(name -> "../" + name)
+                .map(name -> name.contains(":") ? name : "../" + name)
                 .flatMap(composeTry(Stream::of, Stream::empty,
                         (relPath) -> new URL(manifestUrl, relPath),
                         (relPath, error) ->
@@ -75,7 +75,7 @@ public final class Util {
             URL url = resEnum.nextElement();
             try (InputStream is = url.openStream()) {
                 Manifest manifest = new Manifest(is);
-                List<URL> headerResources = resolveManifestResources(url, Util.getManifestHeaderValues(manifest, headerName));
+                List<URL> headerResources = resolveManifestResources(url, getManifestHeaderValues(manifest, headerName));
                 map.put(url, headerResources);
             }
         }
@@ -93,7 +93,7 @@ public final class Util {
                         Manifest manifest = new Manifest(fis);
                         final URL manifestUrl = manifestFile.toURI().toURL();
                         map.put(manifestUrl, resolveManifestResources(manifestUrl,
-                                Util.getManifestHeaderValues(manifest, headerName)));
+                                getManifestHeaderValues(manifest, headerName)));
                     }
                 }
             } else {
@@ -102,7 +102,7 @@ public final class Util {
                     final URL manifestUrl = new URL(String.format("jar:%s!/%s",
                             zipFile.toURI().toURL().toExternalForm(), JarFile.MANIFEST_NAME));
                     map.put(manifestUrl, resolveManifestResources(manifestUrl,
-                            Util.getManifestHeaderValues(manifest, headerName)));
+                            getManifestHeaderValues(manifest, headerName)));
                 }
             }
         }
@@ -197,7 +197,7 @@ public final class Util {
      * @param onError   an optional consumer function to perform some logic when the parser function throws.
      *                  Receives both the failing input element and the caught Exception.
      * @param <M>       The captured monad type, which must match the return types of the {@code monadUnit} and
-     *                  {@code monadEmpty} functions, but which is not involved in the {@code onElement} or
+     *                  {@code monadZero} functions, but which is not involved in the {@code onElement} or
      *                  {@code onError} functions.
      * @param <T>       The input type mapped by the monad, i.e. the String type in {@code Stream<String>}.
      * @param <R>       The output type mapped by the monad, i.e. the URL type in {@code Stream<URL>}.
@@ -214,7 +214,7 @@ public final class Util {
 
         return (element) -> {
             try {
-                return monadUnit.apply(onElement.apply(element));
+                return monadUnit.apply(onElement.tryApply(element));
             } catch (final Exception error) {
                 consumeError.accept(element, error);
                 return monadZero.get();
@@ -231,6 +231,6 @@ public final class Util {
      */
     @FunctionalInterface
     public interface TryFunction<T, R> {
-        R apply(T element) throws Exception;
+        R tryApply(T element) throws Exception;
     }
 }

@@ -17,12 +17,14 @@
 package net.adamcin.oakpal.core;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.Arrays;
@@ -48,6 +50,10 @@ public class UtilTest {
                 StaticLoggerBinder.getSingleton().getLoggerFactory() instanceof LoggerContext);
     }
 
+    LoggerContext getLoggerFactory() {
+        return (LoggerContext) StaticLoggerBinder.getSingleton().getLoggerFactory();
+    }
+
     @Test
     public void testGetManifestHeaderValues() throws IOException {
         final Manifest manifest;
@@ -65,6 +71,28 @@ public class UtilTest {
             assertTrue("paths contains /test/one", paths.contains("/test/one"));
             assertTrue("paths contains /test/two", paths.contains("/test/two"));
             assertTrue("paths contains /test/three", paths.contains("/test/three"));
+        }
+    }
+
+    @Test
+    public void testResolveManifestResources() throws Exception {
+        final File mfFile = new File("src/test/resources/manifestWithMalformedUrls.mf");
+        final URL mfUrl = mfFile.toURI().toURL();
+        final Manifest manifest;
+        final Logger logger = getLoggerFactory().getLogger(Util.class);
+        final Level oldLevel = logger.getLevel();
+        try (InputStream inputStream = mfUrl.openStream()) {
+            manifest = new Manifest(inputStream);
+            logger.setLevel(Level.DEBUG);
+            List<String> goodRelPaths = Util.getManifestHeaderValues(manifest, "Good-RelPaths");
+            assertEquals("should be same length for Good-RelPaths",
+                    goodRelPaths.size(), Util.resolveManifestResources(mfUrl, goodRelPaths).size());
+
+            List<String> badRelPaths = Util.getManifestHeaderValues(manifest, "Bad-RelPaths");
+            assertNotEquals("should be different length for Bad-RelPaths",
+                    badRelPaths.size(), Util.resolveManifestResources(mfUrl, badRelPaths).size());
+        } finally {
+            logger.setLevel(oldLevel);
         }
     }
 
