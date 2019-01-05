@@ -23,6 +23,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
@@ -32,6 +33,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.jar.JarFile;
+import java.util.jar.JarOutputStream;
 import java.util.jar.Manifest;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -102,12 +105,41 @@ public class UtilTest {
     public void testMapManifestHeaderResources() throws Exception {
         final Logger logger = getLoggerFactory().getLogger(Util.class);
         final Level oldLevel = logger.getLevel();
-        try {
-            final File mfFile = new File("src/test/resources/utiljar");
+        final File mfDir = new File("src/test/resources/utiljar");
+        final File mfFile = new File(mfDir, JarFile.MANIFEST_NAME);
+        try (InputStream mfStream = new FileInputStream(mfFile)) {
+            Manifest manifest = new Manifest(mfStream);
+
+            final File targetDir = new File("target/test-temp");
+            targetDir.mkdirs();
+            final File mfJar = new File(targetDir, "utiljar.jar");
+            if (mfJar.exists()) {
+                mfJar.delete();
+            }
+
+            try (JarOutputStream mfJarOut = new JarOutputStream(new FileOutputStream(mfJar), manifest)) {
+                // nothing to add
+            }
+
+            // test against directory manifest only
+            Map<URL, List<URL>> dirMapped = Util.mapManifestHeaderResources("Good-RelPaths",
+                    Collections.singletonList(mfDir));
+            assertEquals("Expect two good paths for directory manifest: " + dirMapped, 2,
+                    dirMapped.values().iterator().next().size());
+
+            // test against constructed jar manifest only
             Map<URL, List<URL>> mapped = Util.mapManifestHeaderResources("Good-RelPaths",
-                    Collections.singletonList(mfFile));
-            assertEquals("Expect two good paths: " + mapped, 2,
+                    Collections.singletonList(mfJar));
+            assertEquals("Expect two good paths for jar manifest: " + mapped, 2,
                     mapped.values().iterator().next().size());
+
+            // test mapping of both manifests for two resources each
+            Map<URL, List<URL>> bothMapped = Util.mapManifestHeaderResources("Good-RelPaths",
+                    Arrays.asList(mfDir, mfJar));
+            assertEquals("Expect two entries in both mapped: " + bothMapped, 2,
+                    bothMapped.size());
+            assertTrue("Expect two good paths for all entries when both mapped: " + bothMapped,
+                    bothMapped.values().stream().allMatch(resources -> resources.size() == 2));
         } finally {
             logger.setLevel(oldLevel);
         }
