@@ -43,25 +43,27 @@ import org.json.JSONObject;
  * </dl>
  */
 public final class Rule implements OrgJson.ObjectConvertible {
+    static final Pattern PATTERN_MATCH_ALL = Pattern.compile(".*");
+
     /**
      * A default INCLUDE rule that matches everything.
      */
-    public static final Rule DEFAULT_INCLUDE = new Rule(RuleType.INCLUDE, Pattern.compile(".*"));
+    public static final Rule DEFAULT_INCLUDE = new Rule(RuleType.INCLUDE, PATTERN_MATCH_ALL);
 
     /**
      * A default EXCLUDE rule that matches everything.
      */
-    public static final Rule DEFAULT_EXCLUDE = new Rule(RuleType.EXCLUDE, Pattern.compile(".*"));
+    public static final Rule DEFAULT_EXCLUDE = new Rule(RuleType.EXCLUDE, PATTERN_MATCH_ALL);
 
     /**
      * A default ALLOW rule that matches everything.
      */
-    public static final Rule DEFAULT_ALLOW = new Rule(RuleType.ALLOW, Pattern.compile(".*"));
+    public static final Rule DEFAULT_ALLOW = new Rule(RuleType.ALLOW, PATTERN_MATCH_ALL);
 
     /**
      * A default DENY rule that matches everything.
      */
-    public static final Rule DEFAULT_DENY = new Rule(RuleType.DENY, Pattern.compile(".*"));
+    public static final Rule DEFAULT_DENY = new Rule(RuleType.DENY, PATTERN_MATCH_ALL);
 
     public static final String CONFIG_TYPE = "type";
     public static final String CONFIG_PATTERN = "pattern";

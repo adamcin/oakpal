@@ -19,6 +19,7 @@ package net.adamcin.oakpal.core.checks;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.util.HashMap;
@@ -63,6 +64,32 @@ public class RuleTest {
 
         assertTrue("unknown ruletype name should throw IllegalArgumentException immediately",
                 illegalForUnknown);
+    }
+
+    @Test
+    public void testEquals() {
+        final Rule newAllow = new Rule(Rule.DEFAULT_ALLOW.getType(), Rule.DEFAULT_ALLOW.getPattern());
+        assertEquals("DEFAULT_ALLOW should equal new rule with same params as DEFAULT_ALLOW",
+                Rule.DEFAULT_ALLOW, newAllow);
+        assertNotEquals("DEFAULT_ALLOW should not equal new ALLOW rule with different pattern",
+                Rule.DEFAULT_ALLOW, new Rule(Rule.DEFAULT_ALLOW.getType(), Pattern.compile("foo")));
+        assertNotEquals("DEFAULT_DENY should not equal new ALLOW rule with same params as DEFAULT_ALLOW",
+                Rule.DEFAULT_DENY, newAllow);
+        assertNotEquals("DEFAULT_INCLUDE should not equal new ALLOW rule with same params as DEFAULT_ALLOW",
+                Rule.DEFAULT_INCLUDE, newAllow);
+    }
+
+    @Test
+    public void testHashCode() {
+        final Rule newAllow = new Rule(Rule.DEFAULT_ALLOW.getType(), Rule.DEFAULT_ALLOW.getPattern());
+        assertEquals("hashCode(): DEFAULT_ALLOW should equal new rule with same params as DEFAULT_ALLOW",
+                Rule.DEFAULT_ALLOW.hashCode(), newAllow.hashCode());
+        assertNotEquals("hashCode(): DEFAULT_ALLOW should not equal new ALLOW rule with different pattern",
+                Rule.DEFAULT_ALLOW.hashCode(), new Rule(Rule.DEFAULT_ALLOW.getType(), Pattern.compile("foo")).hashCode());
+        assertNotEquals("hashCode(): DEFAULT_DENY should not equal new ALLOW rule with same params as DEFAULT_ALLOW",
+                Rule.DEFAULT_DENY.hashCode(), newAllow.hashCode());
+        assertNotEquals("hashCode(): DEFAULT_INCLUDE should not equal new ALLOW rule with same params as DEFAULT_ALLOW",
+                Rule.DEFAULT_INCLUDE.hashCode(), newAllow.hashCode());
     }
 
     @Test
