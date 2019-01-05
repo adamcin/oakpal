@@ -28,7 +28,9 @@ import java.io.InputStream;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.jar.Manifest;
 import java.util.stream.Collectors;
@@ -76,7 +78,7 @@ public class UtilTest {
 
     @Test
     public void testResolveManifestResources() throws Exception {
-        final File mfFile = new File("src/test/resources/manifestWithMalformedUrls.mf");
+        final File mfFile = new File("src/test/resources/utiljar/META-INF/MANIFEST.MF");
         final URL mfUrl = mfFile.toURI().toURL();
         final Manifest manifest;
         final Logger logger = getLoggerFactory().getLogger(Util.class);
@@ -91,6 +93,21 @@ public class UtilTest {
             List<String> badRelPaths = Util.getManifestHeaderValues(manifest, "Bad-RelPaths");
             assertNotEquals("should be different length for Bad-RelPaths",
                     badRelPaths.size(), Util.resolveManifestResources(mfUrl, badRelPaths).size());
+        } finally {
+            logger.setLevel(oldLevel);
+        }
+    }
+
+    @Test
+    public void testMapManifestHeaderResources() throws Exception {
+        final Logger logger = getLoggerFactory().getLogger(Util.class);
+        final Level oldLevel = logger.getLevel();
+        try {
+            final File mfFile = new File("src/test/resources/utiljar");
+            Map<URL, List<URL>> mapped = Util.mapManifestHeaderResources("Good-RelPaths",
+                    Collections.singletonList(mfFile));
+            assertEquals("Expect two good paths: " + mapped, 2,
+                    mapped.values().iterator().next().size());
         } finally {
             logger.setLevel(oldLevel);
         }
