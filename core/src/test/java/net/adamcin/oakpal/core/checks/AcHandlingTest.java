@@ -18,7 +18,9 @@ package net.adamcin.oakpal.core.checks;
 
 import static net.adamcin.oakpal.core.OrgJson.arr;
 import static net.adamcin.oakpal.core.OrgJson.obj;
+import static net.adamcin.oakpal.core.checks.AcHandling.DEFAULT_LEVEL_SET;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import net.adamcin.oakpal.core.CheckReport;
@@ -68,5 +70,22 @@ public class AcHandlingTest extends ProgressCheckTestBase {
             assertTrue("all violations have packageIds", report.getViolations().stream()
                     .allMatch(viol -> !viol.getPackages().isEmpty()));
         });
+    }
+
+    @Test
+    public void testEmptyConfig() {
+        AcHandling.Check check = (AcHandling.Check) new AcHandling().newInstance(obj().get());
+        assertNotNull("check should not be null", check);
+        assertEquals("default levelSet should be " + DEFAULT_LEVEL_SET,
+                check.levelSet, DEFAULT_LEVEL_SET);
+        assertTrue("default allowedModes should be empty: " + check.allowedModes,
+                check.allowedModes.isEmpty());
+    }
+
+    @Test
+    public void testNullLevelSet() throws Exception {
+        AcHandling.Check check = new AcHandling.Check(null, null);
+        // expect no failure
+        check.beforeExtract(null, null, null, null, null);
     }
 }

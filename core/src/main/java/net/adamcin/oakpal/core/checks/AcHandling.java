@@ -70,9 +70,10 @@ import org.json.JSONObject;
 public final class AcHandling implements ProgressCheckFactory {
     public static final String CONFIG_ALLOWED_MODES = "allowedModes";
     public static final String CONFIG_LEVEL_SET = "levelSet";
+    static final ACHandlingLevelSet DEFAULT_LEVEL_SET = ACHandlingLevelSet.NO_UNSAFE;
 
     @Override
-    public ProgressCheck newInstance(final JSONObject config) throws Exception {
+    public ProgressCheck newInstance(final JSONObject config) {
         if (config.has(CONFIG_ALLOWED_MODES)) {
             List<String> jsonAllowedModes = StreamSupport
                     .stream(config.getJSONArray(CONFIG_ALLOWED_MODES).spliterator(), false)
@@ -86,7 +87,7 @@ public final class AcHandling implements ProgressCheckFactory {
             ACHandlingLevelSet levelSet = ACHandlingLevelSet.valueOf(config.getString(CONFIG_LEVEL_SET).toUpperCase());
             return new Check(levelSet, Collections.emptyList());
         } else {
-            return new Check(ACHandlingLevelSet.NO_UNSAFE, Collections.emptyList());
+            return new Check(DEFAULT_LEVEL_SET, Collections.emptyList());
         }
     }
 
