@@ -24,7 +24,6 @@ import javax.jcr.Session;
 import net.adamcin.oakpal.core.ProgressCheck;
 import net.adamcin.oakpal.core.ProgressCheckFactory;
 import net.adamcin.oakpal.core.SimpleProgressCheck;
-import net.adamcin.oakpal.core.SimpleViolation;
 import net.adamcin.oakpal.core.Violation;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.json.JSONObject;
@@ -66,6 +65,7 @@ public final class Paths implements ProgressCheckFactory {
     public static final String CONFIG_RULES = "rules";
     public static final String CONFIG_DENY_ALL_DELETES = "denyAllDeletes";
     public static final String CONFIG_SEVERITY = "severity";
+    public static final Violation.Severity DEFAULT_SEVERITY = Violation.Severity.MAJOR;
 
     @Override
     public ProgressCheck newInstance(final JSONObject config) throws Exception {
@@ -75,7 +75,7 @@ public final class Paths implements ProgressCheckFactory {
                 && config.optBoolean(CONFIG_DENY_ALL_DELETES);
 
         final Violation.Severity severity = Violation.Severity.valueOf(
-                config.optString(CONFIG_SEVERITY, Violation.Severity.MAJOR.name()).toUpperCase());
+                config.optString(CONFIG_SEVERITY, DEFAULT_SEVERITY.name()).toUpperCase());
 
         return new Check(rules, denyAllDeletes, severity);
     }
@@ -100,13 +100,7 @@ public final class Paths implements ProgressCheckFactory {
         public void importedPath(final PackageId packageId, final String path, final Node node)
                 throws RepositoryException {
 
-            Rule lastMatch = Rule.fuzzyDefaultAllow(rules);
-            for (Rule rule : rules) {
-                if (rule.matches(path)) {
-                    lastMatch = rule;
-                }
-            }
-
+            Rule lastMatch = Rule.lastMatch(rules, path);
             if (lastMatch.isDeny()) {
                 reportViolation(severity,
                         String.format("imported path %s matches deny pattern %s", path,

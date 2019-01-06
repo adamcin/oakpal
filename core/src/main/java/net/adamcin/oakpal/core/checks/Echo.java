@@ -20,6 +20,7 @@ import java.io.File;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -58,7 +59,8 @@ public class Echo implements ProgressCheck {
 
     @Override
     public void identifyPackage(final PackageId packageId, final File file) {
-        echo("identifyPackage(packageId: %s, file: %s)", packageId, file.getAbsolutePath());
+        echo("identifyPackage(packageId: %s, file: %s)", packageId,
+                Optional.ofNullable(file).map(File::getAbsolutePath).orElse(null));
     }
 
     @Override
@@ -86,7 +88,8 @@ public class Echo implements ProgressCheck {
 
     @Override
     public void afterExtract(final PackageId packageId, final Session inspectSession) throws RepositoryException {
-        echo("afterExtract(packageId: %s, inspectSession: %s)", packageId, inspectSession.isLive());
+        echo("afterExtract(packageId: %s, inspectSession: %s)", packageId,
+                Optional.ofNullable(inspectSession).map(Session::getUserID).orElse(null));
     }
 
     @Override
