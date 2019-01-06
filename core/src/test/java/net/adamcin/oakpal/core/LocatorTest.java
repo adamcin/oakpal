@@ -47,6 +47,9 @@ public class LocatorTest {
         assertNotNull("simpleHandler.js should load by resource name, with config, with cl",
                 Locator.loadProgressCheck("simpleHandler.js", obj().get(), getClass().getClassLoader()));
 
+        assertNotNull("META-INF/../simpleHandler.js should load by resource name, with config, with cl",
+                Locator.loadProgressCheck("META-INF/../simpleHandler.js", obj().get(), getClass().getClassLoader()));
+
         boolean notACheckThrew = false;
         try {
             Locator.loadProgressCheck(NotACheck.class.getName());
