@@ -20,13 +20,13 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
 import net.adamcin.oakpal.core.CheckReport;
 import net.adamcin.oakpal.core.OakMachine;
 import net.adamcin.oakpal.core.ProgressCheck;
-import net.adamcin.oakpal.core.TestUtil;
 import net.adamcin.oakpal.testing.TestPackageUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,6 +45,16 @@ public class ProgressCheckTestBase {
         for (String filen : filename) {
             artifacts.add(TestPackageUtil.prepareTestPackage(filen));
         }
+        Optional<CheckReport> reports = new OakMachine.Builder().withProgressChecks(check)
+                .build().scanPackages(artifacts).stream()
+                .filter(report -> check.getCheckName().equals(report.getCheckName()))
+                .findFirst();
+        assertTrue(String.format("report for %s is present", check.getCheckName()), reports.isPresent());
+        return reports.get();
+    }
+
+    public CheckReport scanWithCheck(final ProgressCheck check, final File file) throws Exception {
+        List<File> artifacts = Collections.singletonList(file);
         Optional<CheckReport> reports = new OakMachine.Builder().withProgressChecks(check)
                 .build().scanPackages(artifacts).stream()
                 .filter(report -> check.getCheckName().equals(report.getCheckName()))
