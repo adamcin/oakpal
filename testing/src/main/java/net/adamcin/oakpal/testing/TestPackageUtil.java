@@ -36,6 +36,11 @@ import org.slf4j.LoggerFactory;
  * FileVault Test Package Factory
  */
 public class TestPackageUtil {
+
+    private TestPackageUtil() {
+        // no construct
+    }
+
     static final Logger log = LoggerFactory.getLogger(TestPackageUtil.class);
 
     static final String PN_TEST_PACKAGES_SRC = "test-packages.src";
@@ -61,9 +66,6 @@ public class TestPackageUtil {
 
     public static File prepareTestPackage(final String filename) throws IOException {
         File file = new File(testPackagesRoot.toFile(), filename);
-        if (file.exists()) {
-            file.delete();
-        }
         try (InputStream is = TestPackageUtil.class.getResourceAsStream(testPackagesSrc + filename);
              FileOutputStream fos = new FileOutputStream(file)) {
             IOUtils.copy(is, fos);
@@ -73,14 +75,9 @@ public class TestPackageUtil {
 
     public static File prepareTestPackageFromFolder(final String filename, final File srcFolder) throws IOException {
         if (srcFolder == null || !srcFolder.isDirectory()) {
-            throw new IOException("expected directory in srcFolder parameter for test package filename " +
-                    String.valueOf(filename));
+            throw new IOException("expected directory in srcFolder parameter for test package filename " + filename);
         }
         File file = new File(testPackagesRoot.toFile(), filename);
-        if (file.exists()) {
-            file.delete();
-        }
-
         try (JarOutputStream jos = new JarOutputStream(new FileOutputStream(file))) {
             add(srcFolder, srcFolder, jos);
         }
@@ -88,7 +85,7 @@ public class TestPackageUtil {
         return file;
     }
 
-    private static void add(final File root, final File source, final JarOutputStream target) throws IOException {
+    static void add(final File root, final File source, final JarOutputStream target) throws IOException {
         if (root == null || source == null) {
             throw new IllegalArgumentException("Cannot add from a null file");
         }
