@@ -139,4 +139,71 @@ public class JcrPropertiesTest extends ProgressCheckTestBase {
                     .allMatch(viol -> !viol.getPackages().isEmpty()));
         });
     }
+
+    @Test
+    public void testDenyNodeTypes() throws Exception {
+        TestUtil.testBlock(() -> {
+            ProgressCheck check = new JcrProperties().newInstance(obj()
+                    .key("denyNodeTypes", arr("sling:Folder"))
+                    .get());
+            CheckReport report = scanWithCheck(check, "double_properties.zip");
+            assertEquals("no violations: " + report.getViolations(), 0, report.getViolations().size());
+            assertTrue("all violations have packageIds", report.getViolations().stream()
+                    .allMatch(viol -> !viol.getPackages().isEmpty()));
+        });
+        TestUtil.testBlock(() -> {
+            ProgressCheck check = new JcrProperties().newInstance(obj()
+                    .key("denyNodeTypes", arr("nt:unstructured"))
+                    .get());
+            CheckReport report = scanWithCheck(check, "double_properties.zip");
+            assertEquals("two violations: " + report.getViolations(), 2, report.getViolations().size());
+            assertTrue("all violations have packageIds", report.getViolations().stream()
+                    .allMatch(viol -> !viol.getPackages().isEmpty()));
+        });
+    }
+
+    @Test
+    public void testScopeNodeTypes() throws Exception {
+        TestUtil.testBlock(() -> {
+            ProgressCheck check = new JcrProperties().newInstance(obj()
+                    .key("properties", arr()
+                            .and(key("name", "double_nan").key("requireType", "String"))
+                            .and(key("name", "double_neg_inf").key("requireType", "String"))
+                    )
+                    .get());
+            CheckReport report = scanWithCheck(check, "double_properties.zip");
+            LOGGER.info("violations: {}", new ArrayList<>(report.getViolations()));
+            assertEquals("two violations: " + report.getViolations(), 2, report.getViolations().size());
+            assertTrue("all violations have packageIds", report.getViolations().stream()
+                    .allMatch(viol -> !viol.getPackages().isEmpty()));
+        });
+        TestUtil.testBlock(() -> {
+            ProgressCheck check = new JcrProperties().newInstance(obj()
+                    .key("scopeNodeTypes", arr("nt:unstructured"))
+                    .key("properties", arr()
+                            .and(key("name", "double_nan").key("requireType", "String"))
+                            .and(key("name", "double_neg_inf").key("requireType", "String"))
+                    )
+                    .get());
+            CheckReport report = scanWithCheck(check, "double_properties.zip");
+            LOGGER.info("violations: {}", new ArrayList<>(report.getViolations()));
+            assertEquals("two violations: " + report.getViolations(), 2, report.getViolations().size());
+            assertTrue("all violations have packageIds", report.getViolations().stream()
+                    .allMatch(viol -> !viol.getPackages().isEmpty()));
+        });
+        TestUtil.testBlock(() -> {
+            ProgressCheck check = new JcrProperties().newInstance(obj()
+                    .key("scopeNodeTypes", arr("sling:Folder"))
+                    .key("properties", arr()
+                            .and(key("name", "double_nan").key("requireType", "String"))
+                            .and(key("name", "double_neg_inf").key("requireType", "String"))
+                    )
+                    .get());
+            CheckReport report = scanWithCheck(check, "double_properties.zip");
+            LOGGER.info("violations: {}", new ArrayList<>(report.getViolations()));
+            assertEquals("no violations: " + report.getViolations(), 0, report.getViolations().size());
+            assertTrue("all violations have packageIds", report.getViolations().stream()
+                    .allMatch(viol -> !viol.getPackages().isEmpty()));
+        });
+    }
 }

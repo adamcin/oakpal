@@ -16,13 +16,9 @@
 
 package net.adamcin.oakpal.core.checks;
 
-import static java.util.Optional.ofNullable;
-
-import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -31,8 +27,7 @@ import javax.jcr.nodetype.NodeTypeDefinition;
 import net.adamcin.oakpal.core.ProgressCheck;
 import net.adamcin.oakpal.core.ProgressCheckFactory;
 import net.adamcin.oakpal.core.SimpleProgressCheck;
-import net.adamcin.oakpal.core.SimpleViolation;
-import net.adamcin.oakpal.core.Violation;
+import net.adamcin.oakpal.core.Util;
 import org.apache.jackrabbit.vault.fs.api.WorkspaceFilter;
 import org.apache.jackrabbit.vault.fs.config.MetaInf;
 import org.apache.jackrabbit.vault.packaging.PackageId;
@@ -102,14 +97,8 @@ public final class JcrProperties implements ProgressCheckFactory {
     @Override
     public ProgressCheck newInstance(final JSONObject config) throws Exception {
         List<Rule> pathScope = Rule.fromJSON(config.optJSONArray(CONFIG_SCOPE_PATHS));
-        List<String> denyNodeTypes = ofNullable(config.optJSONArray(CONFIG_DENY_NODE_TYPES))
-                .map(array -> StreamSupport.stream(array.spliterator(), false)
-                        .map(String::valueOf).collect(Collectors.toList()))
-                .orElse(Collections.emptyList());
-        List<String> nodeTypeScope = ofNullable(config.optJSONArray(CONFIG_SCOPE_NODE_TYPES))
-                .map(array -> StreamSupport.stream(array.spliterator(), false)
-                        .map(String::valueOf).collect(Collectors.toList()))
-                .orElse(Collections.emptyList());
+        List<String> denyNodeTypes = Util.fromJSONArrayAsStrings(config.optJSONArray(CONFIG_DENY_NODE_TYPES));
+        List<String> nodeTypeScope = Util.fromJSONArrayAsStrings(config.optJSONArray(CONFIG_SCOPE_NODE_TYPES));
         List<JcrPropertyConstraints> propertyChecks = JcrPropertyConstraints
                 .fromJSON(config.optJSONArray(CONFIG_PROPERTIES));
         return new Check(pathScope, denyNodeTypes, nodeTypeScope, propertyChecks);
@@ -159,15 +148,14 @@ public final class JcrProperties implements ProgressCheckFactory {
         void checkNode(final PackageId packageId, final Node node) throws RepositoryException {
             for (String denyNodeType : denyNodeTypes) {
                 if (node.isNodeType(denyNodeType)) {
-                    collector.reportViolation(new SimpleViolation(Violation.Severity.MAJOR,
-                            String.format("%s (t: %s, m: %s): denied node type %s",
-                                    node.getPath(),
-                                    node.getPrimaryNodeType().getName(),
-                                    Stream.of(node.getMixinNodeTypes())
-                                            .map(NodeTypeDefinition::getName)
-                                            .collect(Collectors.toList()),
-                                    denyNodeType),
-                            packageId));
+                    majorViolation(String.format("%s (t: %s, m: %s): denied node type %s",
+                            node.getPath(),
+                            node.getPrimaryNodeType().getName(),
+                            Stream.of(node.getMixinNodeTypes())
+                                    .map(NodeTypeDefinition::getName)
+                                    .collect(Collectors.toList()),
+                            denyNodeType),
+                            packageId);
                     return;
                 }
             }
