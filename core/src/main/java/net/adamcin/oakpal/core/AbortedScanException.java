@@ -24,19 +24,19 @@ import java.util.Optional;
  */
 public class AbortedScanException extends Exception {
 
-    private final Optional<File> currentPackageFile;
+    private final File currentPackageFile;
 
     public AbortedScanException(Throwable cause, File currentPackageFile) {
         super(cause);
-        this.currentPackageFile = Optional.ofNullable(currentPackageFile);
+        this.currentPackageFile = currentPackageFile;
     }
 
     public AbortedScanException(Throwable cause) {
         super(cause);
-        this.currentPackageFile = Optional.empty();
+        this.currentPackageFile = null;
     }
 
     public Optional<File> getCurrentPackageFile() {
-        return currentPackageFile;
+        return Optional.ofNullable(currentPackageFile);
     }
 }

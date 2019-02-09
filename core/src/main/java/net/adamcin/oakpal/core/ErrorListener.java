@@ -18,13 +18,11 @@ package net.adamcin.oakpal.core;
 
 import java.net.URL;
 
-import aQute.bnd.annotation.ConsumerType;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 
 /**
  * A single error handler is used during an OakPAL scan.
  */
-@ConsumerType
 public interface ErrorListener extends ScanListener, ViolationReporter {
 
     /**

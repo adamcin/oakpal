@@ -274,6 +274,45 @@ public final class OakMachine {
     }
 
     /**
+     * Functional interface for {@link #initAndInspect(InspectBody)}.
+     */
+    @FunctionalInterface
+    public interface InspectBody<E extends Throwable> {
+        void tryAccept(final Session session) throws E;
+    }
+
+    /**
+     * Run arbitrary admin session logic against a post-InitStage OakPAL session.
+     *
+     * @throws Exception for any number of reasons
+     */
+    public <E extends Throwable> void initAndInspect(final InspectBody<E> inspectBody) throws RepositoryException, E {
+        Session admin = null;
+        Repository scanRepo = null;
+        try {
+            scanRepo = initRepository();
+
+            admin = loginAdmin(scanRepo);
+
+            addOakpalTypes(admin);
+
+            for (InitStage initStage : this.initStages) {
+                initStage.initSession(admin, getErrorListener());
+            }
+
+            final Session inspectSession = SessionFacade.findBestWrapper(admin, false);
+
+            inspectBody.tryAccept(inspectSession);
+        } finally {
+            if (admin != null) {
+                admin.logout();
+            }
+
+            shutdownRepository(scanRepo);
+        }
+    }
+
+    /**
      * Execute a scan by installing each of the provided package files in sequence. The scan proceeds in the following
      * order:
      * <ol>
@@ -295,11 +334,11 @@ public final class OakMachine {
      * @throws AbortedScanException for any errors that terminate the scan.
      */
     public List<CheckReport> scanPackages(List<File> files) throws AbortedScanException {
+        getErrorListener().startedScan();
+
         Session admin = null;
         Repository scanRepo = null;
         try {
-            getErrorListener().startedScan();
-
             scanRepo = initRepository();
 
             admin = loginAdmin(scanRepo);
@@ -598,4 +637,6 @@ public final class OakMachine {
             OakMachine.this.getErrorListener().onImporterException(e, packageId, path);
         }
     }
+
+
 }
