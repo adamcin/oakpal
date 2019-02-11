@@ -33,38 +33,18 @@ import javax.jcr.SimpleCredentials;
 import javax.jcr.nodetype.NodeTypeTemplate;
 import javax.jcr.version.OnParentVersionAction;
 
-import aQute.bnd.annotation.ProviderType;
-import net.adamcin.oakpal.core.jcrfacade.SessionFacade;
+import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.commons.cnd.DefinitionBuilderFactory;
 import org.apache.jackrabbit.commons.cnd.TemplateBuilderFactory;
-import org.apache.jackrabbit.oak.InitialContent;
-import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.jcr.Jcr;
-import org.apache.jackrabbit.oak.jcr.repository.RepositoryImpl;
-import org.apache.jackrabbit.oak.plugins.commit.ConflictValidatorProvider;
-import org.apache.jackrabbit.oak.plugins.commit.JcrConflictHandler;
-import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
-import org.apache.jackrabbit.oak.plugins.index.property.OrderedPropertyIndexEditorProvider;
-import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
-import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexProvider;
-import org.apache.jackrabbit.oak.plugins.index.reference.ReferenceEditorProvider;
-import org.apache.jackrabbit.oak.plugins.index.reference.ReferenceIndexProvider;
-import org.apache.jackrabbit.oak.plugins.name.NameValidatorProvider;
-import org.apache.jackrabbit.oak.plugins.name.NamespaceEditorProvider;
-import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
-import org.apache.jackrabbit.oak.plugins.observation.ChangeCollectorProvider;
-import org.apache.jackrabbit.oak.plugins.version.VersionHook;
 import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
-import org.apache.jackrabbit.oak.security.user.RandomAuthorizableNodeName;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
-import org.apache.jackrabbit.oak.spi.security.user.AuthorizableNodeName;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.action.AccessControlAction;
-import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 import org.apache.jackrabbit.vault.fs.api.ProgressTrackerListener;
@@ -80,7 +60,6 @@ import org.apache.jackrabbit.vault.packaging.VaultPackage;
 /**
  * Entry point for OakPAL Acceptance Library. See {@link ProgressCheck} for the event listener interface.
  */
-@ProviderType
 public final class OakMachine {
     public static final String NS_URI_OAKPAL = "oakpaltmp";
     public static final String NS_PREFIX_OAKPAL = "oakpal";
@@ -300,7 +279,7 @@ public final class OakMachine {
                 initStage.initSession(admin, getErrorListener());
             }
 
-            final Session inspectSession = SessionFacade.findBestWrapper(admin, false);
+            final Session inspectSession = Util.wrapSessionReadOnly(admin);
 
             inspectBody.tryAccept(inspectSession);
         } finally {
@@ -437,7 +416,7 @@ public final class OakMachine {
             throws IOException, PackageException, RepositoryException {
 
         final PackageId packageId = jcrPackage.getPackage().getId();
-        final Session inspectSession = SessionFacade.findBestWrapper(admin, false);
+        final Session inspectSession = Util.wrapSessionReadOnly(admin);
         final ProgressTrackerListener tracker =
                 new ImporterListenerAdapter(packageId, progressChecks, inspectSession, preInstall);
 
@@ -535,14 +514,12 @@ public final class OakMachine {
 
     private Repository initRepository() throws RepositoryException {
         Properties userProps = new Properties();
-        AuthorizableNodeName nameGenerator = new RandomAuthorizableNodeName();
 
         userProps.put(UserConstants.PARAM_USER_PATH, "/home/users");
         userProps.put(UserConstants.PARAM_GROUP_PATH, "/home/groups");
         userProps.put(AccessControlAction.USER_PRIVILEGE_NAMES, new String[]{PrivilegeConstants.JCR_ALL});
         userProps.put(AccessControlAction.GROUP_PRIVILEGE_NAMES, new String[]{PrivilegeConstants.JCR_READ});
         userProps.put(ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, ImportBehavior.NAME_BESTEFFORT);
-        userProps.put(UserConstants.PARAM_AUTHORIZABLE_NODE_NAME, nameGenerator);
         userProps.put("cacheExpiration", 3600 * 1000);
         Properties authzProps = new Properties();
         authzProps.put(ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, ImportBehavior.NAME_BESTEFFORT);
@@ -550,25 +527,9 @@ public final class OakMachine {
         securityProps.put(UserConfiguration.NAME, ConfigurationParameters.of(userProps));
         securityProps.put(AuthorizationConfiguration.NAME, ConfigurationParameters.of(authzProps));
 
-        Oak oak = new Oak();
-        Jcr jcr = new Jcr(oak, false);
+        Jcr jcr = new Jcr();
         Repository repository = jcr
                 .with(new SecurityProviderImpl(ConfigurationParameters.of(securityProps)))
-                .with(new VersionHook())
-                .with(new DefaultWhiteboard())
-                .with(new InitialContent())
-                .with(new NameValidatorProvider())
-                .with(new NamespaceEditorProvider())
-                .with(new TypeEditorProvider(true))
-                .with(new ConflictValidatorProvider())
-                .with(new ChangeCollectorProvider())
-                .with(JcrConflictHandler.createJcrConflictHandler())
-                .with(new ReferenceIndexProvider())
-                .with(new PropertyIndexProvider())
-                .with(new NodeTypeIndexProvider())
-                .with(new PropertyIndexEditorProvider())
-                .with(new ReferenceEditorProvider())
-                .with(new OrderedPropertyIndexEditorProvider())
                 .withAtomicCounter()
                 .createRepository();
 
@@ -576,8 +537,8 @@ public final class OakMachine {
     }
 
     private void shutdownRepository(Repository repository) {
-        if (repository instanceof RepositoryImpl) {
-            ((RepositoryImpl) repository).shutdown();
+        if (repository instanceof JackrabbitRepository) {
+            ((JackrabbitRepository) repository).shutdown();
         }
     }
 

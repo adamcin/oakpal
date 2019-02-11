@@ -22,13 +22,11 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-import aQute.bnd.annotation.ProviderType;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 
 /**
  * Simple implementation of a {@link Violation}.
  */
-@ProviderType
 public final class SimpleViolation implements Violation {
     private final Severity severity;
     private final String description;

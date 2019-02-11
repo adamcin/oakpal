@@ -36,9 +36,11 @@ import java.util.jar.Manifest;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
+import javax.jcr.Session;
 
 import aQute.bnd.header.Parameters;
 import aQute.bnd.osgi.Domain;
+import net.adamcin.oakpal.core.jcrfacade.SessionFacade;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.slf4j.Logger;
@@ -49,6 +51,16 @@ public final class Util {
 
     private Util() {
         // do nothing
+    }
+
+    /**
+     * Public utility method to wrap an existing session with a facade that blocks writes.
+     *
+     * @param session the existing session to wrap
+     * @return a read-only session
+     */
+    public static Session wrapSessionReadOnly(final Session session) {
+        return SessionFacade.findBestWrapper(session, false);
     }
 
     public static List<String> getManifestHeaderValues(final Manifest manifest, final String headerName) {

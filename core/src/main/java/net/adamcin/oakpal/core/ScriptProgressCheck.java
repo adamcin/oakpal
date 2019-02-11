@@ -37,7 +37,6 @@ import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
 import javax.script.SimpleBindings;
 
-import aQute.bnd.annotation.ProviderType;
 import org.apache.jackrabbit.vault.fs.config.MetaInf;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.apache.jackrabbit.vault.packaging.PackageProperties;
@@ -71,7 +70,6 @@ import org.json.JSONObject;
  * <p>
  * To report package violations, a {@link ScriptHelper} is bound to the global variable "oakpal".
  */
-@ProviderType
 public final class ScriptProgressCheck implements ProgressCheck {
     public static final String BINDING_SCRIPT_HELPER = "oakpal";
     public static final String BINDING_CHECK_CONFIG = "config";
