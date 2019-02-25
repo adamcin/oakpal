@@ -68,7 +68,7 @@ public final class Paths implements ProgressCheckFactory {
     public static final Violation.Severity DEFAULT_SEVERITY = Violation.Severity.MAJOR;
 
     @Override
-    public ProgressCheck newInstance(final JSONObject config) throws Exception {
+    public ProgressCheck newInstance(final JSONObject config) {
         List<Rule> rules = Rule.fromJSON(config.optJSONArray(CONFIG_RULES));
 
         final boolean denyAllDeletes = config.has(CONFIG_DENY_ALL_DELETES)

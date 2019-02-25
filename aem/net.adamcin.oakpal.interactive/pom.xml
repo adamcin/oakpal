@@ -59,6 +59,7 @@
                             <bnd><![CDATA[
                                 Export-Package: net.adamcin.oakpal.aem.interactive.*
                                 Private-Package: net.adamcin.oakpal.aem.interactive.impl.*
+                                DynamicImport-Package: org.apache.felix.jaas.boot
                             ]]></bnd>
                         </configuration>
                     </execution>
@@ -112,6 +113,15 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>oakpal-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.adobe.aem</groupId>
+            <artifactId>uber-jar</artifactId>
+            <classifier>apis</classifier>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.felix</groupId>
+            <artifactId>org.apache.felix.http.servlet-api</artifactId>
         </dependency>
     </dependencies>
 </project>

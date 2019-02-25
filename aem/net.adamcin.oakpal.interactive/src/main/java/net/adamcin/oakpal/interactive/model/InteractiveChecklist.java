@@ -14,10 +14,14 @@
  * limitations under the License.
  */
 
-package net.adamcin.oakpal.interactive;
+package net.adamcin.oakpal.interactive.model;
 
-/**
- * Mock oak machine for running {@link net.adamcin.oakpal.core.ProgressCheck}s against the live repository.
- */
-public interface MockOakMachine {
+import net.adamcin.oakpal.core.Checklist;
+import org.apache.sling.api.resource.Resource;
+import org.apache.sling.models.annotations.Model;
+
+@Model(adaptables = Resource.class)
+public class InteractiveChecklist {
+
+
 }

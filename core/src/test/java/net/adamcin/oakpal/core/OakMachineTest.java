@@ -30,4 +30,13 @@ public class OakMachineTest {
                     session.getRootNode().isSame(session.getNode("/")));
         });
     }
+
+    @Test
+    public void testHomePaths() throws Exception {
+        OakMachine machine = new OakMachine.Builder().build();
+        machine.initAndInspect(session -> {
+            assertTrue("/home/users/system should exist", session.nodeExists("/home/users/system"));
+            assertTrue("/home/groups should exist", session.nodeExists("/home/groups"));
+        });
+    }
 }

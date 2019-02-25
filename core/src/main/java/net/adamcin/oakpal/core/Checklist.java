@@ -207,7 +207,7 @@ public final class Checklist {
      * @param json       check list blob
      * @return the new package checklist
      */
-    static Checklist fromJSON(final String moduleName, final URL manifestUrl, final JSONObject json) {
+    public static Checklist fromJSON(final String moduleName, final URL manifestUrl, final JSONObject json) {
         LOGGER.trace("[fromJSON] module: {}, manifestUrl: {}, json: {}", moduleName, manifestUrl, json);
         Builder builder = new Builder(moduleName);
         if (json.has(KEY_NAME)) {

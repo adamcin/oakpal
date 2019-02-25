@@ -33,18 +33,24 @@ import javax.jcr.SimpleCredentials;
 import javax.jcr.nodetype.NodeTypeTemplate;
 import javax.jcr.version.OnParentVersionAction;
 
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.commons.cnd.DefinitionBuilderFactory;
 import org.apache.jackrabbit.commons.cnd.TemplateBuilderFactory;
+import org.apache.jackrabbit.oak.Oak;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
+import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.apache.jackrabbit.oak.spi.security.authentication.AuthenticationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.action.AccessControlAction;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 import org.apache.jackrabbit.vault.fs.api.ProgressTrackerListener;
@@ -78,16 +84,20 @@ public final class OakMachine {
 
     private final List<InitStage> initStages;
 
+    private final JcrCustomizer jcrCustomizer;
+
     private OakMachine(final Packaging packagingService,
                        final List<ProgressCheck> progressChecks,
                        final ErrorListener errorListener,
                        final List<File> preInstallPackages,
-                       final List<InitStage> initStages) {
-        this.packagingService = packagingService;
+                       final List<InitStage> initStages,
+                       final JcrCustomizer jcrCustomizer) {
+        this.packagingService = packagingService != null ? packagingService : new DefaultPackagingService();
         this.progressChecks = progressChecks;
         this.errorListener = errorListener;
         this.preInstallPackages = preInstallPackages;
         this.initStages = initStages;
+        this.jcrCustomizer = jcrCustomizer;
     }
 
     /**
@@ -104,6 +114,7 @@ public final class OakMachine {
 
         private List<File> preInstallPackages = Collections.emptyList();
 
+        private JcrCustomizer jcrCustomizer;
 
         /**
          * Provide a {@link Packaging} service for use in retrieving a {@link JcrPackageManager} for an admin session.
@@ -218,6 +229,11 @@ public final class OakMachine {
             return this;
         }
 
+        public Builder withJcrCustomizer(final JcrCustomizer jcrCustomizer) {
+            this.jcrCustomizer = jcrCustomizer;
+            return this;
+        }
+
         /**
          * Construct a {@link OakMachine} from the {@link Builder} state.
          *
@@ -228,7 +244,8 @@ public final class OakMachine {
                     progressChecks,
                     errorListener,
                     preInstallPackages,
-                    initStages);
+                    initStages,
+                    jcrCustomizer);
         }
     }
 
@@ -298,10 +315,10 @@ public final class OakMachine {
      * <li>{@link #initRepository()} creates an fresh Oak repository.</li>
      * <li>{@link #loginAdmin(Repository)} opens an admin user JCR session.</li>
      * <li>{@link InitStage#initSession(Session, ErrorListener)} is called for each registered {@link InitStage}</li>
-     * <li>{@link #processPackageFile(Session, JcrPackageManager, File, boolean)} is performed for each of the
+     * <li>{@link #processPackageFile(Session, JcrPackageManager, boolean, File)} is performed for each of the
      * {@link #preInstallPackages}</li>
      * <li>Each registered {@link ProgressCheck} receives a {@link ProgressCheck#startedScan()} event.</li>
-     * <li>{@link #processPackageFile(Session, JcrPackageManager, File, boolean)} is performed for each of the elements
+     * <li>{@link #processPackageFile(Session, JcrPackageManager, boolean, File)} is performed for each of the elements
      * of the {@code files} array.</li>
      * <li>Each registered {@link ProgressCheck} receives a {@link ProgressCheck#finishedScan()} event.</li>
      * <li>The admin session is closed.</li>
@@ -312,7 +329,7 @@ public final class OakMachine {
      * @return a list of any CheckReports reported during the scan.
      * @throws AbortedScanException for any errors that terminate the scan.
      */
-    public List<CheckReport> scanPackages(List<File> files) throws AbortedScanException {
+    public List<CheckReport> scanPackages(final List<File> files) throws AbortedScanException {
         getErrorListener().startedScan();
 
         Session admin = null;
@@ -330,23 +347,20 @@ public final class OakMachine {
 
             final JcrPackageManager manager;
 
-            if (packagingService != null) {
-                manager = packagingService.getPackageManager(admin);
-            } else {
-                manager = new DefaultPackagingService().getPackageManager(admin);
-            }
+            manager = packagingService.getPackageManager(admin);
 
             for (File file : preInstallPackages) {
-                processPackageFile(admin, manager, file, true);
+                processPackageFile(admin, manager, true, file);
             }
 
             progressChecks.forEach(ProgressCheck::startedScan);
 
             if (files != null) {
                 for (File file : files) {
-                    processPackageFile(admin, manager, file, false);
+                    processPackageFile(admin, manager, false, file);
                 }
             }
+
         } catch (RepositoryException e) {
             throw new AbortedScanException(e);
         } finally {
@@ -464,9 +478,7 @@ public final class OakMachine {
     }
 
     private void processSubpackage(Session admin, JcrPackageManager manager, PackageId packageId, PackageId parentId, final boolean preInstall) {
-        JcrPackage jcrPackage = null;
-        try {
-            jcrPackage = manager.open(packageId);
+        try (JcrPackage jcrPackage = manager.open(packageId)) {
 
             if (!preInstall) {
                 progressChecks.forEach(handler -> handler.identifySubpackage(packageId, parentId));
@@ -476,25 +488,21 @@ public final class OakMachine {
 
         } catch (IOException | PackageException | RepositoryException e) {
             getErrorListener().onSubpackageException(e, packageId);
-        } finally {
-            if (jcrPackage != null) {
-                jcrPackage.close();
-            }
         }
     }
 
-    private void processPackageFile(Session admin, JcrPackageManager manager, final File file, final boolean preInstall)
+    private void processPackageFile(final Session admin, final JcrPackageManager manager, final boolean preInstall, final File file)
             throws AbortedScanException {
-        JcrPackage jcrPackage = null;
 
-        try {
-            jcrPackage = manager.upload(file, false, true, null, true);
-            final PackageId packageId = jcrPackage.getPackage().getId();
+        try (JcrPackage jcrPackage = manager.upload(file, false, true, null, true)) {
+            final VaultPackage vaultPackage = jcrPackage.getPackage();
+            final PackageId packageId = vaultPackage.getId();
+            final File packageFile = vaultPackage.getFile();
 
             if (!preInstall) {
                 progressChecks.forEach(handler -> {
                     try {
-                        handler.identifyPackage(packageId, file);
+                        handler.identifyPackage(packageId, packageFile);
                     } catch (Exception e) {
                         getErrorListener().onListenerException(e, handler, packageId);
                     }
@@ -502,14 +510,21 @@ public final class OakMachine {
             }
 
             processPackage(admin, manager, jcrPackage, preInstall);
-
         } catch (IOException | PackageException | RepositoryException e) {
             throw new AbortedScanException(e, file);
-        } finally {
-            if (jcrPackage != null) {
-                jcrPackage.close();
-            }
         }
+    }
+
+    @FunctionalInterface
+    public interface JcrCustomizer {
+        void customize(Jcr jcr);
+    }
+
+    private static NodeBuilder authzPath(final NodeBuilder parent, final String name) {
+        NodeBuilder child = parent.child(name);
+        child.setProperty(JcrConstants.JCR_PRIMARYTYPE, "rep:AuthorizableFolder", Type.NAME);
+        child.setProperty(JcrConstants.JCR_MIXINTYPES, Collections.singleton("rep:AccessControllable"), Type.NAMES);
+        return child;
     }
 
     private Repository initRepository() throws RepositoryException {
@@ -526,10 +541,27 @@ public final class OakMachine {
         Properties securityProps = new Properties();
         securityProps.put(UserConfiguration.NAME, ConfigurationParameters.of(userProps));
         securityProps.put(AuthorizationConfiguration.NAME, ConfigurationParameters.of(authzProps));
-
+        Properties authnProps = new Properties();
+        authnProps.put(AuthenticationConfiguration.PARAM_APP_NAME, "oakpal.jcr");
+        //authnProps.put(AuthenticationConfiguration.PARAM_CONFIG_SPI_NAME, "FelixJaasProvider");
+        securityProps.put(AuthenticationConfiguration.NAME, ConfigurationParameters.of(authnProps));
         Jcr jcr = new Jcr();
+        jcr.with(new SecurityProviderImpl(ConfigurationParameters.of(securityProps)));
+
+        RepositoryInitializer homeCreator = builder -> {
+            NodeBuilder home = authzPath(builder, "home");
+            NodeBuilder groups = authzPath(home, "groups");
+            NodeBuilder users = authzPath(home, "users");
+            NodeBuilder system = authzPath(users, "system");
+        };
+
+        jcr.with(homeCreator);
+
+        if (jcrCustomizer != null) {
+            jcrCustomizer.customize(jcr);
+        }
+
         Repository repository = jcr
-                .with(new SecurityProviderImpl(ConfigurationParameters.of(securityProps)))
                 .withAtomicCounter()
                 .createRepository();
 
@@ -543,7 +575,14 @@ public final class OakMachine {
     }
 
     private Session loginAdmin(Repository repository) throws RepositoryException {
-        return repository.login(new SimpleCredentials("admin", "admin".toCharArray()));
+        final Thread thread = Thread.currentThread();
+        final ClassLoader loader = thread.getContextClassLoader();
+        try {
+            thread.setContextClassLoader(Oak.class.getClassLoader());
+            return repository.login(new SimpleCredentials("admin", "admin".toCharArray()));
+        } finally {
+            thread.setContextClassLoader(loader);
+        }
     }
 
     private class ImporterListenerAdapter implements ProgressTrackerListener {
