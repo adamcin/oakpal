@@ -107,6 +107,11 @@
                 <groupId>net.adamcin.oakpal</groupId>
                 <artifactId>oakpal-maven-plugin</artifactId>
                 <version>${project.version}</version>
+                <configuration>
+                    <checklists>
+                        <checklist>basic</checklist>
+                    </checklists>
+                </configuration>
                 <executions>
                     <execution>
                         <goals>
