@@ -44,7 +44,10 @@ import javax.json.JsonArray;
 import javax.json.JsonObject;
 import javax.json.JsonReader;
 import javax.json.JsonWriter;
+import javax.json.JsonWriterFactory;
 import javax.json.stream.JsonCollectors;
+import javax.json.stream.JsonGenerator;
+import javax.json.stream.JsonGeneratorFactory;
 
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.json.JSONArray;
@@ -120,7 +123,9 @@ public final class ReportMapper {
     }
 
     public static void writeReports(final Collection<CheckReport> reports, final WriterSupplier writerSupplier) throws IOException {
-        try (Writer writer = writerSupplier.open(); JsonWriter jsonWriter = Json.createWriter(writer)) {
+        JsonWriterFactory writerFactory = Json
+                .createWriterFactory(Collections.singletonMap(JsonGenerator.PRETTY_PRINTING, true));
+        try (Writer writer = writerSupplier.open(); JsonWriter jsonWriter = writerFactory.createWriter(writer)) {
             jsonWriter.writeObject(key(KEY_REPORTS, reportsToJson(reports)).get());
         }
     }
