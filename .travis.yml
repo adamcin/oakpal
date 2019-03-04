@@ -1,7 +1,4 @@
 language: java
-env:
-  - "-Djson.version=20160807"
-  - "-Djson.version=20090211"
 after_success:
   - mvn -B -Pcoverage clean verify coveralls:report
 cache:

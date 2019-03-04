@@ -16,8 +16,8 @@
 
 package net.adamcin.oakpal.core.checks;
 
-import static net.adamcin.oakpal.core.OrgJson.arr;
-import static net.adamcin.oakpal.core.OrgJson.obj;
+import static net.adamcin.oakpal.core.JavaxJson.arr;
+import static net.adamcin.oakpal.core.JavaxJson.obj;
 import static net.adamcin.oakpal.core.checks.AcHandling.DEFAULT_LEVEL_SET;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -73,7 +73,7 @@ public class AcHandlingTest extends ProgressCheckTestBase {
     }
 
     @Test
-    public void testEmptyConfig() {
+    public void testEmptyConfig() throws Exception {
         AcHandling.Check check = (AcHandling.Check) new AcHandling().newInstance(obj().get());
         assertNotNull("check should not be null", check);
         assertEquals("default levelSet should be " + DEFAULT_LEVEL_SET,

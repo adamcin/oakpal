@@ -152,6 +152,10 @@
             <groupId>net.adamcin.oakpal</groupId>
             <artifactId>oakpal-core</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.glassfish</groupId>
+            <artifactId>javax.json</artifactId>
+        </dependency>
 
         <!-- Override 3rd-party logging -->
         <dependency>

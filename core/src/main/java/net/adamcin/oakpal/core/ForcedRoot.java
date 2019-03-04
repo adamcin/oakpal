@@ -16,13 +16,14 @@
 
 package net.adamcin.oakpal.core;
 
-import static java.util.Optional.ofNullable;
+import static net.adamcin.oakpal.core.JavaxJson.mapArrayOfStrings;
+import static net.adamcin.oakpal.core.JavaxJson.obj;
+import static net.adamcin.oakpal.core.JavaxJson.optArray;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
-
-import org.json.JSONObject;
+import java.util.function.Function;
+import javax.json.JsonObject;
 
 /**
  * Encapsulation of details necessary to force creation of a particular root path.
@@ -87,26 +88,26 @@ public final class ForcedRoot {
      * @param json JSON object
      * @return a new forced root
      */
-    static ForcedRoot fromJSON(final JSONObject json) {
+    static ForcedRoot fromJson(final JsonObject json) {
         final ForcedRoot forcedRoot = new ForcedRoot();
-        if (json.has(KEY_PATH)) {
+        if (json.containsKey(KEY_PATH)) {
             forcedRoot.setPath(json.getString(KEY_PATH));
         }
-        if (json.has(KEY_PRIMARY_TYPE)) {
+        if (json.containsKey(KEY_PRIMARY_TYPE)) {
             forcedRoot.setPrimaryType(json.getString(KEY_PRIMARY_TYPE));
         }
-        ofNullable(json.optJSONArray(KEY_MIXIN_TYPES))
-                .map(types -> types.toList().stream().map(String::valueOf).collect(Collectors.toList()))
-                .ifPresent(forcedRoot::setMixinTypes);
+        optArray(json, KEY_MIXIN_TYPES).ifPresent(jsonArray -> {
+            forcedRoot.setMixinTypes(mapArrayOfStrings(jsonArray, Function.identity()));
+        });
         return forcedRoot;
     }
 
     @Override
     public String toString() {
-        JSONObject ret = new JSONObject();
-        ret.put(KEY_PATH, getPath());
-        ret.put(KEY_PRIMARY_TYPE, getPrimaryType());
-        ret.put(KEY_MIXIN_TYPES, getMixinTypes());
-        return ret.toString();
+        return obj()
+                .key(KEY_PATH, getPath())
+                .key(KEY_PRIMARY_TYPE, getPrimaryType())
+                .key(KEY_MIXIN_TYPES, getMixinTypes())
+                .get().toString();
     }
 }

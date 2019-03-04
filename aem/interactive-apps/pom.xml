@@ -101,8 +101,8 @@
                             <filter>true</filter>
                         </embedded>
                         <embedded>
-                            <groupId>org.json</groupId>
-                            <artifactId>json</artifactId>
+                            <groupId>org.glassfish</groupId>
+                            <artifactId>javax.json</artifactId>
                             <target>/apps/oakpal-interactive/install</target>
                             <filter>true</filter>
                         </embedded>
@@ -162,16 +162,14 @@
         <dependency>
             <groupId>net.adamcin.oakpal</groupId>
             <artifactId>oakpal-core</artifactId>
-            <version>1.1.14-SNAPSHOT</version>
         </dependency>
         <dependency>
-            <groupId>org.json</groupId>
-            <artifactId>json</artifactId>
+            <groupId>org.glassfish</groupId>
+            <artifactId>javax.json</artifactId>
         </dependency>
         <dependency>
             <groupId>net.adamcin.oakpal</groupId>
             <artifactId>net.adamcin.oakpal.interactive</artifactId>
-            <version>1.1.14-SNAPSHOT</version>
         </dependency>
     </dependencies>
 </project>

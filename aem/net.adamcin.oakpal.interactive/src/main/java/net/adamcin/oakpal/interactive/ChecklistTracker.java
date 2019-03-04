@@ -14,14 +14,12 @@
  * limitations under the License.
  */
 
-package net.adamcin.oakpal.interactive.model;
+package net.adamcin.oakpal.interactive;
+
+import java.util.List;
 
 import net.adamcin.oakpal.core.Checklist;
-import org.apache.sling.api.resource.Resource;
-import org.apache.sling.models.annotations.Model;
 
-@Model(adaptables = Resource.class)
-public class InteractiveChecklist {
-
-
+public interface ChecklistTracker {
+    List<Checklist> getBundleChecklists();
 }

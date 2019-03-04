@@ -16,30 +16,40 @@
 
 package net.adamcin.oakpal.core;
 
+import static java.util.Optional.ofNullable;
+import static net.adamcin.oakpal.core.JavaxJson.key;
+import static net.adamcin.oakpal.core.JavaxJson.mapArrayOfObjects;
+import static net.adamcin.oakpal.core.JavaxJson.mapArrayOfStrings;
+import static net.adamcin.oakpal.core.JavaxJson.obj;
+import static net.adamcin.oakpal.core.JavaxJson.optArray;
+import static net.adamcin.oakpal.core.JavaxJson.val;
+import static net.adamcin.oakpal.core.Util.isEmpty;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Reader;
 import java.io.Writer;
-import java.util.ArrayList;
+import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
+import java.util.Objects;
 import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
+import javax.json.Json;
+import javax.json.JsonArray;
+import javax.json.JsonObject;
+import javax.json.JsonReader;
+import javax.json.JsonWriter;
+import javax.json.stream.JsonCollectors;
 
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.json.JSONString;
-import org.json.JSONTokener;
 
 /**
  * Serialize violations to/from json.
@@ -56,104 +66,104 @@ public final class ReportMapper {
         throw new RuntimeException("No instantiation");
     }
 
-    public static List<CheckReport> readReportsFromFile(File jsonFile)
+    public static List<CheckReport> readReportsFromFile(final File jsonFile)
             throws IOException, JSONException {
+        return readReportsFromStream(() -> new InputStreamReader(new FileInputStream(jsonFile), StandardCharsets.UTF_8));
+    }
 
-        InputStream is = null;
-        try {
-            is = new FileInputStream(jsonFile);
-            return readReportsFromStream(is);
-        } finally {
-            if (is != null) {
-                is.close();
-            }
+    @FunctionalInterface
+    public interface ReaderSupplier {
+        Reader open() throws IOException;
+    }
+
+    @FunctionalInterface
+    public interface WriterSupplier {
+        Writer open() throws IOException;
+    }
+
+    public static List<CheckReport> readReportsFromStream(final ReaderSupplier readerSupplier) throws IOException, JSONException {
+        try (Reader reader = readerSupplier.open();
+             JsonReader jsonReader = Json.createReader(reader)) {
+
+            JsonObject json = jsonReader.readObject();
+
+            List<CheckReport> reports = optArray(json, KEY_REPORTS)
+                    .map(jsonReports -> mapArrayOfObjects(jsonReports, ReportMapper::reportFromJson))
+                    .orElseGet(Collections::emptyList);
+
+            return Collections.unmodifiableList(reports);
         }
     }
 
-    public static List<CheckReport> readReportsFromStream(InputStream inputStream) throws IOException, JSONException {
-        Reader reader = new InputStreamReader(inputStream, "UTF-8");
-
-        return readReportsFromReader(reader);
-    }
-
-    public static List<CheckReport> readReportsFromReader(Reader reader) throws IOException, JSONException {
-        JSONTokener tokener = new JSONTokener(reader);
-        JSONObject json = new JSONObject(tokener);
-
-        List<CheckReport> reports = new ArrayList<>();
-        JSONArray jsonReports = json.optJSONArray(KEY_REPORTS);
-
-        if (jsonReports != null) {
-            reports = StreamSupport.stream(jsonReports.spliterator(), false)
-                    .filter(v -> v instanceof JSONObject)
-                    .map(v -> reportFromJSON((JSONObject) v))
-                    .collect(Collectors.toList());
-        }
-
-        return Collections.unmodifiableList(reports);
-    }
-
-    private static CheckReport reportFromJSON(JSONObject jsonReport) {
-        String vCheckName = jsonReport.optString(KEY_CHECK_NAME);
-        List<Violation> violations = new ArrayList<>();
-        JSONArray vViolations = jsonReport.optJSONArray(KEY_VIOLATIONS);
-        if (vViolations != null) {
-            violations = StreamSupport.stream(vViolations.spliterator(), false)
-                    .filter(v -> v instanceof JSONObject)
-                    .map(v -> violationFromJSON((JSONObject) v))
-                    .collect(Collectors.toList());
-        }
+    private static CheckReport reportFromJson(final JsonObject jsonReport) {
+        String vCheckName = jsonReport.getString(KEY_CHECK_NAME, "");
+        List<Violation> violations = optArray(jsonReport, KEY_VIOLATIONS)
+                .map(array -> mapArrayOfObjects(array, ReportMapper::violationFromJson))
+                .orElseGet(Collections::emptyList);
 
         return new SimpleReport(vCheckName, violations);
     }
 
-    private static Violation violationFromJSON(JSONObject jsonViolation) {
-        String vSeverity = jsonViolation.optString(KEY_SEVERITY, Violation.Severity.MINOR.name());
+    private static Violation violationFromJson(final JsonObject jsonViolation) {
+        String vSeverity = jsonViolation.getString(KEY_SEVERITY, Violation.Severity.MINOR.name());
         Violation.Severity severity = Violation.Severity.valueOf(vSeverity);
-        String description = jsonViolation.optString(KEY_DESCRIPTION, "");
-        List<PackageId> packages = new ArrayList<>();
-        JSONArray vPackages = jsonViolation.optJSONArray(KEY_PACKAGES);
-        if (vPackages != null) {
-            packages = StreamSupport.stream(vPackages.spliterator(), false)
-                    .map(v -> Optional.ofNullable(PackageId.fromString(String.valueOf(v))))
-                    .filter(Optional::isPresent).map(Optional::get)
-                    .collect(Collectors.toList());
-        }
+        String description = jsonViolation.getString(KEY_DESCRIPTION, "");
+        List<PackageId> packages = optArray(jsonViolation, KEY_PACKAGES)
+                .map(array -> mapArrayOfStrings(array, PackageId::fromString, true))
+                .orElseGet(Collections::emptyList);
 
         return new SimpleViolation(severity, description, packages);
     }
 
-    public static void writeReportsToFile(Collection<CheckReport> reports, File outputFile) throws IOException, JSONException {
-        OutputStream os = null;
-        try {
-            os = new FileOutputStream(outputFile);
-            writeReportsToStream(reports, os);
-        } finally {
-            if (os != null) {
-                os.close();
-            }
+    public static void writeReportsToFile(final Collection<CheckReport> reports, final File outputFile) throws IOException {
+        writeReports(reports, () -> new OutputStreamWriter(new FileOutputStream(outputFile), StandardCharsets.UTF_8));
+    }
+
+    public static void writeReports(final Collection<CheckReport> reports, final WriterSupplier writerSupplier) throws IOException {
+        try (Writer writer = writerSupplier.open(); JsonWriter jsonWriter = Json.createWriter(writer)) {
+            jsonWriter.writeObject(key(KEY_REPORTS, reportsToJson(reports)).get());
         }
     }
 
-    public static void writeReportsToStream(Collection<CheckReport> reports, OutputStream outputStream) throws IOException, JSONException {
-        Writer writer = new OutputStreamWriter(outputStream, "UTF-8");
-        writeReportsToWriter(reports, writer);
+    public static JsonArray reportsToJson(final Collection<CheckReport> reports) throws JSONException {
+        return val(reports.stream()
+                .map(ReportMapper::reportToJson)
+                .collect(JsonCollectors.toJsonArray())).get().asJsonArray();
     }
 
-    public static void writeReportsToWriter(Collection<CheckReport> reports, Writer writer) throws IOException, JSONException {
-        JSONArray jsonReports = reportsToJSON(reports);
-        JSONObject rootObj = new JSONObject();
-        rootObj.put(KEY_REPORTS, jsonReports);
-        rootObj.write(writer, 2, 0);
-        writer.flush();
+    private static JsonObject reportToJson(final CheckReport report) {
+        JavaxJson.Obj jsonReport = obj();
+
+        if (!isEmpty(report.getCheckName())) {
+            jsonReport.key(KEY_CHECK_NAME, report.getCheckName());
+        }
+        if (report.getViolations() != null) {
+            jsonReport.key(KEY_VIOLATIONS, report.getViolations().stream()
+                    .map(ReportMapper::violationToJson)
+                    .collect(JsonCollectors.toJsonArray()));
+        }
+
+        return jsonReport.get();
     }
 
+    private static JsonObject violationToJson(final Violation violation) {
+        JavaxJson.Obj json = obj();
+        ofNullable(violation.getSeverity()).ifPresent(json.key(KEY_SEVERITY)::val);
+        ofNullable(violation.getDescription()).ifPresent(json.key(KEY_DESCRIPTION)::val);
+        ofNullable(violation.getPackages()).map(col -> col.stream().map(Objects::toString))
+                .ifPresent(json.key(KEY_PACKAGES)::val);
+        return json.get();
+    }
+
+
+    @Deprecated
     public static JSONArray reportsToJSON(Collection<CheckReport> reports) throws JSONException {
         return new JSONArray(reports.stream()
                 .map(ReportMapper::reportToJSON)
                 .collect(Collectors.toList()));
     }
 
+    @Deprecated
     private static JSONObject reportToJSON(CheckReport report) throws JSONException {
         JSONObject jsonReport = new JSONObject();
         if (report.getCheckName() != null) {
@@ -170,6 +180,7 @@ public final class ReportMapper {
         return jsonReport;
     }
 
+    @Deprecated
     private static JSONObject violationToJSON(Violation violation) throws JSONException {
         JSONObject jsonViolation = new JSONObject();
         if (violation.getSeverity() != null) {

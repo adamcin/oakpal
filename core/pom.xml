@@ -104,8 +104,7 @@
                                     aQute.bnd.osgi,aQute.bnd.header,aQute.lib.base64,aQute.lib.collections,\
                                     aQute.lib.converter,aQute.libg.generics,aQute.libg.qtokens,\
                                     aQute.service.reporter
-                                DynamicImport-Package: org.apache.felix.jaas.boot
-                                Import-Package: org.json;version="[${json.version},20201231]",!aQute.*,*
+                                Import-Package: org.json;version="[${json.min.version},20201231]",!aQute.*,*
                                 -includeresource: \
                                     @${project.build.directory}/jar/bndlib.jar!/aQute/bnd/osgi/*,\
                                     @${project.build.directory}/jar/bndlib.jar!/aQute/bnd/header/*,\
@@ -162,6 +161,10 @@
         <dependency>
             <groupId>org.json</groupId>
             <artifactId>json</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.glassfish</groupId>
+            <artifactId>javax.json</artifactId>
         </dependency>
 
         <dependency>

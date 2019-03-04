@@ -16,14 +16,13 @@
 
 package net.adamcin.oakpal.core.checks;
 
-import static net.adamcin.oakpal.core.OrgJson.arr;
-import static net.adamcin.oakpal.core.OrgJson.key;
-import static net.adamcin.oakpal.core.OrgJson.obj;
+import static net.adamcin.oakpal.core.JavaxJson.arr;
+import static net.adamcin.oakpal.core.JavaxJson.key;
+import static net.adamcin.oakpal.core.JavaxJson.obj;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
-import java.util.ArrayList;
 import java.util.regex.Pattern;
 
 import net.adamcin.oakpal.core.CheckReport;

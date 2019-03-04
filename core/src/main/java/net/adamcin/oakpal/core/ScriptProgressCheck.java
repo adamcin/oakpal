@@ -19,6 +19,7 @@ package net.adamcin.oakpal.core;
 import java.io.File;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.StringReader;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.util.Collection;
@@ -29,6 +30,7 @@ import java.util.Set;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
+import javax.json.JsonObject;
 import javax.script.Bindings;
 import javax.script.Invocable;
 import javax.script.ScriptContext;
@@ -71,6 +73,7 @@ import org.json.JSONObject;
  * To report package violations, a {@link ScriptHelper} is bound to the global variable "oakpal".
  */
 public final class ScriptProgressCheck implements ProgressCheck {
+    public static final String DEFAULT_SCRIPT_ENGINE_EXTENSION = "js";
     public static final String BINDING_SCRIPT_HELPER = "oakpal";
     public static final String BINDING_CHECK_CONFIG = "config";
     public static final String INVOKE_ON_STARTED_SCAN = "startedScan";
@@ -95,11 +98,15 @@ public final class ScriptProgressCheck implements ProgressCheck {
     }
 
     private String getFilename() {
-        final int lastSlash = this.scriptUrl.getFile().lastIndexOf("/");
-        if (lastSlash >= 0 && this.scriptUrl.getFile().length() > lastSlash + 1) {
-            return this.scriptUrl.getFile().substring(lastSlash + 1);
+        if (this.scriptUrl != null) {
+            final int lastSlash = this.scriptUrl.getFile().lastIndexOf("/");
+            if (lastSlash >= 0 && this.scriptUrl.getFile().length() > lastSlash + 1) {
+                return this.scriptUrl.getFile().substring(lastSlash + 1);
+            } else {
+                return this.scriptUrl.getFile();
+            }
         } else {
-            return this.scriptUrl.getFile();
+            return "_inlineScript_.js";
         }
     }
 
@@ -261,11 +268,11 @@ public final class ScriptProgressCheck implements ProgressCheck {
         }
 
         @Override
-        public ProgressCheck newInstance(final JSONObject config) throws Exception {
+        public ProgressCheck newInstance(final JsonObject config) throws Exception {
             try (InputStream is = scriptUrl.openStream()) {
                 Bindings scriptBindings = new SimpleBindings();
                 if (config != null) {
-                    scriptBindings.put(BINDING_CHECK_CONFIG, config.toMap());
+                    scriptBindings.put(BINDING_CHECK_CONFIG, JavaxJson.unwrapObject(config));
                 } else {
                     scriptBindings.put(BINDING_CHECK_CONFIG, Collections.<String, Object>emptyMap());
                 }
@@ -279,13 +286,40 @@ public final class ScriptProgressCheck implements ProgressCheck {
         }
     }
 
+    private static class InlineScriptProgressCheckFactory implements ProgressCheckFactory {
+        private ScriptEngine engine;
+        private final String source;
+
+        private InlineScriptProgressCheckFactory(final ScriptEngine engine, final String source) {
+            this.engine = engine;
+            this.source = source;
+        }
+
+        @Override
+        public ProgressCheck newInstance(final JsonObject config) throws Exception {
+            Bindings scriptBindings = new SimpleBindings();
+            if (config != null) {
+                scriptBindings.put(BINDING_CHECK_CONFIG, JavaxJson.unwrapObject(config));
+            } else {
+                scriptBindings.put(BINDING_CHECK_CONFIG, Collections.<String, Object>emptyMap());
+            }
+            final ScriptHelper helper = new ScriptHelper();
+            scriptBindings.put(BINDING_SCRIPT_HELPER, helper);
+
+            engine.setBindings(scriptBindings, ScriptContext.ENGINE_SCOPE);
+            engine.eval(this.source);
+            return new ScriptProgressCheck((Invocable) engine, helper, null);
+        }
+    }
+
     public static ProgressCheckFactory createScriptCheckFactory(final URL scriptUrl) throws Exception {
         final int lastPeriod = scriptUrl.getPath().lastIndexOf(".");
+        final String ext;
         if (lastPeriod < 0 || lastPeriod + 1 >= scriptUrl.getPath().length()) {
-            throw new Exception("Failed to load ScriptEngine for URL missing file extension."
-                    + scriptUrl.toString());
+            ext = DEFAULT_SCRIPT_ENGINE_EXTENSION;
+        } else {
+            ext = scriptUrl.getPath().substring(lastPeriod + 1);
         }
-        final String ext = scriptUrl.getPath().substring(lastPeriod + 1);
         ScriptEngine engine = new ScriptEngineManager().getEngineByExtension(ext);
         if (engine == null) {
             throw new Exception("Failed to find a ScriptEngine for URL extension: " + scriptUrl.toString());
@@ -305,5 +339,17 @@ public final class ScriptProgressCheck implements ProgressCheck {
     public static ProgressCheckFactory createScriptCheckFactory(final ScriptEngine engine, final URL scriptUrl)
             throws Exception {
         return new ScriptProgressCheckFactory(engine, scriptUrl);
+    }
+
+    public static ProgressCheckFactory createInlineScriptCheckFactory(final String inlineScript, final String inlineEngine)
+            throws Exception {
+        final ScriptEngine engine;
+        if (inlineEngine == null) {
+            engine = new ScriptEngineManager().getEngineByExtension(DEFAULT_SCRIPT_ENGINE_EXTENSION);
+        } else {
+            engine = new ScriptEngineManager().getEngineByName(inlineEngine);
+        }
+
+        return new InlineScriptProgressCheckFactory(engine, inlineScript);
     }
 }

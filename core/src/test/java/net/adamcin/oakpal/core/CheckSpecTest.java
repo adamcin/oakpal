@@ -16,6 +16,7 @@
 
 package net.adamcin.oakpal.core;
 
+import static net.adamcin.oakpal.core.JavaxJson.key;
 import static org.junit.Assert.assertEquals;
 
 import org.json.JSONObject;
@@ -25,8 +26,8 @@ public class CheckSpecTest {
 
     @Test
     public void testMerge() {
-        CheckSpec base = CheckSpec.fromJSON(new JSONObject("{\"name\":\"acHandling\",\"config\":{\"levelSet\":\"only_add\"}}"));
-        CheckSpec overlay = CheckSpec.fromJSON(new JSONObject("{\"name\":\"acHandling\",\"config\":{\"levelSet\":\"no_unsafe\"}}"));
+        CheckSpec base = CheckSpec.fromJson(key("name", "acHandling").key("config", key("levelSet", "only_add")).get());
+        CheckSpec overlay = CheckSpec.fromJson(key("name", "acHandling").key("config", key("levelSet", "no_unsafe")).get());
         CheckSpec merged = overlay.overlay(base);
         assertEquals("should be no_unsafe", "no_unsafe", merged.getConfig().getString("levelSet"));
     }

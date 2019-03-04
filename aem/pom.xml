@@ -98,6 +98,12 @@
     <dependencyManagement>
         <dependencies>
             <dependency>
+                <groupId>net.adamcin.oakpal</groupId>
+                <artifactId>net.adamcin.oakpal.interactive</artifactId>
+                <version>1.1.14-SNAPSHOT</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
                 <groupId>org.osgi</groupId>
                 <artifactId>osgi.core</artifactId>
                 <version>6.0.0</version>

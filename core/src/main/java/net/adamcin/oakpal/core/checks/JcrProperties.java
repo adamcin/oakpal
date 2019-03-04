@@ -16,6 +16,9 @@
 
 package net.adamcin.oakpal.core.checks;
 
+import static net.adamcin.oakpal.core.JavaxJson.optArray;
+
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -23,16 +26,16 @@ import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.nodetype.NodeTypeDefinition;
+import javax.json.JsonObject;
 
+import net.adamcin.oakpal.core.JavaxJson;
 import net.adamcin.oakpal.core.ProgressCheck;
 import net.adamcin.oakpal.core.ProgressCheckFactory;
 import net.adamcin.oakpal.core.SimpleProgressCheck;
-import net.adamcin.oakpal.core.Util;
 import org.apache.jackrabbit.vault.fs.api.WorkspaceFilter;
 import org.apache.jackrabbit.vault.fs.config.MetaInf;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.apache.jackrabbit.vault.packaging.PackageProperties;
-import org.json.JSONObject;
 
 /**
  * A complex check for enforcing characteristics of JCR Properties of imported nodes and their descendants within the
@@ -88,19 +91,20 @@ import org.json.JSONObject;
  *     }
  * </pre>
  */
-public final class JcrProperties implements ProgressCheckFactory {
+public final class JcrProperties extends CompatBaseFactory implements ProgressCheckFactory {
     public static final String CONFIG_SCOPE_PATHS = "scopePaths";
     public static final String CONFIG_DENY_NODE_TYPES = "denyNodeTypes";
     public static final String CONFIG_SCOPE_NODE_TYPES = "scopeNodeTypes";
     public static final String CONFIG_PROPERTIES = "properties";
 
     @Override
-    public ProgressCheck newInstance(final JSONObject config) throws Exception {
-        List<Rule> pathScope = Rule.fromJSON(config.optJSONArray(CONFIG_SCOPE_PATHS));
-        List<String> denyNodeTypes = Util.fromJSONArrayAsStrings(config.optJSONArray(CONFIG_DENY_NODE_TYPES));
-        List<String> nodeTypeScope = Util.fromJSONArrayAsStrings(config.optJSONArray(CONFIG_SCOPE_NODE_TYPES));
-        List<JcrPropertyConstraints> propertyChecks = JcrPropertyConstraints
-                .fromJSON(config.optJSONArray(CONFIG_PROPERTIES));
+    public ProgressCheck newInstance(final JsonObject config) {
+        List<Rule> pathScope = optArray(config, CONFIG_SCOPE_PATHS).map(Rule::fromJsonArray)
+                .orElseGet(Collections::emptyList);
+
+        List<String> denyNodeTypes = optArray(config, CONFIG_DENY_NODE_TYPES).map(JavaxJson::mapArrayOfStrings).orElseGet(Collections::emptyList);
+        List<String> nodeTypeScope = optArray(config, CONFIG_SCOPE_NODE_TYPES).map(JavaxJson::mapArrayOfStrings).orElseGet(Collections::emptyList);
+        List<JcrPropertyConstraints> propertyChecks = optArray(config, CONFIG_PROPERTIES).map(JcrPropertyConstraints::fromJsonArray).orElseGet(Collections::emptyList);
         return new Check(pathScope, denyNodeTypes, nodeTypeScope, propertyChecks);
     }
 
@@ -112,9 +116,9 @@ public final class JcrProperties implements ProgressCheckFactory {
         private WorkspaceFilter wspFilter;
 
         Check(final List<Rule> scopePaths,
-                     final List<String> denyNodeTypes,
-                     final List<String> scopeNodeTypes,
-                     final List<JcrPropertyConstraints> propertyChecks) {
+              final List<String> denyNodeTypes,
+              final List<String> scopeNodeTypes,
+              final List<JcrPropertyConstraints> propertyChecks) {
             this.scopePaths = scopePaths;
             this.denyNodeTypes = denyNodeTypes;
             this.scopeNodeTypes = scopeNodeTypes;

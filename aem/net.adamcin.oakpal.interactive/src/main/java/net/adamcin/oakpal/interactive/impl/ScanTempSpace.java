@@ -28,16 +28,30 @@ import java.util.List;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.sling.api.resource.Resource;
 
+/**
+ * AutoCloseable Handle for a set of temporary package files extracted for a scan.
+ */
 public class ScanTempSpace implements AutoCloseable {
     private final List<Resource> fileResources;
     private final List<File> tmpFiles;
     private boolean opened;
 
+    /**
+     * Create a temp file space for the provided list of package resources.
+     *
+     * @param fileResources list of file Resources, each adaptable to {@link java.io.InputStream}.
+     */
     public ScanTempSpace(final List<Resource> fileResources) {
         this.fileResources = new ArrayList<>(fileResources);
         this.tmpFiles = new ArrayList<>(fileResources.size());
     }
 
+    /**
+     * Open by copying the InputStreams of each package Resource to its own temp file.
+     *
+     * @return the list of temp files
+     * @throws IOException for I/O errors
+     */
     public List<File> open() throws IOException {
         if (!this.opened) {
             for (int i = 0; i < fileResources.size(); i++) {
@@ -58,8 +72,11 @@ public class ScanTempSpace implements AutoCloseable {
         return Collections.unmodifiableList(tmpFiles);
     }
 
+    /**
+     * Close by deleting all the temporary files.
+     */
     @Override
-    public void close() throws Exception {
+    public void close() {
         for (File tmpFile : tmpFiles) {
             if (tmpFile.exists()) {
                 tmpFile.delete();

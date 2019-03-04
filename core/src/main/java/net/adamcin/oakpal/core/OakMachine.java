@@ -229,6 +229,12 @@ public final class OakMachine {
             return this;
         }
 
+        /**
+         * Provide a function to customize the {@link Jcr} builder prior to the scan.
+         *
+         * @param jcrCustomizer the Jcr builder customization function
+         * @return my builder self
+         */
         public Builder withJcrCustomizer(final JcrCustomizer jcrCustomizer) {
             this.jcrCustomizer = jcrCustomizer;
             return this;
@@ -528,24 +534,27 @@ public final class OakMachine {
     }
 
     private Repository initRepository() throws RepositoryException {
-        Properties userProps = new Properties();
+        final Jcr jcr = new Jcr();
 
+        Properties userProps = new Properties();
         userProps.put(UserConstants.PARAM_USER_PATH, "/home/users");
         userProps.put(UserConstants.PARAM_GROUP_PATH, "/home/groups");
         userProps.put(AccessControlAction.USER_PRIVILEGE_NAMES, new String[]{PrivilegeConstants.JCR_ALL});
         userProps.put(AccessControlAction.GROUP_PRIVILEGE_NAMES, new String[]{PrivilegeConstants.JCR_READ});
         userProps.put(ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, ImportBehavior.NAME_BESTEFFORT);
         userProps.put("cacheExpiration", 3600 * 1000);
+
         Properties authzProps = new Properties();
         authzProps.put(ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, ImportBehavior.NAME_BESTEFFORT);
+
+        Properties authnProps = new Properties();
+        authnProps.put(AuthenticationConfiguration.PARAM_APP_NAME, "oakpal.jcr");
+
         Properties securityProps = new Properties();
         securityProps.put(UserConfiguration.NAME, ConfigurationParameters.of(userProps));
         securityProps.put(AuthorizationConfiguration.NAME, ConfigurationParameters.of(authzProps));
-        Properties authnProps = new Properties();
-        authnProps.put(AuthenticationConfiguration.PARAM_APP_NAME, "oakpal.jcr");
-        //authnProps.put(AuthenticationConfiguration.PARAM_CONFIG_SPI_NAME, "FelixJaasProvider");
         securityProps.put(AuthenticationConfiguration.NAME, ConfigurationParameters.of(authnProps));
-        Jcr jcr = new Jcr();
+
         jcr.with(new SecurityProviderImpl(ConfigurationParameters.of(securityProps)));
 
         RepositoryInitializer homeCreator = builder -> {
@@ -561,11 +570,7 @@ public final class OakMachine {
             jcrCustomizer.customize(jcr);
         }
 
-        Repository repository = jcr
-                .withAtomicCounter()
-                .createRepository();
-
-        return repository;
+        return jcr.withAtomicCounter().createRepository();
     }
 
     private void shutdownRepository(Repository repository) {

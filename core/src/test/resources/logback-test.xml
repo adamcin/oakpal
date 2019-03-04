@@ -27,4 +27,6 @@
     <root level="off">
         <appender-ref ref="STDOUT" />
     </root>
+
+    <logger name="net.adamcin.oakpal.core" level="info"/>
 </configuration>

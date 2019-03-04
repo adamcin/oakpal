@@ -23,14 +23,14 @@ import org.codehaus.plexus.component.configurator.BasicComponentConfigurator;
 import org.codehaus.plexus.component.configurator.ComponentConfigurator;
 
 /**
- * Adds a {@link JSONObjectConverter} to the {@link BasicComponentConfigurator} to support mapping arbitrarily nested
- * {@link org.codehaus.plexus.configuration.PlexusConfiguration} elements to a single {@link org.json.JSONObject} graph.
+ * Adds a {@link JavaxJsonObjectConverter} to the {@link BasicComponentConfigurator} to support mapping arbitrarily nested
+ * {@link org.codehaus.plexus.configuration.PlexusConfiguration} elements to a single {@link javax.json.JsonObject} graph.
  */
 @Component(role = ComponentConfigurator.class, hint = HINT)
 public class OakpalComponentConfigurator extends BasicComponentConfigurator {
     public static final String HINT = "oakpal";
 
     public OakpalComponentConfigurator() {
-        converterLookup.registerConverter(new JSONObjectConverter());
+        converterLookup.registerConverter(new JavaxJsonObjectConverter());
     }
 }

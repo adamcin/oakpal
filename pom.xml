@@ -62,6 +62,7 @@
         <slf4j.version>1.7.21</slf4j.version>
         <vault.version>3.2.4</vault.version>
         <json.version>20160807</json.version>
+        <json.min.version>20160807</json.min.version>
         <jackrabbit.version>2.14.0</jackrabbit.version>
         <!-- it is probably a good habit to stay at the latest even (not odd) minor release version of oak,
         So if latest version is 1.9.x try to stay at 1.8.max -->
@@ -436,6 +437,11 @@
                 <groupId>org.json</groupId>
                 <artifactId>json</artifactId>
                 <version>${json.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.glassfish</groupId>
+                <artifactId>javax.json</artifactId>
+                <version>1.1.4</version>
             </dependency>
 
             <dependency>

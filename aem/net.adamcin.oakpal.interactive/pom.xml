@@ -59,7 +59,6 @@
                             <bnd><![CDATA[
                                 Export-Package: net.adamcin.oakpal.aem.interactive.*
                                 Private-Package: net.adamcin.oakpal.aem.interactive.impl.*
-                                DynamicImport-Package: org.apache.felix.jaas.boot
                             ]]></bnd>
                         </configuration>
                     </execution>

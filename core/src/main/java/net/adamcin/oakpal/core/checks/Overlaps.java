@@ -24,6 +24,7 @@ import java.util.stream.Collectors;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
+import javax.json.JsonObject;
 
 import net.adamcin.oakpal.core.ProgressCheck;
 import net.adamcin.oakpal.core.ProgressCheckFactory;
@@ -54,12 +55,12 @@ import org.json.JSONObject;
  * the highest severity encountered.</dd>
  * </dl>
  */
-public final class Overlaps implements ProgressCheckFactory {
+public final class Overlaps extends CompatBaseFactory implements ProgressCheckFactory {
     public static final String CONFIG_REPORT_ALL_OVERLAPS = "reportAllOverlaps";
 
     @Override
-    public ProgressCheck newInstance(final JSONObject config) throws Exception {
-        final boolean reportAllOverlaps = config.has(CONFIG_REPORT_ALL_OVERLAPS)
+    public ProgressCheck newInstance(final JsonObject config) {
+        final boolean reportAllOverlaps = config.containsKey(CONFIG_REPORT_ALL_OVERLAPS)
                 && config.getBoolean(CONFIG_REPORT_ALL_OVERLAPS);
         return new Check(reportAllOverlaps);
     }

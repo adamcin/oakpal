@@ -16,82 +16,93 @@
 
 package net.adamcin.oakpal.interactive.impl;
 
-import static net.adamcin.oakpal.core.OrgJson.arr;
-import static net.adamcin.oakpal.core.OrgJson.key;
-import static net.adamcin.oakpal.core.checks.Rule.RuleType.DENY;
-
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
-import java.util.regex.Pattern;
-import javax.jcr.RepositoryException;
+import java.util.Optional;
 import javax.servlet.Servlet;
 import javax.servlet.ServletException;
 
 import net.adamcin.oakpal.core.AbortedScanException;
 import net.adamcin.oakpal.core.CheckReport;
+import net.adamcin.oakpal.core.ChecklistPlanner;
+import net.adamcin.oakpal.core.DefaultPackagingService;
+import net.adamcin.oakpal.core.Locator;
 import net.adamcin.oakpal.core.OakMachine;
 import net.adamcin.oakpal.core.ProgressCheck;
 import net.adamcin.oakpal.core.ReportMapper;
-import net.adamcin.oakpal.core.checks.Echo;
-import net.adamcin.oakpal.core.checks.Paths;
-import net.adamcin.oakpal.core.checks.Rule;
+import net.adamcin.oakpal.interactive.ChecklistTracker;
 import org.apache.jackrabbit.vault.packaging.Packaging;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.SlingHttpServletResponse;
 import org.apache.sling.api.resource.Resource;
-import org.apache.sling.api.servlets.SlingSafeMethodsServlet;
+import org.apache.sling.api.servlets.SlingAllMethodsServlet;
+import org.apache.sling.commons.classloader.DynamicClassLoaderManager;
 import org.jetbrains.annotations.NotNull;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Component(property = "sling.servlet.paths=/bin/oakpal/scan-package", service = Servlet.class)
-public class ScanPackageServlet extends SlingSafeMethodsServlet {
+@Component(service = Servlet.class,
+        property = {
+                "sling.servlet.paths=/bin/oakpal/scan-package",
+                "sling.servlet.methods=POST"
+        })
+public class ScanPackageServlet extends SlingAllMethodsServlet {
     private static final Logger LOGGER = LoggerFactory.getLogger(ScanPackageServlet.class);
 
     @Reference
     private Packaging packagingService;
 
+    @Reference
+    private DynamicClassLoaderManager classLoaderManager;
+
+    @Reference
+    private ChecklistTracker checklistTracker;
+
     @Override
-    protected void doGet(@NotNull final SlingHttpServletRequest request,
-                         @NotNull final SlingHttpServletResponse response)
+    protected void doPost(@NotNull final SlingHttpServletRequest request,
+                          @NotNull final SlingHttpServletResponse response)
             throws ServletException, IOException {
 
-        List<Resource> pkgResources = new ArrayList<>();
+
+        final ClassLoader checkLoader = classLoaderManager.getDynamicClassLoader();
+
+        final List<String> activeChecklistIds =
+                Arrays.asList(Optional.ofNullable(request.getParameterValues("checklist")).orElse(new String[0]));
+        ChecklistPlanner planner = new ChecklistPlanner(activeChecklistIds);
+        planner.provideChecklists(checklistTracker.getBundleChecklists());
+
+        final List<ProgressCheck> allChecks;
+        try {
+            allChecks = new ArrayList<>(Locator
+                    .loadFromCheckSpecs(planner.getEffectiveCheckSpecs(Collections.emptyList()), checkLoader));
+        } catch (final Exception e) {
+            throw new ServletException(e);
+        }
+
+        final List<Resource> pkgResources = new ArrayList<>();
         final String[] pkgPaths = request.getParameterValues("path");
         for (String pkgPath : pkgPaths) {
             final Resource pkgRes = request.getResourceResolver().getResource(pkgPath);
             pkgResources.add(pkgRes);
         }
 
-        OakMachine.Builder builder = new OakMachine.Builder();
+        final OakMachine.Builder builder = new OakMachine.Builder();
+        builder.withInitStages(planner.getInitStages());
+        builder.withProgressChecks(allChecks);
+        builder.withPackagingService(new DefaultPackagingService(packagingService.getClass().getClassLoader()));
 
-        builder.withPackagingService(packagingService);
-
-        ProgressCheck check = new Paths().newInstance(
-                key("rules",
-                        arr().val(new Rule(DENY, Pattern.compile("/apps(/.*)?"))))
-                        .get());
-
-        builder.withProgressChecks(check, new Echo() {
-            @Override
-            protected void echo(final String message, final Object... formatArgs) {
-                LOGGER.info(String.format(message, formatArgs));
-            }
-        });
-
-        OakMachine machine = builder.build();
+        final OakMachine machine = builder.build();
 
         try (ScanTempSpace tempSpace = new ScanTempSpace(pkgResources)) {
             List<CheckReport> reportList = machine.scanPackages(tempSpace.open());
-
-            ReportMapper.writeReportsToWriter(reportList, response.getWriter());
-        } catch (final RepositoryException | AbortedScanException e) {
+            ReportMapper.writeReports(reportList, response::getWriter);
+        } catch (final AbortedScanException e) {
             throw new ServletException("failed to complete scan", e);
-        } catch (final Exception e) {
-            throw new ServletException(e);
         }
     }
 }

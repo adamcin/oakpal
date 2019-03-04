@@ -17,6 +17,13 @@
 package net.adamcin.oakpal.core;
 
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+
+import javax.json.Json;
+import javax.json.JsonObject;
+import javax.json.JsonValue;
 
 import org.json.JSONObject;
 
@@ -40,7 +47,21 @@ public final class Locator {
      * @throws Exception on any error or failure to find a resource for given name.
      */
     public static ProgressCheck loadProgressCheck(final String impl) throws Exception {
-        return loadProgressCheck(impl, null);
+        return loadProgressCheck(impl, (JsonObject) null);
+    }
+
+    /**
+     * Attempt to load a {@link ProgressCheck} from a particular class loader.
+     *
+     * @param impl   className or resourceName
+     * @param config provide an optional config object (may be ignored by the check.)
+     * @return a new {@link ProgressCheck} instance for the given name
+     * @throws Exception on any error or failure to find a resource for given name.
+     * @deprecated 1.2.0 Please use {@link #loadProgressCheck(String, JsonObject)} instead
+     */
+    @Deprecated
+    public static ProgressCheck loadProgressCheck(final String impl, final JSONObject config) throws Exception {
+        return loadProgressCheck(impl, config, Util.getDefaultClassLoader());
     }
 
     /**
@@ -51,7 +72,7 @@ public final class Locator {
      * @return a new {@link ProgressCheck} instance for the given name
      * @throws Exception on any error or failure to find a resource for given name.
      */
-    public static ProgressCheck loadProgressCheck(final String impl, final JSONObject config) throws Exception {
+    public static ProgressCheck loadProgressCheck(final String impl, final JsonObject config) throws Exception {
         return loadProgressCheck(impl, config, Util.getDefaultClassLoader());
     }
 
@@ -67,15 +88,37 @@ public final class Locator {
      * @param classLoader a specific classLoader to use
      * @return a new {@link ProgressCheck} instance for the given name
      * @throws Exception on any error or failure to find a resource for given name.
+     * @deprecated 1.2.0 Please use {@link #loadProgressCheck(String, JsonObject, ClassLoader)} instead
      */
+    @Deprecated
     public static ProgressCheck loadProgressCheck(final String impl, final JSONObject config,
+                                                  final ClassLoader classLoader) throws Exception {
+        return loadProgressCheck(impl,
+                config != null ? Json.createObjectBuilder(config.toMap()).build() : null,
+                classLoader);
+    }
+
+    /**
+     * Attempt to load a {@link ProgressCheck} from a particular class loader. The {@code impl} value is first tried as
+     * a fully-qualified class name, and if a {@code Class<?>} is found, it is first checked for the
+     * {@link ProgressCheckFactory} interface, and then for the {@link ProgressCheck} interface. If a class is not
+     * found, {@link Locator} assumes the {@code impl} value represents a resource name for an
+     * {@link javax.script.Invocable} script, and attempts to create a {@link ScriptProgressCheck} from it.
+     *
+     * @param impl        className or resourceName
+     * @param config      provide an optional config object (may be ignored by the check.)
+     * @param classLoader a specific classLoader to use
+     * @return a new {@link ProgressCheck} instance for the given name
+     * @throws Exception on any error or failure to find a resource for given name.
+     */
+    public static ProgressCheck loadProgressCheck(final String impl, final JsonObject config,
                                                   final ClassLoader classLoader) throws Exception {
         if (!impl.contains("/") && !impl.contains("\\")) {
             try {
                 Class<?> clazz = classLoader.loadClass(impl);
                 if (ProgressCheckFactory.class.isAssignableFrom(clazz)) {
                     return ProgressCheckFactory.class.cast(clazz.getConstructor().newInstance())
-                            .newInstance(config == null ? new JSONObject() : config);
+                            .newInstance(config == null ? JsonValue.EMPTY_JSON_OBJECT : config);
                 } else if (ProgressCheck.class.isAssignableFrom(clazz)) {
                     return ProgressCheck.class.cast(clazz.getConstructor().newInstance());
                 } else {
@@ -86,7 +129,7 @@ public final class Locator {
                 final URL resourceUrl = classLoader.getResource(impl);
                 if (resourceUrl != null) {
                     return ScriptProgressCheck.createScriptCheckFactory(resourceUrl)
-                            .newInstance(config == null ? new JSONObject() : config);
+                            .newInstance(config == null ? JsonValue.EMPTY_JSON_OBJECT : config);
                 } else {
                     throw e;
                 }
@@ -95,7 +138,7 @@ public final class Locator {
             final URL resourceUrl = classLoader.getResource(impl);
             if (resourceUrl != null) {
                 return ScriptProgressCheck.createScriptCheckFactory(resourceUrl)
-                        .newInstance(config == null ? new JSONObject() : config);
+                        .newInstance(config == null ? JsonValue.EMPTY_JSON_OBJECT : config);
             } else {
                 throw new Exception("Failed to find class path resource by name: " + impl);
             }
@@ -111,5 +154,28 @@ public final class Locator {
      */
     public static ProgressCheck wrapWithAlias(final ProgressCheck progressCheck, final String alias) {
         return new ProgressCheckAliasFacade(progressCheck, alias);
+    }
+
+    public static List<ProgressCheck> loadFromCheckSpecs(final List<CheckSpec> checkSpecs,
+                                                         final ClassLoader checkLoader) throws Exception {
+        final List<ProgressCheck> allChecks = new ArrayList<>();
+        for (CheckSpec checkSpec : checkSpecs) {
+            if (checkSpec.getImpl() == null || checkSpec.getImpl().isEmpty()) {
+                throw new Exception("Please provide an 'impl' value for " + checkSpec.getName());
+            }
+
+            try {
+                ProgressCheck progressCheck = Locator.loadProgressCheck(checkSpec.getImpl(), checkSpec.getConfig(), checkLoader);
+                if (checkSpec.getName() != null && !checkSpec.getName().isEmpty()) {
+                    progressCheck = wrapWithAlias(progressCheck, checkSpec.getName());
+                }
+                allChecks.add(progressCheck);
+            } catch (final Exception e) {
+                throw new Exception(String.format("Failed to load package check %s. (impl: %s)",
+                        Optional.ofNullable(checkSpec.getName()).orElse(""), checkSpec.getImpl()), e);
+            }
+        }
+        return allChecks;
+
     }
 }
