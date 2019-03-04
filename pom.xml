@@ -32,7 +32,7 @@
 
     <groupId>net.adamcin.oakpal</groupId>
     <artifactId>oakpal</artifactId>
-    <version>1.1.14-SNAPSHOT</version>
+    <version>1.2.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <inceptionYear>2017</inceptionYear>
@@ -426,12 +426,12 @@
             <dependency>
                 <groupId>net.adamcin.oakpal</groupId>
                 <artifactId>oakpal-testing</artifactId>
-                <version>1.1.14-SNAPSHOT</version>
+                <version>1.2.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>net.adamcin.oakpal</groupId>
                 <artifactId>oakpal-core</artifactId>
-                <version>1.1.14-SNAPSHOT</version>
+                <version>1.2.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.json</groupId>
