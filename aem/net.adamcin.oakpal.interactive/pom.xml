@@ -57,8 +57,8 @@
                         </goals>
                         <configuration>
                             <bnd><![CDATA[
-                                Export-Package: net.adamcin.oakpal.aem.interactive.*
-                                Private-Package: net.adamcin.oakpal.aem.interactive.impl.*
+                                Export-Package: net.adamcin.oakpal.aem.interactive
+                                Private-Package: net.adamcin.oakpal.aem.interactive.impl
                             ]]></bnd>
                         </configuration>
                     </execution>

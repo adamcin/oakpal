@@ -95,22 +95,22 @@ public final class JavaxJson {
         } else if (object instanceof JsonValue) {
             return (JsonValue) object;
         } else if (object instanceof String) {
-            return Json.createValue((String) object);
+            return Json.createArrayBuilder().add((String) object).build().get(0);
         } else if (object instanceof Boolean) {
             return ((Boolean) object) ? JsonValue.TRUE : JsonValue.FALSE;
         } else if (object instanceof Number) {
             if (object instanceof Integer) {
-                return Json.createValue((Integer) object);
+                return Json.createArrayBuilder().add((Integer) object).build().get(0);
             } else if (object instanceof Long) {
-                return Json.createValue((Long) object);
+                return Json.createArrayBuilder().add((Long) object).build().get(0);
             } else if (object instanceof Double) {
-                return Json.createValue((Double) object);
+                return Json.createArrayBuilder().add((Double) object).build().get(0);
             } else if (object instanceof BigInteger) {
-                return Json.createValue((BigInteger) object);
+                return Json.createArrayBuilder().add((BigInteger) object).build().get(0);
             } else if (object instanceof BigDecimal) {
-                return Json.createValue((BigDecimal) object);
+                return Json.createArrayBuilder().add((BigDecimal) object).build().get(0);
             } else {
-                return Json.createValue(new BigDecimal(object.toString()));
+                return Json.createArrayBuilder().add(new BigDecimal(object.toString())).build().get(0);
             }
         } else if (object instanceof Map) {
             return ((Map<?, ?>) object).entrySet().stream()
@@ -122,9 +122,8 @@ public final class JavaxJson {
             return ((Collection<?>) object).stream().map(JavaxJson::wrap)
                     .collect(JsonCollectors.toJsonArray());
         }
-        return Json.createValue(String.valueOf(object));
+        return Json.createArrayBuilder().add(String.valueOf(object)).build().get(0);
     }
-
 
     public static final class Value implements HasValue, As<JsonValue> {
         private final JsonValue value;

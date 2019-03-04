@@ -23,6 +23,7 @@ import static net.adamcin.oakpal.core.Util.isEmpty;
 import javax.json.Json;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
+import javax.json.stream.JsonCollectors;
 
 /**
  * DTO for full-featured check spec.
@@ -192,9 +193,9 @@ public class CheckSpec {
     }
 
     static JsonObject merge(final JsonObject base, final JsonObject overlay) {
-        JsonObjectBuilder init = ofNullable(base).map(Json::createObjectBuilder).orElseGet(Json::createObjectBuilder);
-        JsonObjectBuilder toAdd = ofNullable(overlay).map(Json::createObjectBuilder).orElseGet(Json::createObjectBuilder);
-        init.addAll(toAdd);
+        JsonObjectBuilder init = Json.createObjectBuilder();
+        ofNullable(base).ifPresent(json -> json.forEach(init::add));
+        ofNullable(overlay).ifPresent(json -> json.forEach(init::add));
         return init.build();
     }
 
