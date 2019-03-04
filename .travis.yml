@@ -1,4 +1,6 @@
 language: java
+script:
+  - mvn -B verify
 after_success:
   - mvn -B -Pcoverage clean verify coveralls:report
 cache:
