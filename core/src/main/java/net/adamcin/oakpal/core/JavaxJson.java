@@ -563,6 +563,28 @@ public final class JavaxJson {
     }
 
     /**
+     * Retrieve a value as an object if the specified key is present, or empty() if not.
+     *
+     * @param json the object to retrieve an object value from
+     * @param key  the array's key
+     * @return an optional array
+     */
+    public static Optional<JsonObject> optObject(final JsonObject json, final String key) {
+        return Optional.ofNullable(json.get(key)).filter(JsonObject.class::isInstance).map(JsonObject.class::cast);
+    }
+
+    /**
+     * Retrieve a value as an object, or return the empty object if key is not present or if the value is the wrong type.
+     *
+     * @param json the object to retrieve an object value from
+     * @param key  the key to retrieve
+     * @return a JsonObject, always
+     */
+    public static JsonObject objectOrEmpty(final JsonObject json, final String key) {
+        return optObject(json, key).orElse(JsonValue.EMPTY_JSON_OBJECT);
+    }
+
+    /**
      * Retrieve a value as an array if the specified key is present, or empty() if not.
      *
      * @param json the object to retrieve an array from
@@ -571,6 +593,17 @@ public final class JavaxJson {
      */
     public static Optional<JsonArray> optArray(final JsonObject json, final String key) {
         return Optional.ofNullable(json.get(key)).filter(JsonArray.class::isInstance).map(JsonArray.class::cast);
+    }
+
+    /**
+     * Retrieve a value as an array, or return the empty array if key is not present or if the value is the wrong type.
+     *
+     * @param json the object to retrieve an array value from
+     * @param key  the key to retrieve
+     * @return a JsonArray, always
+     */
+    public static JsonArray arrayOrEmpty(final JsonObject json, final String key) {
+        return optArray(json, key).orElse(JsonValue.EMPTY_JSON_ARRAY);
     }
 
     /**

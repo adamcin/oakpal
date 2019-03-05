@@ -16,16 +16,15 @@
 
 package net.adamcin.oakpal.core.checks;
 
+import static net.adamcin.oakpal.core.JavaxJson.arrayOrEmpty;
+import static net.adamcin.oakpal.core.JavaxJson.hasNonNull;
 import static net.adamcin.oakpal.core.JavaxJson.mapArrayOfObjects;
-import static net.adamcin.oakpal.core.JavaxJson.optArray;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 import javax.jcr.Node;
 import javax.jcr.Property;
 import javax.jcr.PropertyType;
@@ -74,6 +73,7 @@ public final class JcrPropertyConstraints {
     public static final String CONFIG_REQUIRE_TYPE = "requireType";
     public static final String CONFIG_VALUE_RULES = "valueRules";
     public static final String CONFIG_SEVERITY = "severity";
+    public static final Violation.Severity DEFAULT_SEVERITY = Violation.Severity.MAJOR;
 
     @Deprecated
     public static JcrPropertyConstraints fromJSON(final JSONObject checkJson) {
@@ -96,17 +96,16 @@ public final class JcrPropertyConstraints {
 
     public static JcrPropertyConstraints fromJson(final JsonObject checkJson) {
         final String name = checkJson.getString(CONFIG_NAME);
-        final boolean denyIfAbsent = checkJson.containsKey(CONFIG_DENY_IF_ABSENT)
+        final boolean denyIfAbsent = hasNonNull(checkJson, CONFIG_DENY_IF_ABSENT)
                 && checkJson.getBoolean(CONFIG_DENY_IF_ABSENT);
-        final boolean denyIfPresent = checkJson.containsKey(CONFIG_DENY_IF_PRESENT)
+        final boolean denyIfPresent = hasNonNull(checkJson, CONFIG_DENY_IF_PRESENT)
                 && checkJson.getBoolean(CONFIG_DENY_IF_PRESENT);
-        final boolean denyIfMultivalued = checkJson.containsKey(CONFIG_DENY_IF_MULTIVALUED)
+        final boolean denyIfMultivalued = hasNonNull(checkJson, CONFIG_DENY_IF_MULTIVALUED)
                 && checkJson.getBoolean(CONFIG_DENY_IF_MULTIVALUED);
         final String requireType = checkJson.getString(CONFIG_REQUIRE_TYPE, null);
-        final List<Rule> valueRules = optArray(checkJson, CONFIG_VALUE_RULES).map(Rule::fromJsonArray).orElseGet(Collections::emptyList);
-        final Violation.Severity severity = checkJson.containsKey(CONFIG_SEVERITY)
-                ? Violation.Severity.valueOf(checkJson.getString(CONFIG_SEVERITY).toUpperCase())
-                : Violation.Severity.MAJOR;
+        final List<Rule> valueRules = Rule.fromJsonArray(arrayOrEmpty(checkJson, CONFIG_VALUE_RULES));
+        final Violation.Severity severity = Violation.Severity
+                .valueOf(checkJson.getString(CONFIG_SEVERITY, DEFAULT_SEVERITY.name()).toUpperCase());
 
         return new JcrPropertyConstraints(name, denyIfAbsent, denyIfPresent, denyIfMultivalued, requireType, valueRules,
                 severity);

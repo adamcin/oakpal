@@ -16,6 +16,8 @@
 
 package net.adamcin.oakpal.core.checks;
 
+import static net.adamcin.oakpal.core.JavaxJson.arrayOrEmpty;
+import static net.adamcin.oakpal.core.JavaxJson.mapArrayOfStrings;
 import static net.adamcin.oakpal.core.JavaxJson.optArray;
 
 import java.util.Collections;
@@ -99,12 +101,12 @@ public final class JcrProperties extends CompatBaseFactory implements ProgressCh
 
     @Override
     public ProgressCheck newInstance(final JsonObject config) {
-        List<Rule> pathScope = optArray(config, CONFIG_SCOPE_PATHS).map(Rule::fromJsonArray)
-                .orElseGet(Collections::emptyList);
+        List<Rule> pathScope = Rule.fromJsonArray(arrayOrEmpty(config, CONFIG_SCOPE_PATHS));
 
-        List<String> denyNodeTypes = optArray(config, CONFIG_DENY_NODE_TYPES).map(JavaxJson::mapArrayOfStrings).orElseGet(Collections::emptyList);
-        List<String> nodeTypeScope = optArray(config, CONFIG_SCOPE_NODE_TYPES).map(JavaxJson::mapArrayOfStrings).orElseGet(Collections::emptyList);
-        List<JcrPropertyConstraints> propertyChecks = optArray(config, CONFIG_PROPERTIES).map(JcrPropertyConstraints::fromJsonArray).orElseGet(Collections::emptyList);
+        List<String> denyNodeTypes = mapArrayOfStrings(arrayOrEmpty(config, CONFIG_DENY_NODE_TYPES));
+        List<String> nodeTypeScope = mapArrayOfStrings(arrayOrEmpty(config, CONFIG_SCOPE_NODE_TYPES));
+        List<JcrPropertyConstraints> propertyChecks = JcrPropertyConstraints
+                .fromJsonArray(arrayOrEmpty(config, CONFIG_PROPERTIES));
         return new Check(pathScope, denyNodeTypes, nodeTypeScope, propertyChecks);
     }
 

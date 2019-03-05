@@ -44,7 +44,7 @@ public class Echo implements ProgressCheck {
     /**
      * Override this method to use a logger instead of System.out, for example.
      *
-     * @param message message to print
+     * @param message    message to print
      * @param formatArgs optional args to {@link String#format(String, Object...)}
      */
     protected void echo(final String message, Object... formatArgs) {

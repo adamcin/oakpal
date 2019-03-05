@@ -16,6 +16,8 @@
 
 package net.adamcin.oakpal.core.checks;
 
+import static net.adamcin.oakpal.core.JavaxJson.hasNonNull;
+
 import java.util.List;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -61,12 +63,12 @@ public final class FilterSets extends CompatBaseFactory implements ProgressCheck
 
     @Override
     public ProgressCheck newInstance(final JsonObject config) {
-        final Violation.Severity importModeSeverity = config.containsKey(CONFIG_IMPORT_MODE_SEVERITY)
-                ? Violation.Severity.valueOf(config.getString(CONFIG_IMPORT_MODE_SEVERITY).toUpperCase())
-                : DEFAULT_IMPORT_MODE_SEVERITY;
-        final boolean allowEmptyFilter = config.containsKey(CONFIG_ALLOW_EMPTY_FILTER)
+        final Violation.Severity importModeSeverity = Violation.Severity
+                .valueOf(config.getString(CONFIG_IMPORT_MODE_SEVERITY, DEFAULT_IMPORT_MODE_SEVERITY.name())
+                        .toUpperCase());
+        final boolean allowEmptyFilter = hasNonNull(config, CONFIG_ALLOW_EMPTY_FILTER)
                 && config.getBoolean(CONFIG_ALLOW_EMPTY_FILTER);
-        final boolean allowRootFilter = config.containsKey(CONFIG_ALLOW_ROOT_FILTER)
+        final boolean allowRootFilter = hasNonNull(config, CONFIG_ALLOW_ROOT_FILTER)
                 && config.getBoolean(CONFIG_ALLOW_ROOT_FILTER);
         return new Check(importModeSeverity, allowEmptyFilter, allowRootFilter);
     }

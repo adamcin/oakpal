@@ -17,8 +17,9 @@
 package net.adamcin.oakpal.core.checks;
 
 import static java.util.Optional.ofNullable;
+import static net.adamcin.oakpal.core.JavaxJson.arrayOrEmpty;
+import static net.adamcin.oakpal.core.JavaxJson.hasNonNull;
 import static net.adamcin.oakpal.core.JavaxJson.mapArrayOfStrings;
-import static net.adamcin.oakpal.core.JavaxJson.optArray;
 import static net.adamcin.oakpal.core.Util.compose;
 import static org.apache.jackrabbit.vault.fs.io.AccessControlHandling.IGNORE;
 import static org.apache.jackrabbit.vault.fs.io.AccessControlHandling.MERGE;
@@ -28,10 +29,8 @@ import static org.apache.jackrabbit.vault.fs.io.AccessControlHandling.OVERWRITE;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-import javax.json.JsonArray;
 import javax.json.JsonObject;
 
 import net.adamcin.oakpal.core.ProgressCheck;
@@ -76,12 +75,11 @@ public final class AcHandling extends CompatBaseFactory implements ProgressCheck
 
     @Override
     public ProgressCheck newInstance(final JsonObject config) {
-        Optional<JsonArray> optAllowedModes = optArray(config, CONFIG_ALLOWED_MODES);
-        if (optAllowedModes.isPresent()) {
-            List<AccessControlHandling> allowedModes = mapArrayOfStrings(optAllowedModes.get(),
+        if (hasNonNull(config, CONFIG_ALLOWED_MODES)) {
+            List<AccessControlHandling> allowedModes = mapArrayOfStrings(arrayOrEmpty(config, CONFIG_ALLOWED_MODES),
                     compose(String::toUpperCase, AccessControlHandling::valueOf), true);
             return new Check(ACHandlingLevelSet.EXPLICIT, allowedModes);
-        } else if (config.containsKey(CONFIG_LEVEL_SET)) {
+        } else if (hasNonNull(config, CONFIG_LEVEL_SET)) {
             ACHandlingLevelSet levelSet = ACHandlingLevelSet.valueOf(config.getString(CONFIG_LEVEL_SET).toUpperCase());
             return new Check(levelSet, Collections.emptyList());
         } else {

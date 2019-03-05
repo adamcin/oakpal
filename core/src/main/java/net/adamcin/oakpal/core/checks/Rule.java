@@ -23,7 +23,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.regex.Pattern;
-
 import javax.json.JsonArray;
 import javax.json.JsonObject;
 
@@ -78,7 +77,7 @@ public final class Rule implements OrgJson.ObjectConvertible, JavaxJson.ObjectCo
      * Create a new rule.
      *
      * @param type    {@link RuleType#INCLUDE} or {@link RuleType#EXCLUDE}
-     *                                        (or {@link RuleType#ALLOW} or {@link RuleType#DENY})
+     *                (or {@link RuleType#ALLOW} or {@link RuleType#DENY})
      * @param pattern a compiled regular expression pattern
      */
     public Rule(final RuleType type, final Pattern pattern) {
@@ -153,6 +152,7 @@ public final class Rule implements OrgJson.ObjectConvertible, JavaxJson.ObjectCo
 
     /**
      * Serializes the rule to an {@link org.json.JSONObject}.
+     *
      * @return a JSONObject
      * @deprecated 1.2.0 use {@link JavaxJson.ObjectConvertible#toJson()} instead.
      */
@@ -164,6 +164,7 @@ public final class Rule implements OrgJson.ObjectConvertible, JavaxJson.ObjectCo
 
     /**
      * Serializes the rule to a {@link javax.json.JsonObject}.
+     *
      * @return a JsonObject
      */
     @Override

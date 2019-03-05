@@ -16,9 +16,9 @@
 
 package net.adamcin.oakpal.core.checks;
 
-import static net.adamcin.oakpal.core.JavaxJson.optArray;
+import static net.adamcin.oakpal.core.JavaxJson.arrayOrEmpty;
+import static net.adamcin.oakpal.core.JavaxJson.hasNonNull;
 
-import java.util.Collections;
 import java.util.List;
 import javax.json.JsonObject;
 
@@ -64,9 +64,9 @@ public final class Subpackages extends CompatBaseFactory implements ProgressChec
 
     @Override
     public ProgressCheck newInstance(final JsonObject config) {
-        List<Rule> rules = optArray(config, CONFIG_RULES).map(Rule::fromJsonArray).orElseGet(Collections::emptyList);
+        List<Rule> rules = Rule.fromJsonArray(arrayOrEmpty(config, CONFIG_RULES));
 
-        final boolean denyAll = config.containsKey(CONFIG_DENY_ALL) && config.getBoolean(CONFIG_DENY_ALL);
+        final boolean denyAll = hasNonNull(config, CONFIG_DENY_ALL) && config.getBoolean(CONFIG_DENY_ALL);
 
         return new Check(rules, denyAll);
     }
