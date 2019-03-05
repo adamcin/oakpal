@@ -47,7 +47,6 @@ import javax.json.JsonWriter;
 import javax.json.JsonWriterFactory;
 import javax.json.stream.JsonCollectors;
 import javax.json.stream.JsonGenerator;
-import javax.json.stream.JsonGeneratorFactory;
 
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.json.JSONArray;

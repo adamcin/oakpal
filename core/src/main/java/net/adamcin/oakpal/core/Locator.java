@@ -16,11 +16,12 @@
 
 package net.adamcin.oakpal.core;
 
+import static net.adamcin.oakpal.core.Util.isEmpty;
+
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-
 import javax.json.Json;
 import javax.json.JsonObject;
 import javax.json.JsonValue;
@@ -156,16 +157,39 @@ public final class Locator {
         return new ProgressCheckAliasFacade(progressCheck, alias);
     }
 
+    /**
+     *
+     * @param checkSpecs
+     * @return
+     * @throws Exception
+     */
+    public static List<ProgressCheck> loadFromCheckSpecs(final List<CheckSpec> checkSpecs) throws Exception {
+        return loadFromCheckSpecs(checkSpecs, Util.getDefaultClassLoader());
+    }
+
+    /**
+     *
+     * @param checkSpecs
+     * @param checkLoader
+     * @return
+     * @throws Exception
+     */
     public static List<ProgressCheck> loadFromCheckSpecs(final List<CheckSpec> checkSpecs,
                                                          final ClassLoader checkLoader) throws Exception {
         final List<ProgressCheck> allChecks = new ArrayList<>();
         for (CheckSpec checkSpec : checkSpecs) {
-            if (checkSpec.getImpl() == null || checkSpec.getImpl().isEmpty()) {
+            if (checkSpec.isAbstract()) {
                 throw new Exception("Please provide an 'impl' value for " + checkSpec.getName());
             }
-
             try {
-                ProgressCheck progressCheck = Locator.loadProgressCheck(checkSpec.getImpl(), checkSpec.getConfig(), checkLoader);
+                ProgressCheck progressCheck;
+                if (!isEmpty(checkSpec.getImpl())) {
+                    progressCheck = Locator.loadProgressCheck(checkSpec.getImpl(), checkSpec.getConfig(), checkLoader);
+                } else {
+                    progressCheck = ScriptProgressCheck
+                            .createInlineScriptCheckFactory(checkSpec.getInlineScript(), checkSpec.getInlineEngine())
+                            .newInstance(checkSpec.getConfig());
+                }
                 if (checkSpec.getName() != null && !checkSpec.getName().isEmpty()) {
                     progressCheck = wrapWithAlias(progressCheck, checkSpec.getName());
                 }

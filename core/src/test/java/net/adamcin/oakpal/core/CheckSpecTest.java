@@ -18,6 +18,10 @@ package net.adamcin.oakpal.core;
 
 import static net.adamcin.oakpal.core.JavaxJson.key;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
+import java.util.Collections;
+import java.util.List;
 
 import org.json.JSONObject;
 import org.junit.Test;
@@ -30,5 +34,17 @@ public class CheckSpecTest {
         CheckSpec overlay = CheckSpec.fromJson(key("name", "acHandling").key("config", key("levelSet", "no_unsafe")).get());
         CheckSpec merged = overlay.overlay(base);
         assertEquals("should be no_unsafe", "no_unsafe", merged.getConfig().getString("levelSet"));
+    }
+
+    @Test
+    public void testInlineScript() throws Exception {
+        CheckSpec inlineEmpty = CheckSpec.fromJson(key("inlineScript", null).get());
+        assertTrue("Null inlineScript with no impl should be isAbstract", inlineEmpty.isAbstract());
+
+        CheckSpec inline = CheckSpec.fromJson(key("inlineScript", "function importedPath(packageId, path) { print(path); }").get());
+        List<ProgressCheck> checks = Locator.loadFromCheckSpecs(Collections.singletonList(inline));
+
+        checks.get(0).importedPath(null, "/foo", null);
+
     }
 }

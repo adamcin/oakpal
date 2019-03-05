@@ -17,6 +17,7 @@
 package net.adamcin.oakpal.core;
 
 import static java.util.Optional.ofNullable;
+import static net.adamcin.oakpal.core.JavaxJson.hasNonNull;
 import static net.adamcin.oakpal.core.JavaxJson.optArray;
 import static net.adamcin.oakpal.core.JavaxJson.parseFromArray;
 
@@ -210,7 +211,7 @@ public final class Checklist {
     public static Checklist fromJson(final String moduleName, final URL manifestUrl, final JsonObject json) {
         LOGGER.trace("[fromJson] module: {}, manifestUrl: {}, json: {}", moduleName, manifestUrl, json);
         Builder builder = new Builder(moduleName);
-        if (json.containsKey(KEY_NAME)) {
+        if (hasNonNull(json, KEY_NAME)) {
             builder.withName(json.getString(KEY_NAME));
         }
 

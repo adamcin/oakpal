@@ -16,6 +16,8 @@
 
 package net.adamcin.oakpal.core;
 
+import static net.adamcin.oakpal.core.Util.isEmpty;
+
 import java.io.File;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -344,7 +346,7 @@ public final class ScriptProgressCheck implements ProgressCheck {
     public static ProgressCheckFactory createInlineScriptCheckFactory(final String inlineScript, final String inlineEngine)
             throws Exception {
         final ScriptEngine engine;
-        if (inlineEngine == null) {
+        if (isEmpty(inlineEngine)) {
             engine = new ScriptEngineManager().getEngineByExtension(DEFAULT_SCRIPT_ENGINE_EXTENSION);
         } else {
             engine = new ScriptEngineManager().getEngineByName(inlineEngine);

@@ -17,6 +17,7 @@
 package net.adamcin.oakpal.core;
 
 import static java.util.Optional.ofNullable;
+import static net.adamcin.oakpal.core.JavaxJson.hasNonNull;
 import static net.adamcin.oakpal.core.JavaxJson.obj;
 import static net.adamcin.oakpal.core.Util.isEmpty;
 
@@ -207,25 +208,25 @@ public class CheckSpec {
      */
     static CheckSpec fromJson(final JsonObject json) {
         final CheckSpec checkSpec = new CheckSpec();
-        if (json.containsKey(KEY_IMPL)) {
+        if (hasNonNull(json, KEY_IMPL)) {
             checkSpec.setImpl(json.getString(KEY_IMPL));
         }
-        if (json.containsKey(KEY_INLINE_SCRIPT)) {
-            checkSpec.setImpl(json.getString(KEY_INLINE_SCRIPT));
+        if (hasNonNull(json, KEY_INLINE_SCRIPT)) {
+            checkSpec.setInlineScript(json.getString(KEY_INLINE_SCRIPT));
         }
-        if (json.containsKey(KEY_INLINE_ENGINE)) {
-            checkSpec.setImpl(json.getString(KEY_INLINE_ENGINE));
+        if (hasNonNull(json, KEY_INLINE_ENGINE)) {
+            checkSpec.setInlineEngine(json.getString(KEY_INLINE_ENGINE));
         }
-        if (json.containsKey(KEY_NAME)) {
+        if (hasNonNull(json, KEY_NAME)) {
             checkSpec.setName(json.getString(KEY_NAME));
         }
-        if (json.containsKey(KEY_TEMPLATE)) {
+        if (hasNonNull(json, KEY_TEMPLATE)) {
             checkSpec.setTemplate(json.getString(KEY_TEMPLATE));
         }
-        if (json.containsKey(KEY_SKIP)) {
+        if (hasNonNull(json, KEY_SKIP)) {
             checkSpec.setSkip(json.getBoolean(KEY_SKIP));
         }
-        if (json.containsKey(KEY_CONFIG)) {
+        if (hasNonNull(json, KEY_CONFIG)) {
             checkSpec.setConfig(json.getJsonObject(KEY_CONFIG));
         }
 

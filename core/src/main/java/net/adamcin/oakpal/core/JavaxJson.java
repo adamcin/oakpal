@@ -16,7 +16,6 @@
 
 package net.adamcin.oakpal.core;
 
-import static net.adamcin.oakpal.core.Util.compose;
 import static net.adamcin.oakpal.core.Util.composeTry;
 
 import java.math.BigDecimal;
@@ -31,6 +30,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.json.Json;
@@ -43,7 +43,11 @@ import javax.json.JsonString;
 import javax.json.JsonValue;
 import javax.json.stream.JsonCollectors;
 
-
+/**
+ * Simple DSL for constructing javax.json objects for {@link ProgressCheckFactory} configs using only three-letter identifiers.
+ * <p>
+ * Recommend using {@code import static net.adamcin.oakpal.core.JavaxJson.*;}
+ */
 public final class JavaxJson {
     private JavaxJson() {
         /* no instantiation */
@@ -89,7 +93,14 @@ public final class JavaxJson {
         String getKey();
     }
 
-    private static JsonValue wrap(final Object object) {
+    /**
+     * Ensures that a Java typed object is wrapped with the appropriate {@link JsonValue} type.
+     * Performs the reverse of {@link #unwrap(JsonValue)}.
+     *
+     * @param object the Java type to wrap
+     * @return a JsonValue-wrapped object
+     */
+    public static JsonValue wrap(final Object object) {
         if (object == null) {
             return JsonValue.NULL;
         } else if (object instanceof JsonValue) {
@@ -125,6 +136,65 @@ public final class JavaxJson {
         return Json.createArrayBuilder().add(String.valueOf(object)).build().get(0);
     }
 
+    /**
+     * This method performs the reverse of {@link #wrap(Object)}.
+     * Unwraps a JsonValue to its associated non-Json value.
+     * {@link JsonString} -> {@link String},
+     * {@link JsonNumber} -> {@link Number},
+     * {@link JsonValue#NULL} -> {@code null},
+     * {@link JsonValue#TRUE} -> {@code true},
+     * {@link JsonValue#FALSE} -> {@code false},
+     * {@link JsonArray} -> {@code List<Object>},
+     * {@link JsonObject}-> {@code Map<String, Object>}.
+     *
+     * @param jsonValue the wrapped JsonValue
+     * @return the associated Java value
+     */
+    public static Object unwrap(final JsonValue jsonValue) {
+        if (jsonValue == null) {
+            return null;
+        } else {
+            switch (jsonValue.getValueType()) {
+                case STRING:
+                    return ((JsonString) jsonValue).getString();
+                case NUMBER:
+                    return ((JsonNumber) jsonValue).numberValue();
+                case NULL:
+                    return null;
+                case ARRAY:
+                    return unwrapArray(jsonValue.asJsonArray());
+                case OBJECT:
+                    return unwrapObject(jsonValue.asJsonObject());
+                default:
+                    return jsonValue == JsonValue.TRUE;
+            }
+        }
+    }
+
+    /**
+     * Supports {@link #unwrap(JsonValue)} for typed unwrapping of JsonObject -> {@code Map<String, Object>}.
+     *
+     * @param jsonObject the json object to unwrap
+     * @return the equivalent map
+     */
+    public static Map<String, Object> unwrapObject(final JsonObject jsonObject) {
+        return jsonObject.entrySet().stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, entry -> JavaxJson.unwrap(entry.getValue())));
+    }
+
+    /**
+     * Supports {@link #unwrap(JsonValue)} for typed unwrapping of JsonArray -> {@code List<Object>}.
+     *
+     * @param jsonArray the json array to unwrap
+     * @return the equivalent list
+     */
+    public static List<Object> unwrapArray(final JsonArray jsonArray) {
+        return jsonArray.getValuesAs(JavaxJson::unwrap);
+    }
+
+    /**
+     * Discrete value wrapper. Delegates to {@link #wrap(Object)} for null-handling, etc.
+     */
     public static final class Value implements HasValue, As<JsonValue> {
         private final JsonValue value;
 
@@ -492,55 +562,53 @@ public final class JavaxJson {
         }
     }
 
-    public static Object unwrapValue(final JsonValue jsonValue) {
-        if (jsonValue == null) {
-            return null;
-        } else {
-            switch (jsonValue.getValueType()) {
-                case STRING:
-                    return ((JsonString) jsonValue).getString();
-                case NUMBER:
-                    return ((JsonNumber) jsonValue).numberValue();
-                case NULL:
-                    return null;
-                case ARRAY:
-                    return unwrapArray((JsonArray) jsonValue);
-                case OBJECT:
-                    return unwrapObject((JsonObject) jsonValue);
-                default:
-                    return jsonValue == JsonValue.TRUE;
-            }
-        }
-    }
-
-    public static List<Object> unwrapArray(final JsonArray jsonArray) {
-        return jsonArray.getValuesAs(JavaxJson::unwrapValue);
-    }
-
-    public static Map<String, Object> unwrapObject(final JsonObject jsonObject) {
-        return jsonObject.entrySet().stream().collect(
-                Collectors.toMap(Map.Entry::getKey, entry -> JavaxJson.unwrapValue(entry.getValue())));
-    }
-
+    /**
+     * Retrieve a value as an array if the specified key is present, or empty() if not.
+     *
+     * @param json the object to retrieve an array from
+     * @param key  the array's key
+     * @return an optional array
+     */
     public static Optional<JsonArray> optArray(final JsonObject json, final String key) {
-        JsonValue value = json.get(key);
-        if (value instanceof JsonArray) {
-            return Optional.of((JsonArray) value);
-        }
-        return Optional.empty();
+        return Optional.ofNullable(json.get(key)).filter(JsonArray.class::isInstance).map(JsonArray.class::cast);
     }
 
+    /**
+     * Filters and maps the provided {@link JsonArray} into a {@code List<String>}.
+     *
+     * @param jsonArray the array of strings
+     * @return a list of strings
+     */
     public static List<String> mapArrayOfStrings(final JsonArray jsonArray) {
         return mapArrayOfStrings(jsonArray, Function.identity());
     }
 
-    public static <T> List<T> mapArrayOfStrings(final JsonArray jsonArray,
-                                                final Function<String, T> mapFunction) {
+    /**
+     * Filters and maps the provided {@link JsonArray} into a {@code List<String>}, then applies the provided mapFunction
+     * to each result to return a typed list.
+     *
+     * @param jsonArray   the input array
+     * @param mapFunction the function mapping String -> R
+     * @param <R>         the mapFunction result type
+     * @return a list of the same type as the mapFunction result type
+     */
+    public static <R> List<R> mapArrayOfStrings(final JsonArray jsonArray,
+                                                final Function<String, R> mapFunction) {
         return mapArrayOfStrings(jsonArray, mapFunction, false);
     }
 
-    public static <T> List<T> mapArrayOfStrings(final JsonArray jsonArray,
-                                                final Function<String, T> mapFunction,
+    /**
+     * Filters and maps the provided {@link JsonArray} into a {@code List<String>}, then applies the provided mapFunction
+     * to each result to return a typed list.
+     *
+     * @param jsonArray    the input array
+     * @param mapFunction  the function mapping String -> R
+     * @param discardNulls true to filter out null results returned by the mapFunction (default false).
+     * @param <R>          the mapFunction result type
+     * @return a list of the same type as the mapFunction result type
+     */
+    public static <R> List<R> mapArrayOfStrings(final JsonArray jsonArray,
+                                                final Function<String, R> mapFunction,
                                                 final boolean discardNulls) {
         return Optional.ofNullable(jsonArray).orElse(JsonValue.EMPTY_JSON_ARRAY).stream()
                 .filter(JsonString.class::isInstance)
@@ -549,12 +617,32 @@ public final class JavaxJson {
                 .collect(Collectors.toList());
     }
 
-    public static <T> List<T> mapArrayOfObjects(final JsonArray jsonArray,
-                                                final Function<JsonObject, T> mapFunction) {
+    /**
+     * Filters and maps the provided {@link JsonArray} into a {@code List<JsonObject>}, then applies the provided
+     * mapFunction to each result to return a typed list.
+     *
+     * @param jsonArray   the input array
+     * @param mapFunction the function mapping JsonObject -> R
+     * @param <R>         the mapFunction result type
+     * @return a list of the same type as the mapFunction result type
+     */
+    public static <R> List<R> mapArrayOfObjects(final JsonArray jsonArray,
+                                                final Function<JsonObject, R> mapFunction) {
         return mapArrayOfObjects(jsonArray, mapFunction, false);
     }
-    public static <T> List<T> mapArrayOfObjects(final JsonArray jsonArray,
-                                                final Function<JsonObject, T> mapFunction,
+
+    /**
+     * Filters and maps the provided {@link JsonArray} into a {@code List<JsonObject>}, then applies the provided
+     * mapFunction to each result to return a typed list.
+     *
+     * @param jsonArray    the input array
+     * @param mapFunction  the function mapping JsonObject -> R
+     * @param discardNulls true to filter out null results returned by the mapFunction (default false).
+     * @param <R>          the mapFunction result type
+     * @return a list of the same type as the mapFunction result type
+     */
+    public static <R> List<R> mapArrayOfObjects(final JsonArray jsonArray,
+                                                final Function<JsonObject, R> mapFunction,
                                                 final boolean discardNulls) {
         return Optional.ofNullable(jsonArray).orElse(JsonValue.EMPTY_JSON_ARRAY).stream()
                 .filter(value -> value.getValueType() == JsonValue.ValueType.OBJECT)
@@ -564,13 +652,34 @@ public final class JavaxJson {
                 .collect(Collectors.toList());
     }
 
-    public static <T> List<T> parseFromArray(final JsonArray jsonArray,
-                                             final Util.TryFunction<String, T> parser,
+    /**
+     * Parse string elements of an array into arbitrary objects, (like URLs).
+     *
+     * @param jsonArray     the array of strings
+     * @param parser        the parser function
+     * @param errorConsumer an optional error handler
+     * @param <R>           the mapFunction result type
+     * @return a list of parser results
+     * @see Util#composeTry(Function, Supplier, Util.TryFunction, BiConsumer)
+     */
+    public static <R> List<R> parseFromArray(final JsonArray jsonArray,
+                                             final Util.TryFunction<String, R> parser,
                                              final BiConsumer<String, Exception> errorConsumer) {
         return jsonArray.stream()
                 .map(String::valueOf)
                 .flatMap(composeTry(Stream::of, Stream::empty, parser, errorConsumer))
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Convenience method to check to avoid type errors when getting a typed value backed by a JsonValue.NULL.
+     *
+     * @param json the json object to check a key on.
+     * @param key  the key to check for presence and non-nullness.
+     * @return true if key is present and mapped to non-null value.
+     */
+    public static boolean hasNonNull(final JsonObject json, final String key) {
+        return json.containsKey(key) && !json.isNull(key);
     }
 }
 
