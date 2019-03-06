@@ -20,6 +20,15 @@ import java.util.List;
 
 import net.adamcin.oakpal.core.Checklist;
 
+/**
+ * Service interface for retrieving bundle-provided checklists.
+ */
 public interface ChecklistTracker {
+
+    /**
+     * Get a list of oakpal checklists provided by active bundles.
+     *
+     * @return a list of oakpal checklists provided by active bundles
+     */
     List<Checklist> getBundleChecklists();
 }

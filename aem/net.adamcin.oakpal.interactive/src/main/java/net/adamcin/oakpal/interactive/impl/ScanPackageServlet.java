@@ -46,6 +46,9 @@ import org.osgi.service.component.annotations.Reference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Simple POST servlet to scan a series of packages available in CRX Package Manager.
+ */
 @Component(service = Servlet.class,
         property = {
                 "sling.servlet.paths=/bin/oakpal/scan-package",
@@ -54,12 +57,23 @@ import org.slf4j.LoggerFactory;
 public class ScanPackageServlet extends SlingAllMethodsServlet {
     private static final Logger LOGGER = LoggerFactory.getLogger(ScanPackageServlet.class);
 
+    /**
+     * The singleton packaging service is used to retrieve specified packages, but it should not be used as the
+     * packaging service for the scan.
+     */
     @Reference
     private Packaging packagingService;
 
+    /**
+     * This bundle can't possibly import all the world's progresscheck namespaces, so we have to either specify
+     * {@code Dynamic-ImportPackage: *} in the manifest, or just use the Sling Dynamic ClassLoader service.
+     */
     @Reference
     private DynamicClassLoaderManager classLoaderManager;
 
+    /**
+     * The checklist tracker service
+     */
     @Reference
     private ChecklistTracker checklistTracker;
 
@@ -68,7 +82,7 @@ public class ScanPackageServlet extends SlingAllMethodsServlet {
                           @NotNull final SlingHttpServletResponse response)
             throws ServletException, IOException {
 
-
+        // use the Sling dynamic classloader for loading ProgressChecks
         final ClassLoader checkLoader = classLoaderManager.getDynamicClassLoader();
 
         final List<String> activeChecklistIds =
@@ -78,8 +92,9 @@ public class ScanPackageServlet extends SlingAllMethodsServlet {
 
         final List<ProgressCheck> allChecks;
         try {
-            allChecks = new ArrayList<>(Locator
-                    .loadFromCheckSpecs(planner.getEffectiveCheckSpecs(Collections.emptyList()), checkLoader));
+            allChecks = new ArrayList<>(Locator.loadFromCheckSpecs(
+                    planner.getEffectiveCheckSpecs(Collections.emptyList()),
+                    checkLoader));
         } catch (final Exception e) {
             throw new ServletException(e);
         }
@@ -94,6 +109,9 @@ public class ScanPackageServlet extends SlingAllMethodsServlet {
         final OakMachine.Builder builder = new OakMachine.Builder();
         builder.withInitStages(planner.getInitStages());
         builder.withProgressChecks(allChecks);
+        // create an instance of our reflection-based Packaging service to wrap the legacy packaging service using
+        // using the bound Packaging service's classloader in order to avoid the nasty no-no stack trace on the left, and
+        // the package event dispatcher on the right.
         builder.withPackagingService(new DefaultPackagingService(packagingService.getClass().getClassLoader()));
 
         final OakMachine machine = builder.build();

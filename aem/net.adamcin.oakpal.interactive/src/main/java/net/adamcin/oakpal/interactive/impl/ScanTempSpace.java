@@ -31,7 +31,7 @@ import org.apache.sling.api.resource.Resource;
 /**
  * AutoCloseable Handle for a set of temporary package files extracted for a scan.
  */
-public class ScanTempSpace implements AutoCloseable {
+class ScanTempSpace implements AutoCloseable {
     private final List<Resource> fileResources;
     private final List<File> tmpFiles;
     private boolean opened;
@@ -41,7 +41,7 @@ public class ScanTempSpace implements AutoCloseable {
      *
      * @param fileResources list of file Resources, each adaptable to {@link java.io.InputStream}.
      */
-    public ScanTempSpace(final List<Resource> fileResources) {
+    ScanTempSpace(final List<Resource> fileResources) {
         this.fileResources = new ArrayList<>(fileResources);
         this.tmpFiles = new ArrayList<>(fileResources.size());
     }
@@ -52,7 +52,7 @@ public class ScanTempSpace implements AutoCloseable {
      * @return the list of temp files
      * @throws IOException for I/O errors
      */
-    public List<File> open() throws IOException {
+    List<File> open() throws IOException {
         if (!this.opened) {
             for (int i = 0; i < fileResources.size(); i++) {
                 final Resource resource = fileResources.get(i);

@@ -104,7 +104,7 @@
                                     aQute.bnd.osgi,aQute.bnd.header,aQute.lib.base64,aQute.lib.collections,\
                                     aQute.lib.converter,aQute.libg.generics,aQute.libg.qtokens,\
                                     aQute.service.reporter
-                                Import-Package: org.json;version="[${json.min.version},20201231]",!aQute.*,*
+                                Import-Package: org.json;version="[${json.min.version},20180813]",!aQute.*,*
                                 -includeresource: \
                                     @${project.build.directory}/jar/bndlib.jar!/aQute/bnd/osgi/*,\
                                     @${project.build.directory}/jar/bndlib.jar!/aQute/bnd/header/*,\
