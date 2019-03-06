@@ -16,6 +16,11 @@
 
 package net.adamcin.oakpal.core;
 
+import static net.adamcin.oakpal.core.JavaxJson.key;
+
+import javax.json.JsonObject;
+import javax.json.JsonObjectBuilder;
+
 import org.json.JSONObject;
 
 /**
@@ -60,6 +65,7 @@ public final class JcrNs {
      * @param json JSON object
      * @return a new JCR NS mapping
      */
+    @Deprecated
     static JcrNs fromJSON(final JSONObject json) {
         JcrNs jcrNs = new JcrNs();
         jcrNs.setPrefix(json.getString(KEY_PREFIX));
@@ -67,11 +73,21 @@ public final class JcrNs {
         return jcrNs;
     }
 
+    /**
+     * Map a JSON object to a {@link JcrNs}.
+     *
+     * @param json JSON object
+     * @return a new JCR NS mapping
+     */
+    static JcrNs fromJson(final JsonObject json) {
+        JcrNs jcrNs = new JcrNs();
+        jcrNs.setPrefix(json.getString(KEY_PREFIX, ""));
+        jcrNs.setUri(json.getString(KEY_URI, ""));
+        return jcrNs;
+    }
+
     @Override
     public String toString() {
-        JSONObject ret = new JSONObject();
-        ret.put(KEY_PREFIX, getPrefix());
-        ret.put(KEY_URI, getUri());
-        return ret.toString();
+        return key(KEY_PREFIX, getPrefix()).key(KEY_URI, getUri()).get().toString();
     }
 }

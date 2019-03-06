@@ -17,6 +17,9 @@
 package net.adamcin.oakpal.core;
 
 import static java.util.Optional.ofNullable;
+import static net.adamcin.oakpal.core.JavaxJson.hasNonNull;
+import static net.adamcin.oakpal.core.JavaxJson.optArray;
+import static net.adamcin.oakpal.core.JavaxJson.parseFromArray;
 
 import java.net.URL;
 import java.util.ArrayList;
@@ -24,9 +27,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.jar.JarFile;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import javax.json.JsonObject;
+import javax.json.JsonValue;
 
-import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,7 +41,6 @@ public final class Checklist {
     private static final Logger LOGGER = LoggerFactory.getLogger(Checklist.class);
 
     static final String KEY_NAME = "name";
-    static final String KEY_INIT = "init";
     static final String KEY_CND_URLS = "cndUrls";
     static final String KEY_CND_NAMES = "cndNames";
     static final String KEY_JCR_NAMESPACES = "jcrNamespaces";
@@ -154,8 +156,7 @@ public final class Checklist {
         }
 
         boolean isValidCheckspec(final CheckSpec check) {
-            return check.getImpl() != null
-                    && !check.getImpl().isEmpty()
+            return !check.isAbstract()
                     && check.getName() != null
                     && !check.getName().isEmpty()
                     && !check.getName().contains("/");
@@ -207,40 +208,41 @@ public final class Checklist {
      * @param json       check list blob
      * @return the new package checklist
      */
-    static Checklist fromJSON(final String moduleName, final URL manifestUrl, final JSONObject json) {
-        LOGGER.trace("[fromJSON] module: {}, manifestUrl: {}, json: {}", moduleName, manifestUrl, json);
+    public static Checklist fromJson(final String moduleName, final URL manifestUrl, final JsonObject json) {
+        LOGGER.trace("[fromJson] module: {}, manifestUrl: {}, json: {}", moduleName, manifestUrl, json);
         Builder builder = new Builder(moduleName);
-        if (json.has(KEY_NAME)) {
+        if (hasNonNull(json, KEY_NAME)) {
             builder.withName(json.getString(KEY_NAME));
-        }
-        if (json.has(KEY_INIT)) {
-            final String init = json.getString(KEY_INIT);
-            try {
-                Object initObjc = Util.getDefaultClassLoader().loadClass(init).getConstructor().newInstance();
-                ChecklistInitializer.class.cast(initObjc).init();
-            } catch (Exception e) {
-                LOGGER.debug("[fromJSON#init] ChecklistInitializer error", e);
-            }
         }
 
         if (manifestUrl != null && manifestUrl.toExternalForm().endsWith(JarFile.MANIFEST_NAME)) {
-            ofNullable(json.optJSONArray(KEY_CND_NAMES))
-                    .filter(Util.traceFilter(LOGGER, "[fromJSON#cndNames] cndNames: {}"))
-                    .map(cndNames -> cndNames.toList().stream()
+            ofNullable(json.getJsonArray(KEY_CND_NAMES))
+                    .filter(Util.traceFilter(LOGGER, "[fromJson#cndNames] cndNames: {}"))
+                    .map(cndNames -> JavaxJson.unwrapArray(cndNames).stream()
                             .map(String::valueOf)
                             .collect(Collectors.toList()))
                     .map(names -> Util.resolveManifestResources(manifestUrl, names))
                     .ifPresent(builder::withCndUrls);
         }
 
-        builder.withCndUrls(Util.fromJSONArrayParsed(json.optJSONArray(KEY_CND_URLS), URL::new,
-                (element, error) -> LOGGER.debug("[fromJSON#cndUrls] ignoring error", error)));
-        builder.withJcrNamespaces(Util.fromJSONArray(json.optJSONArray(KEY_JCR_NAMESPACES), JcrNs::fromJSON));
-        builder.withJcrPrivileges(Util.fromJSONArrayAsStrings(json.optJSONArray(KEY_JCR_PRIVILEGES)));
-        builder.withForcedRoots(Util.fromJSONArray(json.optJSONArray(KEY_FORCED_ROOTS), ForcedRoot::fromJSON));
-        builder.withChecks(Util.fromJSONArray(json.optJSONArray(KEY_CHECKS), CheckSpec::fromJSON));
+        builder.withCndUrls(parseFromArray(
+                optArray(json, KEY_CND_URLS).orElse(JsonValue.EMPTY_JSON_ARRAY), URL::new,
+                (element, error) -> LOGGER.debug("[fromJson#cndUrls] ignoring error", error)));
+
+        optArray(json, KEY_JCR_NAMESPACES).ifPresent(jsonArray -> {
+            builder.withJcrNamespaces(JavaxJson.mapArrayOfObjects(jsonArray, JcrNs::fromJson));
+        });
+        optArray(json, KEY_JCR_PRIVILEGES).ifPresent(jsonArray -> {
+            builder.withJcrPrivileges(JavaxJson.mapArrayOfStrings(jsonArray));
+        });
+        optArray(json, KEY_FORCED_ROOTS).ifPresent(jsonArray -> {
+            builder.withForcedRoots(JavaxJson.mapArrayOfObjects(jsonArray, ForcedRoot::fromJson));
+        });
+        optArray(json, KEY_CHECKS).ifPresent(jsonArray -> {
+            builder.withChecks(JavaxJson.mapArrayOfObjects(jsonArray, CheckSpec::fromJson));
+        });
         final Checklist checklist = builder.build();
-        LOGGER.trace("[fromJSON] builder.build(): {}", checklist);
+        LOGGER.trace("[fromJson] builder.build(): {}", checklist);
         return checklist;
     }
 }

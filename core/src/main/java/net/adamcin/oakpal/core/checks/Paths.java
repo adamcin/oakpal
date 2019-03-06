@@ -16,17 +16,20 @@
 
 package net.adamcin.oakpal.core.checks;
 
+import static net.adamcin.oakpal.core.JavaxJson.arrayOrEmpty;
+import static net.adamcin.oakpal.core.JavaxJson.hasNonNull;
+
 import java.util.List;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
+import javax.json.JsonObject;
 
 import net.adamcin.oakpal.core.ProgressCheck;
 import net.adamcin.oakpal.core.ProgressCheckFactory;
 import net.adamcin.oakpal.core.SimpleProgressCheck;
 import net.adamcin.oakpal.core.Violation;
 import org.apache.jackrabbit.vault.packaging.PackageId;
-import org.json.JSONObject;
 
 /**
  * Deny path imports/deletes by regular expression.
@@ -61,21 +64,21 @@ import org.json.JSONObject;
  * <dd>By default, the severity of violations created by this check is MAJOR, but can be set to MINOR or SEVERE.</dd>
  * </dl>
  */
-public final class Paths implements ProgressCheckFactory {
+public final class Paths extends CompatBaseFactory implements ProgressCheckFactory {
     public static final String CONFIG_RULES = "rules";
     public static final String CONFIG_DENY_ALL_DELETES = "denyAllDeletes";
     public static final String CONFIG_SEVERITY = "severity";
     public static final Violation.Severity DEFAULT_SEVERITY = Violation.Severity.MAJOR;
 
     @Override
-    public ProgressCheck newInstance(final JSONObject config) throws Exception {
-        List<Rule> rules = Rule.fromJSON(config.optJSONArray(CONFIG_RULES));
+    public ProgressCheck newInstance(final JsonObject config) {
+        List<Rule> rules = Rule.fromJsonArray(arrayOrEmpty(config, CONFIG_RULES));
 
-        final boolean denyAllDeletes = config.has(CONFIG_DENY_ALL_DELETES)
-                && config.optBoolean(CONFIG_DENY_ALL_DELETES);
+        final boolean denyAllDeletes = hasNonNull(config, CONFIG_DENY_ALL_DELETES)
+                && config.getBoolean(CONFIG_DENY_ALL_DELETES);
 
         final Violation.Severity severity = Violation.Severity.valueOf(
-                config.optString(CONFIG_SEVERITY, DEFAULT_SEVERITY.name()).toUpperCase());
+                config.getString(CONFIG_SEVERITY, DEFAULT_SEVERITY.name()).toUpperCase());
 
         return new Check(rules, denyAllDeletes, severity);
     }

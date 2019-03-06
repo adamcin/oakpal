@@ -17,24 +17,34 @@
 package net.adamcin.oakpal.core;
 
 import static java.util.Optional.ofNullable;
+import static net.adamcin.oakpal.core.JavaxJson.hasNonNull;
+import static net.adamcin.oakpal.core.JavaxJson.obj;
+import static net.adamcin.oakpal.core.Util.isEmpty;
 
-import org.json.JSONObject;
+import javax.json.Json;
+import javax.json.JsonObject;
+import javax.json.JsonObjectBuilder;
+import javax.json.stream.JsonCollectors;
 
 /**
  * DTO for full-featured check spec.
  */
 public class CheckSpec {
     static final String KEY_IMPL = "impl";
+    static final String KEY_INLINE_SCRIPT = "inlineScript";
+    static final String KEY_INLINE_ENGINE = "inlineEngine";
     static final String KEY_NAME = "name";
     static final String KEY_TEMPLATE = "template";
     static final String KEY_SKIP = "skip";
     static final String KEY_CONFIG = "config";
 
     private String impl;
+    private String inlineScript;
+    private String inlineEngine;
     private String name;
     private String template;
     private boolean skip;
-    private JSONObject config;
+    private JsonObject config;
 
     /**
      * The direct classpath lookup name for a particular check. If not provided, indicates that a check should be
@@ -48,6 +58,26 @@ public class CheckSpec {
 
     public void setImpl(final String impl) {
         this.impl = impl;
+    }
+
+    public String getInlineScript() {
+        return inlineScript;
+    }
+
+    public void setInlineScript(final String inlineScript) {
+        this.inlineScript = inlineScript;
+    }
+
+    public String getInlineEngine() {
+        return inlineEngine;
+    }
+
+    public void setInlineEngine(final String inlineEngine) {
+        this.inlineEngine = inlineEngine;
+    }
+
+    public boolean isAbstract() {
+        return isEmpty(this.impl) && this.inlineScript == null;
     }
 
     /**
@@ -114,18 +144,18 @@ public class CheckSpec {
      *
      * @return the JSONObject configuration for the package check
      */
-    public JSONObject getConfig() {
+    public JsonObject getConfig() {
         return config;
     }
 
-    public void setConfig(final JSONObject config) {
+    public void setConfig(final JsonObject config) {
         this.config = config;
     }
 
     public boolean overrides(final CheckSpec other) {
         return !this.mustInherit() && !other.mustInherit()
                 && (String.valueOf(other.getName()).equals(String.valueOf(this.getName()))
-                || (this.impl == null
+                || (this.isAbstract()
                 && String.valueOf(other.getName()).endsWith("/" + String.valueOf(this.getName()))));
     }
 
@@ -163,10 +193,11 @@ public class CheckSpec {
         return composite;
     }
 
-    static JSONObject merge(final JSONObject base, final JSONObject overlay) {
-        JSONObject init = ofNullable(base).orElse(new JSONObject());
-        ofNullable(overlay).ifPresent(ext -> ext.keySet().forEach(key -> init.put(key, ext.get(key))));
-        return init;
+    static JsonObject merge(final JsonObject base, final JsonObject overlay) {
+        JsonObjectBuilder init = Json.createObjectBuilder();
+        ofNullable(base).ifPresent(json -> json.forEach(init::add));
+        ofNullable(overlay).ifPresent(json -> json.forEach(init::add));
+        return init.build();
     }
 
     /**
@@ -175,22 +206,28 @@ public class CheckSpec {
      * @param json check spec object
      * @return a new CheckSpec
      */
-    static CheckSpec fromJSON(final JSONObject json) {
+    static CheckSpec fromJson(final JsonObject json) {
         final CheckSpec checkSpec = new CheckSpec();
-        if (json.has(KEY_IMPL)) {
+        if (hasNonNull(json, KEY_IMPL)) {
             checkSpec.setImpl(json.getString(KEY_IMPL));
         }
-        if (json.has(KEY_NAME)) {
+        if (hasNonNull(json, KEY_INLINE_SCRIPT)) {
+            checkSpec.setInlineScript(json.getString(KEY_INLINE_SCRIPT));
+        }
+        if (hasNonNull(json, KEY_INLINE_ENGINE)) {
+            checkSpec.setInlineEngine(json.getString(KEY_INLINE_ENGINE));
+        }
+        if (hasNonNull(json, KEY_NAME)) {
             checkSpec.setName(json.getString(KEY_NAME));
         }
-        if (json.has(KEY_TEMPLATE)) {
+        if (hasNonNull(json, KEY_TEMPLATE)) {
             checkSpec.setTemplate(json.getString(KEY_TEMPLATE));
         }
-        if (json.has(KEY_SKIP)) {
-            checkSpec.setSkip(json.optBoolean(KEY_SKIP));
+        if (hasNonNull(json, KEY_SKIP)) {
+            checkSpec.setSkip(json.getBoolean(KEY_SKIP));
         }
-        if (json.has(KEY_CONFIG)) {
-            checkSpec.setConfig(json.getJSONObject(KEY_CONFIG));
+        if (hasNonNull(json, KEY_CONFIG)) {
+            checkSpec.setConfig(json.getJsonObject(KEY_CONFIG));
         }
 
         return checkSpec;
@@ -198,12 +235,14 @@ public class CheckSpec {
 
     @Override
     public String toString() {
-        JSONObject obj = new JSONObject();
-        obj.put(KEY_NAME, getName());
-        obj.put(KEY_IMPL, getImpl());
-        obj.put(KEY_CONFIG, getConfig());
-        obj.put(KEY_TEMPLATE, getTemplate());
-        obj.put(KEY_SKIP, isSkip());
-        return obj.toString();
+        return obj()
+                .key(KEY_NAME, getName())
+                .key(KEY_IMPL, getImpl())
+                .key(KEY_INLINE_SCRIPT, getInlineScript())
+                .key(KEY_INLINE_ENGINE, getInlineEngine())
+                .key(KEY_CONFIG, getConfig())
+                .key(KEY_TEMPLATE, getTemplate())
+                .key(KEY_SKIP, isSkip())
+                .get().toString();
     }
 }

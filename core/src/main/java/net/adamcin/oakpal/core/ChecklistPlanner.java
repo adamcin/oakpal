@@ -28,9 +28,10 @@ import java.util.Set;
 import java.util.jar.Manifest;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import javax.json.Json;
+import javax.json.JsonObject;
+import javax.json.JsonReader;
 
-import org.json.JSONObject;
-import org.json.JSONTokener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,13 +53,17 @@ public final class ChecklistPlanner {
         this.activeChecklistIds.addAll(activeChecklistIds);
     }
 
+    public void provideChecklists(final List<Checklist> constructed) {
+        selectChecklists(new ArrayList<>(constructed));
+    }
+
     public void discoverChecklists() {
         discoverChecklists(Util.getDefaultClassLoader());
     }
 
     public void discoverChecklists(final ClassLoader classLoader) {
         try {
-            Map<URL, List<JSONObject>> parsed = parseChecklists(classLoader);
+            Map<URL, List<JsonObject>> parsed = parseChecklists(classLoader);
             selectChecklists(constructChecklists(parsed));
         } catch (final Exception e) {
             LOGGER.debug("[discoverChecklists(ClassLoader)] error occurred during discovery", e);
@@ -67,7 +72,7 @@ public final class ChecklistPlanner {
 
     public void discoverChecklists(final List<File> files) {
         try {
-            Map<URL, List<JSONObject>> parsed = parseChecklists(files);
+            Map<URL, List<JsonObject>> parsed = parseChecklists(files);
             selectChecklists(constructChecklists(parsed));
         } catch (final Exception e) {
             LOGGER.debug("[discoverChecklists(List<File>)] error occurred during discovery", e);
@@ -189,33 +194,38 @@ public final class ChecklistPlanner {
         return merged;
     }
 
-    public static List<Checklist> constructChecklists(final Map<URL, List<JSONObject>> parsed) throws Exception {
+    public static List<Checklist> constructChecklists(final Map<URL, List<JsonObject>> parsed) throws Exception {
         List<Checklist> checklists = new ArrayList<>();
-        for (Map.Entry<URL, List<JSONObject>> entry : parsed.entrySet()) {
+        for (Map.Entry<URL, List<JsonObject>> entry : parsed.entrySet()) {
             final URL manifestUrl = entry.getKey();
             final String moduleName = bestModuleName(manifestUrl);
-            entry.getValue().forEach(json -> checklists.add(Checklist.fromJSON(moduleName, manifestUrl, json)));
+            entry.getValue().forEach(json -> checklists.add(Checklist.fromJson(moduleName, manifestUrl, json)));
         }
         return checklists;
     }
 
-    public static Map<URL, List<JSONObject>> parseChecklists(final ClassLoader classLoader) throws Exception {
+    public static Map<URL, List<JsonObject>> parseChecklists(final URL manifestUrl) throws Exception {
+        Map<URL, List<URL>> manifestLookup = Util.mapManifestHeaderResources(OAKPAL_CHECKLIST, manifestUrl);
+        return parseChecklists(manifestLookup);
+    }
+
+    public static Map<URL, List<JsonObject>> parseChecklists(final ClassLoader classLoader) throws Exception {
         Map<URL, List<URL>> manifestLookup = Util.mapManifestHeaderResources(OAKPAL_CHECKLIST, classLoader);
         return parseChecklists(manifestLookup);
     }
 
-    public static Map<URL, List<JSONObject>> parseChecklists(final List<File> files) throws Exception {
+    public static Map<URL, List<JsonObject>> parseChecklists(final List<File> files) throws Exception {
         Map<URL, List<URL>> manifestLookup = Util.mapManifestHeaderResources(OAKPAL_CHECKLIST, files);
         return parseChecklists(manifestLookup);
     }
 
-    private static Map<URL, List<JSONObject>> parseChecklists(final Map<URL, List<URL>> manifestLookup)
+    private static Map<URL, List<JsonObject>> parseChecklists(final Map<URL, List<URL>> manifestLookup)
             throws Exception {
-        Map<URL, List<JSONObject>> parsed = new LinkedHashMap<>();
+        Map<URL, List<JsonObject>> parsed = new LinkedHashMap<>();
         for (Map.Entry<URL, List<URL>> manifestEntry : manifestLookup.entrySet()) {
             final URL manifestUrl = manifestEntry.getKey();
             final List<URL> checklistUrls = manifestEntry.getValue();
-            final List<JSONObject> allParsedForModule;
+            final List<JsonObject> allParsedForModule;
 
             if (parsed.containsKey(manifestUrl)) {
                 allParsedForModule = parsed.get(manifestUrl);
@@ -225,9 +235,10 @@ public final class ChecklistPlanner {
             }
 
             for (URL checklistUrl : checklistUrls) {
-                try (InputStream is = checklistUrl.openStream()) {
-                    JSONTokener tkr = new JSONTokener(is);
-                    allParsedForModule.add(new JSONObject(tkr));
+                try (InputStream is = checklistUrl.openStream();
+                     JsonReader reader = Json.createReader(is)) {
+
+                    allParsedForModule.add(reader.readObject());
                 }
             }
         }

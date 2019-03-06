@@ -22,11 +22,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -36,9 +38,11 @@ import java.util.jar.Manifest;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
+import javax.jcr.Session;
 
 import aQute.bnd.header.Parameters;
 import aQute.bnd.osgi.Domain;
+import net.adamcin.oakpal.core.jcrfacade.SessionFacade;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.slf4j.Logger;
@@ -49,6 +53,33 @@ public final class Util {
 
     private Util() {
         // do nothing
+    }
+
+    static final Logger ORG_JSON_LOGGER = LoggerFactory.getLogger(ProgressCheckFactory.class);
+
+    /**
+     * Package-private sentinel type for determining when the deprecated ProgressCheckFactory.newInstance(JSONObject) method is
+     * overridden.
+     */
+    static final ProgressCheck ORG_JSON_CHECK_SENTINEL = new ProgressCheck() {
+        @Override
+        public Collection<Violation> getReportedViolations() {
+            return Collections.emptyList();
+        }
+    };
+
+    static boolean isEmpty(final String value) {
+        return value == null || value.isEmpty();
+    }
+
+    /**
+     * Public utility method to wrap an existing session with a facade that blocks writes.
+     *
+     * @param session the existing session to wrap
+     * @return a read-only session
+     */
+    public static Session wrapSessionReadOnly(final Session session) {
+        return SessionFacade.findBestWrapper(session, false);
     }
 
     public static List<String> getManifestHeaderValues(final Manifest manifest, final String headerName) {
@@ -109,6 +140,16 @@ public final class Util {
         return map;
     }
 
+    public static Map<URL, List<URL>> mapManifestHeaderResources(final String headerName, final URL manifestUrl) throws IOException {
+        Map<URL, List<URL>> map = new LinkedHashMap<>();
+        try (InputStream is = manifestUrl.openStream()) {
+            Manifest manifest = new Manifest(is);
+            map.put(manifestUrl, resolveManifestResources(manifestUrl,
+                    getManifestHeaderValues(manifest, headerName)));
+        }
+        return map;
+    }
+
     static ClassLoader getDefaultClassLoader() {
         return Thread.currentThread().getContextClassLoader() != null
                 ? Thread.currentThread().getContextClassLoader()
@@ -147,6 +188,14 @@ public final class Util {
         };
     }
 
+    /**
+     * @deprecated 1.2.0 org.json has been replaced with javax.json.
+     * @param jsonArray the array to read objects and map to the specified type
+     * @param mapper the mapper function
+     * @param <T> the target type
+     * @return the mapped list
+     */
+    @Deprecated
     public static <T> List<T> fromJSONArray(final JSONArray jsonArray, final Function<JSONObject, T> mapper) {
         List<T> results = new ArrayList<>();
         List<JSONObject> onlyObjects = stream(jsonArray)
@@ -161,12 +210,19 @@ public final class Util {
         return Collections.unmodifiableList(results);
     }
 
+    /**
+     * @deprecated 1.2.0 org.json has been replaced with javax.json.
+     * @param jsonArray the array to read objects and map to the specified type
+     * @return the mapped list
+     */
+    @Deprecated
     public static List<String> fromJSONArrayAsStrings(final JSONArray jsonArray) {
         return stream(jsonArray)
                 .map(String::valueOf)
                 .collect(Collectors.toList());
     }
 
+    @Deprecated
     public static <T> List<T> fromJSONArrayParsed(final JSONArray jsonArray,
                                                   final TryFunction<String, T> parser,
                                                   final BiConsumer<String, Exception> errorConsumer) {
@@ -176,6 +232,7 @@ public final class Util {
                 .collect(Collectors.toList());
     }
 
+    @Deprecated
     public static Stream<Object> stream(final JSONArray jsonArray) {
         if (jsonArray != null) {
             return StreamSupport.stream(jsonArray.spliterator(), false);
@@ -233,4 +290,13 @@ public final class Util {
     public interface TryFunction<T, R> {
         R tryApply(T element) throws Exception;
     }
+
+    public static <T, R> Function<T, Optional<R>> optFunc(final Function<T, R> inputFunc) {
+        return ((Function<R, Optional<R>>) Optional::ofNullable).compose(inputFunc);
+    }
+
+    public static <T, I, R> Function<T, R> compose(final Function<T, I> before, final Function<I, R> after) {
+        return after.compose(before);
+    }
+
 }

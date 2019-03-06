@@ -17,19 +17,21 @@
 package net.adamcin.oakpal.core.checks;
 
 import static java.util.Optional.ofNullable;
+import static net.adamcin.oakpal.core.JavaxJson.arrayOrEmpty;
+import static net.adamcin.oakpal.core.JavaxJson.hasNonNull;
+import static net.adamcin.oakpal.core.JavaxJson.mapArrayOfStrings;
+import static net.adamcin.oakpal.core.Util.compose;
 import static org.apache.jackrabbit.vault.fs.io.AccessControlHandling.IGNORE;
 import static org.apache.jackrabbit.vault.fs.io.AccessControlHandling.MERGE;
 import static org.apache.jackrabbit.vault.fs.io.AccessControlHandling.MERGE_PRESERVE;
 import static org.apache.jackrabbit.vault.fs.io.AccessControlHandling.OVERWRITE;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
+import javax.json.JsonObject;
 
 import net.adamcin.oakpal.core.ProgressCheck;
 import net.adamcin.oakpal.core.ProgressCheckFactory;
@@ -39,7 +41,6 @@ import org.apache.jackrabbit.vault.fs.config.MetaInf;
 import org.apache.jackrabbit.vault.fs.io.AccessControlHandling;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.apache.jackrabbit.vault.packaging.PackageProperties;
-import org.json.JSONObject;
 
 /**
  * Limit package {@code acHandling} mode to prevent unforeseen changes to ACLs upon installation.
@@ -67,23 +68,18 @@ import org.json.JSONObject;
  * matching the values in {@link ACHandlingLevelSet}.</dd>
  * </dl>
  */
-public final class AcHandling implements ProgressCheckFactory {
+public final class AcHandling extends CompatBaseFactory implements ProgressCheckFactory {
     public static final String CONFIG_ALLOWED_MODES = "allowedModes";
     public static final String CONFIG_LEVEL_SET = "levelSet";
     static final ACHandlingLevelSet DEFAULT_LEVEL_SET = ACHandlingLevelSet.NO_UNSAFE;
 
     @Override
-    public ProgressCheck newInstance(final JSONObject config) {
-        if (config.has(CONFIG_ALLOWED_MODES)) {
-            List<String> jsonAllowedModes = StreamSupport
-                    .stream(config.getJSONArray(CONFIG_ALLOWED_MODES).spliterator(), false)
-                    .map(String::valueOf).collect(Collectors.toList());
-            List<AccessControlHandling> allowedModes = new ArrayList<>();
-            for (String mode : jsonAllowedModes) {
-                allowedModes.add(AccessControlHandling.valueOf(mode.toUpperCase()));
-            }
+    public ProgressCheck newInstance(final JsonObject config) {
+        if (hasNonNull(config, CONFIG_ALLOWED_MODES)) {
+            List<AccessControlHandling> allowedModes = mapArrayOfStrings(arrayOrEmpty(config, CONFIG_ALLOWED_MODES),
+                    compose(String::toUpperCase, AccessControlHandling::valueOf), true);
             return new Check(ACHandlingLevelSet.EXPLICIT, allowedModes);
-        } else if (config.has(CONFIG_LEVEL_SET)) {
+        } else if (hasNonNull(config, CONFIG_LEVEL_SET)) {
             ACHandlingLevelSet levelSet = ACHandlingLevelSet.valueOf(config.getString(CONFIG_LEVEL_SET).toUpperCase());
             return new Check(levelSet, Collections.emptyList());
         } else {

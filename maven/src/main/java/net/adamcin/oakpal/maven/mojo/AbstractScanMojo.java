@@ -23,7 +23,6 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 
 import net.adamcin.oakpal.core.CheckSpec;
@@ -40,7 +39,6 @@ import net.adamcin.oakpal.core.SlingNodetypesScanner;
 import org.apache.maven.model.Dependency;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Parameter;
-import org.codehaus.plexus.util.StringUtils;
 
 /**
  * Base scan class defining scanner parameters.
@@ -176,8 +174,8 @@ abstract class AbstractScanMojo extends AbstractMojo {
      * </pre>
      * <p>
      * If your {@code impl} represents a script check or a {@link net.adamcin.oakpal.core.ProgressCheckFactory}, you can
-     * also provide a {@code config} element that will be translated to a {@link org.json.JSONObject} by the
-     * {@link net.adamcin.oakpal.maven.component.JSONObjectConverter} via the
+     * also provide a {@code config} element that will be translated to a {@link javax.json.JsonObject} by the
+     * {@link net.adamcin.oakpal.maven.component.JavaxJsonObjectConverter} via the
      * {@link net.adamcin.oakpal.maven.component.OakpalComponentConfigurator}:
      * <pre>
      * &lt;checks&gt;
@@ -344,25 +342,16 @@ abstract class AbstractScanMojo extends AbstractMojo {
     protected OakMachine.Builder getBuilder() throws MojoExecutionException {
         final ErrorListener errorListener = new DefaultErrorListener();
 
-        final List<ProgressCheck> allChecks = new ArrayList<>();
         final ChecklistPlanner checklistPlanner = new ChecklistPlanner(checklists);
         checklistPlanner.discoverChecklists();
 
-        for (CheckSpec checkSpec : checklistPlanner.getEffectiveCheckSpecs(checks)) {
-            if (StringUtils.isEmpty(checkSpec.getImpl())) {
-                throw new MojoExecutionException("Please provide an 'impl' value for " + checkSpec.getName());
-            }
-
-            try {
-                ProgressCheck progressCheck = Locator.loadProgressCheck(checkSpec.getImpl(), checkSpec.getConfig());
-                if (StringUtils.isNotEmpty(checkSpec.getName())) {
-                    progressCheck = Locator.wrapWithAlias(progressCheck, checkSpec.getName());
-                }
-                allChecks.add(progressCheck);
-            } catch (final Exception e) {
-                throw new MojoExecutionException(String.format("Failed to load package check %s. (impl: %s)",
-                        Optional.ofNullable(checkSpec.getName()).orElse(""), checkSpec.getImpl()), e);
-            }
+        final List<ProgressCheck> allChecks;
+        try {
+            allChecks = new ArrayList<>(Locator
+                    .loadFromCheckSpecs(checklistPlanner.getEffectiveCheckSpecs(checks),
+                            Thread.currentThread().getContextClassLoader()));
+        } catch (final Exception e) {
+            throw new MojoExecutionException("Error while loading progress checks.", e);
         }
 
         List<File> preInstall = new ArrayList<>();

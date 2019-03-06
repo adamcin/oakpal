@@ -16,15 +16,17 @@
 
 package net.adamcin.oakpal.core.checks;
 
+import static net.adamcin.oakpal.core.JavaxJson.arrayOrEmpty;
+import static net.adamcin.oakpal.core.JavaxJson.hasNonNull;
+
 import java.util.List;
+import javax.json.JsonObject;
 
 import net.adamcin.oakpal.core.ProgressCheck;
 import net.adamcin.oakpal.core.ProgressCheckFactory;
 import net.adamcin.oakpal.core.SimpleProgressCheck;
-import net.adamcin.oakpal.core.SimpleViolation;
 import net.adamcin.oakpal.core.Violation;
 import org.apache.jackrabbit.vault.packaging.PackageId;
-import org.json.JSONObject;
 
 /**
  * Check for subpackage inclusion.
@@ -56,15 +58,15 @@ import org.json.JSONObject;
  * <dd>Set to true to report a violation for any subpackage installation.</dd>
  * </dl>
  */
-public final class Subpackages implements ProgressCheckFactory {
+public final class Subpackages extends CompatBaseFactory implements ProgressCheckFactory {
     public static final String CONFIG_RULES = "rules";
     public static final String CONFIG_DENY_ALL = "denyAll";
 
     @Override
-    public ProgressCheck newInstance(final JSONObject config) throws Exception {
-        List<Rule> rules = Rule.fromJSON(config.optJSONArray(CONFIG_RULES));
+    public ProgressCheck newInstance(final JsonObject config) {
+        List<Rule> rules = Rule.fromJsonArray(arrayOrEmpty(config, CONFIG_RULES));
 
-        final boolean denyAll = config.has(CONFIG_DENY_ALL) && config.optBoolean(CONFIG_DENY_ALL);
+        final boolean denyAll = hasNonNull(config, CONFIG_DENY_ALL) && config.getBoolean(CONFIG_DENY_ALL);
 
         return new Check(rules, denyAll);
     }

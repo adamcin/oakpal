@@ -16,9 +16,12 @@
 
 package net.adamcin.oakpal.core.checks;
 
+import static net.adamcin.oakpal.core.JavaxJson.hasNonNull;
+
 import java.util.List;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
+import javax.json.JsonObject;
 
 import net.adamcin.oakpal.core.ProgressCheck;
 import net.adamcin.oakpal.core.ProgressCheckFactory;
@@ -30,7 +33,6 @@ import org.apache.jackrabbit.vault.fs.api.WorkspaceFilter;
 import org.apache.jackrabbit.vault.fs.config.MetaInf;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.apache.jackrabbit.vault.packaging.PackageProperties;
-import org.json.JSONObject;
 
 /**
  * Sanity check for {@link WorkspaceFilter}.
@@ -53,20 +55,20 @@ import org.json.JSONObject;
  * <dd>Set to true to suppress violations for filterSets with a root path of /.</dd>
  * </dl>
  */
-public final class FilterSets implements ProgressCheckFactory {
+public final class FilterSets extends CompatBaseFactory implements ProgressCheckFactory {
     public static final String CONFIG_IMPORT_MODE_SEVERITY = "importModeSeverity";
     public static final String CONFIG_ALLOW_EMPTY_FILTER = "allowEmptyFilter";
     public static final String CONFIG_ALLOW_ROOT_FILTER = "allowRootFilter";
     public static final Violation.Severity DEFAULT_IMPORT_MODE_SEVERITY = Violation.Severity.MINOR;
 
     @Override
-    public ProgressCheck newInstance(final JSONObject config) throws Exception {
-        final Violation.Severity importModeSeverity = config.has(CONFIG_IMPORT_MODE_SEVERITY)
-                ? Violation.Severity.valueOf(config.getString(CONFIG_IMPORT_MODE_SEVERITY).toUpperCase())
-                : DEFAULT_IMPORT_MODE_SEVERITY;
-        final boolean allowEmptyFilter = config.has(CONFIG_ALLOW_EMPTY_FILTER)
+    public ProgressCheck newInstance(final JsonObject config) {
+        final Violation.Severity importModeSeverity = Violation.Severity
+                .valueOf(config.getString(CONFIG_IMPORT_MODE_SEVERITY, DEFAULT_IMPORT_MODE_SEVERITY.name())
+                        .toUpperCase());
+        final boolean allowEmptyFilter = hasNonNull(config, CONFIG_ALLOW_EMPTY_FILTER)
                 && config.getBoolean(CONFIG_ALLOW_EMPTY_FILTER);
-        final boolean allowRootFilter = config.has(CONFIG_ALLOW_ROOT_FILTER)
+        final boolean allowRootFilter = hasNonNull(config, CONFIG_ALLOW_ROOT_FILTER)
                 && config.getBoolean(CONFIG_ALLOW_ROOT_FILTER);
         return new Check(importModeSeverity, allowEmptyFilter, allowRootFilter);
     }

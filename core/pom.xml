@@ -21,12 +21,12 @@
     <parent>
         <groupId>net.adamcin.oakpal</groupId>
         <artifactId>oakpal</artifactId>
-        <version>1.1.14-SNAPSHOT</version>
+        <version>1.2.0-SNAPSHOT</version>
         <relativePath>..</relativePath>
     </parent>
 
     <artifactId>oakpal-core</artifactId>
-    <packaging>bundle</packaging>
+    <packaging>jar</packaging>
 
     <name>OakPAL - Core</name>
     <description>OakPAL Core Implementation</description>
@@ -62,6 +62,18 @@
                 <artifactId>maven-dependency-plugin</artifactId>
                 <executions>
                     <execution>
+                        <id>download-bndlib-for-embed</id>
+                        <goals>
+                            <goal>copy-dependencies</goal>
+                        </goals>
+                        <phase>process-classes</phase>
+                        <configuration>
+                            <includeArtifactIds>bndlib</includeArtifactIds>
+                            <outputDirectory>${project.build.directory}/jar</outputDirectory>
+                            <stripVersion>true</stripVersion>
+                        </configuration>
+                    </execution>
+                    <execution>
                         <id>unpack-test-packages</id>
                     </execution>
                 </executions>
@@ -75,15 +87,45 @@
                 <artifactId>maven-compiler-plugin</artifactId>
             </plugin>
             <plugin>
-                <groupId>org.apache.felix</groupId>
-                <artifactId>maven-bundle-plugin</artifactId>
-                <extensions>true</extensions>
+                <groupId>biz.aQute.bnd</groupId>
+                <artifactId>bnd-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>bnd-process</goal>
+                        </goals>
+                        <configuration>
+                            <bnd><![CDATA[
+                                Bundle-SymbolicName: net.adamcin.oakpal.core
+                                Automatic-Module-Name: net.adamcin.oakpal.core
+                                Oakpal-Checklist: OAKPAL-INF/checklists/basic.json
+                                Export-Package: net.adamcin.oakpal.core,net.adamcin.oakpal.core.checks
+                                Private-Package: net.adamcin.oakpal.core.jcrfacade.*,\
+                                    aQute.bnd.osgi,aQute.bnd.header,aQute.lib.base64,aQute.lib.collections,\
+                                    aQute.lib.converter,aQute.libg.generics,aQute.libg.qtokens,\
+                                    aQute.service.reporter
+                                Import-Package: org.json;version="[${json.min.version},20180813]",!aQute.*,*
+                                -includeresource: \
+                                    @${project.build.directory}/jar/bndlib.jar!/aQute/bnd/osgi/*,\
+                                    @${project.build.directory}/jar/bndlib.jar!/aQute/bnd/header/*,\
+                                    @${project.build.directory}/jar/bndlib.jar!/aQute/lib/base64/*,\
+                                    @${project.build.directory}/jar/bndlib.jar!/aQute/lib/collections/*,\
+                                    @${project.build.directory}/jar/bndlib.jar!/aQute/lib/converter/*,\
+                                    @${project.build.directory}/jar/bndlib.jar!/aQute/libg/generics/*,\
+                                    @${project.build.directory}/jar/bndlib.jar!/aQute/libg/qtokens/*,\
+                                    @${project.build.directory}/jar/bndlib.jar!/aQute/service/reporter/*
+                            ]]></bnd>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
                 <configuration>
-                    <instructions>
-                        <Private-Package>net.adamcin.oakpal.core.jcrfacade.*</Private-Package>
-                        <Automatic-Module-Name>net.adamcin.oakpal.core</Automatic-Module-Name>
-                        <Oakpal-Checklist>OAKPAL-INF/checklists/basic.json</Oakpal-Checklist>
-                    </instructions>
+                    <archive>
+                        <manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
+                    </archive>
                 </configuration>
             </plugin>
             <plugin>
@@ -115,10 +157,13 @@
             <groupId>org.apache.jackrabbit.vault</groupId>
             <artifactId>org.apache.jackrabbit.vault</artifactId>
         </dependency>
-
         <dependency>
             <groupId>org.json</groupId>
             <artifactId>json</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.sling</groupId>
+            <artifactId>org.apache.sling.commons.johnzon</artifactId>
         </dependency>
 
         <dependency>
@@ -147,6 +192,7 @@
         <dependency>
             <groupId>biz.aQute.bnd</groupId>
             <artifactId>bndlib</artifactId>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>junit</groupId>
@@ -158,13 +204,6 @@
             <artifactId>oakpal-testing</artifactId>
             <scope>test</scope>
         </dependency>
-        <!--
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-simple</artifactId>
-            <scope>test</scope>
-        </dependency>
-        -->
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>

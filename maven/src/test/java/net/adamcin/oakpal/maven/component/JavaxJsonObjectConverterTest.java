@@ -22,7 +22,7 @@ import java.util.Map;
 import org.junit.Assert;
 import org.junit.Test;
 
-public class JSONObjectConverterTest {
+public class JavaxJsonObjectConverterTest {
 
     @Test
     public void testPlexusPluralStem() {
@@ -43,7 +43,7 @@ public class JSONObjectConverterTest {
 
         for (Map.Entry<String, String> entry : cases.entrySet()) {
             Assert.assertEquals("should stem to", entry.getValue(),
-                    JSONObjectConverter.plexusPluralStem(entry.getKey()));
+                    JavaxJsonObjectConverter.plexusPluralStem(entry.getKey()));
         }
 
     }

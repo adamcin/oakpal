@@ -16,7 +16,7 @@
 
 package net.adamcin.oakpal.core;
 
-import static net.adamcin.oakpal.core.OrgJson.obj;
+import static net.adamcin.oakpal.core.JavaxJson.obj;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;

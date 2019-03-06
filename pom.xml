@@ -32,7 +32,7 @@
 
     <groupId>net.adamcin.oakpal</groupId>
     <artifactId>oakpal</artifactId>
-    <version>1.1.14-SNAPSHOT</version>
+    <version>1.2.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <inceptionYear>2017</inceptionYear>
@@ -51,6 +51,7 @@
         <module>core</module>
         <module>maven</module>
         <module>testing</module>
+        <module>aem</module>
     </modules>
 
     <properties>
@@ -60,6 +61,8 @@
         <maven.compiler.target>1.8</maven.compiler.target>
         <slf4j.version>1.7.21</slf4j.version>
         <vault.version>3.2.4</vault.version>
+        <json.version>20160807</json.version>
+        <json.min.version>20090211</json.min.version>
         <jackrabbit.version>2.14.0</jackrabbit.version>
         <!-- it is probably a good habit to stay at the latest even (not odd) minor release version of oak,
         So if latest version is 1.9.x try to stay at 1.8.max -->
@@ -153,6 +156,11 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-jar-plugin</artifactId>
                     <version>2.4</version>
+                </plugin>
+                <plugin>
+                    <groupId>biz.aQute.bnd</groupId>
+                    <artifactId>bnd-maven-plugin</artifactId>
+                    <version>4.1.0</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.felix</groupId>
@@ -418,19 +426,23 @@
             <dependency>
                 <groupId>net.adamcin.oakpal</groupId>
                 <artifactId>oakpal-testing</artifactId>
-                <version>1.1.14-SNAPSHOT</version>
+                <version>1.2.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>net.adamcin.oakpal</groupId>
                 <artifactId>oakpal-core</artifactId>
-                <version>1.1.14-SNAPSHOT</version>
+                <version>1.2.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.json</groupId>
                 <artifactId>json</artifactId>
-                <version>20160807</version>
+                <version>${json.version}</version>
             </dependency>
-
+            <dependency>
+                <groupId>org.apache.sling</groupId>
+                <artifactId>org.apache.sling.commons.johnzon</artifactId>
+                <version>1.1.0</version>
+            </dependency>
             <dependency>
                 <groupId>javax.jcr</groupId>
                 <artifactId>jcr</artifactId>

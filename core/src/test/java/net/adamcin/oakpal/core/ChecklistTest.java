@@ -21,18 +21,20 @@ import static org.junit.Assert.assertNotNull;
 
 import java.io.InputStream;
 
+import javax.json.Json;
+import javax.json.JsonReader;
+
 import org.json.JSONObject;
 import org.json.JSONTokener;
 import org.junit.Test;
-import org.slf4j.LoggerFactory;
 
 public class ChecklistTest {
 
     @Test
     public void testFromJSON() throws Exception {
-        try (InputStream is = getClass().getResourceAsStream("/simpleChecklist.json")) {
-            Checklist checklist = Checklist.fromJSON("core-tests", null,
-                    new JSONObject(new JSONTokener(is)));
+        try (InputStream is = getClass().getResourceAsStream("/simpleChecklist.json");
+             JsonReader reader = Json.createReader(is)) {
+            Checklist checklist = Checklist.fromJson("core-tests", null, reader.readObject());
 
             assertNotNull("checklist should not be null", checklist);
             assertEquals("checklist moduleName", "core-tests", checklist.getModuleName());

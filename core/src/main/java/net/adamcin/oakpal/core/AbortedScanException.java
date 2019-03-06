@@ -18,6 +18,7 @@ package net.adamcin.oakpal.core;
 
 import java.io.File;
 import java.util.Optional;
+import javax.jcr.Node;
 
 /**
  * Represents an error that causes a package scan to abort without notifying the {@link ErrorListener}.
@@ -25,18 +26,31 @@ import java.util.Optional;
 public class AbortedScanException extends Exception {
 
     private final File currentPackageFile;
+    private final Node currentPackageNode;
 
-    public AbortedScanException(Throwable cause, File currentPackageFile) {
+    public AbortedScanException(final Throwable cause, final File currentPackageFile) {
         super(cause);
         this.currentPackageFile = currentPackageFile;
+        this.currentPackageNode = null;
+    }
+
+    public AbortedScanException(final Throwable cause, final Node currentPackageNode) {
+        super(cause);
+        this.currentPackageFile = null;
+        this.currentPackageNode = currentPackageNode;
     }
 
     public AbortedScanException(Throwable cause) {
         super(cause);
         this.currentPackageFile = null;
+        this.currentPackageNode = null;
     }
 
     public Optional<File> getCurrentPackageFile() {
         return Optional.ofNullable(currentPackageFile);
+    }
+
+    public Optional<Node> getCurrentPackageNode() {
+        return Optional.ofNullable(currentPackageNode);
     }
 }

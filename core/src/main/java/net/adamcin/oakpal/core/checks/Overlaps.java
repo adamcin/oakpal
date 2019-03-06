@@ -16,6 +16,8 @@
 
 package net.adamcin.oakpal.core.checks;
 
+import static net.adamcin.oakpal.core.JavaxJson.hasNonNull;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -24,17 +26,16 @@ import java.util.stream.Collectors;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
+import javax.json.JsonObject;
 
 import net.adamcin.oakpal.core.ProgressCheck;
 import net.adamcin.oakpal.core.ProgressCheckFactory;
 import net.adamcin.oakpal.core.SimpleProgressCheck;
-import net.adamcin.oakpal.core.SimpleViolation;
 import net.adamcin.oakpal.core.Violation;
 import org.apache.jackrabbit.vault.fs.api.WorkspaceFilter;
 import org.apache.jackrabbit.vault.fs.config.MetaInf;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.apache.jackrabbit.vault.packaging.PackageProperties;
-import org.json.JSONObject;
 
 /**
  * The {@code overlaps} check keeps track of installed package workspace filters, and checks every affected path going
@@ -54,12 +55,12 @@ import org.json.JSONObject;
  * the highest severity encountered.</dd>
  * </dl>
  */
-public final class Overlaps implements ProgressCheckFactory {
+public final class Overlaps extends CompatBaseFactory implements ProgressCheckFactory {
     public static final String CONFIG_REPORT_ALL_OVERLAPS = "reportAllOverlaps";
 
     @Override
-    public ProgressCheck newInstance(final JSONObject config) throws Exception {
-        final boolean reportAllOverlaps = config.has(CONFIG_REPORT_ALL_OVERLAPS)
+    public ProgressCheck newInstance(final JsonObject config) {
+        final boolean reportAllOverlaps = hasNonNull(config, CONFIG_REPORT_ALL_OVERLAPS)
                 && config.getBoolean(CONFIG_REPORT_ALL_OVERLAPS);
         return new Check(reportAllOverlaps);
     }
@@ -99,7 +100,7 @@ public final class Overlaps implements ProgressCheckFactory {
         }
 
         void findOverlaps(final PackageId currentPackageId, final String path,
-                                 final Violation.Severity severity) {
+                          final Violation.Severity severity) {
             // fast escape! no need to belabor the point.
             if (!reportAllOverlaps
                     && reported.containsKey(currentPackageId)
