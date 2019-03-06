@@ -158,21 +158,23 @@ public final class Locator {
     }
 
     /**
+     * Load a list of ProgressChecks from from a list of CheckSpecs using the default classloader.
      *
-     * @param checkSpecs
-     * @return
-     * @throws Exception
+     * @param checkSpecs the list of CheckSpecs
+     * @return a list of loaded ProgressChecks
+     * @throws Exception for validation errors
      */
     public static List<ProgressCheck> loadFromCheckSpecs(final List<CheckSpec> checkSpecs) throws Exception {
         return loadFromCheckSpecs(checkSpecs, Util.getDefaultClassLoader());
     }
 
     /**
+     * Load a list of ProgressChecks from from a list of CheckSpecs using the provided classloader.
      *
-     * @param checkSpecs
-     * @param checkLoader
-     * @return
-     * @throws Exception
+     * @param checkSpecs  the list of CheckSpecs
+     * @param checkLoader the classloader to use
+     * @return a list of loaded ProgressChecks
+     * @throws Exception for validation errors
      */
     public static List<ProgressCheck> loadFromCheckSpecs(final List<CheckSpec> checkSpecs,
                                                          final ClassLoader checkLoader) throws Exception {

@@ -64,7 +64,7 @@ public final class OrgJson {
     /**
      * Defines a get method returns the constructed type parameter.
      *
-     * @param <TYPE>
+     * @param <TYPE> the return type of the get method
      */
     public interface As<TYPE> {
         TYPE get();

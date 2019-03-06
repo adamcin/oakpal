@@ -204,8 +204,11 @@ public final class Checklist {
     }
 
     /**
-     * @param moduleName module name is required at this point.
-     * @param json       check list blob
+     * Create a Checklist from a JsonObject.
+     *
+     * @param moduleName  module name is required at this point.
+     * @param manifestUrl manifest resource url
+     * @param json        check list blob
      * @return the new package checklist
      */
     public static Checklist fromJson(final String moduleName, final URL manifestUrl, final JsonObject json) {

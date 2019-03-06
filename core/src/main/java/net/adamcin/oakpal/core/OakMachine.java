@@ -286,7 +286,10 @@ public final class OakMachine {
     /**
      * Run arbitrary admin session logic against a post-InitStage OakPAL session.
      *
-     * @throws Exception for any number of reasons
+     * @param inspectBody arbitrary logic to run against a Session
+     * @param <E>         an error type thrown by the inspectBody
+     * @throws RepositoryException for repository errors
+     * @throws E                   for any number of other reasons
      */
     public <E extends Throwable> void initAndInspect(final InspectBody<E> inspectBody) throws RepositoryException, E {
         Session admin = null;

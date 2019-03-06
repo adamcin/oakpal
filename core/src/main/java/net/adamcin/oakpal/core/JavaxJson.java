@@ -80,7 +80,7 @@ public final class JavaxJson {
     /**
      * Defines a get method returns the constructed type parameter.
      *
-     * @param <TYPE>
+     * @param <TYPE> the return type of the get method
      */
     public interface As<TYPE> {
         TYPE get();
@@ -139,13 +139,13 @@ public final class JavaxJson {
     /**
      * This method performs the reverse of {@link #wrap(Object)}.
      * Unwraps a JsonValue to its associated non-Json value.
-     * {@link JsonString} -> {@link String},
-     * {@link JsonNumber} -> {@link Number},
-     * {@link JsonValue#NULL} -> {@code null},
-     * {@link JsonValue#TRUE} -> {@code true},
-     * {@link JsonValue#FALSE} -> {@code false},
-     * {@link JsonArray} -> {@code List<Object>},
-     * {@link JsonObject}-> {@code Map<String, Object>}.
+     * {@link JsonString} to {@link String},
+     * {@link JsonNumber} to {@link Number},
+     * {@link JsonValue#NULL} to {@code null},
+     * {@link JsonValue#TRUE} to {@code true},
+     * {@link JsonValue#FALSE} to {@code false},
+     * {@link JsonArray} to {@code List<Object>},
+     * {@link JsonObject} to {@code Map<String, Object>}.
      *
      * @param jsonValue the wrapped JsonValue
      * @return the associated Java value
@@ -172,7 +172,7 @@ public final class JavaxJson {
     }
 
     /**
-     * Supports {@link #unwrap(JsonValue)} for typed unwrapping of JsonObject -> {@code Map<String, Object>}.
+     * Supports {@link #unwrap(JsonValue)} for typed unwrapping of JsonObject to {@code Map<String, Object>}.
      *
      * @param jsonObject the json object to unwrap
      * @return the equivalent map
@@ -183,7 +183,7 @@ public final class JavaxJson {
     }
 
     /**
-     * Supports {@link #unwrap(JsonValue)} for typed unwrapping of JsonArray -> {@code List<Object>}.
+     * Supports {@link #unwrap(JsonValue)} for typed unwrapping of JsonArray to {@code List<Object>}.
      *
      * @param jsonArray the json array to unwrap
      * @return the equivalent list
@@ -621,7 +621,7 @@ public final class JavaxJson {
      * to each result to return a typed list.
      *
      * @param jsonArray   the input array
-     * @param mapFunction the function mapping String -> R
+     * @param mapFunction the function mapping String to R
      * @param <R>         the mapFunction result type
      * @return a list of the same type as the mapFunction result type
      */
@@ -635,7 +635,7 @@ public final class JavaxJson {
      * to each result to return a typed list.
      *
      * @param jsonArray    the input array
-     * @param mapFunction  the function mapping String -> R
+     * @param mapFunction  the function mapping String to R
      * @param discardNulls true to filter out null results returned by the mapFunction (default false).
      * @param <R>          the mapFunction result type
      * @return a list of the same type as the mapFunction result type
@@ -655,7 +655,7 @@ public final class JavaxJson {
      * mapFunction to each result to return a typed list.
      *
      * @param jsonArray   the input array
-     * @param mapFunction the function mapping JsonObject -> R
+     * @param mapFunction the function mapping JsonObject to R
      * @param <R>         the mapFunction result type
      * @return a list of the same type as the mapFunction result type
      */
@@ -669,7 +669,7 @@ public final class JavaxJson {
      * mapFunction to each result to return a typed list.
      *
      * @param jsonArray    the input array
-     * @param mapFunction  the function mapping JsonObject -> R
+     * @param mapFunction  the function mapping JsonObject to R
      * @param discardNulls true to filter out null results returned by the mapFunction (default false).
      * @param <R>          the mapFunction result type
      * @return a list of the same type as the mapFunction result type
