@@ -26,13 +26,14 @@
   ~ For more information, please refer to <http://unlicense.org />
   -->
 
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
         <groupId>net.adamcin.oakpal</groupId>
         <artifactId>oakpal</artifactId>
-        <version>1.2.1-SNAPSHOT</version>
+        <version>1.2.0-SNAPSHOT</version>
         <relativePath>..</relativePath>
     </parent>
 
@@ -99,7 +100,7 @@
             <dependency>
                 <groupId>net.adamcin.oakpal</groupId>
                 <artifactId>net.adamcin.oakpal.interactive</artifactId>
-                <version>1.2.1-SNAPSHOT</version>
+                <version>1.2.0-SNAPSHOT</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
