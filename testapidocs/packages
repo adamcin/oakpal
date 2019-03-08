@@ -1,0 +1,7 @@
+net.adamcin.oakpal.testing
+net.adamcin.oakpal.core
+net.adamcin.oakpal.core.checks
+net.adamcin.oakpal.it
+net.adamcin.oakpal.maven.checks
+net.adamcin.oakpal.maven.component
+net.adamcin.oakpal.maven.mojo
