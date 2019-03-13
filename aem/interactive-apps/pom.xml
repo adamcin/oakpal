@@ -85,6 +85,12 @@
                 <groupId>org.apache.jackrabbit</groupId>
                 <artifactId>filevault-package-maven-plugin</artifactId>
                 <extensions>true</extensions>
+                <executions>
+                    <execution>
+                        <id>default-generate-metadata</id>
+                        <phase>prepare-package</phase>
+                    </execution>
+                </executions>
                 <configuration>
                     <group>adamcin/oakpal</group>
                     <embeddeds>

@@ -43,7 +43,7 @@ import org.slf4j.LoggerFactory;
  * Background service that keeps track of checklists exported by active bundles.
  */
 @Component
-public class ChecklistTrackerImpl implements ChecklistTracker, BundleListener {
+class ChecklistTrackerImpl implements ChecklistTracker, BundleListener {
     private static final Logger LOGGER = LoggerFactory.getLogger(ChecklistTrackerImpl.class);
 
     /**
@@ -78,7 +78,7 @@ public class ChecklistTrackerImpl implements ChecklistTracker, BundleListener {
      * @param bundle the bundle to inspect
      * @return true if bundle should be inspected, false if it should be uninspected
      */
-    private boolean isDiscoverable(final Bundle bundle) {
+    static boolean isDiscoverable(final Bundle bundle) {
         return DISCOVERABLE_STATES.contains(bundle.getState());
     }
 
@@ -87,7 +87,7 @@ public class ChecklistTrackerImpl implements ChecklistTracker, BundleListener {
      *
      * @param bundle the bundle
      */
-    private void discoverChecklists(final Bundle bundle) {
+    void discoverChecklists(final Bundle bundle) {
         // only look into the bundle when it has an Oakpal-Checklist manifest header
         if (bundle.getHeaders().get(ChecklistPlanner.OAKPAL_CHECKLIST) != null) {
             // check that the bundle state is at least resolved

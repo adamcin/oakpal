@@ -18,43 +18,29 @@ package net.adamcin.oakpal.interactive.impl;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
-import javax.servlet.Servlet;
-import javax.servlet.ServletException;
 
 import net.adamcin.oakpal.core.AbortedScanException;
 import net.adamcin.oakpal.core.CheckReport;
 import net.adamcin.oakpal.core.ChecklistPlanner;
 import net.adamcin.oakpal.core.DefaultPackagingService;
+import net.adamcin.oakpal.core.InitStage;
 import net.adamcin.oakpal.core.Locator;
 import net.adamcin.oakpal.core.OakMachine;
 import net.adamcin.oakpal.core.ProgressCheck;
-import net.adamcin.oakpal.core.ReportMapper;
 import net.adamcin.oakpal.interactive.ChecklistTracker;
+import net.adamcin.oakpal.interactive.OakpalScanInput;
+import net.adamcin.oakpal.interactive.OakpalScanResult;
+import net.adamcin.oakpal.interactive.OakpalScanService;
 import org.apache.jackrabbit.vault.packaging.Packaging;
-import org.apache.sling.api.SlingHttpServletRequest;
-import org.apache.sling.api.SlingHttpServletResponse;
 import org.apache.sling.api.resource.Resource;
-import org.apache.sling.api.servlets.SlingAllMethodsServlet;
+import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.commons.classloader.DynamicClassLoaderManager;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-/**
- * Simple POST servlet to scan a series of packages available in CRX Package Manager.
- */
-@Component(service = Servlet.class,
-        property = {
-                "sling.servlet.paths=/bin/oakpal/scan-package",
-                "sling.servlet.methods=POST"
-        })
-class ScanPackageServlet extends SlingAllMethodsServlet {
-    private static final Logger LOGGER = LoggerFactory.getLogger(ScanPackageServlet.class);
+@Component
+class OakpalScanServiceImpl implements OakpalScanService {
 
     /**
      * The singleton packaging service is used to retrieve specified packages, but it should not be used as the
@@ -77,49 +63,86 @@ class ScanPackageServlet extends SlingAllMethodsServlet {
     private ChecklistTracker checklistTracker;
 
     @Override
-    protected void doPost(final SlingHttpServletRequest request,
-                          final SlingHttpServletResponse response)
-            throws ServletException, IOException {
+    public OakpalScanResult performScan(final ResourceResolver resolver, final OakpalScanInput input)
+            throws IOException, AbortedScanException {
 
+        if (resolver == null) {
+            throw new NullPointerException("resolver");
+        }
+        if (input == null) {
+            throw new NullPointerException("input");
+        }
+        final ScanResult result = new ScanResult(input);
         // use the Sling dynamic classloader for loading ProgressChecks
         final ClassLoader checkLoader = classLoaderManager.getDynamicClassLoader();
 
-        final List<String> activeChecklistIds =
-                Arrays.asList(Optional.ofNullable(request.getParameterValues("checklist")).orElse(new String[0]));
-        ChecklistPlanner planner = new ChecklistPlanner(activeChecklistIds);
+        ChecklistPlanner planner = new ChecklistPlanner(input.getChecklists());
         planner.provideChecklists(checklistTracker.getBundleChecklists());
 
         final List<ProgressCheck> allChecks;
         try {
             allChecks = new ArrayList<>(Locator.loadFromCheckSpecs(
-                    planner.getEffectiveCheckSpecs(Collections.emptyList()),
+                    planner.getEffectiveCheckSpecs(input.getChecks()),
                     checkLoader));
         } catch (final Exception e) {
-            throw new ServletException(e);
+            throw new AbortedScanException(e);
+        }
+
+        final List<Resource> prePkgResources = new ArrayList<>();
+        for (String pkgPath : input.getPreInstallPackagePaths()) {
+            final Resource pkgRes = resolver.getResource(pkgPath);
+            prePkgResources.add(pkgRes);
         }
 
         final List<Resource> pkgResources = new ArrayList<>();
-        final String[] pkgPaths = request.getParameterValues("path");
-        for (String pkgPath : pkgPaths) {
-            final Resource pkgRes = request.getResourceResolver().getResource(pkgPath);
+        for (String pkgPath : input.getPackagePaths()) {
+            final Resource pkgRes = resolver.getResource(pkgPath);
             pkgResources.add(pkgRes);
         }
 
         final OakMachine.Builder builder = new OakMachine.Builder();
+        builder.withPackagingService(new DefaultPackagingService(packagingService.getClass().getClassLoader()));
         builder.withInitStages(planner.getInitStages());
         builder.withProgressChecks(allChecks);
-        // create an instance of our reflection-based Packaging service to wrap the legacy packaging service using
-        // using the bound Packaging service's classloader in order to avoid the nasty no-no stack trace on the left, and
-        // the package event dispatcher on the right.
-        builder.withPackagingService(new DefaultPackagingService(packagingService.getClass().getClassLoader()));
 
-        final OakMachine machine = builder.build();
+        try (ScanTempSpace preInstallSpace = new ScanTempSpace(prePkgResources);
+             ScanTempSpace scanSpace = new ScanTempSpace(pkgResources);
+             PlatformCndExport cndExport = new PlatformCndExport(resolver)) {
 
-        try (ScanTempSpace tempSpace = new ScanTempSpace(pkgResources)) {
-            List<CheckReport> reportList = machine.scanPackages(tempSpace.open());
-            ReportMapper.writeReports(reportList, response::getWriter);
-        } catch (final AbortedScanException e) {
-            throw new ServletException("failed to complete scan", e);
+            if (input.isInstallPlatformNodetypes()) {
+                builder.withInitStage(new InitStage.Builder().withOrderedCndUrls(cndExport.open()).build());
+            }
+
+            final OakMachine machine = builder.withPreInstallPackages(preInstallSpace.open()).build();
+
+            List<CheckReport> reportList = machine.scanPackages(scanSpace.open());
+
+            result.setReports(reportList);
+            return result;
         }
     }
+
+    class ScanResult implements OakpalScanResult {
+        private final OakpalScanInput input;
+        private List<CheckReport> reports;
+
+        ScanResult(final OakpalScanInput input) {
+            this.input = input;
+        }
+
+        @Override
+        public OakpalScanInput getInput() {
+            return input;
+        }
+
+        @Override
+        public List<CheckReport> getReports() {
+            return reports;
+        }
+
+        void setReports(final List<CheckReport> reports) {
+            this.reports = reports;
+        }
+    }
+
 }

@@ -82,5 +82,7 @@ class ScanTempSpace implements AutoCloseable {
                 tmpFile.delete();
             }
         }
+        this.tmpFiles.clear();
+        this.opened = false;
     }
 }
