@@ -154,7 +154,8 @@ public final class ReportMapper {
         JavaxJson.Obj json = obj();
         ofNullable(violation.getSeverity()).ifPresent(json.key(KEY_SEVERITY)::val);
         ofNullable(violation.getDescription()).ifPresent(json.key(KEY_DESCRIPTION)::val);
-        ofNullable(violation.getPackages()).map(col -> col.stream().map(Objects::toString))
+        ofNullable(violation.getPackages())
+                .map(col -> col.stream().map(Objects::toString).collect(Collectors.toList()))
                 .ifPresent(json.key(KEY_PACKAGES)::val);
         return json.get();
     }

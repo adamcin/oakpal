@@ -22,6 +22,8 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
+import java.util.Calendar;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -42,6 +44,8 @@ import javax.json.JsonObjectBuilder;
 import javax.json.JsonString;
 import javax.json.JsonValue;
 import javax.json.stream.JsonCollectors;
+
+import org.apache.jackrabbit.util.ISO8601;
 
 /**
  * Simple DSL for constructing javax.json objects for {@link ProgressCheckFactory} configs using only three-letter identifiers.
@@ -107,6 +111,8 @@ public final class JavaxJson {
             return (JsonValue) object;
         } else if (object instanceof String) {
             return Json.createArrayBuilder().add((String) object).build().get(0);
+        } else if (object instanceof Calendar) {
+            return wrap(ISO8601.format((Calendar) object));
         } else if (object instanceof Boolean) {
             return ((Boolean) object) ? JsonValue.TRUE : JsonValue.FALSE;
         } else if (object instanceof Number) {
@@ -122,6 +128,25 @@ public final class JavaxJson {
                 return Json.createArrayBuilder().add((BigDecimal) object).build().get(0);
             } else {
                 return Json.createArrayBuilder().add(new BigDecimal(object.toString())).build().get(0);
+            }
+        } else if (object instanceof Object[]) {
+            return Arrays.stream((Object[]) object).map(JavaxJson::wrap)
+                    .collect(JsonCollectors.toJsonArray());
+        } else if (object.getClass().isArray() && object.getClass().getComponentType().isPrimitive()) {
+            if (object instanceof int[]) {
+                return Arrays.stream((int[]) object).mapToObj(JavaxJson::wrap).collect(JsonCollectors.toJsonArray());
+            } else if (object instanceof long[]) {
+                return Arrays.stream((long[]) object).mapToObj(JavaxJson::wrap).collect(JsonCollectors.toJsonArray());
+            } else if (object instanceof double[]) {
+                return Arrays.stream((double[]) object).mapToObj(JavaxJson::wrap).collect(JsonCollectors.toJsonArray());
+            } else if (object instanceof char[]) {
+                return wrap(String.valueOf((char[]) object));
+            } else if (object instanceof byte[]) {
+                return wrap(Base64.getUrlEncoder().encode((byte[]) object));
+            } else if (object instanceof float[]) {
+                return Stream.of((float[]) object).map(JavaxJson::wrap).collect(JsonCollectors.toJsonArray());
+            } else if (object instanceof boolean[]) {
+                return Stream.of((boolean[]) object).map(JavaxJson::wrap).collect(JsonCollectors.toJsonArray());
             }
         } else if (object instanceof Map) {
             return ((Map<?, ?>) object).entrySet().stream()
