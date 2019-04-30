@@ -59,7 +59,7 @@
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
         <slf4j.version>1.7.21</slf4j.version>
-        <vault.version>3.2.4</vault.version>
+        <vault-api.version>3.2.4</vault-api.version>
         <json.version>20160807</json.version>
         <json.min.version>20090211</json.min.version>
         <jackrabbit.version>2.14.0</jackrabbit.version>
@@ -128,7 +128,7 @@
                                     <artifactItem>
                                         <groupId>org.apache.jackrabbit.vault</groupId>
                                         <artifactId>jackrabbit-filevault</artifactId>
-                                        <version>${vault.version}</version>
+                                        <version>${vault-api.version}</version>
                                         <classifier>src</classifier>
                                         <type>zip</type>
                                         <overWrite>true</overWrite>
@@ -450,7 +450,7 @@
             <dependency>
                 <groupId>org.apache.jackrabbit.vault</groupId>
                 <artifactId>org.apache.jackrabbit.vault</artifactId>
-                <version>${vault.version}</version>
+                <version>${vault-api.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.jackrabbit</groupId>

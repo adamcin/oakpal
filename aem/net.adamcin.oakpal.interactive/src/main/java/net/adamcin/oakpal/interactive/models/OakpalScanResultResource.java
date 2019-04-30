@@ -16,13 +16,33 @@
 
 package net.adamcin.oakpal.interactive.models;
 
+import java.util.List;
+
+import net.adamcin.oakpal.core.CheckReport;
+import net.adamcin.oakpal.interactive.OakpalScanInput;
+import net.adamcin.oakpal.interactive.OakpalScanResult;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.models.annotations.Model;
 import org.apache.sling.models.annotations.injectorspecific.ChildResource;
+import org.apache.sling.models.annotations.injectorspecific.InjectionStrategy;
 
-@Model(adaptables = {Resource.class})
-public class OakpalScanResultResource {
+@Model(adaptables = {Resource.class},
+        adapters = {OakpalScanResult.class, OakpalScanResultResource.class})
+public class OakpalScanResultResource implements OakpalScanResult {
 
-    @ChildResource
+    @ChildResource(injectionStrategy = InjectionStrategy.OPTIONAL)
     private OakpalScanInputResource input;
+
+    @ChildResource(injectionStrategy = InjectionStrategy.OPTIONAL)
+    private List<CheckReport> reports;
+
+    @Override
+    public OakpalScanInput getInput() {
+        return input;
+    }
+
+    @Override
+    public List<CheckReport> getReports() {
+        return reports;
+    }
 }

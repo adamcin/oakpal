@@ -16,13 +16,20 @@
 
 package net.adamcin.oakpal.core;
 
+import static net.adamcin.oakpal.core.JavaxJson.obj;
+import static net.adamcin.oakpal.core.ReportMapper.KEY_CHECK_NAME;
+import static net.adamcin.oakpal.core.ReportMapper.KEY_VIOLATIONS;
+import static net.adamcin.oakpal.core.Util.isEmpty;
+
 import java.util.Collection;
 import java.util.stream.Collectors;
+import javax.json.JsonObject;
+import javax.json.stream.JsonCollectors;
 
 /**
  * Type for collected {@link Violation}s from a particlular {@link ProgressCheck}.
  */
-public interface CheckReport {
+public interface CheckReport extends JavaxJson.ObjectConvertible {
 
     /**
      * The serialized display name of the package check that created the report.
@@ -51,5 +58,26 @@ public interface CheckReport {
         return getViolations().stream().filter(v -> v != null
                 && !v.getSeverity().isLessSevereThan(atLeastAsSevere))
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Serializes the report to a JsonObject.
+     *
+     * @return the json representation of this report
+     */
+    @Override
+    default JsonObject toJson() {
+        JavaxJson.Obj jsonReport = obj();
+
+        if (!isEmpty(this.getCheckName())) {
+            jsonReport.key(KEY_CHECK_NAME, this.getCheckName());
+        }
+        if (this.getViolations() != null) {
+            jsonReport.key(KEY_VIOLATIONS, this.getViolations().stream()
+                    .map(ReportMapper::violationToJson)
+                    .collect(JsonCollectors.toJsonArray()));
+        }
+
+        return jsonReport.get();
     }
 }

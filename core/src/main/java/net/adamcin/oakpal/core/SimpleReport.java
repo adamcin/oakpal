@@ -16,22 +16,32 @@
 
 package net.adamcin.oakpal.core;
 
+import static net.adamcin.oakpal.core.JavaxJson.mapArrayOfObjects;
+import static net.adamcin.oakpal.core.JavaxJson.optArray;
+import static net.adamcin.oakpal.core.ReportMapper.KEY_CHECK_NAME;
+import static net.adamcin.oakpal.core.ReportMapper.KEY_VIOLATIONS;
+
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import javax.json.JsonObject;
 
 /**
  * Simple POJO implementing a {@link CheckReport}, used for deserialization.
  */
-public class SimpleReport implements CheckReport {
+public final class SimpleReport implements CheckReport {
 
     private final String checkName;
-    private final Collection<Violation> violations;
+    private final List<Violation> violations;
 
-    public SimpleReport(final String checkName, Collection<Violation> violations) {
+    public SimpleReport(final String checkName, final Collection<Violation> violations) {
         this.checkName = checkName;
-        this.violations = Collections.unmodifiableCollection(violations);
+        this.violations = Collections.unmodifiableList(
+                new ArrayList<>(violations != null ? violations : Collections.emptyList()));
     }
 
     @Override
@@ -42,6 +52,28 @@ public class SimpleReport implements CheckReport {
     @Override
     public Collection<Violation> getViolations() {
         return violations;
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        SimpleReport that = (SimpleReport) o;
+        return Objects.equals(checkName, that.checkName) &&
+                violations.equals(that.violations);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(checkName, violations);
+    }
+
+    @Override
+    public String toString() {
+        return "SimpleReport{" +
+                "checkName='" + checkName + '\'' +
+                ", violations=" + violations +
+                '}';
     }
 
     public static SimpleReport generateReport(final ProgressCheck reporter) {
@@ -57,5 +89,14 @@ public class SimpleReport implements CheckReport {
                 reporter.getReportedViolations().stream()
                         .map(SimpleViolation::fromReported)
                         .collect(Collectors.toList()));
+    }
+
+    public static SimpleReport fromJson(final JsonObject jsonReport) {
+        String vCheckName = jsonReport.getString(KEY_CHECK_NAME, "");
+        List<Violation> violations = optArray(jsonReport, KEY_VIOLATIONS)
+                .map(array -> mapArrayOfObjects(array, ReportMapper::violationFromJson))
+                .orElseGet(Collections::emptyList);
+
+        return new SimpleReport(vCheckName, violations);
     }
 }

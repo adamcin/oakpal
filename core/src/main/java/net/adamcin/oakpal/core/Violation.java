@@ -16,7 +16,16 @@
 
 package net.adamcin.oakpal.core;
 
+import static net.adamcin.oakpal.core.JavaxJson.obj;
+import static net.adamcin.oakpal.core.ReportMapper.KEY_DESCRIPTION;
+import static net.adamcin.oakpal.core.ReportMapper.KEY_PACKAGES;
+import static net.adamcin.oakpal.core.ReportMapper.KEY_SEVERITY;
+
 import java.util.Collection;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import javax.json.JsonObject;
 
 import aQute.bnd.annotation.ConsumerType;
 import org.apache.jackrabbit.vault.packaging.PackageId;
@@ -25,7 +34,7 @@ import org.apache.jackrabbit.vault.packaging.PackageId;
  * Report type for validations.
  */
 @ConsumerType
-public interface Violation {
+public interface Violation extends JavaxJson.ObjectConvertible {
 
     /**
      * Levels of severity for violations detected during package scans.
@@ -81,4 +90,20 @@ public interface Violation {
      * @return the description
      */
     String getDescription();
+
+    /**
+     * Serializes the Violation to a JsonObject.
+     *
+     * @return the json representation of the violation
+     */
+    @Override
+    default JsonObject toJson() {
+                JavaxJson.Obj json = obj();
+        Optional.ofNullable(this.getSeverity()).ifPresent(json.key(KEY_SEVERITY)::val);
+        Optional.ofNullable(this.getDescription()).ifPresent(json.key(KEY_DESCRIPTION)::val);
+        Optional.ofNullable(this.getPackages())
+                .map(col -> col.stream().map(Objects::toString).collect(Collectors.toList()))
+                .ifPresent(json.key(KEY_PACKAGES)::val);
+        return json.get();
+    }
 }
