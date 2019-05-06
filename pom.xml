@@ -434,6 +434,11 @@
                 <version>1.2.2-SNAPSHOT</version>
             </dependency>
             <dependency>
+                <groupId>net.adamcin.oakpal</groupId>
+                <artifactId>oakpal-toolslib</artifactId>
+                <version>1.2.2-SNAPSHOT</version>
+            </dependency>
+            <dependency>
                 <groupId>org.json</groupId>
                 <artifactId>json</artifactId>
                 <version>${json.version}</version>
