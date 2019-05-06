@@ -48,6 +48,7 @@
 
     <modules>
         <module>core</module>
+        <module>toolslib</module>
         <module>maven</module>
         <module>testing</module>
         <module>aem</module>
@@ -465,6 +466,11 @@
             <dependency>
                 <groupId>org.apache.jackrabbit</groupId>
                 <artifactId>oak-commons</artifactId>
+                <version>${oak.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.jackrabbit</groupId>
+                <artifactId>oak-run-commons</artifactId>
                 <version>${oak.version}</version>
             </dependency>
             <dependency>

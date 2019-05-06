@@ -152,6 +152,10 @@
             <groupId>net.adamcin.oakpal</groupId>
             <artifactId>oakpal-core</artifactId>
         </dependency>
+        <dependency>
+            <groupId>net.adamcin.oakpal</groupId>
+            <artifactId>oakpal-toolslib</artifactId>
+        </dependency>
 
         <!-- Override 3rd-party logging -->
         <dependency>
