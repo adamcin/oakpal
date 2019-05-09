@@ -25,14 +25,10 @@ import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.net.URL;
 import java.util.Arrays;
-import javax.jcr.Repository;
-import javax.jcr.Session;
-import javax.jcr.SimpleCredentials;
 import javax.jcr.Workspace;
 
 import org.apache.jackrabbit.api.JackrabbitWorkspace;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
-import org.apache.jackrabbit.oak.run.cli.NodeStoreFixture;
 import org.junit.Test;
 
 public class PrivilegeXmlExporterTest {
@@ -41,7 +37,7 @@ public class PrivilegeXmlExporterTest {
 
     @Test
     public void testWritePrivileges() throws Exception {
-                final File tempDir = new File(testBaseDir, "testWritePrivileges");
+        final File tempDir = new File(testBaseDir, "testWritePrivileges");
         final File fromRepoDir = new File(tempDir, "fromRepo/segmentstore");
         final File toRepoDir = new File(tempDir, "toRepo/segmentstore");
         final File exportedXml = new File(tempDir, "exported.xml");
@@ -55,64 +51,38 @@ public class PrivilegeXmlExporterTest {
             exportedXml.delete();
         }
 
-        try (NodeStoreFixture fixture = TestUtil.getReadOnlyFixture(fromRepoDir, null)) {
-            Repository repo = null;
-            Session session = null;
-            try {
-                repo = JcrFactory.getJcr(fixture);
-                session = repo.login(new SimpleCredentials("admin", "admin".toCharArray()));
+        TestUtil.withReadOnlyFixture(fromRepoDir, session -> {
+            final Workspace workspace = session.getWorkspace();
+            final PrivilegeManager privilegeManager = ((JackrabbitWorkspace) workspace).getPrivilegeManager();
 
-                final Workspace workspace = session.getWorkspace();
-                final PrivilegeManager privilegeManager = ((JackrabbitWorkspace) workspace).getPrivilegeManager();
+            assertNotNull("crx:replicate should be imported",
+                    privilegeManager.getPrivilege("crx:replicate"));
+            assertNotNull("cq:storeUGC should be imported",
+                    privilegeManager.getPrivilege("cq:storeUGC"));
 
-                assertNotNull("crx:replicate should be imported",
-                        privilegeManager.getPrivilege("crx:replicate"));
-                assertNotNull("cq:storeUGC should be imported",
-                        privilegeManager.getPrivilege("cq:storeUGC"));
-
-                try (Writer writer = new OutputStreamWriter(new FileOutputStream(exportedXml))) {
-                    PrivilegeXmlExporter.writePrivileges(writer, session, Arrays.asList("crx:replicate"), false);
-                }
-
-            } finally {
-                if (session != null) {
-                    session.logout();
-                }
-                TestUtil.closeRepo(repo);
+            try (Writer writer = new OutputStreamWriter(new FileOutputStream(exportedXml))) {
+                PrivilegeXmlExporter.writePrivileges(writer, session, Arrays.asList("crx:replicate"), false);
             }
-        }
+        });
 
         TestUtil.prepareRepo(toRepoDir, session -> {
             final URL exportedUrl = exportedXml.toURL();
             TestUtil.installPrivilegesFromURL(session, exportedUrl);
         });
 
-        try (NodeStoreFixture fixture = TestUtil.getReadOnlyFixture(toRepoDir, null)) {
+        TestUtil.withReadOnlyFixture(toRepoDir, session -> {
+            final Workspace workspace = session.getWorkspace();
+            final PrivilegeManager privilegeManager = ((JackrabbitWorkspace) workspace).getPrivilegeManager();
 
-            Repository repo = null;
-            Session session = null;
+            assertNotNull("crx:replicate should be imported",
+                    privilegeManager.getPrivilege("crx:replicate"));
+            boolean thrown = false;
             try {
-                repo = JcrFactory.getJcr(fixture);
-                session = repo.login(new SimpleCredentials("admin", "admin".toCharArray()));
-
-                final Workspace workspace = session.getWorkspace();
-                final PrivilegeManager privilegeManager = ((JackrabbitWorkspace) workspace).getPrivilegeManager();
-
-                assertNotNull("crx:replicate should be imported",
-                        privilegeManager.getPrivilege("crx:replicate"));
-                boolean thrown = false;
-                try {
-                    privilegeManager.getPrivilege("cq:storeUGC");
-                } catch (Exception e) {
-                    thrown = true;
-                }
-                assertTrue("cq:storeUGC should NOT be imported", thrown);
-            } finally {
-                if (session != null) {
-                    session.logout();
-                }
-                TestUtil.closeRepo(repo);
+                privilegeManager.getPrivilege("cq:storeUGC");
+            } catch (Exception e) {
+                thrown = true;
             }
-        }
+            assertTrue("cq:storeUGC should NOT be imported", thrown);
+        });
     }
 }

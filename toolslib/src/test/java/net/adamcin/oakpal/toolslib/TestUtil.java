@@ -70,6 +70,21 @@ public final class TestUtil {
         }
     }
 
+    public static void withInMemoryRepo(final SessionStrategy sessionStrategy) throws Exception {
+        final Repository repo = new Jcr(new Oak(), true).createRepository();
+        Session session = null;
+
+        try {
+            session = repo.login(new SimpleCredentials("admin", "admin".toCharArray()));
+            sessionStrategy.accept(session);
+        } finally {
+            if (session != null) {
+                session.logout();
+            }
+            closeRepo(repo);
+        }
+    }
+
     public static void prepareRepo(final File repoDir, final SessionStrategy sessionStrategy) throws Exception {
         FileUtils.deleteDirectory(repoDir);
         repoDir.mkdirs();
@@ -91,6 +106,20 @@ public final class TestUtil {
         }
     }
 
+    public static NodeStoreFixture getReadWriteFixture(final File segmentStore,
+                                                       final FileStoreTarBuilderCustomizer builderCustomizer) throws Exception {
+        OptionParser parser = new OptionParser();
+        Options opts = new Options();
+
+        OptionSet options = opts.parseAndConfigure(parser, new String[]{segmentStore.getAbsolutePath()});
+        if (builderCustomizer != null) {
+            opts.getWhiteboard().register(FileStoreTarBuilderCustomizer.class,
+                    builderCustomizer, Collections.emptyMap());
+        }
+
+        return NodeStoreFixtureProvider.create(opts, false);
+    }
+
     public static NodeStoreFixture getReadOnlyFixture(final File segmentStore,
                                                       final FileStoreTarBuilderCustomizer builderCustomizer)
             throws Exception {
@@ -106,6 +135,50 @@ public final class TestUtil {
 
         return NodeStoreFixtureProvider.create(opts, true);
     }
+
+
+    public static void withReadOnlyFixture(final File segmentStore, final File globalStore,
+                                           final SessionStrategy sessionStrategy)
+            throws Exception {
+
+        try (NodeStoreFixture fixture = TestUtil.getReadOnlyFixture(segmentStore, null);
+             NodeStoreFixture globalFixture = TestUtil.getReadWriteFixture(globalStore, null)) {
+
+            Repository repo = null;
+            Session session = null;
+            try {
+                repo = JcrFactory.getJcr(fixture, globalFixture.getStore());
+                session = repo.login(new SimpleCredentials("admin", "admin".toCharArray()));
+                sessionStrategy.accept(session);
+            } finally {
+                if (session != null) {
+                    session.logout();
+                }
+                TestUtil.closeRepo(repo);
+            }
+        }
+    }
+
+    public static void withReadOnlyFixture(final File segmentStore,
+                                           final SessionStrategy sessionStrategy)
+            throws Exception {
+
+        try (NodeStoreFixture fixture = TestUtil.getReadOnlyFixture(segmentStore, null)) {
+            Repository repo = null;
+            Session session = null;
+            try {
+                repo = JcrFactory.getJcr(fixture);
+                session = repo.login(new SimpleCredentials("admin", "admin".toCharArray()));
+                sessionStrategy.accept(session);
+            } finally {
+                if (session != null) {
+                    session.logout();
+                }
+                TestUtil.closeRepo(repo);
+            }
+        }
+    }
+
 
     public static void installCndFromURL(final Session session, final URL... cnds)
             throws RepositoryException, IOException, ParseException {

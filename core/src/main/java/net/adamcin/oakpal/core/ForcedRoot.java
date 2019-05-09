@@ -28,7 +28,7 @@ import javax.json.JsonObject;
 /**
  * Encapsulation of details necessary to force creation of a particular root path.
  */
-public final class ForcedRoot {
+public final class ForcedRoot implements JavaxJson.ObjectConvertible {
     static final String KEY_PATH = "path";
     static final String KEY_PRIMARY_TYPE = "primaryType";
     static final String KEY_MIXIN_TYPES = "mixinTypes";
@@ -88,7 +88,7 @@ public final class ForcedRoot {
      * @param json JSON object
      * @return a new forced root
      */
-    static ForcedRoot fromJson(final JsonObject json) {
+    public static ForcedRoot fromJson(final JsonObject json) {
         final ForcedRoot forcedRoot = new ForcedRoot();
         if (json.containsKey(KEY_PATH)) {
             forcedRoot.setPath(json.getString(KEY_PATH));
@@ -103,11 +103,21 @@ public final class ForcedRoot {
     }
 
     @Override
+    public JsonObject toJson() {
+        JavaxJson.Obj json = obj().key(KEY_PATH, this.path);
+
+        if (this.primaryType != null) {
+            json.key(KEY_PRIMARY_TYPE, this.primaryType);
+        }
+
+        if (this.mixinTypes != null && !this.mixinTypes.isEmpty()) {
+            json.key(KEY_MIXIN_TYPES, this.mixinTypes);
+        }
+        return json.get();
+    }
+
+    @Override
     public String toString() {
-        return obj()
-                .key(KEY_PATH, getPath())
-                .key(KEY_PRIMARY_TYPE, getPrimaryType())
-                .key(KEY_MIXIN_TYPES, getMixinTypes())
-                .get().toString();
+        return toJson().toString();
     }
 }

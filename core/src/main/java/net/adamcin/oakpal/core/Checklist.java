@@ -18,6 +18,7 @@ package net.adamcin.oakpal.core;
 
 import static java.util.Optional.ofNullable;
 import static net.adamcin.oakpal.core.JavaxJson.hasNonNull;
+import static net.adamcin.oakpal.core.JavaxJson.obj;
 import static net.adamcin.oakpal.core.JavaxJson.optArray;
 import static net.adamcin.oakpal.core.JavaxJson.parseFromArray;
 
@@ -29,6 +30,7 @@ import java.util.jar.JarFile;
 import java.util.stream.Collectors;
 import javax.json.JsonObject;
 import javax.json.JsonValue;
+import javax.json.stream.JsonCollectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,7 +39,8 @@ import org.slf4j.LoggerFactory;
  * It's a list of checks, along with initStage properties allowing jars to share CNDs, JCR namespaces and privileges,
  * and forced roots.
  */
-public final class Checklist {
+public final class Checklist implements JavaxJson.ObjectConvertible {
+
     private static final Logger LOGGER = LoggerFactory.getLogger(Checklist.class);
 
     static final String KEY_NAME = "name";
@@ -45,9 +48,10 @@ public final class Checklist {
     static final String KEY_CND_NAMES = "cndNames";
     static final String KEY_JCR_NAMESPACES = "jcrNamespaces";
     static final String KEY_JCR_PRIVILEGES = "jcrPrivileges";
-    static final String KEY_FORCED_ROOTS = "forcedRoots";
+    public static final String KEY_FORCED_ROOTS = "forcedRoots";
     static final String KEY_CHECKS = "checks";
 
+    private final JsonObject originalJson;
     private final String moduleName;
     private final String name;
     private final List<URL> cndUrls;
@@ -56,13 +60,15 @@ public final class Checklist {
     private final List<ForcedRoot> forcedRoots;
     private final List<CheckSpec> checks;
 
-    Checklist(final String moduleName,
+    Checklist(final JsonObject originalJson,
+              final String moduleName,
               final String name,
               final List<URL> cndUrls,
               final List<JcrNs> jcrNamespaces,
               final List<String> jcrPrivileges,
               final List<ForcedRoot> forcedRoots,
               final List<CheckSpec> checks) {
+        this.originalJson = originalJson;
         this.moduleName = moduleName;
         this.name = name;
         this.cndUrls = cndUrls;
@@ -180,7 +186,7 @@ public final class Checklist {
         Checklist build() {
             final String prefix = getCheckPrefix();
             checks.forEach(checkSpec -> insertPrefix(checkSpec, prefix));
-            return new Checklist(moduleName,
+            return new Checklist(null, moduleName,
                     name != null ? name : moduleName,
                     Collections.unmodifiableList(cndUrls),
                     Collections.unmodifiableList(jcrNamespaces),
@@ -201,6 +207,36 @@ public final class Checklist {
                 ", forcedRoots=" + forcedRoots +
                 ", checks=" + checks +
                 '}';
+    }
+
+    /**
+     * Serialize the Checklist to a JsonObject for writing.
+     *
+     * @return the checklist as a JSON-serializable object.
+     */
+    @Override
+    public JsonObject toJson() {
+        if (this.originalJson != null) {
+            return this.originalJson;
+        } else {
+            JavaxJson.Obj json = obj().key(KEY_NAME, getName());
+            if (!getJcrNamespaces().isEmpty()) {
+                json.key(KEY_JCR_NAMESPACES, JavaxJson.wrap(getJcrNamespaces()));
+            }
+            if (!getJcrPrivileges().isEmpty()) {
+                json.key(KEY_JCR_PRIVILEGES, JavaxJson.wrap(getJcrPrivileges()));
+            }
+            if (!getCndUrls().isEmpty()) {
+                json.key(KEY_CND_URLS, JavaxJson.wrap(getCndUrls()));
+            }
+            if (!getForcedRoots().isEmpty()) {
+                json.key(KEY_FORCED_ROOTS, JavaxJson.wrap(getForcedRoots()));
+            }
+            if (!getChecks().isEmpty()) {
+                json.key(KEY_CHECKS, JavaxJson.wrap(getChecks()));
+            }
+            return json.get();
+        }
     }
 
     /**

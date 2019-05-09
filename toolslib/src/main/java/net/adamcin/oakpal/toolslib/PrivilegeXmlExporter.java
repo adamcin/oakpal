@@ -46,6 +46,11 @@ import org.apache.jackrabbit.spi.commons.conversion.NamePathResolver;
 import org.apache.jackrabbit.spi.commons.privilege.PrivilegeDefinitionImpl;
 import org.apache.jackrabbit.spi.commons.privilege.PrivilegeDefinitionWriter;
 
+/**
+ * Interface independent logic for exporting privileges.xml files from a JCR session.
+ *
+ * @see org.apache.jackrabbit.spi.commons.privilege.PrivilegeDefinitionReader
+ */
 public final class PrivilegeXmlExporter {
 
     private static final List<String> BUILTIN_PRIVILEGES = Stream.concat(Stream.of(PrivilegeConstants.JCR_ALL),
@@ -61,12 +66,12 @@ public final class PrivilegeXmlExporter {
     /**
      * Serialize the desired privileges as an XML document to the provided stream writer.
      *
-     * @param writer the desired output stream.
-     * @param session the JCR session
-     * @param onlyNames the list of privilege names to export
+     * @param writer          the desired output stream.
+     * @param session         the JCR session
+     * @param onlyNames       the list of privilege names to export
      * @param includeBuiltins false to exclude builtin privileges from the output (even when specified in onlyNames)
      * @throws RepositoryException for missing nodetypes or any other repository exception
-     * @throws IOException for I/O errors
+     * @throws IOException         for I/O errors
      */
     public static void writePrivileges(final Writer writer,
                                        final Session session,

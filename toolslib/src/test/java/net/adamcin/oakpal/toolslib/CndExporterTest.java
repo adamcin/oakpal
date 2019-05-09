@@ -30,13 +30,9 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Scanner;
-import javax.jcr.Repository;
-import javax.jcr.Session;
-import javax.jcr.SimpleCredentials;
 import javax.jcr.Workspace;
 import javax.jcr.nodetype.NodeTypeManager;
 
-import org.apache.jackrabbit.oak.run.cli.NodeStoreFixture;
 import org.junit.Test;
 
 public class CndExporterTest {
@@ -61,57 +57,42 @@ public class CndExporterTest {
         if (allTypesCnd.exists()) {
             allTypesCnd.delete();
         }
-        try (NodeStoreFixture fixture = TestUtil.getReadOnlyFixture(fromRepoDir, null)) {
-            Repository repo = null;
-            Session session = null;
-            try {
-                repo = JcrFactory.getJcr(fixture);
-                session = repo.login(new SimpleCredentials("admin", "admin".toCharArray()));
 
-                final Workspace workspace = session.getWorkspace();
-                NodeTypeManager ntManager = workspace.getNodeTypeManager();
-
-                try (Writer writer = new OutputStreamWriter(new FileOutputStream(explicitTypesCnd))) {
-                    CndExporter.writeNodetypes(writer, session, Arrays.asList("sling:Folder", "nt:folder"), true);
-                }
-
-                try (Scanner scanner = new Scanner(explicitTypesCnd, StandardCharsets.UTF_8.name())) {
-                    assertNull("nt:query should not be defined", scanner.findWithinHorizon("\\[nt:query]", 0));
-                }
-                try (Scanner scanner = new Scanner(explicitTypesCnd, StandardCharsets.UTF_8.name())) {
-                    assertNull("sling:OrderedFolder should not be defined", scanner.findWithinHorizon("\\[sling:OrderedFolder]", 0));
-                }
-                try (Scanner scanner = new Scanner(explicitTypesCnd, StandardCharsets.UTF_8.name())) {
-                    assertNotNull("nt:folder should be defined", scanner.findWithinHorizon("\\[nt:folder]", 0));
-                }
-                try (Scanner scanner = new Scanner(explicitTypesCnd, StandardCharsets.UTF_8.name())) {
-                    assertNotNull("sling:Folder should be defined", scanner.findWithinHorizon("\\[sling:Folder]", 0));
-                }
-
-                try (Writer writer = new OutputStreamWriter(new FileOutputStream(allTypesCnd))) {
-                    CndExporter.writeNodetypes(writer, session, Collections.emptyList(), true);
-                }
-
-                try (Scanner scanner = new Scanner(allTypesCnd, StandardCharsets.UTF_8.name())) {
-                    assertNotNull("nt:query should be defined", scanner.findWithinHorizon("\\[nt:query]", 0));
-                }
-                try (Scanner scanner = new Scanner(allTypesCnd, StandardCharsets.UTF_8.name())) {
-                    assertNotNull("sling:OrderedFolder should be defined", scanner.findWithinHorizon("\\[sling:OrderedFolder]", 0));
-                }
-                try (Scanner scanner = new Scanner(allTypesCnd, StandardCharsets.UTF_8.name())) {
-                    assertNotNull("nt:folder should be defined", scanner.findWithinHorizon("\\[nt:folder]", 0));
-                }
-                try (Scanner scanner = new Scanner(allTypesCnd, StandardCharsets.UTF_8.name())) {
-                    assertNotNull("sling:Folder should be defined", scanner.findWithinHorizon("\\[sling:Folder]", 0));
-                }
-
-            } finally {
-                if (session != null) {
-                    session.logout();
-                }
-                TestUtil.closeRepo(repo);
+        TestUtil.withReadOnlyFixture(fromRepoDir, session -> {
+            try (Writer writer = new OutputStreamWriter(new FileOutputStream(explicitTypesCnd))) {
+                CndExporter.writeNodetypes(writer, session, Arrays.asList("sling:Folder", "nt:folder"), true);
             }
-        }
+
+            try (Scanner scanner = new Scanner(explicitTypesCnd, StandardCharsets.UTF_8.name())) {
+                assertNull("nt:query should not be defined", scanner.findWithinHorizon("\\[nt:query]", 0));
+            }
+            try (Scanner scanner = new Scanner(explicitTypesCnd, StandardCharsets.UTF_8.name())) {
+                assertNull("sling:OrderedFolder should not be defined", scanner.findWithinHorizon("\\[sling:OrderedFolder]", 0));
+            }
+            try (Scanner scanner = new Scanner(explicitTypesCnd, StandardCharsets.UTF_8.name())) {
+                assertNotNull("nt:folder should be defined", scanner.findWithinHorizon("\\[nt:folder]", 0));
+            }
+            try (Scanner scanner = new Scanner(explicitTypesCnd, StandardCharsets.UTF_8.name())) {
+                assertNotNull("sling:Folder should be defined", scanner.findWithinHorizon("\\[sling:Folder]", 0));
+            }
+
+            try (Writer writer = new OutputStreamWriter(new FileOutputStream(allTypesCnd))) {
+                CndExporter.writeNodetypes(writer, session, Collections.emptyList(), true);
+            }
+
+            try (Scanner scanner = new Scanner(allTypesCnd, StandardCharsets.UTF_8.name())) {
+                assertNotNull("nt:query should be defined", scanner.findWithinHorizon("\\[nt:query]", 0));
+            }
+            try (Scanner scanner = new Scanner(allTypesCnd, StandardCharsets.UTF_8.name())) {
+                assertNotNull("sling:OrderedFolder should be defined", scanner.findWithinHorizon("\\[sling:OrderedFolder]", 0));
+            }
+            try (Scanner scanner = new Scanner(allTypesCnd, StandardCharsets.UTF_8.name())) {
+                assertNotNull("nt:folder should be defined", scanner.findWithinHorizon("\\[nt:folder]", 0));
+            }
+            try (Scanner scanner = new Scanner(allTypesCnd, StandardCharsets.UTF_8.name())) {
+                assertNotNull("sling:Folder should be defined", scanner.findWithinHorizon("\\[sling:Folder]", 0));
+            }
+        });
     }
 
     @Test
@@ -130,60 +111,34 @@ public class CndExporterTest {
             exportedCnd.delete();
         }
 
-        try (NodeStoreFixture fixture = TestUtil.getReadOnlyFixture(fromRepoDir, null)) {
-            Repository repo = null;
-            Session session = null;
-            try {
-                repo = JcrFactory.getJcr(fixture);
-                session = repo.login(new SimpleCredentials("admin", "admin".toCharArray()));
+        TestUtil.withReadOnlyFixture(fromRepoDir, session -> {
+            final Workspace workspace = session.getWorkspace();
+            NodeTypeManager ntManager = workspace.getNodeTypeManager();
 
-                final Workspace workspace = session.getWorkspace();
-                NodeTypeManager ntManager = workspace.getNodeTypeManager();
+            assertTrue("sling:Folder should be imported",
+                    ntManager.hasNodeType("sling:Folder"));
+            assertTrue("sling:OrderedFolder should be imported",
+                    ntManager.hasNodeType("sling:OrderedFolder"));
 
-                assertTrue("sling:Folder should be imported",
-                        ntManager.hasNodeType("sling:Folder"));
-                assertTrue("sling:OrderedFolder should be imported",
-                        ntManager.hasNodeType("sling:OrderedFolder"));
-
-                try (Writer writer = new OutputStreamWriter(new FileOutputStream(exportedCnd))) {
-                    CndExporter.writeNodetypes(writer, session, Collections.emptyList(), false);
-                }
-
-            } finally {
-                if (session != null) {
-                    session.logout();
-                }
-                TestUtil.closeRepo(repo);
+            try (Writer writer = new OutputStreamWriter(new FileOutputStream(exportedCnd))) {
+                CndExporter.writeNodetypes(writer, session, Collections.emptyList(), false);
             }
-        }
+        });
 
         TestUtil.prepareRepo(toRepoDir, session -> {
             final URL exportedUrl = exportedCnd.toURL();
             TestUtil.installCndFromURL(session, exportedUrl);
         });
 
-        try (NodeStoreFixture fixture = TestUtil.getReadOnlyFixture(toRepoDir, null)) {
+        TestUtil.withReadOnlyFixture(toRepoDir, session -> {
+            final Workspace workspace = session.getWorkspace();
+            NodeTypeManager ntManager = workspace.getNodeTypeManager();
 
-            Repository repo = null;
-            Session session = null;
-            try {
-                repo = JcrFactory.getJcr(fixture);
-                session = repo.login(new SimpleCredentials("admin", "admin".toCharArray()));
-
-                final Workspace workspace = session.getWorkspace();
-                NodeTypeManager ntManager = workspace.getNodeTypeManager();
-
-                assertTrue("sling:Folder should be imported",
-                        ntManager.hasNodeType("sling:Folder"));
-                assertTrue("sling:OrderedFolder should be imported",
-                        ntManager.hasNodeType("sling:OrderedFolder"));
-            } finally {
-                if (session != null) {
-                    session.logout();
-                }
-                TestUtil.closeRepo(repo);
-            }
-        }
+            assertTrue("sling:Folder should be imported",
+                    ntManager.hasNodeType("sling:Folder"));
+            assertTrue("sling:OrderedFolder should be imported",
+                    ntManager.hasNodeType("sling:OrderedFolder"));
+        });
     }
 
     @Test
@@ -202,59 +157,33 @@ public class CndExporterTest {
             exportedCnd.delete();
         }
 
-        try (NodeStoreFixture fixture = TestUtil.getReadOnlyFixture(fromRepoDir, null)) {
-            Repository repo = null;
-            Session session = null;
-            try {
-                repo = JcrFactory.getJcr(fixture);
-                session = repo.login(new SimpleCredentials("admin", "admin".toCharArray()));
+        TestUtil.withReadOnlyFixture(fromRepoDir, session -> {
+            final Workspace workspace = session.getWorkspace();
+            NodeTypeManager ntManager = workspace.getNodeTypeManager();
 
-                final Workspace workspace = session.getWorkspace();
-                NodeTypeManager ntManager = workspace.getNodeTypeManager();
+            assertTrue("sling:Folder should be imported",
+                    ntManager.hasNodeType("sling:Folder"));
+            assertTrue("sling:OrderedFolder should be imported",
+                    ntManager.hasNodeType("sling:OrderedFolder"));
 
-                assertTrue("sling:Folder should be imported",
-                        ntManager.hasNodeType("sling:Folder"));
-                assertTrue("sling:OrderedFolder should be imported",
-                        ntManager.hasNodeType("sling:OrderedFolder"));
-
-                try (Writer writer = new OutputStreamWriter(new FileOutputStream(exportedCnd))) {
-                    CndExporter.writeNodetypes(writer, session, Collections.singletonList("sling:Folder"), false);
-                }
-
-            } finally {
-                if (session != null) {
-                    session.logout();
-                }
-                TestUtil.closeRepo(repo);
+            try (Writer writer = new OutputStreamWriter(new FileOutputStream(exportedCnd))) {
+                CndExporter.writeNodetypes(writer, session, Collections.singletonList("sling:Folder"), false);
             }
-        }
+        });
 
         TestUtil.prepareRepo(toRepoDir, session -> {
             final URL exportedUrl = exportedCnd.toURL();
             TestUtil.installCndFromURL(session, exportedUrl);
         });
 
-        try (NodeStoreFixture fixture = TestUtil.getReadOnlyFixture(toRepoDir, null)) {
+        TestUtil.withReadOnlyFixture(toRepoDir, session -> {
+            final Workspace workspace = session.getWorkspace();
+            NodeTypeManager ntManager = workspace.getNodeTypeManager();
 
-            Repository repo = null;
-            Session session = null;
-            try {
-                repo = JcrFactory.getJcr(fixture);
-                session = repo.login(new SimpleCredentials("admin", "admin".toCharArray()));
-
-                final Workspace workspace = session.getWorkspace();
-                NodeTypeManager ntManager = workspace.getNodeTypeManager();
-
-                assertTrue("sling:Folder should be imported",
-                        ntManager.hasNodeType("sling:Folder"));
-                assertFalse("sling:OrderedFolder should NOT be imported",
-                        ntManager.hasNodeType("sling:OrderedFolder"));
-            } finally {
-                if (session != null) {
-                    session.logout();
-                }
-                TestUtil.closeRepo(repo);
-            }
-        }
+            assertTrue("sling:Folder should be imported",
+                    ntManager.hasNodeType("sling:Folder"));
+            assertFalse("sling:OrderedFolder should NOT be imported",
+                    ntManager.hasNodeType("sling:OrderedFolder"));
+        });
     }
 }

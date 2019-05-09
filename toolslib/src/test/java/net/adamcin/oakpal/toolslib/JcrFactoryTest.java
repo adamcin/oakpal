@@ -24,16 +24,11 @@ import java.io.File;
 import java.net.URL;
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
-import javax.jcr.Repository;
-import javax.jcr.Session;
-import javax.jcr.SimpleCredentials;
-import javax.jcr.ValueFactory;
 import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
 import javax.jcr.query.QueryResult;
 
 import org.apache.jackrabbit.commons.JcrUtils;
-import org.apache.jackrabbit.oak.run.cli.NodeStoreFixture;
 import org.junit.Test;
 
 public class JcrFactoryTest {
@@ -41,11 +36,13 @@ public class JcrFactoryTest {
 
     @Test
     public void testGetJcr() throws Exception {
-        final File repoDir = new File(testBaseDir, "testGetJcr/segmentstore");
+        final File seedDir = new File(testBaseDir, "testGetJcr/seedRepo/segmentstore");
+        final File globalDir = new File(testBaseDir, "testGetJcr/globalRepo/segmentstore");
 
         final String superPath = "/apps/myapp/components/sup1";
         final String resultPath = "/apps/myapp/components/res1";
-        TestUtil.prepareRepo(repoDir, session -> {
+
+        TestUtil.prepareRepo(seedDir, session -> {
             final URL slingNodetypes = getClass().getResource("/sling_nodetypes.cnd");
             TestUtil.installCndFromURL(session, slingNodetypes);
 
@@ -56,33 +53,20 @@ public class JcrFactoryTest {
             session.save();
         });
 
-        try (NodeStoreFixture fixture = TestUtil.getReadOnlyFixture(repoDir, null)) {
-            Repository repo = null;
-            Session session = null;
-            try {
-                repo = JcrFactory.getJcr(fixture);
-                session = repo.login(new SimpleCredentials("admin", "admin".toCharArray()));
+        TestUtil.withReadOnlyFixture(seedDir, session -> {
+            QueryManager qm = session.getWorkspace().getQueryManager();
 
-                QueryManager qm = session.getWorkspace().getQueryManager();
-                ValueFactory vf = session.getValueFactory();
-
-                final String stmt = "select * from [sling:ResourceSuperType] as a OPTION(TRAVERSAL FAIL, INDEX NAME nodetype)";
-                final Query query = qm.createQuery(stmt, Query.JCR_SQL2);
-                QueryResult result = query.execute();
-                final NodeIterator it = result.getNodes();
-                assertTrue("Result hasNext()", it.hasNext());
-                final Node next = it.nextNode();
-                assertFalse("Result has no more", it.hasNext());
-                assertEquals("Path is correct", resultPath, next.getPath());
-                assertEquals("sling:resourceSuperType value is correct", superPath,
-                        next.getProperty("sling:resourceSuperType").getString());
-            } finally {
-                if (session != null) {
-                    session.logout();
-                }
-                TestUtil.closeRepo(repo);
-            }
-        }
+            final String stmt = "select * from [sling:ResourceSuperType] as a OPTION(TRAVERSAL FAIL, INDEX NAME nodetype)";
+            final Query query = qm.createQuery(stmt, Query.JCR_SQL2);
+            QueryResult result = query.execute();
+            final NodeIterator it = result.getNodes();
+            assertTrue("Result hasNext()", it.hasNext());
+            final Node next = it.nextNode();
+            assertFalse("Result has no more", it.hasNext());
+            assertEquals("Path is correct", resultPath, next.getPath());
+            assertEquals("sling:resourceSuperType value is correct", superPath,
+                    next.getProperty("sling:resourceSuperType").getString());
+        });
     }
 
 

@@ -109,6 +109,10 @@ public final class JavaxJson {
             return JsonValue.NULL;
         } else if (object instanceof JsonValue) {
             return (JsonValue) object;
+        } else if (object instanceof ObjectConvertible) {
+            return ((ObjectConvertible) object).toJson();
+        } else if (object instanceof ArrayConvertible) {
+            return ((ArrayConvertible) object).toJson();
         } else if (object instanceof String) {
             return Json.createArrayBuilder().add((String) object).build().get(0);
         } else if (object instanceof Calendar) {

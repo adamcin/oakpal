@@ -26,7 +26,7 @@ import org.json.JSONObject;
 /**
  * Config DTO for JCR Namespace Prefix to URI Mappings.
  */
-public final class JcrNs {
+public final class JcrNs implements JavaxJson.ObjectConvertible {
     static final String KEY_PREFIX = "prefix";
     static final String KEY_URI = "uri";
 
@@ -87,7 +87,12 @@ public final class JcrNs {
     }
 
     @Override
+    public JsonObject toJson() {
+        return key(KEY_PREFIX, getPrefix()).key(KEY_URI, getUri()).get();
+    }
+
+    @Override
     public String toString() {
-        return key(KEY_PREFIX, getPrefix()).key(KEY_URI, getUri()).get().toString();
+        return toJson().toString();
     }
 }

@@ -16,93 +16,75 @@
 
 package net.adamcin.oakpal.toolslib;
 
-import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
-import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
-import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
-import static org.apache.jackrabbit.oak.api.Type.NAME;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
-
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
+import java.util.function.Predicate;
+import java.util.stream.StreamSupport;
 import javax.jcr.Repository;
 
-import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.Oak;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.composite.CompositeNodeStore;
+import org.apache.jackrabbit.oak.composite.InitialContentMigrator;
 import org.apache.jackrabbit.oak.jcr.Jcr;
-import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
-import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
-import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
-import org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditorProvider;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.run.cli.NodeStoreFixture;
-import org.apache.jackrabbit.oak.spi.commit.CommitHook;
-import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
-import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
+import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
-import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
+/**
+ * JCR Repository factory for {@link NodeStoreFixture} instances defined by oak-run option sets.
+ */
 public final class JcrFactory {
 
     private JcrFactory() {
         // do nothing
     }
 
-    static class IndexInitializer implements RepositoryInitializer {
-        @Override
-        public void initialize(final NodeBuilder builder) {
-            if (!builder.hasChildNode(IndexConstants.INDEX_DEFINITIONS_NAME)) {
-                NodeBuilder index = IndexUtils.getOrCreateOakIndex(builder);
-
-                NodeBuilder uuid = IndexUtils.createIndexDefinition(index, "uuid", true, true,
-                        ImmutableList.<String>of(JCR_UUID), null);
-                uuid.setProperty("info",
-                        "Oak index for UUID lookup (direct lookup of nodes with the mixin 'mix:referenceable').");
-                NodeBuilder nodetype = IndexUtils.createIndexDefinition(index, "nodetype", true, false,
-                        ImmutableList.of(JCR_PRIMARYTYPE, JCR_MIXINTYPES), null);
-                nodetype.setProperty("info",
-                        "Oak index for queries with node type, and possibly path restrictions, " +
-                                "for example \"/jcr:root/content//element(*, mix:language)\".");
-                IndexUtils.createReferenceIndex(index);
-
-                index.child("counter")
-                        .setProperty(JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE, NAME)
-                        .setProperty(TYPE_PROPERTY_NAME, NodeCounterEditorProvider.TYPE)
-                        .setProperty(IndexConstants.ASYNC_PROPERTY_NAME,
-                                IndexConstants.ASYNC_PROPERTY_NAME)
-                        .setProperty("info", "Oak index that allows to estimate " +
-                                "how many nodes are stored below a given path, " +
-                                "to decide whether traversing or using an index is faster.");
-            }
-        }
+    /**
+     * Create an in-memory JCR repository backed by a read-only composite mount on top of the provided node store fixture.
+     *
+     * @param nodeStoreFixture seed node store defined by oak-run option sets
+     * @return a working JCR Repository for use with admin/admin credentials
+     * @throws IOException           if {@link InitialContentMigrator#migrate()} throws
+     * @throws CommitFailedException if {@link InitialContentMigrator#migrate()} throws
+     */
+    public static Repository getJcr(final NodeStoreFixture nodeStoreFixture) throws IOException, CommitFailedException {
+        return getJcr(nodeStoreFixture, new MemoryNodeStore());
     }
 
-    public static Repository getJcr(final NodeStoreFixture nodeStoreFixture) {
-        CompositeNodeStore cns = new CompositeNodeStore.Builder(
-                Mounts.newBuilder().readOnlyMount("source", "/apps", "/libs",
-                        "/jcr:system/rep:namespaces",
-                        "/jcr:system/rep:privileges",
-                        "/jcr:system/jcr:nodeTypes"
-                ).build(),
-                new MemoryNodeStore()).addMount("source", nodeStoreFixture.getStore()).build();
-        final Oak oak = new Oak(cns).with(nodeStoreFixture.getWhiteboard());
-        final Oak.OakDefaultComponents defs = Oak.OakDefaultComponents.INSTANCE;
-        Jcr jcr = new Jcr(oak, false)
-                .with(new IndexInitializer())
-                .with(defs.securityProvider());
+    /**
+     * Create an in-memory JCR repository backed by a read-only composite mount on top of the provided node store fixture.
+     *
+     * @param nodeStoreFixture seed node store defined by oak-run option sets
+     * @param globalStore      a read/write node store to initialize as the composite global store
+     * @return a working JCR Repository for use with admin/admin credentials
+     * @throws IOException           if {@link InitialContentMigrator#migrate()} throws
+     * @throws CommitFailedException if {@link InitialContentMigrator#migrate()} throws
+     */
+    public static Repository getJcr(final NodeStoreFixture nodeStoreFixture, final NodeStore globalStore)
+            throws IOException, CommitFailedException {
 
-        for (CommitHook ch : defs.commitHooks()) {
-            jcr.with(ch);
-        }
-        for (EditorProvider ep : defs.editorProviders()) {
-            jcr.with(ep);
-        }
-        for (IndexEditorProvider iep : defs.indexEditorProviders()) {
-            jcr.with(iep);
-        }
-        for (QueryIndexProvider qip : defs.queryIndexProviders()) {
-            jcr.with(qip);
-        }
+        final List<String> globalRoots = Arrays.asList("jcr:system", "oak:index", "rep:security");
+        final Predicate<String> ownedRootFilter = ((Predicate<String>) globalRoots::contains).negate();
+
+        // only mount nodes that aren't owned by the global mount
+        final String[] mountPaths = StreamSupport
+                .stream(nodeStoreFixture.getStore().getRoot().getChildNodeNames().spliterator(),
+                        false).filter(ownedRootFilter).map(child -> "/" + child).toArray(String[]::new);
+
+        MountInfoProvider mounts = Mounts.newBuilder().readOnlyMount("source", mountPaths).build();
+
+        // migrate some jcr:system children to composite global store for read/write
+        // "/jcr:system/rep:namespaces", "/jcr:system/rep:privileges", "/jcr:system/jcr:nodeTypes"),
+        new InitialContentMigrator(globalStore, nodeStoreFixture.getStore(), mounts.getMountByName("source")).migrate();
+
+        CompositeNodeStore cns = new CompositeNodeStore.Builder(mounts, globalStore)
+                .addMount("source", nodeStoreFixture.getStore()).build();
+        final Oak oak = new Oak(cns).with(nodeStoreFixture.getWhiteboard());
+        Jcr jcr = new Jcr(oak, true);
 
         return jcr.createRepository();
     }

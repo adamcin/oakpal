@@ -29,6 +29,11 @@ public final class FunUtil {
     }
 
     @FunctionalInterface
+    public interface ThrowingPredicate<T> {
+        boolean test(T input) throws Exception;
+    }
+
+    @FunctionalInterface
     public interface ThrowingFunction<T, R> {
         R apply(T input) throws Exception;
     }
@@ -41,6 +46,36 @@ public final class FunUtil {
     @FunctionalInterface
     public interface ThrowingBiConsumer<T, U> {
         void accept(T tInput, U uInput) throws Exception;
+    }
+
+    public static <T> Predicate<T> testUnchecked(final ThrowingPredicate<T> mayThrowOnTest) {
+        return input -> {
+            try {
+                return mayThrowOnTest.test(input);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        };
+    }
+
+    public static <T> Predicate<T> testOrDefault(final ThrowingPredicate<T> mayThrowOnTest, boolean defaultValue) {
+        return input -> {
+            try {
+                return mayThrowOnTest.test(input);
+            } catch (Exception e) {
+                return defaultValue;
+            }
+        };
+    }
+
+    public static <T, R> Function<T, R> applyUnchecked(final ThrowingFunction<T, R> mayThrowOnApply) {
+        return input -> {
+            try {
+                return mayThrowOnApply.apply(input);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        };
     }
 
     public static <T, R> Function<T, R> tryOrDefault(final ThrowingFunction<T, R> mayThrowOnApply, R defaultValue) {
@@ -73,6 +108,16 @@ public final class FunUtil {
         };
     }
 
+    public static <T> Consumer<T> consumeUnchecked(final ThrowingConsumer<T> mayThrowOnAccept) {
+        return input -> {
+            try {
+                mayThrowOnAccept.accept(input);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        };
+    }
+
     public static <T, U> BiConsumer<T, U> tryConsume(final ThrowingBiConsumer<T, U> mayThrowOnAccept) {
         return (tInput, uInput) -> {
             try {
@@ -82,6 +127,17 @@ public final class FunUtil {
             }
         };
     }
+
+    public static <T, U> BiConsumer<T, U> consumeUnchecked(final ThrowingBiConsumer<T, U> mayThrowOnAccept) {
+        return (tInput, uInput) -> {
+            try {
+                mayThrowOnAccept.accept(tInput, uInput);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        };
+    }
+
 
     public static <T, P> Predicate<T> fundicate(final Function<T, P> inputFunction, final Predicate<P> testResult) {
         return input -> testResult.test(inputFunction.apply(input));

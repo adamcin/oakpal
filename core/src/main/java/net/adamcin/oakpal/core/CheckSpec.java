@@ -24,12 +24,11 @@ import static net.adamcin.oakpal.core.Util.isEmpty;
 import javax.json.Json;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
-import javax.json.stream.JsonCollectors;
 
 /**
  * DTO for full-featured check spec.
  */
-public class CheckSpec {
+public class CheckSpec implements JavaxJson.ObjectConvertible {
     static final String KEY_IMPL = "impl";
     static final String KEY_INLINE_SCRIPT = "inlineScript";
     static final String KEY_INLINE_ENGINE = "inlineEngine";
@@ -233,9 +232,18 @@ public class CheckSpec {
         return checkSpec;
     }
 
+    /**
+     * Override to ensure subtype details are retained in JSON.
+     * @param builder
+     */
+    protected void editJson(final JsonObjectBuilder builder) {
+        // for overriding classes.
+    }
+
     @Override
-    public String toString() {
-        return obj()
+    public final JsonObject toJson() {
+        final JsonObjectBuilder builder = Json.createObjectBuilder();
+        final JsonObject base = obj()
                 .key(KEY_NAME, getName())
                 .key(KEY_IMPL, getImpl())
                 .key(KEY_INLINE_SCRIPT, getInlineScript())
@@ -243,6 +251,15 @@ public class CheckSpec {
                 .key(KEY_CONFIG, getConfig())
                 .key(KEY_TEMPLATE, getTemplate())
                 .key(KEY_SKIP, isSkip())
-                .get().toString();
+                .get();
+
+        base.forEach(builder::add);
+        editJson(builder);
+        return builder.build();
+    }
+
+    @Override
+    public String toString() {
+        return toJson().toString();
     }
 }

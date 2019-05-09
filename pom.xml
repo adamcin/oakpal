@@ -26,7 +26,8 @@
   ~ For more information, please refer to <http://unlicense.org />
   -->
 
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>net.adamcin.oakpal</groupId>
@@ -473,10 +474,29 @@
                 <artifactId>oak-commons</artifactId>
                 <version>${oak.version}</version>
             </dependency>
+            <!-- upgrade oak-store-composite for oakpal-toolslib to get OAK-7923 -->
+            <dependency>
+                <groupId>org.apache.jackrabbit</groupId>
+                <artifactId>oak-store-composite</artifactId>
+                <version>1.9.13</version>
+            </dependency>
             <dependency>
                 <groupId>org.apache.jackrabbit</groupId>
                 <artifactId>oak-run-commons</artifactId>
                 <version>${oak.version}</version>
+                <exclusions>
+                    <!-- exclude transitive oak-store-composite for oakpal-toolslib to get OAK-7923 -->
+                    <exclusion>
+                        <groupId>org.apache.jackrabbit</groupId>
+                        <artifactId>oak-store-composite</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.jackrabbit</groupId>
+                <artifactId>oak-run</artifactId>
+                <version>${oak.version}</version>
+                <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.jackrabbit</groupId>
