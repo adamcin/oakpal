@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package net.adamcin.oakpal.toolslib;
+package net.adamcin.oakpal.webster;
 
 import java.io.IOException;
 import java.util.Arrays;

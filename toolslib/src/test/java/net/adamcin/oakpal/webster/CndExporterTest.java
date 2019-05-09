@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package net.adamcin.oakpal.toolslib;
+package net.adamcin.oakpal.webster;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package net.adamcin.oakpal.toolslib;
+package net.adamcin.oakpal.webster;
 
 import java.util.Optional;
 import java.util.function.BiConsumer;

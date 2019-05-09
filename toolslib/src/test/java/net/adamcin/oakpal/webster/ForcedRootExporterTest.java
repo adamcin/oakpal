@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package net.adamcin.oakpal.toolslib;
+package net.adamcin.oakpal.webster;
 
 import static net.adamcin.oakpal.core.JavaxJson.arr;
 import static net.adamcin.oakpal.core.JavaxJson.key;

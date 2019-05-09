@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package net.adamcin.oakpal.toolslib;
+package net.adamcin.oakpal.webster;
 
 import java.io.IOException;
 import java.io.Writer;
@@ -55,7 +55,7 @@ public final class CndExporter {
         // no construction
     }
 
-    private static final List<String> BUILTIN_NODETYPES = StreamSupport.stream(
+    static final List<String> BUILTIN_NODETYPES = StreamSupport.stream(
             InitialContent.INITIAL_CONTENT
                     .getChildNode(JcrConstants.JCR_SYSTEM)
                     .getChildNode(NodeTypeConstants.JCR_NODE_TYPES)

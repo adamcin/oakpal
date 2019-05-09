@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package net.adamcin.oakpal.toolslib;
+package net.adamcin.oakpal.webster;
 
 import static java.util.stream.Collectors.toMap;
 import static java.util.stream.Collectors.toSet;
@@ -53,7 +53,7 @@ import org.apache.jackrabbit.spi.commons.privilege.PrivilegeDefinitionWriter;
  */
 public final class PrivilegeXmlExporter {
 
-    private static final List<String> BUILTIN_PRIVILEGES = Stream.concat(Stream.of(PrivilegeConstants.JCR_ALL),
+    static final List<String> BUILTIN_PRIVILEGES = Stream.concat(Stream.of(PrivilegeConstants.JCR_ALL),
             Stream.concat(
                     PrivilegeConstants.NON_AGGREGATE_PRIVILEGES.stream(),
                     PrivilegeConstants.AGGREGATE_PRIVILEGES.keySet().stream()))

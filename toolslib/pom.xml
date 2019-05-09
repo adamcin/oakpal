@@ -99,9 +99,9 @@
                         </goals>
                         <configuration>
                             <bnd><![CDATA[
-                                Bundle-SymbolicName: net.adamcin.oakpal.toolslib
-                                Automatic-Module-Name: net.adamcin.oakpal.toolslib
-                                Export-Package: net.adamcin.oakpal.toolslib
+                                Bundle-SymbolicName: net.adamcin.oakpal.webster
+                                Automatic-Module-Name: net.adamcin.oakpal.webster
+                                Export-Package: net.adamcin.oakpal.webster
                             ]]></bnd>
                         </configuration>
                     </execution>
