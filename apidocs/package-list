@@ -15,6 +15,7 @@ net.adamcin.oakpal.interactive.impl
 net.adamcin.oakpal.interactive.models
 net.adamcin.oakpal.maven.component
 net.adamcin.oakpal.maven.mojo
+net.adamcin.oakpal.shaded
 net.adamcin.oakpal.testing
 net.adamcin.oakpal.webster
 net.adamcin.oakpal.webster.targets
