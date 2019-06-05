@@ -10,3 +10,4 @@ net.adamcin.oakpal.core.jcrfacade.security
 net.adamcin.oakpal.core.jcrfacade.security.authorization
 net.adamcin.oakpal.core.jcrfacade.security.user
 net.adamcin.oakpal.core.jcrfacade.version
+net.adamcin.oakpal.shaded
