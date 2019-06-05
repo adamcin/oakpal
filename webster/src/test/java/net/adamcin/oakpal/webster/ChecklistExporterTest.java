@@ -51,7 +51,7 @@ import org.apache.jackrabbit.commons.NamespaceHelper;
 import org.apache.jackrabbit.util.ISO9075;
 import org.junit.Test;
 
-public class ForcedRootExporterTest {
+public class ChecklistExporterTest {
     final File testBaseDir = new File("target/repos/ForcedRootExporterTest");
 
     @Test
@@ -109,7 +109,7 @@ public class ForcedRootExporterTest {
 
 
         TestUtil.withReadOnlyFixture(pass1Dir, session -> {
-            ForcedRootExporter pathExporter = new ForcedRootExporter.Builder().byPath(allPaths.toArray(new String[0])).build();
+            ChecklistExporter pathExporter = new ChecklistExporter.Builder().byPath(allPaths.toArray(new String[0])).build();
 
             pathExporter.updateChecklist(() -> new OutputStreamWriter(
                             new FileOutputStream(pass1Checklist), StandardCharsets.UTF_8),
@@ -142,7 +142,7 @@ public class ForcedRootExporterTest {
 
 
         TestUtil.withReadOnlyFixture(fullRepoDir, session -> {
-            ForcedRootExporter pathExporter = new ForcedRootExporter.Builder().byPath(allPaths.toArray(new String[0])).build();
+            ChecklistExporter pathExporter = new ChecklistExporter.Builder().byPath(allPaths.toArray(new String[0])).build();
 
             try (JsonReader reader = Json.createReader(new FileInputStream(pass1Checklist))) {
 
@@ -173,7 +173,7 @@ public class ForcedRootExporterTest {
         });
 
         TestUtil.withReadOnlyFixture(diffRepoDir, session -> {
-            ForcedRootExporter diffExporter = new ForcedRootExporter.Builder()
+            ChecklistExporter diffExporter = new ChecklistExporter.Builder()
                     .byNodeType("sling:Folder")
                     .withScopePaths(Rule.fromJsonArray(arr(key("type", "include").key("pattern", pathPrefix + "/ordered.*")).get()))
                     .withScopeNodeTypes(Rule.fromJsonArray(arr(key("type", "exclude").key("pattern", "sling:.*")).get()))
@@ -184,7 +184,7 @@ public class ForcedRootExporterTest {
                 diffExporter.updateChecklist(() -> new OutputStreamWriter(
                                 new FileOutputStream(mergePassChecklist), StandardCharsets.UTF_8),
                         session, Checklist.fromJson("", null, reader.readObject()),
-                        ForcedRootExporter.ChecklistUpdatePolicy.MERGE);
+                        ChecklistExporter.ForcedRootUpdatePolicy.MERGE);
             }
 
             try (JsonReader reader = Json.createReader(new FileInputStream(fullPassChecklist))) {
@@ -192,7 +192,7 @@ public class ForcedRootExporterTest {
                 diffExporter.updateChecklist(() -> new OutputStreamWriter(
                                 new FileOutputStream(replacePassChecklist), StandardCharsets.UTF_8),
                         session, Checklist.fromJson("", null, reader.readObject()),
-                        ForcedRootExporter.ChecklistUpdatePolicy.REPLACE);
+                        ChecklistExporter.ForcedRootUpdatePolicy.REPLACE);
             }
 
             try (JsonReader reader = Json.createReader(new FileInputStream(fullPassChecklist))) {
@@ -200,7 +200,7 @@ public class ForcedRootExporterTest {
                 diffExporter.updateChecklist(() -> new OutputStreamWriter(
                                 new FileOutputStream(truncatePassChecklist), StandardCharsets.UTF_8),
                         session, Checklist.fromJson("", null, reader.readObject()),
-                        ForcedRootExporter.ChecklistUpdatePolicy.TRUNCATE);
+                        ChecklistExporter.ForcedRootUpdatePolicy.TRUNCATE);
             }
 
             try (JsonReader reader = Json.createReader(new FileInputStream(mergePassChecklist))) {
@@ -324,7 +324,7 @@ public class ForcedRootExporterTest {
         allPaths.add(pathPrefix);
 
         TestUtil.withReadOnlyFixture(repoDir, session -> {
-            ForcedRootExporter pathExporter = new ForcedRootExporter.Builder().byPath(allPaths.toArray(new String[0])).build();
+            ChecklistExporter pathExporter = new ChecklistExporter.Builder().byPath(allPaths.toArray(new String[0])).build();
             List<ForcedRoot> byPath = pathExporter.findRoots(session);
 
             for (String path : unorderedPaths) {
@@ -341,7 +341,7 @@ public class ForcedRootExporterTest {
             }
 
             final String queryPrefix = ISO9075.encodePath("/jcr:root" + pathPrefix);
-            ForcedRootExporter queryExporter = new ForcedRootExporter.Builder().byQuery(queryPrefix + "//element(*, sling:Folder)").build();
+            ChecklistExporter queryExporter = new ChecklistExporter.Builder().byQuery(queryPrefix + "//element(*, sling:Folder)").build();
             List<ForcedRoot> byQuery = queryExporter.findRoots(session);
             for (String path : unorderedPaths) {
                 ForcedRoot root0 = byQuery.stream().filter(root -> path.equals(root.getPath())).findFirst().orElse(null);
@@ -356,7 +356,7 @@ public class ForcedRootExporterTest {
                         "sling:OrderedFolder", root0.getPrimaryType());
             }
 
-            ForcedRootExporter ntExporter = new ForcedRootExporter.Builder().byNodeType("nt:folder", "+sling:Folder").build();
+            ChecklistExporter ntExporter = new ChecklistExporter.Builder().byNodeType("nt:folder", "+sling:Folder").build();
             List<ForcedRoot> byNt = ntExporter.findRoots(session);
             for (String path : unorderedPaths) {
                 ForcedRoot root0 = byNt.stream().filter(root -> path.equals(root.getPath())).findFirst().orElse(null);
@@ -385,7 +385,7 @@ public class ForcedRootExporterTest {
         TestUtil.withInMemoryRepo(session -> {
             TestUtil.installCndFromURL(session, getClass().getResource("/sling_nodetypes.cnd"));
 
-            ForcedRootExporter exporter = new ForcedRootExporter.Builder().build();
+            ChecklistExporter exporter = new ChecklistExporter.Builder().build();
 
             Node node1 = JcrUtils.getOrCreateByPath("/test/node1", "nt:folder", "sling:Folder", session, true);
             ForcedRoot root1 = exporter.nodeToRoot(node1).orElse(null);
@@ -411,7 +411,7 @@ public class ForcedRootExporterTest {
             Node node1 = JcrUtils.getOrCreateByPath("/test_include/node1", "nt:folder", session);
             Node node2 = JcrUtils.getOrCreateByPath("/test_exclude/node2", "nt:folder", session);
 
-            ForcedRootExporter exporter = new ForcedRootExporter.Builder()
+            ChecklistExporter exporter = new ChecklistExporter.Builder()
                     .withScopePaths(Rule
                             .fromJsonArray(arr(key("type", "include").key("pattern", "/test_include(/.*)?"))
                                     .get())).build();
@@ -436,15 +436,15 @@ public class ForcedRootExporterTest {
             node1.addMixin("sling:Resource");
             node1.addMixin("sling:ResourceSuperType");
 
-            ForcedRootExporter mixExporter = new ForcedRootExporter.Builder().withScopeNodeTypes(
+            ChecklistExporter mixExporter = new ChecklistExporter.Builder().withScopeNodeTypes(
                     Rule.fromJsonArray(arr(key("type", "include").key("pattern", "mix:.*"))
                             .get())).build();
 
-            ForcedRootExporter slingExporter = new ForcedRootExporter.Builder().withScopeNodeTypes(
+            ChecklistExporter slingExporter = new ChecklistExporter.Builder().withScopeNodeTypes(
                     Rule.fromJsonArray(arr(key("type", "include").key("pattern", "sling:.*"))
                             .get())).build();
 
-            ForcedRootExporter rtExporter = new ForcedRootExporter.Builder().withScopeNodeTypes(
+            ChecklistExporter rtExporter = new ChecklistExporter.Builder().withScopeNodeTypes(
                     Rule.fromJsonArray(arr(key("type", "include").key("pattern", "sling:Resource"))
                             .get())).build();
 
@@ -478,7 +478,7 @@ public class ForcedRootExporterTest {
                 JcrUtils.getOrCreateByPath("/test/node" + i, "nt:folder", session);
             }
 
-            final ForcedRootExporter exporter = new ForcedRootExporter.Builder().build();
+            final ChecklistExporter exporter = new ChecklistExporter.Builder().build();
 
             List<ForcedRoot> roots = exporter.traverse(session,
                     Arrays.asList("/test/node0", "/test/node2", "/test/node4", "/test/node6"));
@@ -508,7 +508,7 @@ public class ForcedRootExporterTest {
                     JcrUtils.getOrCreateByPath(path, "nt:folder",
                             "sling:Folder", session, true)));
 
-            final ForcedRootExporter exporter = new ForcedRootExporter.Builder().build();
+            final ChecklistExporter exporter = new ChecklistExporter.Builder().build();
 
             List<ForcedRoot> byXPath = exporter.query(session, "//element(*, sling:Folder)");
 
@@ -544,7 +544,7 @@ public class ForcedRootExporterTest {
                     JcrUtils.getOrCreateByPath(path, "nt:folder",
                             "sling:Folder", session, true)));
 
-            final ForcedRootExporter exporter = new ForcedRootExporter.Builder().build();
+            final ChecklistExporter exporter = new ChecklistExporter.Builder().build();
 
             final String statement = exporter.ntStatement(session, Arrays.asList("nt:folder", "+sling:Folder"));
             assertTrue("statement should contain 'FROM [sling:Folder]'", statement.contains("FROM [sling:Folder]"));

@@ -234,7 +234,8 @@ public class CheckSpec implements JavaxJson.ObjectConvertible {
 
     /**
      * Override to ensure subtype details are retained in JSON.
-     * @param builder
+     *
+     * @param builder the json object builder that should be edited by subclasses
      */
     protected void editJson(final JsonObjectBuilder builder) {
         // for overriding classes.

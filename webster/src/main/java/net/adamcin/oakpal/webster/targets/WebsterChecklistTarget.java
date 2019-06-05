@@ -38,7 +38,7 @@ import net.adamcin.oakpal.core.Checklist;
 import net.adamcin.oakpal.core.JavaxJson;
 import net.adamcin.oakpal.core.JcrNs;
 import net.adamcin.oakpal.core.checks.Rule;
-import net.adamcin.oakpal.webster.ForcedRootExporter;
+import net.adamcin.oakpal.webster.ChecklistExporter;
 import net.adamcin.oakpal.webster.WebsterTarget;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,16 +62,16 @@ public final class WebsterChecklistTarget implements WebsterTarget {
     static final String KEY_EXPORT_NODETYPES = "exportNodeTypes";
 
     static class Selector {
-        private final ForcedRootExporter.SelectorType type;
+        private final ChecklistExporter.SelectorType type;
         private final String[] args;
 
-        Selector(final ForcedRootExporter.SelectorType type, final String[] args) {
+        Selector(final ChecklistExporter.SelectorType type, final String[] args) {
             LOGGER.debug("[Selector] type={}, args={}", type, Arrays.toString(args));
             this.type = type;
             this.args = args;
         }
 
-        void selectOnExporter(ForcedRootExporter.Builder exporter) {
+        void selectOnExporter(ChecklistExporter.Builder exporter) {
             switch (type) {
                 case PATH:
                     exporter.byPath(args);
@@ -88,7 +88,7 @@ public final class WebsterChecklistTarget implements WebsterTarget {
     }
 
     static Selector selectorFromJson(final JsonObject json) {
-        ForcedRootExporter.SelectorType type = ForcedRootExporter.SelectorType.byName(json.getString(KEY_TYPE));
+        ChecklistExporter.SelectorType type = ChecklistExporter.SelectorType.byName(json.getString(KEY_TYPE));
         String[] args = JavaxJson.mapArrayOfStrings(json.getJsonArray(KEY_ARGS)).toArray(new String[0]);
         return new Selector(type, args);
     }
@@ -97,26 +97,26 @@ public final class WebsterChecklistTarget implements WebsterTarget {
         final List<Selector> selectors = new ArrayList<>();
         if (json.containsKey(COMPACT_KEY_BY_NODETYPES)) {
             final List<String> args = JavaxJson.mapArrayOfStrings(json.getJsonArray(COMPACT_KEY_BY_NODETYPES));
-            selectors.add(new Selector(ForcedRootExporter.SelectorType.NODETYPE, args.toArray(new String[0])));
+            selectors.add(new Selector(ChecklistExporter.SelectorType.NODETYPE, args.toArray(new String[0])));
         }
         if (json.containsKey(COMPACT_KEY_BY_PATHS)) {
             final List<String> args = JavaxJson.mapArrayOfStrings(json.getJsonArray(COMPACT_KEY_BY_PATHS));
-            selectors.add(new Selector(ForcedRootExporter.SelectorType.PATH, args.toArray(new String[0])));
+            selectors.add(new Selector(ChecklistExporter.SelectorType.PATH, args.toArray(new String[0])));
         }
         if (json.containsKey(COMPACT_KEY_BY_QUERY)) {
-            selectors.add(new Selector(ForcedRootExporter.SelectorType.QUERY,
+            selectors.add(new Selector(ChecklistExporter.SelectorType.QUERY,
                     new String[]{json.getString(COMPACT_KEY_BY_QUERY)}));
         }
         return selectors;
     }
 
     private final File checklist;
-    private final ForcedRootExporter exporter;
-    private final ForcedRootExporter.ChecklistUpdatePolicy updatePolicy;
+    private final ChecklistExporter exporter;
+    private final ChecklistExporter.ForcedRootUpdatePolicy updatePolicy;
 
     private WebsterChecklistTarget(final File checklist,
-                                   final ForcedRootExporter exporter,
-                                   final ForcedRootExporter.ChecklistUpdatePolicy updatePolicy) {
+                                   final ChecklistExporter exporter,
+                                   final ChecklistExporter.ForcedRootUpdatePolicy updatePolicy) {
         this.checklist = checklist;
         this.exporter = exporter;
         this.updatePolicy = updatePolicy;
@@ -144,7 +144,7 @@ public final class WebsterChecklistTarget implements WebsterTarget {
 
     static WebsterChecklistTarget fromJson(final File target, final JsonObject config) {
         LOGGER.debug("[fromJson] fromJson: {}", config.toString());
-        ForcedRootExporter.Builder exporter = new ForcedRootExporter.Builder();
+        ChecklistExporter.Builder exporter = new ChecklistExporter.Builder();
         WebsterChecklistTarget.selectorsFromConfigCompactForm(config)
                 .forEach(selector -> selector.selectOnExporter(exporter));
         if (config.containsKey(KEY_SELECTORS)) {
@@ -169,9 +169,9 @@ public final class WebsterChecklistTarget implements WebsterTarget {
             List<String> ntList = JavaxJson.mapArrayOfStrings(config.getJsonArray(KEY_EXPORT_NODETYPES));
             exporter.withExportNodeTypes(ntList);
         }
-        ForcedRootExporter.ChecklistUpdatePolicy updatePolicy = null;
+        ChecklistExporter.ForcedRootUpdatePolicy updatePolicy = null;
         if (config.containsKey(KEY_UPDATE_POLICY)) {
-            updatePolicy = ForcedRootExporter.ChecklistUpdatePolicy.byName(config.getString(KEY_UPDATE_POLICY));
+            updatePolicy = ChecklistExporter.ForcedRootUpdatePolicy.byName(config.getString(KEY_UPDATE_POLICY));
         }
         return new WebsterChecklistTarget(target, exporter.build(), updatePolicy);
     }

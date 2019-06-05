@@ -23,6 +23,8 @@ import javax.jcr.NamespaceRegistry;
 import org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants;
 import org.apache.jackrabbit.spi.Name;
 import org.apache.jackrabbit.spi.commons.namespace.NamespaceMapping;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,15 +70,15 @@ public final class QName {
     /**
      * Create a new QName.
      *
-     * @param type
-     * @param prefix
-     * @param localName
-     * @param uri
+     * @param type      namespace or nodetype
+     * @param prefix    the associated namespace prefix
+     * @param localName the unqualified local name
+     * @param uri       the namespace URI
      */
-    public QName(final Type type,
-                 final String prefix,
-                 final String localName,
-                 final String uri) {
+    public QName(@NotNull final Type type,
+                 @Nullable final String prefix,
+                 @NotNull final String localName,
+                 @Nullable final String uri) {
         this.type = type;
         this.prefix = prefix;
         this.localName = localName;

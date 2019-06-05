@@ -77,13 +77,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Exports {@link ForcedRoot}s from a JCR session to assist with project checklist management.
+ * Exports namespaces, node types, and {@link ForcedRoot}s from a JCR session to assist with project checklist management.
  */
-public final class ForcedRootExporter {
-    private static final Logger LOGGER = LoggerFactory.getLogger(ForcedRootExporter.class);
+public final class ChecklistExporter {
+    private static final Logger LOGGER = LoggerFactory.getLogger(ChecklistExporter.class);
 
     /**
-     * Builder for a {@link ForcedRootExporter}, which is otherwise immutable.
+     * Builder for a {@link ChecklistExporter}, which is otherwise immutable.
      */
     public static class Builder {
         private List<Op> operations = new ArrayList<>();
@@ -138,7 +138,7 @@ public final class ForcedRootExporter {
          * Limit the scope of exported forced root paths using a list of {@link Rule} patterns. Paths which last-match
          * an "INCLUDE" pattern are considered to be "in scope", which means they can be returned by the specified
          * operations and/or replaced in existing checklists. Use EXCLUDE patterns to protect existing forced roots from
-         * being overwritten by a particular instance of {@link ForcedRootExporter}.
+         * being overwritten by a particular instance of {@link ChecklistExporter}.
          *
          * @param pathScopes the list of include/exclude patterns
          * @return this builder
@@ -193,10 +193,10 @@ public final class ForcedRootExporter {
         /**
          * Create the new exporter instance.
          *
-         * @return the new {@link ForcedRootExporter} instance
+         * @return the new {@link ChecklistExporter} instance
          */
-        public ForcedRootExporter build() {
-            return new ForcedRootExporter(this.operations, this.exportTypeDefs, this.pathScopes, this.nodeTypeScopes,
+        public ChecklistExporter build() {
+            return new ChecklistExporter(this.operations, this.exportTypeDefs, this.pathScopes, this.nodeTypeScopes,
                     this.nsMapping);
         }
     }
@@ -241,11 +241,11 @@ public final class ForcedRootExporter {
     private final List<Rule> nodeTypeScopes;
     private final List<JcrNs> jcrNamespaces;
 
-    private ForcedRootExporter(final List<Op> operations,
-                               final List<String> exportTypeDefs,
-                               final List<Rule> pathScopes,
-                               final List<Rule> nodeTypeScopes,
-                               final List<JcrNs> jcrNamespaces) {
+    private ChecklistExporter(final List<Op> operations,
+                              final List<String> exportTypeDefs,
+                              final List<Rule> pathScopes,
+                              final List<Rule> nodeTypeScopes,
+                              final List<JcrNs> jcrNamespaces) {
         this.operations = operations;
         this.exportTypeDefs = exportTypeDefs;
         this.pathScopes = pathScopes;
@@ -253,7 +253,7 @@ public final class ForcedRootExporter {
         this.jcrNamespaces = jcrNamespaces;
     }
 
-    public enum ChecklistUpdatePolicy {
+    public enum ForcedRootUpdatePolicy {
 
         /**
          * Remove all existing forced roots from the checklist before exporting new ones.
@@ -271,8 +271,8 @@ public final class ForcedRootExporter {
          */
         MERGE;
 
-        public static ChecklistUpdatePolicy byName(final String name) {
-            for (ChecklistUpdatePolicy value : values()) {
+        public static ForcedRootUpdatePolicy byName(final String name) {
+            for (ForcedRootUpdatePolicy value : values()) {
                 if (value.name().equalsIgnoreCase(name)) {
                     return value;
                 }
@@ -281,7 +281,7 @@ public final class ForcedRootExporter {
         }
     }
 
-    public static final ChecklistUpdatePolicy DEFAULT_UPDATE_POLICY = ChecklistUpdatePolicy.REPLACE;
+    public static final ForcedRootUpdatePolicy DEFAULT_UPDATE_POLICY = ForcedRootUpdatePolicy.REPLACE;
     public static final String COVARIANT_PREFIX = "+";
 
     static final Predicate<String> COVARIANT_FILTER = name -> name.startsWith(COVARIANT_PREFIX);
@@ -311,13 +311,13 @@ public final class ForcedRootExporter {
         Optional.ofNullable(forcedRoot.getPath()).ifPresent(path ->
                 Stream.of(path.split("/"))
                         .filter(name -> !name.isEmpty())
-                        .map(ForcedRootExporter::getNsPrefix)
+                        .map(ChecklistExporter::getNsPrefix)
                         .filter(Objects::nonNull)
                         .forEach(acc::add));
-        Optional.ofNullable(forcedRoot.getPrimaryType()).map(ForcedRootExporter::getNsPrefix).ifPresent(acc::add);
+        Optional.ofNullable(forcedRoot.getPrimaryType()).map(ChecklistExporter::getNsPrefix).ifPresent(acc::add);
         Optional.ofNullable(forcedRoot.getMixinTypes()).map(mixins ->
                 mixins.stream()
-                        .map(ForcedRootExporter::getNsPrefix)
+                        .map(ChecklistExporter::getNsPrefix)
                         .filter(Objects::nonNull)
                         .collect(Collectors.toList()))
                 .ifPresent(acc::addAll);
@@ -373,7 +373,7 @@ public final class ForcedRootExporter {
         @NotNull Writer open() throws IOException;
     }
 
-    Predicate<ForcedRoot> getRetainFilter(final ChecklistUpdatePolicy updatePolicy) {
+    Predicate<ForcedRoot> getRetainFilter(final ForcedRootUpdatePolicy updatePolicy) {
         switch (updatePolicy != null ? updatePolicy : DEFAULT_UPDATE_POLICY) {
             case TRUNCATE:
                 // retain nothing
@@ -412,12 +412,13 @@ public final class ForcedRootExporter {
      * @param session      the JCR session to export roots from
      * @param checklist    the checklist to update, or null to start from scratch
      * @param updatePolicy specify behavior for retaining existing forced roots
+     * @throws IOException         if an error occurs when writing the checklist
      * @throws RepositoryException if an error occurs when exporting the new forced roots
      */
     public void updateChecklist(final WriterOpener writerOpener,
                                 final Session session,
                                 final Checklist checklist,
-                                final ChecklistUpdatePolicy updatePolicy)
+                                final ForcedRootUpdatePolicy updatePolicy)
             throws IOException, RepositoryException {
 
         final List<JcrNs> chkNs = new ArrayList<>();
@@ -460,7 +461,7 @@ public final class ForcedRootExporter {
         final Set<String> finalPrefixes = new HashSet<>();
         if (!privileges.isEmpty()) {
             builder.add(Checklist.KEY_JCR_PRIVILEGES, JavaxJson.wrap(privileges));
-            privileges.stream().map(ForcedRootExporter::getNsPrefix).forEachOrdered(finalPrefixes::add);
+            privileges.stream().map(ChecklistExporter::getNsPrefix).forEachOrdered(finalPrefixes::add);
         }
 
         newRoots.forEach(root -> existing.put(root.getPath(), root));
@@ -484,7 +485,7 @@ public final class ForcedRootExporter {
 
         final List<Name> foundNodeTypes = forcedRoots.stream()
                 .reduce(new HashSet<>(),
-                        ForcedRootExporter::findNodeTypesInForcedRoot,
+                        ChecklistExporter::findNodeTypesInForcedRoot,
                         (left, right) -> {
                             left.addAll(right);
                             return left;
@@ -523,7 +524,7 @@ public final class ForcedRootExporter {
         // begin namespace handling
         final Set<String> forcedRootPrefixes = forcedRoots.stream()
                 .reduce(new HashSet<>(),
-                        ForcedRootExporter::findJcrPrefixesInForcedRoot,
+                        ChecklistExporter::findJcrPrefixesInForcedRoot,
                         (left, right) -> {
                             left.addAll(right);
                             return left;

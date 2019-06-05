@@ -246,7 +246,7 @@ public final class CndExporter {
      * @param session          the JCR session to retrieve node types from.
      * @param desiredTypeNames the qualified names of node types to retrieve
      * @return a map of qualified names to exported node types.
-     * @throws RepositoryException
+     * @throws RepositoryException when session throws
      */
     public static Map<Name, NodeTypeDefinition> retrieveNodeTypes(@NotNull final Session session,
                                                                   @NotNull final Collection<Name> desiredTypeNames)
@@ -262,7 +262,7 @@ public final class CndExporter {
      * @param nodeTypeSelector an optional predicate that selects nodetypes for export in addition to the explicit list
      *                         of desiredTypeNames
      * @return a map of qualified names to exported node types.
-     * @throws RepositoryException
+     * @throws RepositoryException when session throws
      */
     public static Map<Name, NodeTypeDefinition>
     retrieveNodeTypes(@NotNull final Session session,

@@ -212,6 +212,23 @@ public final class JsonCnd {
     }
 
     /**
+     * a String comparator with a check for residual tokens to push them to the end of a list.
+     */
+    private static final transient Comparator<String> COMPARATOR_PUSH_RESIDUALS;
+    static {
+        final Comparator<String> keyComparator = Comparator.comparing(String::toString);
+        COMPARATOR_PUSH_RESIDUALS = (s1, s2) -> {
+            if (TOKEN_RESIDUAL.equals(s2)) {
+                return -1;
+            } else if (TOKEN_RESIDUAL.equals(s1)) {
+                return 1;
+            } else {
+                return keyComparator.compare(s1, s2);
+            }
+        };
+    }
+
+    /**
      * Returns a throwing bi-function that maps a JSON key and associated JSON Object value to a constructed node type definition.
      *
      * @param resolver a NamePathResolver, such as a DefaultNamePathResolver built around a NamespaceMapping
@@ -469,7 +486,7 @@ public final class JsonCnd {
                         .map(pDef -> toEntry(pDef, PropertyDefinitionKey.writeAllJson(pDef, resolver)))
                         .filter(testValue(JsonCnd::nonEmptyValue))
                         .map(mapKey(uncheck1(jcrNameOrResidual(resolver)).compose(QItemDefinition::getName)))
-                        .sorted(Map.Entry.comparingByKey())
+                        .sorted(Map.Entry.comparingByKey(COMPARATOR_PUSH_RESIDUALS))
                         .collect(JsonCollectors.toJsonObject()),
                 // read definition
                 resolver -> (def, value) -> def.setPropertyDefs(value.asJsonObject().entrySet().stream()
@@ -493,7 +510,7 @@ public final class JsonCnd {
                         .map(nDef -> toEntry(nDef, ChildNodeDefinitionKey.writeAllJson(nDef, resolver)))
                         .filter(testValue(JsonCnd::nonEmptyValue))
                         .map(mapKey(uncheck1(jcrNameOrResidual(resolver)).compose(QItemDefinition::getName)))
-                        .sorted(Map.Entry.comparingByKey())
+                        .sorted(Map.Entry.comparingByKey(COMPARATOR_PUSH_RESIDUALS))
                         .collect(JsonCollectors.toJsonObject()),
                 // read definition
                 resolver -> (def, value) -> def.setChildNodeDefs(value.asJsonObject().entrySet().stream()
