@@ -31,6 +31,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -674,7 +675,7 @@ public final class JavaxJson {
                                                 final boolean discardNulls) {
         return Optional.ofNullable(jsonArray).orElse(JsonValue.EMPTY_JSON_ARRAY).stream()
                 .filter(JsonString.class::isInstance)
-                .map(Util.compose(JsonString.class::cast, Util.compose(JsonString::getString, mapFunction)))
+                .map(mapFunction.compose(JsonString::getString).compose(JsonString.class::cast))
                 .filter(discardNulls ? Objects::nonNull : (elem) -> true)
                 .collect(Collectors.toList());
     }
@@ -711,6 +712,17 @@ public final class JavaxJson {
                 .map(JsonObject.class::cast)
                 .map(mapFunction)
                 .filter(discardNulls ? Objects::nonNull : (elem) -> true)
+                .collect(Collectors.toList());
+    }
+
+    public static <R> List<R> mapObjectValues(final JsonObject jsonObject,
+                                              final BiFunction<String, JsonObject, R> mapBiFunction,
+                                              final boolean discardNulls) {
+        return Optional.ofNullable(jsonObject).orElse(JsonValue.EMPTY_JSON_OBJECT).entrySet().stream()
+                .filter(Fun.testValue(value -> value.getValueType() == JsonValue.ValueType.OBJECT))
+                .map(Fun.mapValue(JsonValue::asJsonObject))
+                .map(Fun.mapEntry(mapBiFunction))
+                .filter(discardNulls ? Objects::nonNull : elem -> true)
                 .collect(Collectors.toList());
     }
 

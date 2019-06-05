@@ -28,7 +28,6 @@
         <appender-ref ref="STDOUT" />
     </root>
 
-    <logger name="net.adamcin.oakpal.webster" level="DEBUG">
-        <appender-ref ref="STDOUT" />
-    </logger>
+    <logger name="net.adamcin.oakpal.core.JsonCnd" level="DEBUG"/>
+    <logger name="net.adamcin.oakpal.webster" level="DEBUG"/>
 </configuration>

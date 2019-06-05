@@ -189,11 +189,11 @@ public final class Util {
     }
 
     /**
-     * @deprecated 1.2.0 org.json has been replaced with javax.json.
      * @param jsonArray the array to read objects and map to the specified type
-     * @param mapper the mapper function
-     * @param <T> the target type
+     * @param mapper    the mapper function
+     * @param <T>       the target type
      * @return the mapped list
+     * @deprecated 1.2.0 org.json has been replaced with javax.json.
      */
     @Deprecated
     public static <T> List<T> fromJSONArray(final JSONArray jsonArray, final Function<JSONObject, T> mapper) {
@@ -211,9 +211,9 @@ public final class Util {
     }
 
     /**
-     * @deprecated 1.2.0 org.json has been replaced with javax.json.
      * @param jsonArray the array to read objects and map to the specified type
      * @return the mapped list
+     * @deprecated 1.2.0 org.json has been replaced with javax.json.
      */
     @Deprecated
     public static List<String> fromJSONArrayAsStrings(final JSONArray jsonArray) {
@@ -259,24 +259,15 @@ public final class Util {
      * @param <T>       The input type mapped by the monad, i.e. the String type in {@code Stream<String>}.
      * @param <R>       The output type mapped by the monad, i.e. the URL type in {@code Stream<URL>}.
      * @return a flatMappable function
+     * @see Fun#composeTry(Function, Supplier, Fun.ThrowingFunction, BiConsumer)
+     * @deprecated 1.3.0 use {@link Fun#composeTry(Function, Supplier, Fun.ThrowingFunction, BiConsumer)}
      */
+    @Deprecated
     public static <M, T, R> Function<T, M> composeTry(final Function<R, M> monadUnit,
                                                       final Supplier<M> monadZero,
                                                       final TryFunction<T, R> onElement,
                                                       final BiConsumer<T, Exception> onError) {
-        final BiConsumer<T, Exception> consumeError = onError != null
-                ? onError
-                : (e, t) -> {
-        };
-
-        return (element) -> {
-            try {
-                return monadUnit.apply(onElement.tryApply(element));
-            } catch (final Exception error) {
-                consumeError.accept(element, error);
-                return monadZero.get();
-            }
-        };
+        return Fun.composeTry(monadUnit, monadZero, onElement, onError);
     }
 
     /**
@@ -285,16 +276,18 @@ public final class Util {
      *
      * @param <T> input type
      * @param <R> output type
+     * @deprecated 1.3.0 use {@link Fun.ThrowingFunction}
      */
-    @FunctionalInterface
-    public interface TryFunction<T, R> {
-        R tryApply(T element) throws Exception;
+    @Deprecated
+    public interface TryFunction<T, R> extends Fun.ThrowingFunction<T, R> {
     }
 
+    @Deprecated
     public static <T, R> Function<T, Optional<R>> optFunc(final Function<T, R> inputFunc) {
         return ((Function<R, Optional<R>>) Optional::ofNullable).compose(inputFunc);
     }
 
+    @Deprecated
     public static <T, I, R> Function<T, R> compose(final Function<T, I> before, final Function<I, R> after) {
         return after.compose(before);
     }

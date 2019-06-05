@@ -36,6 +36,7 @@ import javax.jcr.Session;
 import javax.jcr.Workspace;
 import javax.jcr.security.Privilege;
 
+import net.adamcin.oakpal.core.Fun;
 import org.apache.jackrabbit.api.JackrabbitWorkspace;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
@@ -45,6 +46,7 @@ import org.apache.jackrabbit.spi.commons.conversion.DefaultNamePathResolver;
 import org.apache.jackrabbit.spi.commons.conversion.NamePathResolver;
 import org.apache.jackrabbit.spi.commons.privilege.PrivilegeDefinitionImpl;
 import org.apache.jackrabbit.spi.commons.privilege.PrivilegeDefinitionWriter;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Interface independent logic for exporting privileges.xml files from a JCR session.
@@ -64,16 +66,24 @@ public final class PrivilegeXmlExporter {
     }
 
     /**
+     * Function type that provides a Writer.
+     */
+    @FunctionalInterface
+    public interface WriterOpener {
+        @NotNull Writer open() throws IOException;
+    }
+
+    /**
      * Serialize the desired privileges as an XML document to the provided stream writer.
      *
-     * @param writer          the desired output stream.
+     * @param writerOpener    an opener function that provides the desired output stream.
      * @param session         the JCR session
      * @param onlyNames       the list of privilege names to export
      * @param includeBuiltins false to exclude builtin privileges from the output (even when specified in onlyNames)
      * @throws RepositoryException for missing nodetypes or any other repository exception
      * @throws IOException         for I/O errors
      */
-    public static void writePrivileges(final Writer writer,
+    public static void writePrivileges(final WriterOpener writerOpener,
                                        final Session session,
                                        final List<String> onlyNames,
                                        final boolean includeBuiltins)
@@ -87,7 +97,7 @@ public final class PrivilegeXmlExporter {
 
         // get a name mapper function
         final NamePathResolver resolver = new DefaultNamePathResolver(session);
-        final Function<String, Name> mapper = FunUtil.tryOrDefault(resolver::getQName, null);
+        final Function<String, Name> mapper = Fun.tryOrDefault1(resolver::getQName, null);
         // first resolve the builtins to qualified Names
         final Set<Name> builtinPrivileges = BUILTIN_PRIVILEGES.stream()
                 .map(mapper).filter(Objects::nonNull).collect(toSet());
@@ -128,10 +138,12 @@ public final class PrivilegeXmlExporter {
                 .map(Name::getNamespaceURI).collect(toSet());
 
         final Map<String, String> namespaces = uris.stream()
-                .collect(toMap(FunUtil.tryOrDefault(session::getNamespacePrefix, null),
+                .collect(toMap(Fun.tryOrDefault1(session::getNamespacePrefix, null),
                         Function.identity()));
 
         PrivilegeDefinitionWriter pdWriter = new PrivilegeDefinitionWriter("text/xml");
-        pdWriter.writeDefinitions(writer, privilegeDefinitions.toArray(new PrivilegeDefinition[0]), namespaces);
+        try (Writer writer = writerOpener.open()) {
+            pdWriter.writeDefinitions(writer, privilegeDefinitions.toArray(new PrivilegeDefinition[0]), namespaces);
+        }
     }
 }

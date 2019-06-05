@@ -37,6 +37,7 @@ import javax.jcr.nodetype.NodeTypeManager;
 
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
+import net.adamcin.oakpal.core.Fun;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.api.JackrabbitWorkspace;
@@ -204,8 +205,8 @@ public final class TestUtil {
         final NamePathResolver resolver = new DefaultNamePathResolver(session);
         final NamespaceRegistry registry = workspace.getNamespaceRegistry();
 
-        final BiConsumer<String, String> nsSetter = FunUtil.tryConsume(registry::registerNamespace);
-        final Function<Name, String> mapper = FunUtil.tryOrDefault(resolver::getJCRName, null);
+        final BiConsumer<String, String> nsSetter = Fun.tryOrVoid2(registry::registerNamespace);
+        final Function<Name, String> mapper = Fun.tryOrDefault1(resolver::getJCRName, null);
 
         if (!(workspace instanceof JackrabbitWorkspace)) {
             throw new RepositoryException("Workspace must be instance of JackrabbitWorkspace, but isn't. type: " +

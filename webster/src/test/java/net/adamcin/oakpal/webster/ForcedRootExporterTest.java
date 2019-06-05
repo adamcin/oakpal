@@ -28,7 +28,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.OutputStreamWriter;
-import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -44,6 +43,7 @@ import javax.json.JsonReader;
 
 import net.adamcin.oakpal.core.Checklist;
 import net.adamcin.oakpal.core.ForcedRoot;
+import net.adamcin.oakpal.core.Fun;
 import net.adamcin.oakpal.core.JavaxJson;
 import net.adamcin.oakpal.core.checks.Rule;
 import org.apache.jackrabbit.commons.JcrUtils;
@@ -78,17 +78,17 @@ public class ForcedRootExporterTest {
 
         TestUtil.prepareRepo(pass1Dir, session -> {
             TestUtil.installCndFromURL(session, getClass().getResource("/sling_nodetypes.cnd"));
-            orderedPaths.forEach(FunUtil.tryConsume(path ->
+            orderedPaths.forEach(Fun.tryOrVoid1(path ->
                     JcrUtils.getOrCreateByPath(path, "nt:folder",
                             "sling:OrderedFolder", session, true)));
-            unorderedPaths.forEach(FunUtil.tryConsume(path ->
+            unorderedPaths.forEach(Fun.tryOrVoid1(path ->
                     JcrUtils.getOrCreateByPath(path, "nt:folder",
                             "sling:Folder", session, true)));
         });
 
         TestUtil.prepareRepo(fullRepoDir, session -> {
             TestUtil.installCndFromURL(session, getClass().getResource("/sling_nodetypes.cnd"));
-            allPaths.forEach(FunUtil.consumeUnchecked(path -> {
+            allPaths.forEach(Fun.uncheckVoid1(path -> {
                 Node node = JcrUtils.getOrCreateByPath(path, "sling:Folder", session);
                 node.addMixin("mix:title");
                 node.addMixin("sling:Resource");
@@ -99,7 +99,7 @@ public class ForcedRootExporterTest {
         TestUtil.prepareRepo(diffRepoDir, session -> {
             TestUtil.installCndFromURL(session, getClass().getResource("/sling_nodetypes.cnd"));
             allPaths.stream().filter(path -> path.matches(".*[02468]$"))
-                    .forEachOrdered(FunUtil.consumeUnchecked(path -> {
+                    .forEachOrdered(Fun.uncheckVoid1(path -> {
                         Node node = JcrUtils.getOrCreateByPath(path, "sling:Folder", session);
                         node.addMixin("mix:title");
                         node.addMixin("sling:Resource");
@@ -111,9 +111,9 @@ public class ForcedRootExporterTest {
         TestUtil.withReadOnlyFixture(pass1Dir, session -> {
             ForcedRootExporter pathExporter = new ForcedRootExporter.Builder().byPath(allPaths.toArray(new String[0])).build();
 
-            try (Writer writer = new OutputStreamWriter(new FileOutputStream(pass1Checklist), StandardCharsets.UTF_8)) {
-                pathExporter.updateChecklist(writer, session, null, null);
-            }
+            pathExporter.updateChecklist(() -> new OutputStreamWriter(
+                            new FileOutputStream(pass1Checklist), StandardCharsets.UTF_8),
+                    session, null, null);
 
             try (JsonReader reader = Json.createReader(new FileInputStream(pass1Checklist))) {
                 JsonObject checklist = reader.readObject();
@@ -144,10 +144,11 @@ public class ForcedRootExporterTest {
         TestUtil.withReadOnlyFixture(fullRepoDir, session -> {
             ForcedRootExporter pathExporter = new ForcedRootExporter.Builder().byPath(allPaths.toArray(new String[0])).build();
 
-            try (JsonReader reader = Json.createReader(new FileInputStream(pass1Checklist));
-                 Writer writer = new OutputStreamWriter(new FileOutputStream(fullPassChecklist), StandardCharsets.UTF_8)) {
+            try (JsonReader reader = Json.createReader(new FileInputStream(pass1Checklist))) {
 
-                pathExporter.updateChecklist(writer, session, reader.readObject(), null);
+                pathExporter.updateChecklist(() -> new OutputStreamWriter(
+                                new FileOutputStream(fullPassChecklist), StandardCharsets.UTF_8),
+                        session, Checklist.fromJson("", null, reader.readObject()), null);
             }
 
             try (JsonReader reader = Json.createReader(new FileInputStream(fullPassChecklist))) {
@@ -174,28 +175,31 @@ public class ForcedRootExporterTest {
         TestUtil.withReadOnlyFixture(diffRepoDir, session -> {
             ForcedRootExporter diffExporter = new ForcedRootExporter.Builder()
                     .byNodeType("sling:Folder")
-                    .withPathScopes(Rule.fromJsonArray(arr(key("type", "include").key("pattern", pathPrefix + "/ordered.*")).get()))
-                    .withNodeTypeScopes(Rule.fromJsonArray(arr(key("type", "exclude").key("pattern", "sling:.*")).get()))
+                    .withScopePaths(Rule.fromJsonArray(arr(key("type", "include").key("pattern", pathPrefix + "/ordered.*")).get()))
+                    .withScopeNodeTypes(Rule.fromJsonArray(arr(key("type", "exclude").key("pattern", "sling:.*")).get()))
                     .build();
 
-            try (JsonReader reader = Json.createReader(new FileInputStream(fullPassChecklist));
-                 Writer writer = new OutputStreamWriter(new FileOutputStream(mergePassChecklist), StandardCharsets.UTF_8)) {
+            try (JsonReader reader = Json.createReader(new FileInputStream(fullPassChecklist))) {
 
-                diffExporter.updateChecklist(writer, session, reader.readObject(),
+                diffExporter.updateChecklist(() -> new OutputStreamWriter(
+                                new FileOutputStream(mergePassChecklist), StandardCharsets.UTF_8),
+                        session, Checklist.fromJson("", null, reader.readObject()),
                         ForcedRootExporter.ChecklistUpdatePolicy.MERGE);
             }
 
-            try (JsonReader reader = Json.createReader(new FileInputStream(fullPassChecklist));
-                 Writer writer = new OutputStreamWriter(new FileOutputStream(replacePassChecklist), StandardCharsets.UTF_8)) {
+            try (JsonReader reader = Json.createReader(new FileInputStream(fullPassChecklist))) {
 
-                diffExporter.updateChecklist(writer, session, reader.readObject(),
+                diffExporter.updateChecklist(() -> new OutputStreamWriter(
+                                new FileOutputStream(replacePassChecklist), StandardCharsets.UTF_8),
+                        session, Checklist.fromJson("", null, reader.readObject()),
                         ForcedRootExporter.ChecklistUpdatePolicy.REPLACE);
             }
 
-            try (JsonReader reader = Json.createReader(new FileInputStream(fullPassChecklist));
-                 Writer writer = new OutputStreamWriter(new FileOutputStream(truncatePassChecklist), StandardCharsets.UTF_8)) {
+            try (JsonReader reader = Json.createReader(new FileInputStream(fullPassChecklist))) {
 
-                diffExporter.updateChecklist(writer, session, reader.readObject(),
+                diffExporter.updateChecklist(() -> new OutputStreamWriter(
+                                new FileOutputStream(truncatePassChecklist), StandardCharsets.UTF_8),
+                        session, Checklist.fromJson("", null, reader.readObject()),
                         ForcedRootExporter.ChecklistUpdatePolicy.TRUNCATE);
             }
 
@@ -307,10 +311,10 @@ public class ForcedRootExporterTest {
 
         TestUtil.prepareRepo(repoDir, session -> {
             TestUtil.installCndFromURL(session, getClass().getResource("/sling_nodetypes.cnd"));
-            orderedPaths.forEach(FunUtil.tryConsume(path ->
+            orderedPaths.forEach(Fun.tryOrVoid1(path ->
                     JcrUtils.getOrCreateByPath(path, "nt:folder",
                             "sling:OrderedFolder", session, true)));
-            unorderedPaths.forEach(FunUtil.tryConsume(path ->
+            unorderedPaths.forEach(Fun.tryOrVoid1(path ->
                     JcrUtils.getOrCreateByPath(path, "nt:folder",
                             "sling:Folder", session, true)));
         });
@@ -408,7 +412,7 @@ public class ForcedRootExporterTest {
             Node node2 = JcrUtils.getOrCreateByPath("/test_exclude/node2", "nt:folder", session);
 
             ForcedRootExporter exporter = new ForcedRootExporter.Builder()
-                    .withPathScopes(Rule
+                    .withScopePaths(Rule
                             .fromJsonArray(arr(key("type", "include").key("pattern", "/test_include(/.*)?"))
                                     .get())).build();
 
@@ -432,15 +436,15 @@ public class ForcedRootExporterTest {
             node1.addMixin("sling:Resource");
             node1.addMixin("sling:ResourceSuperType");
 
-            ForcedRootExporter mixExporter = new ForcedRootExporter.Builder().withNodeTypeScopes(
+            ForcedRootExporter mixExporter = new ForcedRootExporter.Builder().withScopeNodeTypes(
                     Rule.fromJsonArray(arr(key("type", "include").key("pattern", "mix:.*"))
                             .get())).build();
 
-            ForcedRootExporter slingExporter = new ForcedRootExporter.Builder().withNodeTypeScopes(
+            ForcedRootExporter slingExporter = new ForcedRootExporter.Builder().withScopeNodeTypes(
                     Rule.fromJsonArray(arr(key("type", "include").key("pattern", "sling:.*"))
                             .get())).build();
 
-            ForcedRootExporter rtExporter = new ForcedRootExporter.Builder().withNodeTypeScopes(
+            ForcedRootExporter rtExporter = new ForcedRootExporter.Builder().withScopeNodeTypes(
                     Rule.fromJsonArray(arr(key("type", "include").key("pattern", "sling:Resource"))
                             .get())).build();
 
@@ -500,7 +504,7 @@ public class ForcedRootExporterTest {
             final int sample = 5;
             List<String> paths = IntStream.range(0, sample).mapToObj(val -> "/test/node" + val).collect(Collectors.toList());
             assertEquals("should generate n paths: ", sample, paths.size());
-            paths.forEach(FunUtil.tryConsume(path ->
+            paths.forEach(Fun.tryOrVoid1(path ->
                     JcrUtils.getOrCreateByPath(path, "nt:folder",
                             "sling:Folder", session, true)));
 
@@ -533,10 +537,10 @@ public class ForcedRootExporterTest {
             List<String> orderedPaths = IntStream.range(0, sample).mapToObj(val -> "/test/ordered" + val).collect(Collectors.toList());
             List<String> unorderedPaths = IntStream.range(0, sample).mapToObj(val -> "/test/unordered" + val).collect(Collectors.toList());
             assertEquals("should generate n paths: ", sample, orderedPaths.size());
-            orderedPaths.forEach(FunUtil.tryConsume(path ->
+            orderedPaths.forEach(Fun.tryOrVoid1(path ->
                     JcrUtils.getOrCreateByPath(path, "nt:folder",
                             "sling:OrderedFolder", session, true)));
-            unorderedPaths.forEach(FunUtil.tryConsume(path ->
+            unorderedPaths.forEach(Fun.tryOrVoid1(path ->
                     JcrUtils.getOrCreateByPath(path, "nt:folder",
                             "sling:Folder", session, true)));
 

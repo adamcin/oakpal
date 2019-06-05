@@ -14,21 +14,19 @@
  * limitations under the License.
  */
 
-package net.adamcin.oakpal.maven.mojo;
+package net.adamcin.oakpal.core.jcrfacade;
 
-import java.io.File;
+import javax.jcr.Session;
+import javax.jcr.Workspace;
 
-import org.apache.maven.plugin.MojoExecutionException;
-import org.apache.maven.plugin.MojoFailureException;
-import org.apache.maven.plugins.annotations.Parameter;
+/**
+ * Wraps a {@link javax.jcr.Workspace} to guards against writes by listeners.
+ *
+ * @param <S> Session type, likely to be {@link Session}.
+ */
+class JcrWorkspaceFacade<S extends Session> extends WorkspaceFacade<S, Workspace> implements Workspace {
 
-public class AbstractExportMojo extends org.apache.maven.plugin.AbstractMojo {
-
-    @Parameter
-    protected File oakRepository;
-
-    @Override
-    public void execute() throws MojoExecutionException, MojoFailureException {
-
+    JcrWorkspaceFacade(final Workspace delegate, final SessionFacade<S> session) {
+        super(delegate, session);
     }
 }

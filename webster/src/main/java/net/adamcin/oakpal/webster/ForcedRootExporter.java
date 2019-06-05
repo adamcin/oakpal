@@ -16,22 +16,36 @@
 
 package net.adamcin.oakpal.webster;
 
+import static net.adamcin.oakpal.core.Fun.mapValue;
+import static net.adamcin.oakpal.core.Fun.testKey;
+import static net.adamcin.oakpal.core.Fun.uncheck1;
+
+import java.io.IOException;
 import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
+import java.util.function.BiPredicate;
+import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import javax.jcr.NamespaceRegistry;
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.nodetype.NodeType;
+import javax.jcr.nodetype.NodeTypeDefinition;
 import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
@@ -46,22 +60,37 @@ import javax.json.stream.JsonGenerator;
 
 import net.adamcin.oakpal.core.Checklist;
 import net.adamcin.oakpal.core.ForcedRoot;
+import net.adamcin.oakpal.core.Fun;
 import net.adamcin.oakpal.core.JavaxJson;
+import net.adamcin.oakpal.core.JcrNs;
+import net.adamcin.oakpal.core.JsonCnd;
+import net.adamcin.oakpal.core.QName;
 import net.adamcin.oakpal.core.checks.Rule;
+import org.apache.jackrabbit.spi.Name;
+import org.apache.jackrabbit.spi.QNodeTypeDefinition;
+import org.apache.jackrabbit.spi.commons.conversion.DefaultNamePathResolver;
+import org.apache.jackrabbit.spi.commons.conversion.NamePathResolver;
+import org.apache.jackrabbit.spi.commons.namespace.NamespaceMapping;
+import org.apache.jackrabbit.spi.commons.namespace.SessionNamespaceResolver;
+import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Exports {@link ForcedRoot}s from a JCR session to assist with project checklist management.
  */
 public final class ForcedRootExporter {
+    private static final Logger LOGGER = LoggerFactory.getLogger(ForcedRootExporter.class);
 
     /**
      * Builder for a {@link ForcedRootExporter}, which is otherwise immutable.
      */
     public static class Builder {
-
         private List<Op> operations = new ArrayList<>();
+        private List<String> exportTypeDefs = new ArrayList<>();
         private List<Rule> pathScopes = new ArrayList<>();
         private List<Rule> nodeTypeScopes = new ArrayList<>();
+        private List<JcrNs> nsMapping = new ArrayList<>();
 
         /**
          * Add an operation to export a set of roots by individual paths. If a specified path does not exist in the
@@ -71,7 +100,8 @@ public final class ForcedRootExporter {
          * @return this builder
          */
         public Builder byPath(final String... paths) {
-            this.operations.add(new Op(OpType.PATH, paths));
+            LOGGER.debug("[byPath] paths={}", Arrays.toString(paths));
+            this.operations.add(new Op(SelectorType.PATH, paths));
             return this;
         }
 
@@ -83,7 +113,8 @@ public final class ForcedRootExporter {
          * @return this builder
          */
         public Builder byQuery(final String statement) {
-            this.operations.add(new Op(OpType.QUERY, statement));
+            LOGGER.debug("[byQuery] statement={}", statement);
+            this.operations.add(new Op(SelectorType.QUERY, statement));
             return this;
         }
 
@@ -97,7 +128,9 @@ public final class ForcedRootExporter {
          * @return this builder
          */
         public Builder byNodeType(final String... nodeTypes) {
-            this.operations.add(new Op(OpType.NODETYPE, nodeTypes));
+            LOGGER.debug("[byNodeType] nodeTypes={}", Arrays.toString(nodeTypes));
+            this.operations.add(new Op(SelectorType.NODETYPE, nodeTypes));
+            this.exportTypeDefs.addAll(Arrays.asList(nodeTypes));
             return this;
         }
 
@@ -111,7 +144,7 @@ public final class ForcedRootExporter {
          * @return this builder
          * @see Rule#lastMatch(List, String)
          */
-        public Builder withPathScopes(final List<Rule> pathScopes) {
+        public Builder withScopePaths(final List<Rule> pathScopes) {
             this.pathScopes = Optional.ofNullable(pathScopes).orElse(Collections.emptyList());
             return this;
         }
@@ -126,8 +159,34 @@ public final class ForcedRootExporter {
          * @return this builder
          * @see Rule#lastMatch(List, String)
          */
-        public Builder withNodeTypeScopes(final List<Rule> nodeTypeScopes) {
+        public Builder withScopeNodeTypes(final List<Rule> nodeTypeScopes) {
             this.nodeTypeScopes = Optional.ofNullable(nodeTypeScopes).orElse(Collections.emptyList());
+            return this;
+        }
+
+        /**
+         * Provide a list of JCR namespace prefix mappings to register or remap before performing the operations.
+         *
+         * @param jcrNamespaces the list of jcr namespace mappings
+         * @return this builder
+         */
+        public Builder withJcrNamespaces(final List<JcrNs> jcrNamespaces) {
+            this.nsMapping = jcrNamespaces;
+            return this;
+        }
+
+        /**
+         * To export node types that aren't necessarily referenced in exported forced roots or in a node type selector,
+         * list them here in the same format as you would in a node type selector. These are also filtered by
+         * {@link #nodeTypeScopes}, which makes sense if you select a broad supertype for export, but want to restrict the
+         * resulting exported subtypes to a particular namespace, or to exclude an enumerated list of subtypes.
+         *
+         * @param exportNodeTypes the list of JCR node types to export
+         * @return this builder
+         * @see #byNodeType(String...)
+         */
+        public Builder withExportNodeTypes(final List<String> exportNodeTypes) {
+            Optional.ofNullable(exportNodeTypes).ifPresent(exportTypeDefs::addAll);
             return this;
         }
 
@@ -137,38 +196,61 @@ public final class ForcedRootExporter {
          * @return the new {@link ForcedRootExporter} instance
          */
         public ForcedRootExporter build() {
-            return new ForcedRootExporter(this.operations, this.pathScopes, this.nodeTypeScopes);
+            return new ForcedRootExporter(this.operations, this.exportTypeDefs, this.pathScopes, this.nodeTypeScopes,
+                    this.nsMapping);
         }
     }
 
-    private enum OpType {
-        QUERY, PATH, NODETYPE
+    public enum SelectorType {
+        QUERY, PATH, NODETYPE;
+
+        public static SelectorType byName(final String name) {
+            for (SelectorType value : values()) {
+                if (value.name().equalsIgnoreCase(name)) {
+                    return value;
+                }
+            }
+            throw new IllegalArgumentException("Unknown selector type: " + name);
+        }
     }
 
     /**
      * Represents an atomic export operation.
      */
     private static class Op {
-        private final OpType opType;
+        private final SelectorType selectorType;
         private final List<String> args;
 
-        private Op(final OpType opType, final String... args) {
+        private Op(final SelectorType selectorType, final String... args) {
             if (args == null) {
                 throw new IllegalArgumentException("args cannot be null");
             }
-            this.opType = opType;
+            this.selectorType = selectorType;
             this.args = Arrays.asList(args);
+        }
+
+        @Override
+        public String toString() {
+            return String.format("%s: %s", selectorType.name(), args);
         }
     }
 
     private final List<Op> operations;
+    private final List<String> exportTypeDefs;
     private final List<Rule> pathScopes;
     private final List<Rule> nodeTypeScopes;
+    private final List<JcrNs> jcrNamespaces;
 
-    private ForcedRootExporter(final List<Op> operations, final List<Rule> pathScopes, final List<Rule> nodeTypeScopes) {
+    private ForcedRootExporter(final List<Op> operations,
+                               final List<String> exportTypeDefs,
+                               final List<Rule> pathScopes,
+                               final List<Rule> nodeTypeScopes,
+                               final List<JcrNs> jcrNamespaces) {
         this.operations = operations;
+        this.exportTypeDefs = exportTypeDefs;
         this.pathScopes = pathScopes;
         this.nodeTypeScopes = nodeTypeScopes;
+        this.jcrNamespaces = jcrNamespaces;
     }
 
     public enum ChecklistUpdatePolicy {
@@ -187,71 +269,289 @@ public final class ForcedRootExporter {
          * Existing forced roots will not be removed. If exported root paths match existing root paths, the existing
          * entries will be overwritten, such that the primaryType and mixinTypes may be changed by the export.
          */
-        MERGE
+        MERGE;
+
+        public static ChecklistUpdatePolicy byName(final String name) {
+            for (ChecklistUpdatePolicy value : values()) {
+                if (value.name().equalsIgnoreCase(name)) {
+                    return value;
+                }
+            }
+            throw new IllegalArgumentException("Unknown policy name: " + name);
+        }
     }
 
     public static final ChecklistUpdatePolicy DEFAULT_UPDATE_POLICY = ChecklistUpdatePolicy.REPLACE;
+    public static final String COVARIANT_PREFIX = "+";
+
+    static final Predicate<String> COVARIANT_FILTER = name -> name.startsWith(COVARIANT_PREFIX);
+    static final Function<String, String> COVARIANT_FORMAT = name -> name.substring(COVARIANT_PREFIX.length());
+
+    static void ensureNamespaces(final Session session, final NamespaceMapping namespaces) throws RepositoryException {
+        NamespaceRegistry registry = session.getWorkspace().getNamespaceRegistry();
+        List<String> registered = Arrays.asList(registry.getURIs());
+        for (Map.Entry<String, String> entry : namespaces.getURIToPrefixMapping().entrySet()) {
+            if (entry.getKey().isEmpty() || entry.getValue().isEmpty()) {
+                continue;
+            }
+            if (registered.contains(entry.getKey())) {
+                session.setNamespacePrefix(entry.getValue(), entry.getKey());
+            } else {
+                registry.registerNamespace(entry.getValue(), entry.getKey());
+            }
+        }
+    }
+
+    static String getNsPrefix(final String name) {
+        final String[] parts = name.split(":");
+        return parts.length > 1 ? parts[0] : null;
+    }
+
+    static Set<String> findJcrPrefixesInForcedRoot(final Set<String> acc, final ForcedRoot forcedRoot) {
+        Optional.ofNullable(forcedRoot.getPath()).ifPresent(path ->
+                Stream.of(path.split("/"))
+                        .filter(name -> !name.isEmpty())
+                        .map(ForcedRootExporter::getNsPrefix)
+                        .filter(Objects::nonNull)
+                        .forEach(acc::add));
+        Optional.ofNullable(forcedRoot.getPrimaryType()).map(ForcedRootExporter::getNsPrefix).ifPresent(acc::add);
+        Optional.ofNullable(forcedRoot.getMixinTypes()).map(mixins ->
+                mixins.stream()
+                        .map(ForcedRootExporter::getNsPrefix)
+                        .filter(Objects::nonNull)
+                        .collect(Collectors.toList()))
+                .ifPresent(acc::addAll);
+        return acc;
+    }
+
+    static Set<String> findNodeTypesInForcedRoot(final Set<String> acc, final ForcedRoot forcedRoot) {
+        Optional.ofNullable(forcedRoot.getPrimaryType()).ifPresent(acc::add);
+        Optional.ofNullable(forcedRoot.getMixinTypes()).ifPresent(acc::addAll);
+        return acc;
+    }
+
+    static Function<String, String> nsRemapName(final NamespaceMapping fromMapping, final NamespaceMapping toMapping) {
+        Map<String, String> fromUris = fromMapping.getURIToPrefixMapping();
+        Map<String, String> toUris = toMapping.getURIToPrefixMapping();
+        Set<String> allUris = new HashSet<>(fromUris.keySet());
+        allUris.addAll(toUris.keySet());
+
+        final Map<String, Pattern> prefixToPrefix = new HashMap<>();
+        for (String uri : allUris) {
+            final String fromPrefix = fromUris.getOrDefault(uri, toUris.get(uri));
+            final String toPrefix = toUris.getOrDefault(uri, fromUris.get(uri));
+            if (!fromPrefix.equals(toPrefix)) {
+                prefixToPrefix.put(toPrefix, Pattern.compile("(?<=^|/)" + Pattern.quote(fromPrefix) + "(?=:)"));
+            }
+        }
+
+        return value -> prefixToPrefix.entrySet().stream()
+                .reduce(
+                        value,
+                        (input, entry) -> entry.getValue().matcher(input).replaceAll(entry.getKey()),
+                        (left, right) -> left.equals(value) ? right : left);
+    }
+
+    static Function<ForcedRoot, ForcedRoot> nsRemapForcedRoot(final NamespaceMapping fromMapping, final NamespaceMapping toMapping) {
+        final Function<String, String> replacer = nsRemapName(fromMapping, toMapping);
+        return orig -> {
+            ForcedRoot root = new ForcedRoot();
+            Optional.ofNullable(orig.getPath()).map(replacer).ifPresent(root::setPath);
+            Optional.ofNullable(orig.getPrimaryType()).map(replacer).ifPresent(root::setPrimaryType);
+            Optional.ofNullable(orig.getMixinTypes())
+                    .map(mixins -> mixins.stream().map(replacer).collect(Collectors.toList()))
+                    .ifPresent(root::setMixinTypes);
+            return root;
+        };
+    }
+
+    /**
+     * Function type that provides a Writer.
+     */
+    @FunctionalInterface
+    public interface WriterOpener {
+        @NotNull Writer open() throws IOException;
+    }
+
+    Predicate<ForcedRoot> getRetainFilter(final ChecklistUpdatePolicy updatePolicy) {
+        switch (updatePolicy != null ? updatePolicy : DEFAULT_UPDATE_POLICY) {
+            case TRUNCATE:
+                // retain nothing
+                return root -> false;
+            case REPLACE:
+                // only retain roots excluded by the path filter
+                return root -> Rule.lastMatch(pathScopes, root.getPath()).isExclude();
+            case MERGE:
+            default:
+                // retain everything
+                return root -> true;
+        }
+    }
+
+    BiPredicate<NamePathResolver, NodeType> exportTypeDefSelector() {
+        final Set<String> singleTypes = exportTypeDefs.stream()
+                .filter(COVARIANT_FILTER.negate())
+                .collect(Collectors.toSet());
+        final Set<String> superTypes = exportTypeDefs.stream()
+                .filter(COVARIANT_FILTER)
+                .map(COVARIANT_FORMAT)
+                .collect(Collectors.toSet());
+        return (resolver, type) -> {
+            final String name = type.getName();
+            return Rule.lastMatch(nodeTypeScopes, name).isInclude()
+                    && (singleTypes.contains(name) || Stream.of(type.getSupertypes())
+                    .map(NodeType::getName).anyMatch(superTypes::contains));
+        };
+    }
 
     /**
      * Update a checklist (or start a new one) with the forced roots exported from the provided session. Tidied JSON
      * output will be written to the provided writer.
      *
-     * @param writer       the writer to write the JSON output to
+     * @param writerOpener an opener that provides the writer to write the JSON output to
      * @param session      the JCR session to export roots from
      * @param checklist    the checklist to update, or null to start from scratch
      * @param updatePolicy specify behavior for retaining existing forced roots
      * @throws RepositoryException if an error occurs when exporting the new forced roots
      */
-    public void updateChecklist(final Writer writer,
+    public void updateChecklist(final WriterOpener writerOpener,
                                 final Session session,
-                                final JsonObject checklist,
+                                final Checklist checklist,
                                 final ChecklistUpdatePolicy updatePolicy)
-            throws RepositoryException {
+            throws IOException, RepositoryException {
+
+        final List<JcrNs> chkNs = new ArrayList<>();
+        // first attempt to remap JCR namespaces in the session, if necessary.
+        if (checklist != null && checklist.getJcrNamespaces() != null) {
+            chkNs.addAll(checklist.getJcrNamespaces());
+        }
+
+        final NamespaceMapping origMapping = JsonCnd.toNamespaceMapping(chkNs);
+        final NamespaceMapping remapping = JsonCnd.toNamespaceMapping(jcrNamespaces);
+
+        ensureNamespaces(session, origMapping);
+        ensureNamespaces(session, remapping);
 
         // try to find the roots. If any error occurs there, we want to fail fast before committing to other
         // potentially expensive, destructive, or error-prone logic.
         final List<ForcedRoot> newRoots = findRoots(session);
 
         // construct a stream filter for retaining existing forced roots
-        Predicate<ForcedRoot> retainFilter;
-        switch (updatePolicy != null ? updatePolicy : DEFAULT_UPDATE_POLICY) {
-            case TRUNCATE:
-                // retain nothing
-                retainFilter = root -> false;
-                break;
-            case REPLACE:
-                // only retain roots excluded by the path filter
-                retainFilter = root -> Rule.lastMatch(pathScopes, root.getPath()).isExclude();
-                break;
-            case MERGE:
-            default:
-                // retain everything
-                retainFilter = root -> true;
-                break;
-        }
+        Predicate<ForcedRoot> retainFilter = getRetainFilter(updatePolicy);
 
         final JsonObjectBuilder builder = Json.createObjectBuilder();
         final Map<String, ForcedRoot> existing = new LinkedHashMap<>();
+        final List<String> privileges = new ArrayList<>();
+
+        // remap the names of existing jcr definitions to match the new jcr namespaces
         if (checklist != null) {
-            checklist.forEach(builder::add);
-            if (checklist.containsKey(Checklist.KEY_FORCED_ROOTS)) {
-                JavaxJson.mapArrayOfObjects(checklist.getJsonArray(Checklist.KEY_FORCED_ROOTS), ForcedRoot::fromJson).stream()
-                        .filter(retainFilter)
-                        .forEachOrdered(root -> existing.put(root.getPath(), root));
-            }
+            checklist.toJson().forEach(builder::add);
+
+            checklist.getJcrPrivileges().stream()
+                    .map(nsRemapName(origMapping, remapping))
+                    .forEachOrdered(privileges::add);
+
+            checklist.getForcedRoots().stream()
+                    .map(nsRemapForcedRoot(origMapping, remapping))
+                    .filter(retainFilter)
+                    .forEachOrdered(root -> existing.put(root.getPath(), root));
+        }
+
+        final Set<String> finalPrefixes = new HashSet<>();
+        if (!privileges.isEmpty()) {
+            builder.add(Checklist.KEY_JCR_PRIVILEGES, JavaxJson.wrap(privileges));
+            privileges.stream().map(ForcedRootExporter::getNsPrefix).forEachOrdered(finalPrefixes::add);
         }
 
         newRoots.forEach(root -> existing.put(root.getPath(), root));
 
-        final JsonArray forcedRoots = existing.values().stream()
+        final List<ForcedRoot> forcedRoots = new ArrayList<>(existing.values());
+        Collections.sort(forcedRoots);
+
+        final JsonArray forcedRootsJson = forcedRoots.stream()
                 .map(ForcedRoot::toJson)
                 .collect(JsonCollectors.toJsonArray());
-        builder.add(Checklist.KEY_FORCED_ROOTS, forcedRoots);
 
-        try (JsonWriter jsonWriter = Json
-                .createWriterFactory(Collections.singletonMap(JsonGenerator.PRETTY_PRINTING, true))
-                .createWriter(writer)) {
-            jsonWriter.writeObject(builder.build());
+        builder.add(Checklist.KEY_FORCED_ROOTS, forcedRootsJson);
+
+        // begin nodetype handling
+
+        final NamePathResolver resolver = new DefaultNamePathResolver(session);
+        final Set<Name> builtinNodetypes = CndExporter.BUILTIN_NODETYPES.stream()
+                .map(uncheck1(resolver::getQName))
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        final List<Name> foundNodeTypes = forcedRoots.stream()
+                .reduce(new HashSet<>(),
+                        ForcedRootExporter::findNodeTypesInForcedRoot,
+                        (left, right) -> {
+                            left.addAll(right);
+                            return left;
+                        }).stream()
+                .map(uncheck1(resolver::getQName))
+                .collect(Collectors.toList());
+
+        final Map<Name, NodeTypeDefinition> exportedNodeTypes =
+                CndExporter.retrieveNodeTypes(session, foundNodeTypes, exportTypeDefSelector());
+        final List<QNodeTypeDefinition> qNodeTypes = exportedNodeTypes.entrySet().stream()
+                .map(mapValue(JsonCnd.adaptToQ(session)))
+                .filter(testKey(((Predicate<Name>) builtinNodetypes::contains).negate()))
+                .map(Map.Entry::getValue)
+                .collect(Collectors.toList());
+
+        final NamespaceMapping spm = new NamespaceMapping(new SessionNamespaceResolver(session));
+
+        if (!qNodeTypes.isEmpty()) {
+            final Set<String> nsUris = qNodeTypes.stream()
+                    .flatMap(JsonCnd::namedBy)
+                    .map(Name::getNamespaceURI)
+                    .collect(Collectors.toSet());
+
+            final Map<String, String> uriMapping = remapping.getURIToPrefixMapping();
+            nsUris.forEach(Fun.uncheckVoid1(uri -> {
+                final String prefix = uriMapping.containsKey(uri) ? uriMapping.get(uri) : spm.getPrefix(uri);
+                finalPrefixes.add(prefix);
+                spm.setMapping(prefix, uri);
+            }));
+
+            final JsonObject jcrNodetypes =
+                    JsonCnd.toJson(qNodeTypes, new NamespaceMapping(new SessionNamespaceResolver(session)));
+            builder.add(Checklist.KEY_JCR_NODETYPES, jcrNodetypes);
+        }
+
+        // begin namespace handling
+        final Set<String> forcedRootPrefixes = forcedRoots.stream()
+                .reduce(new HashSet<>(),
+                        ForcedRootExporter::findJcrPrefixesInForcedRoot,
+                        (left, right) -> {
+                            left.addAll(right);
+                            return left;
+                        });
+        finalPrefixes.addAll(forcedRootPrefixes);
+
+        finalPrefixes.removeAll(QName.BUILTIN_MAPPINGS.getPrefixToURIMapping().keySet());
+
+        if (!finalPrefixes.isEmpty()) {
+            final List<JcrNs> exportNamespaces = finalPrefixes.stream()
+                    .map(uncheck1(prefix -> JcrNs.create(prefix, spm.getURI(prefix))))
+                    .sorted()
+                    .collect(Collectors.toList());
+
+            builder.add(Checklist.KEY_JCR_NAMESPACES, exportNamespaces.stream()
+                    .map(JcrNs::toJson)
+                    .collect(JsonCollectors.toJsonArray()));
+        }
+
+        final JsonObject sorted = builder.build().entrySet().stream()
+                .sorted(Checklist.comparingJsonKeys(Map.Entry::getKey))
+                .collect(JsonCollectors.toJsonObject());
+
+        try (Writer writer = writerOpener.open();
+             JsonWriter jsonWriter = Json
+                     .createWriterFactory(Collections.singletonMap(JsonGenerator.PRETTY_PRINTING, true))
+                     .createWriter(writer)) {
+            jsonWriter.writeObject(sorted);
         }
     }
 
@@ -265,7 +565,7 @@ public final class ForcedRootExporter {
     public List<ForcedRoot> findRoots(final Session session) throws RepositoryException {
         List<ForcedRoot> roots = new ArrayList<>();
         for (Op op : this.operations) {
-            switch (op.opType) {
+            switch (op.selectorType) {
                 case PATH:
                     roots.addAll(traverse(session, op.args));
                     break;
@@ -294,24 +594,22 @@ public final class ForcedRootExporter {
         final List<String> subqueries = new ArrayList<>();
         final NodeTypeManager ntManager = session.getWorkspace().getNodeTypeManager();
 
-        final Predicate<String> covariantFilter = name -> name.startsWith("+");
-
         // covariants (find nodes of specified types or their subtypes)
         nodeTypeNames.stream()
-                .filter(covariantFilter)
-                .map(name -> name.substring(1))
-                .filter(FunUtil.testOrDefault(ntManager::hasNodeType, false))
+                .filter(COVARIANT_FILTER)
+                .map(COVARIANT_FORMAT)
+                .filter(Fun.testOrDefault1(ntManager::hasNodeType, false))
                 .map(name -> String.format("SELECT [jcr:path] FROM [%s] AS a", name))
                 .forEachOrdered(subqueries::add);
 
         // invariants (find only nodes which are of specified types)
         nodeTypeNames.stream()
-                .filter(covariantFilter.negate())
-                .filter(FunUtil.testOrDefault(ntManager::hasNodeType, false))
+                .filter(COVARIANT_FILTER.negate())
+                .filter(Fun.testOrDefault1(ntManager::hasNodeType, false))
                 .map(name -> String.format("SELECT [jcr:path] FROM [nt:base] AS a WHERE [a].[jcr:primaryType] = '%s' UNION SELECT [jcr:path] FROM [nt:base] AS a WHERE [a].[jcr:mixinTypes] = '%s'", name, name))
                 .forEachOrdered(subqueries::add);
 
-        return String.join(" UNION ", subqueries);
+        return String.join(" UNION ", subqueries) + " OPTION(TRAVERSAL OK, INDEX NAME nodetype)";
     }
 
     /**

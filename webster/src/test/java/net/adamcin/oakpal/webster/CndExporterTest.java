@@ -24,7 +24,6 @@ import static org.junit.Assert.assertTrue;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.OutputStreamWriter;
-import java.io.Writer;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -59,9 +58,8 @@ public class CndExporterTest {
         }
 
         TestUtil.withReadOnlyFixture(fromRepoDir, session -> {
-            try (Writer writer = new OutputStreamWriter(new FileOutputStream(explicitTypesCnd))) {
-                CndExporter.writeNodetypes(writer, session, Arrays.asList("sling:Folder", "nt:folder"), true);
-            }
+            new CndExporter.Builder().withIncludeBuiltins(true).build()
+                    .writeNodetypes(explicitTypesCnd, session, Arrays.asList("sling:Folder", "nt:folder"));
 
             try (Scanner scanner = new Scanner(explicitTypesCnd, StandardCharsets.UTF_8.name())) {
                 assertNull("nt:query should not be defined", scanner.findWithinHorizon("\\[nt:query]", 0));
@@ -73,23 +71,6 @@ public class CndExporterTest {
                 assertNotNull("nt:folder should be defined", scanner.findWithinHorizon("\\[nt:folder]", 0));
             }
             try (Scanner scanner = new Scanner(explicitTypesCnd, StandardCharsets.UTF_8.name())) {
-                assertNotNull("sling:Folder should be defined", scanner.findWithinHorizon("\\[sling:Folder]", 0));
-            }
-
-            try (Writer writer = new OutputStreamWriter(new FileOutputStream(allTypesCnd))) {
-                CndExporter.writeNodetypes(writer, session, Collections.emptyList(), true);
-            }
-
-            try (Scanner scanner = new Scanner(allTypesCnd, StandardCharsets.UTF_8.name())) {
-                assertNotNull("nt:query should be defined", scanner.findWithinHorizon("\\[nt:query]", 0));
-            }
-            try (Scanner scanner = new Scanner(allTypesCnd, StandardCharsets.UTF_8.name())) {
-                assertNotNull("sling:OrderedFolder should be defined", scanner.findWithinHorizon("\\[sling:OrderedFolder]", 0));
-            }
-            try (Scanner scanner = new Scanner(allTypesCnd, StandardCharsets.UTF_8.name())) {
-                assertNotNull("nt:folder should be defined", scanner.findWithinHorizon("\\[nt:folder]", 0));
-            }
-            try (Scanner scanner = new Scanner(allTypesCnd, StandardCharsets.UTF_8.name())) {
                 assertNotNull("sling:Folder should be defined", scanner.findWithinHorizon("\\[sling:Folder]", 0));
             }
         });
@@ -120,9 +101,8 @@ public class CndExporterTest {
             assertTrue("sling:OrderedFolder should be imported",
                     ntManager.hasNodeType("sling:OrderedFolder"));
 
-            try (Writer writer = new OutputStreamWriter(new FileOutputStream(exportedCnd))) {
-                CndExporter.writeNodetypes(writer, session, Collections.emptyList(), false);
-            }
+            new CndExporter.Builder().build()
+                    .writeNodetypes(exportedCnd, session, Arrays.asList("sling:Folder", "sling:OrderedFolder"));
         });
 
         TestUtil.prepareRepo(toRepoDir, session -> {
@@ -166,9 +146,8 @@ public class CndExporterTest {
             assertTrue("sling:OrderedFolder should be imported",
                     ntManager.hasNodeType("sling:OrderedFolder"));
 
-            try (Writer writer = new OutputStreamWriter(new FileOutputStream(exportedCnd))) {
-                CndExporter.writeNodetypes(writer, session, Collections.singletonList("sling:Folder"), false);
-            }
+            new CndExporter.Builder().build()
+                    .writeNodetypes(exportedCnd, session, Collections.singletonList("sling:Folder"));
         });
 
         TestUtil.prepareRepo(toRepoDir, session -> {

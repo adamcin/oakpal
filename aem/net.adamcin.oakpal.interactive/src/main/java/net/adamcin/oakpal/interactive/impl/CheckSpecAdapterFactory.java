@@ -55,7 +55,7 @@ class CheckSpecAdapterFactory implements AdapterFactory {
 
     static final String KEY_OAKPAL_CONFIG_ARRAY = "oakpalConfigArray";
 
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings("uncheckVoid")
     @Override
     public <AdapterType> AdapterType getAdapter(final Object adaptable, final Class<AdapterType> type) {
         if (adaptable instanceof Resource && type == CheckSpec.class) {

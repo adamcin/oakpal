@@ -42,17 +42,19 @@ import org.xml.sax.SAXException;
 
 /**
  * Base class for wrapping a {@link Session} to guards against writes by listeners.
+ *
+ * @param <S> type parameter for session
  */
 public abstract class SessionFacade<S extends Session> implements Session {
 
     protected final S delegate;
-    private final WorkspaceFacade<S> workspace;
+    private final Workspace workspace;
     private final RepositoryFacade repository;
     private boolean notProtected;
 
     protected SessionFacade(S delegate, boolean notProtected) {
         this.delegate = delegate;
-        this.workspace = new WorkspaceFacade<>(delegate.getWorkspace(), this);
+        this.workspace = WorkspaceFacade.findBestWrapper(delegate.getWorkspace(), this);
         this.repository = new RepositoryFacade(delegate.getRepository());
         this.notProtected = notProtected;
     }
@@ -67,7 +69,7 @@ public abstract class SessionFacade<S extends Session> implements Session {
         }
     }
 
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings("uncheckVoid")
     public static <T extends Session> SessionFacade<T> wrap(final T session, final Class<T> sessionType,
                                                             final boolean notProtected) {
         if (sessionType.isAssignableFrom(JackrabbitSessionFacade.class)) {

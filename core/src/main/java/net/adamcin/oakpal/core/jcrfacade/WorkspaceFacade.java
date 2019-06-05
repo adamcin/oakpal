@@ -34,19 +34,31 @@ import net.adamcin.oakpal.core.jcrfacade.nodetype.NodeTypeManagerFacade;
 import net.adamcin.oakpal.core.jcrfacade.observation.ObservationManagerFacade;
 import net.adamcin.oakpal.core.jcrfacade.query.QueryManagerFacade;
 import net.adamcin.oakpal.core.jcrfacade.version.VersionManagerFacade;
+import org.apache.jackrabbit.api.JackrabbitSession;
+import org.apache.jackrabbit.api.JackrabbitWorkspace;
 import org.xml.sax.ContentHandler;
 
 /**
- * Wraps {@link Workspace} to prevent writes.
+ * Base class for wrapping a {@link Workspace} to guards against writes by listeners.
  */
-public class WorkspaceFacade<S extends Session> implements Workspace {
+public class WorkspaceFacade<S extends Session, W extends Workspace> implements Workspace {
 
     private final SessionFacade<S> session;
-    private final Workspace delegate;
+    protected final W delegate;
 
-    public WorkspaceFacade(Workspace delegate, SessionFacade<S> session) {
+    public WorkspaceFacade(W delegate, SessionFacade<S> session) {
         this.delegate = delegate;
         this.session = session;
+    }
+
+    public static <S extends Session> Workspace findBestWrapper(final Workspace workspace, final SessionFacade<S> sessionFacade) {
+        if (workspace instanceof JackrabbitWorkspace) {
+            return new JackrabbitWorkspaceFacade<>((JackrabbitWorkspace) workspace, sessionFacade);
+        } else if (workspace != null) {
+            return new JcrWorkspaceFacade<>(workspace, sessionFacade);
+        } else {
+            return null;
+        }
     }
 
     @Override

@@ -34,10 +34,13 @@ import javax.jcr.NamespaceException;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
+import javax.jcr.nodetype.NodeTypeDefinition;
 
 import org.apache.jackrabbit.api.JackrabbitWorkspace;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.commons.JcrUtils;
+import org.apache.jackrabbit.spi.QNodeTypeDefinition;
+import org.apache.jackrabbit.spi.commons.nodetype.NodeTypeDefinitionFactory;
 
 /**
  * Encapsulation of JCR initialization parameters for multistage inits.
@@ -48,6 +51,8 @@ public final class InitStage {
 
     private final List<URL> orderedCndUrls;
 
+    private final List<QNodeTypeDefinition> qNodeTypes;
+
     // uri to prefix !!
     private final Map<String, String> namespaces;
 
@@ -57,11 +62,13 @@ public final class InitStage {
 
     private InitStage(final List<URL> unorderedCndUrls,
                       final List<URL> orderedCndUrls,
+                      final List<QNodeTypeDefinition> qNodeTypes,
                       final Map<String, String> namespaces,
                       final Set<String> privileges,
                       final Map<String, ForcedRoot> forcedRoots) {
         this.unorderedCndUrls = unorderedCndUrls;
         this.orderedCndUrls = orderedCndUrls;
+        this.qNodeTypes = qNodeTypes;
         this.namespaces = namespaces;
         this.privileges = privileges;
         this.forcedRoots = forcedRoots;
@@ -80,6 +87,8 @@ public final class InitStage {
         private List<URL> unorderedCndUrls = new ArrayList<>();
 
         private List<URL> orderedCndUrls = new ArrayList<>();
+
+        private List<QNodeTypeDefinition> qNodeTypes = new ArrayList<>();
 
         /**
          * Register an additional JCR namespace prior to the scan.
@@ -237,12 +246,25 @@ public final class InitStage {
         }
 
         /**
+         * Provide a list of {@link QNodeTypeDefinition}s to register.
+         *
+         * @param qNodeTypes qualified node types
+         * @return my builder self
+         */
+        public Builder withQNodeTypes(final List<QNodeTypeDefinition> qNodeTypes) {
+            if (qNodeTypes != null) {
+                this.qNodeTypes.addAll(qNodeTypes);
+            }
+            return this;
+        }
+
+        /**
          * Construct an {@link InitStage} from the {@link Builder} state.
          *
          * @return an {@link InitStage}
          */
         public InitStage build() {
-            return new InitStage(unorderedCndUrls, orderedCndUrls, namespaces, privileges, forcedRoots);
+            return new InitStage(unorderedCndUrls, orderedCndUrls, qNodeTypes, namespaces, privileges, forcedRoots);
         }
     }
 
@@ -269,6 +291,14 @@ public final class InitStage {
                     errorListener.onJcrNamespaceRegistrationError(e, prefix, uri);
                 }
             }
+        }
+
+        if (!qNodeTypes.isEmpty()) {
+            NodeTypeDefinitionFactory fac = new NodeTypeDefinitionFactory(admin);
+            List<NodeTypeDefinition> nodeTypes = fac.create(qNodeTypes);
+
+            admin.getWorkspace().getNodeTypeManager()
+                    .registerNodeTypes(nodeTypes.toArray(new NodeTypeDefinition[0]), true);
         }
 
         if (!privileges.isEmpty()) {

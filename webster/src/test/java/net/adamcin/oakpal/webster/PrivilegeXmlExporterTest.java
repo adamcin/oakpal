@@ -22,7 +22,6 @@ import static org.junit.Assert.assertTrue;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.OutputStreamWriter;
-import java.io.Writer;
 import java.net.URL;
 import java.util.Arrays;
 import javax.jcr.Workspace;
@@ -60,9 +59,9 @@ public class PrivilegeXmlExporterTest {
             assertNotNull("cq:storeUGC should be imported",
                     privilegeManager.getPrivilege("cq:storeUGC"));
 
-            try (Writer writer = new OutputStreamWriter(new FileOutputStream(exportedXml))) {
-                PrivilegeXmlExporter.writePrivileges(writer, session, Arrays.asList("crx:replicate"), false);
-            }
+            PrivilegeXmlExporter.writePrivileges(() -> new OutputStreamWriter(
+                            new FileOutputStream(exportedXml)),
+                    session, Arrays.asList("crx:replicate"), false);
         });
 
         TestUtil.prepareRepo(toRepoDir, session -> {
