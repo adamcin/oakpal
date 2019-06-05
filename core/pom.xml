@@ -64,18 +64,6 @@
                 <artifactId>maven-dependency-plugin</artifactId>
                 <executions>
                     <execution>
-                        <id>download-bndlib-for-embed</id>
-                        <goals>
-                            <goal>copy-dependencies</goal>
-                        </goals>
-                        <phase>process-classes</phase>
-                        <configuration>
-                            <includeArtifactIds>bndlib</includeArtifactIds>
-                            <outputDirectory>${project.build.directory}/jar</outputDirectory>
-                            <stripVersion>true</stripVersion>
-                        </configuration>
-                    </execution>
-                    <execution>
                         <id>unpack-test-packages</id>
                     </execution>
                 </executions>

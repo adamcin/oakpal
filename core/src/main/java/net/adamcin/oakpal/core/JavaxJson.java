@@ -47,6 +47,7 @@ import javax.json.JsonValue;
 import javax.json.stream.JsonCollectors;
 
 import org.apache.jackrabbit.util.ISO8601;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Simple DSL for constructing javax.json objects for {@link ProgressCheckFactory} configs using only three-letter identifiers.
@@ -56,6 +57,21 @@ import org.apache.jackrabbit.util.ISO8601;
 public final class JavaxJson {
     private JavaxJson() {
         /* no instantiation */
+    }
+
+    /**
+     * To keep things simple and concise, the JSON CND format does not need to serialize null values, empty arrays, or
+     * empty objects. This method should be used as a filtering predicate when mapping {@link JsonCnd.DefinitionToken} values to
+     * the JSON stream.
+     *
+     * @param value the JsonValue to test
+     * @return true if not null or empty
+     */
+    static boolean nonEmptyValue(@Nullable final JsonValue value) {
+        return !(value == null
+                || value.getValueType() == JsonValue.ValueType.NULL
+                || (value.getValueType() == JsonValue.ValueType.ARRAY && value.asJsonArray().isEmpty())
+                || (value.getValueType() == JsonValue.ValueType.OBJECT && value.asJsonObject().isEmpty()));
     }
 
     /**
@@ -366,6 +382,15 @@ public final class JavaxJson {
             return key(this.key, value);
         }
 
+        public Obj opt(final Object value) {
+            JsonValue wrapped = wrap(value);
+            if (nonEmptyValue(wrapped)) {
+                return obj().key(this.key, wrapped);
+            } else {
+                return obj();
+            }
+        }
+
         @Override
         public String getKey() {
             return this.key;
@@ -390,6 +415,15 @@ public final class JavaxJson {
 
         public Obj val(final Object value) {
             return obj.key(this.key, value);
+        }
+
+        public Obj opt(final Object value) {
+            JsonValue wrapped = wrap(value);
+            if (nonEmptyValue(wrapped)) {
+                return obj.key(this.key, wrapped);
+            } else {
+                return obj;
+            }
         }
 
         public Obj getObj() {
@@ -575,6 +609,14 @@ public final class JavaxJson {
 
         public Arr val(final Object value) {
             this.values.add(JavaxJson.val(value));
+            return this;
+        }
+
+        public Arr opt(final Object value) {
+            JsonValue wrapped = wrap(value);
+            if (nonEmptyValue(wrapped)) {
+                this.values.add(JavaxJson.val(wrapped));
+            }
             return this;
         }
 

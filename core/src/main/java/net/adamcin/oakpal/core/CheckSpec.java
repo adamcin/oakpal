@@ -18,6 +18,7 @@ package net.adamcin.oakpal.core;
 
 import static java.util.Optional.ofNullable;
 import static net.adamcin.oakpal.core.JavaxJson.hasNonNull;
+import static net.adamcin.oakpal.core.JavaxJson.key;
 import static net.adamcin.oakpal.core.JavaxJson.obj;
 import static net.adamcin.oakpal.core.Util.isEmpty;
 
@@ -244,16 +245,17 @@ public class CheckSpec implements JavaxJson.ObjectConvertible {
     @Override
     public final JsonObject toJson() {
         final JsonObjectBuilder builder = Json.createObjectBuilder();
-        final JsonObject base = obj()
-                .key(KEY_NAME, getName())
-                .key(KEY_IMPL, getImpl())
-                .key(KEY_INLINE_SCRIPT, getInlineScript())
-                .key(KEY_INLINE_ENGINE, getInlineEngine())
-                .key(KEY_CONFIG, getConfig())
-                .key(KEY_TEMPLATE, getTemplate())
-                .key(KEY_SKIP, isSkip())
-                .get();
-
+        final JavaxJson.Obj obj = obj()
+                .key(KEY_NAME).opt(getName())
+                .key(KEY_IMPL).opt(getImpl())
+                .key(KEY_INLINE_SCRIPT).opt(getInlineScript())
+                .key(KEY_INLINE_ENGINE).opt(getInlineEngine())
+                .key(KEY_CONFIG).opt(getConfig())
+                .key(KEY_TEMPLATE).opt(getTemplate());
+        if (isSkip()) {
+            obj().key(KEY_SKIP, true);
+        }
+        final JsonObject base = obj.get();
         base.forEach(builder::add);
         editJson(builder);
         return builder.build();

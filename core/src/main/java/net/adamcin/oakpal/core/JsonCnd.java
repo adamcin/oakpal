@@ -85,7 +85,6 @@ import org.apache.jackrabbit.spi.commons.nodetype.constraint.ValueConstraint;
 import org.apache.jackrabbit.spi.commons.value.QValueFactoryImpl;
 import org.apache.jackrabbit.spi.commons.value.ValueFormat;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * Methods and types used to encode/decode QNodeTypeDefinitions as JSON for use in checklists.
@@ -123,7 +122,7 @@ public final class JsonCnd {
         final NamePathResolver resolver = new DefaultNamePathResolver(mapping);
         return ntDefs.stream()
                 .map(def -> toEntry(def, NodeTypeDefinitionKey.writeAllJson(def, resolver)))
-                .filter(testValue(JsonCnd::nonEmptyValue))
+                .filter(testValue(JavaxJson::nonEmptyValue))
                 .map(mapKey(uncheck1(jcrNameOrResidual(resolver)).compose(QNodeTypeDefinition::getName)))
                 .sorted(Map.Entry.comparingByKey())
                 .collect(JsonCollectors.toJsonObject());
@@ -277,21 +276,6 @@ public final class JsonCnd {
     }
 
     /**
-     * To keep things simple and concise, the JSON CND format does not need to serialize null values, empty arrays, or
-     * empty objects. This method should be used as a filtering predicate when mapping {@link DefinitionToken} values to
-     * the JSON stream.
-     *
-     * @param value the JsonValue to test
-     * @return true if not null or empty
-     */
-    static boolean nonEmptyValue(@Nullable final JsonValue value) {
-        return !(value == null
-                || value.getValueType() == JsonValue.ValueType.NULL
-                || (value.getValueType() == JsonValue.ValueType.ARRAY && value.asJsonArray().isEmpty())
-                || (value.getValueType() == JsonValue.ValueType.OBJECT && value.asJsonObject().isEmpty()));
-    }
-
-    /**
      * Top interface defining CND tokens for both keys and attributes. Altogether there are 7 kinds of tokens:
      * NodeType 1) keys and 2) attributes
      * Item Definition 3) attributes (super kind of Property Definition and Child Node Definition)
@@ -400,7 +384,7 @@ public final class JsonCnd {
             Stream.of(tokens)
                     .filter(composeTest(DefinitionToken::getToken, json::containsKey).and(DefinitionToken::nonUnknown))
                     .map(key -> toEntry(key, json.get(key.getToken())))
-                    .filter(testValue(JsonCnd::nonEmptyValue))
+                    .filter(testValue(JavaxJson::nonEmptyValue))
                     .forEachOrdered(onEntry((key, keyValue) -> key.readTo(resolver, builder, keyValue)));
         }
     }
@@ -424,7 +408,7 @@ public final class JsonCnd {
         return Stream.of(tokens)
                 .filter(DefinitionToken::nonUnknown)
                 .map(key -> toEntry(key.getToken(), key.writeJson(def, resolver)))
-                .filter(testValue(JsonCnd::nonEmptyValue))
+                .filter(testValue(JavaxJson::nonEmptyValue))
                 .collect(JsonCollectors.toJsonObject());
     }
 
@@ -484,13 +468,13 @@ public final class JsonCnd {
                 // write json
                 (def, resolver) -> ofNullable(def.getPropertyDefs()).map(Stream::of).orElse(Stream.empty())
                         .map(pDef -> toEntry(pDef, PropertyDefinitionKey.writeAllJson(pDef, resolver)))
-                        .filter(testValue(JsonCnd::nonEmptyValue))
+                        .filter(testValue(JavaxJson::nonEmptyValue))
                         .map(mapKey(uncheck1(jcrNameOrResidual(resolver)).compose(QItemDefinition::getName)))
                         .sorted(Map.Entry.comparingByKey(COMPARATOR_PUSH_RESIDUALS))
                         .collect(JsonCollectors.toJsonObject()),
                 // read definition
                 resolver -> (def, value) -> def.setPropertyDefs(value.asJsonObject().entrySet().stream()
-                        .filter(testValue(JsonCnd::nonEmptyValue))
+                        .filter(testValue(JavaxJson::nonEmptyValue))
                         .map(mapValue((name, pValue) -> {
                             QPropertyDefinitionBuilder pDef = new QPropertyDefinitionBuilder();
                             pDef.setName(uncheck1(qNameOrResidual(resolver)).apply(name));
@@ -508,13 +492,13 @@ public final class JsonCnd {
                 // write json
                 (def, resolver) -> ofNullable(def.getChildNodeDefs()).map(Stream::of).orElse(Stream.empty())
                         .map(nDef -> toEntry(nDef, ChildNodeDefinitionKey.writeAllJson(nDef, resolver)))
-                        .filter(testValue(JsonCnd::nonEmptyValue))
+                        .filter(testValue(JavaxJson::nonEmptyValue))
                         .map(mapKey(uncheck1(jcrNameOrResidual(resolver)).compose(QItemDefinition::getName)))
                         .sorted(Map.Entry.comparingByKey(COMPARATOR_PUSH_RESIDUALS))
                         .collect(JsonCollectors.toJsonObject()),
                 // read definition
                 resolver -> (def, value) -> def.setChildNodeDefs(value.asJsonObject().entrySet().stream()
-                        .filter(testValue(JsonCnd::nonEmptyValue))
+                        .filter(testValue(JavaxJson::nonEmptyValue))
                         .map(mapValue((name, pValue) -> {
                             QNodeDefinitionBuilder nDef = new QNodeDefinitionBuilder();
                             nDef.setName(uncheck1(qNameOrResidual(resolver)).apply(name));
