@@ -15,13 +15,14 @@
   ~ limitations under the License.
   -->
 
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
         <groupId>net.adamcin.oakpal</groupId>
         <artifactId>oakpal</artifactId>
-        <version>1.2.2-SNAPSHOT</version>
+        <version>1.3.0-SNAPSHOT</version>
         <relativePath>..</relativePath>
     </parent>
 
@@ -57,22 +58,11 @@
         </testResources>
 
         <plugins>
+
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-dependency-plugin</artifactId>
                 <executions>
-                    <execution>
-                        <id>download-bndlib-for-embed</id>
-                        <goals>
-                            <goal>copy-dependencies</goal>
-                        </goals>
-                        <phase>process-classes</phase>
-                        <configuration>
-                            <includeArtifactIds>bndlib</includeArtifactIds>
-                            <outputDirectory>${project.build.directory}/jar</outputDirectory>
-                            <stripVersion>true</stripVersion>
-                        </configuration>
-                    </execution>
                     <execution>
                         <id>unpack-test-packages</id>
                     </execution>
@@ -100,20 +90,8 @@
                                 Automatic-Module-Name: net.adamcin.oakpal.core
                                 Oakpal-Checklist: OAKPAL-INF/checklists/basic.json
                                 Export-Package: net.adamcin.oakpal.core,net.adamcin.oakpal.core.checks
-                                Private-Package: net.adamcin.oakpal.core.jcrfacade.*,\
-                                    aQute.bnd.osgi,aQute.bnd.header,aQute.lib.base64,aQute.lib.collections,\
-                                    aQute.lib.converter,aQute.libg.generics,aQute.libg.qtokens,\
-                                    aQute.service.reporter
+                                Private-Package: net.adamcin.oakpal.core.jcrfacade.*
                                 Import-Package: org.json;version="[${json.min.version},20180813]",!aQute.*,*
-                                -includeresource: \
-                                    @${project.build.directory}/jar/bndlib.jar!/aQute/bnd/osgi/*,\
-                                    @${project.build.directory}/jar/bndlib.jar!/aQute/bnd/header/*,\
-                                    @${project.build.directory}/jar/bndlib.jar!/aQute/lib/base64/*,\
-                                    @${project.build.directory}/jar/bndlib.jar!/aQute/lib/collections/*,\
-                                    @${project.build.directory}/jar/bndlib.jar!/aQute/lib/converter/*,\
-                                    @${project.build.directory}/jar/bndlib.jar!/aQute/libg/generics/*,\
-                                    @${project.build.directory}/jar/bndlib.jar!/aQute/libg/qtokens/*,\
-                                    @${project.build.directory}/jar/bndlib.jar!/aQute/service/reporter/*
                             ]]></bnd>
                         </configuration>
                     </execution>
@@ -127,6 +105,47 @@
                         <manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
                     </archive>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>3.2.1</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <artifactSet>
+                                <includes>
+                                    <include>biz.aQute.bnd:bndlib</include>
+                                </includes>
+                            </artifactSet>
+                            <filters>
+                                <filter>
+                                    <artifact>biz.aQute.bnd:bndlib</artifact>
+                                    <includes>
+                                        <include>aQute/bnd/osgi/**</include>
+                                        <include>aQute/bnd/header/**</include>
+                                        <include>aQute/lib/base64/**</include>
+                                        <include>aQute/lib/collections/**</include>
+                                        <include>aQute/lib/converter/**</include>
+                                        <include>aQute/libg/generics/**</include>
+                                        <include>aQute/libg/qtokens/**</include>
+                                        <include>aQute/service/reporter/**</include>
+                                    </includes>
+                                </filter>
+                            </filters>
+                            <relocations>
+                                <relocation>
+                                    <pattern>aQute</pattern>
+                                    <shadedPattern>net.adamcin.oakpal.shaded.aQute</shadedPattern>
+                                </relocation>
+                            </relocations>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -192,7 +211,7 @@
         <dependency>
             <groupId>biz.aQute.bnd</groupId>
             <artifactId>bndlib</artifactId>
-            <scope>provided</scope>
+            <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>junit</groupId>
@@ -207,6 +226,11 @@
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>

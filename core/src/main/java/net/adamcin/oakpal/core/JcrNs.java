@@ -19,14 +19,14 @@ package net.adamcin.oakpal.core;
 import static net.adamcin.oakpal.core.JavaxJson.key;
 
 import javax.json.JsonObject;
-import javax.json.JsonObjectBuilder;
 
+import org.jetbrains.annotations.NotNull;
 import org.json.JSONObject;
 
 /**
  * Config DTO for JCR Namespace Prefix to URI Mappings.
  */
-public final class JcrNs {
+public final class JcrNs implements JavaxJson.ObjectConvertible, Comparable<JcrNs> {
     static final String KEY_PREFIX = "prefix";
     static final String KEY_URI = "uri";
 
@@ -66,7 +66,7 @@ public final class JcrNs {
      * @return a new JCR NS mapping
      */
     @Deprecated
-    static JcrNs fromJSON(final JSONObject json) {
+    static JcrNs fromJSON(@NotNull final JSONObject json) {
         JcrNs jcrNs = new JcrNs();
         jcrNs.setPrefix(json.getString(KEY_PREFIX));
         jcrNs.setUri(json.getString(KEY_URI));
@@ -79,15 +79,42 @@ public final class JcrNs {
      * @param json JSON object
      * @return a new JCR NS mapping
      */
-    static JcrNs fromJson(final JsonObject json) {
+    public static JcrNs fromJson(@NotNull final JsonObject json) {
+        if (!json.containsKey(KEY_PREFIX) || !json.containsKey(KEY_URI)) {
+            return null;
+        }
         JcrNs jcrNs = new JcrNs();
         jcrNs.setPrefix(json.getString(KEY_PREFIX, ""));
         jcrNs.setUri(json.getString(KEY_URI, ""));
         return jcrNs;
     }
 
+    /**
+     * Create a new JcrNs with both values set.
+     *
+     * @param prefix the namespace prefix
+     * @param uri    the namespace uri
+     * @return a new JCR namespace mapping
+     */
+    public static JcrNs create(@NotNull final String prefix, @NotNull final String uri) {
+        final JcrNs ns = new JcrNs();
+        ns.setPrefix(prefix);
+        ns.setUri(uri);
+        return ns;
+    }
+
+    @Override
+    public JsonObject toJson() {
+        return key(KEY_PREFIX, getPrefix()).key(KEY_URI, getUri()).get();
+    }
+
     @Override
     public String toString() {
-        return key(KEY_PREFIX, getPrefix()).key(KEY_URI, getUri()).get().toString();
+        return toJson().toString();
+    }
+
+    @Override
+    public int compareTo(@NotNull final JcrNs o) {
+        return getPrefix().compareTo(o.getPrefix());
     }
 }

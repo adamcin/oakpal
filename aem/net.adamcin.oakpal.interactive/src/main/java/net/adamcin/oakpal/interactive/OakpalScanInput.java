@@ -33,14 +33,30 @@ public interface OakpalScanInput {
     List<String> getChecklists();
 
     /**
+     * Get the list of repository paths for packages to preinstall.
      *
-     * @return
+     * @return the list of repository paths for packages to preinstall
      */
     List<String> getPreInstallPackagePaths();
 
+    /**
+     * Get the list of repository paths to packages to scan.
+     *
+     * @return the list of repository paths to packages to scan
+     */
     List<String> getPackagePaths();
 
+    /**
+     * Get the list of check specs.
+     *
+     * @return the list of check specs
+     */
     List<CheckSpec> getChecks();
 
+    /**
+     * return true to install the platform nodetypes prior to scan.
+     *
+     * @return true to install the platform nodetypes prior to scan
+     */
     boolean isInstallPlatformNodetypes();
 }

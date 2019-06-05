@@ -17,10 +17,11 @@
 package net.adamcin.oakpal.core.checks;
 
 import static java.util.Optional.ofNullable;
+import static net.adamcin.oakpal.core.Fun.compose;
+import static net.adamcin.oakpal.core.Fun.infer1;
 import static net.adamcin.oakpal.core.JavaxJson.arrayOrEmpty;
 import static net.adamcin.oakpal.core.JavaxJson.hasNonNull;
 import static net.adamcin.oakpal.core.JavaxJson.mapArrayOfStrings;
-import static net.adamcin.oakpal.core.Util.compose;
 import static org.apache.jackrabbit.vault.fs.io.AccessControlHandling.IGNORE;
 import static org.apache.jackrabbit.vault.fs.io.AccessControlHandling.MERGE;
 import static org.apache.jackrabbit.vault.fs.io.AccessControlHandling.MERGE_PRESERVE;

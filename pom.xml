@@ -26,12 +26,13 @@
   ~ For more information, please refer to <http://unlicense.org />
   -->
 
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>net.adamcin.oakpal</groupId>
     <artifactId>oakpal</artifactId>
-    <version>1.2.2-SNAPSHOT</version>
+    <version>1.3.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <inceptionYear>2017</inceptionYear>
@@ -48,6 +49,7 @@
 
     <modules>
         <module>core</module>
+        <module>webster</module>
         <module>maven</module>
         <module>testing</module>
         <module>aem</module>
@@ -425,12 +427,23 @@
             <dependency>
                 <groupId>net.adamcin.oakpal</groupId>
                 <artifactId>oakpal-testing</artifactId>
-                <version>1.2.2-SNAPSHOT</version>
+                <version>1.3.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>net.adamcin.oakpal</groupId>
                 <artifactId>oakpal-core</artifactId>
-                <version>1.2.2-SNAPSHOT</version>
+                <version>1.3.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>net.adamcin.oakpal</groupId>
+                <artifactId>oakpal-webster</artifactId>
+                <version>1.3.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.jetbrains</groupId>
+                <artifactId>annotations</artifactId>
+                <version>16.0.2</version>
+                <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.json</groupId>
@@ -467,6 +480,35 @@
                 <artifactId>oak-commons</artifactId>
                 <version>${oak.version}</version>
             </dependency>
+            <!-- upgrade oak-store-composite for oakpal-webster to get OAK-7923 -->
+            <dependency>
+                <groupId>org.apache.jackrabbit</groupId>
+                <artifactId>oak-store-composite</artifactId>
+                <version>1.9.13</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.jackrabbit</groupId>
+                <artifactId>oak-blob-cloud-azure</artifactId>
+                <version>${oak.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.jackrabbit</groupId>
+                <artifactId>oak-run-commons</artifactId>
+                <version>${oak.version}</version>
+                <exclusions>
+                    <!-- exclude transitive oak-store-composite for oakpal-webster to get OAK-7923 -->
+                    <exclusion>
+                        <groupId>org.apache.jackrabbit</groupId>
+                        <artifactId>oak-store-composite</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.jackrabbit</groupId>
+                <artifactId>oak-run</artifactId>
+                <version>${oak.version}</version>
+                <scope>provided</scope>
+            </dependency>
             <dependency>
                 <groupId>org.apache.jackrabbit</groupId>
                 <artifactId>oak-jcr</artifactId>
@@ -485,6 +527,12 @@
             </dependency>
 
             <!-- unit test dependencies -->
+            <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-core</artifactId>
+                <version>2.28.2</version>
+                <scope>test</scope>
+            </dependency>
             <dependency>
                 <groupId>junit</groupId>
                 <artifactId>junit</artifactId>

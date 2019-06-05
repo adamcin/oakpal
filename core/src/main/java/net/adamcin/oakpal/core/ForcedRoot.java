@@ -22,13 +22,16 @@ import static net.adamcin.oakpal.core.JavaxJson.optArray;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Function;
 import javax.json.JsonObject;
+
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Encapsulation of details necessary to force creation of a particular root path.
  */
-public final class ForcedRoot {
+public final class ForcedRoot implements JavaxJson.ObjectConvertible, Comparable<ForcedRoot> {
     static final String KEY_PATH = "path";
     static final String KEY_PRIMARY_TYPE = "primaryType";
     static final String KEY_MIXIN_TYPES = "mixinTypes";
@@ -88,7 +91,7 @@ public final class ForcedRoot {
      * @param json JSON object
      * @return a new forced root
      */
-    static ForcedRoot fromJson(final JsonObject json) {
+    public static ForcedRoot fromJson(final JsonObject json) {
         final ForcedRoot forcedRoot = new ForcedRoot();
         if (json.containsKey(KEY_PATH)) {
             forcedRoot.setPath(json.getString(KEY_PATH));
@@ -103,11 +106,21 @@ public final class ForcedRoot {
     }
 
     @Override
+    public JsonObject toJson() {
+        return obj().key(KEY_PATH, this.path)
+                .key(KEY_PRIMARY_TYPE).opt(this.primaryType)
+                .key(KEY_MIXIN_TYPES).opt(this.mixinTypes)
+                .get();
+    }
+
+    @Override
+    public int compareTo(@NotNull final ForcedRoot o) {
+        return (Optional.ofNullable(this.getPath()).orElse("") + "/")
+                .compareTo(Optional.ofNullable(o.getPath()).orElse("") + "/");
+    }
+
+    @Override
     public String toString() {
-        return obj()
-                .key(KEY_PATH, getPath())
-                .key(KEY_PRIMARY_TYPE, getPrimaryType())
-                .key(KEY_MIXIN_TYPES, getMixinTypes())
-                .get().toString();
+        return toJson().toString();
     }
 }

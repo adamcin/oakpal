@@ -31,6 +31,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -46,6 +47,7 @@ import javax.json.JsonValue;
 import javax.json.stream.JsonCollectors;
 
 import org.apache.jackrabbit.util.ISO8601;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Simple DSL for constructing javax.json objects for {@link ProgressCheckFactory} configs using only three-letter identifiers.
@@ -55,6 +57,21 @@ import org.apache.jackrabbit.util.ISO8601;
 public final class JavaxJson {
     private JavaxJson() {
         /* no instantiation */
+    }
+
+    /**
+     * To keep things simple and concise, the JSON CND format does not need to serialize null values, empty arrays, or
+     * empty objects. This method should be used as a filtering predicate when mapping {@link JsonCnd.DefinitionToken} values to
+     * the JSON stream.
+     *
+     * @param value the JsonValue to test
+     * @return true if not null or empty
+     */
+    static boolean nonEmptyValue(@Nullable final JsonValue value) {
+        return !(value == null
+                || value.getValueType() == JsonValue.ValueType.NULL
+                || (value.getValueType() == JsonValue.ValueType.ARRAY && value.asJsonArray().isEmpty())
+                || (value.getValueType() == JsonValue.ValueType.OBJECT && value.asJsonObject().isEmpty()));
     }
 
     /**
@@ -109,6 +126,10 @@ public final class JavaxJson {
             return JsonValue.NULL;
         } else if (object instanceof JsonValue) {
             return (JsonValue) object;
+        } else if (object instanceof ObjectConvertible) {
+            return ((ObjectConvertible) object).toJson();
+        } else if (object instanceof ArrayConvertible) {
+            return ((ArrayConvertible) object).toJson();
         } else if (object instanceof String) {
             return Json.createArrayBuilder().add((String) object).build().get(0);
         } else if (object instanceof Calendar) {
@@ -361,6 +382,15 @@ public final class JavaxJson {
             return key(this.key, value);
         }
 
+        public Obj opt(final Object value) {
+            JsonValue wrapped = wrap(value);
+            if (nonEmptyValue(wrapped)) {
+                return obj().key(this.key, wrapped);
+            } else {
+                return obj();
+            }
+        }
+
         @Override
         public String getKey() {
             return this.key;
@@ -385,6 +415,15 @@ public final class JavaxJson {
 
         public Obj val(final Object value) {
             return obj.key(this.key, value);
+        }
+
+        public Obj opt(final Object value) {
+            JsonValue wrapped = wrap(value);
+            if (nonEmptyValue(wrapped)) {
+                return obj.key(this.key, wrapped);
+            } else {
+                return obj;
+            }
         }
 
         public Obj getObj() {
@@ -573,6 +612,14 @@ public final class JavaxJson {
             return this;
         }
 
+        public Arr opt(final Object value) {
+            JsonValue wrapped = wrap(value);
+            if (nonEmptyValue(wrapped)) {
+                this.values.add(JavaxJson.val(wrapped));
+            }
+            return this;
+        }
+
         public JsonArray get() {
             JsonArrayBuilder arr = Json.createArrayBuilder();
             for (Value value : values) {
@@ -670,7 +717,7 @@ public final class JavaxJson {
                                                 final boolean discardNulls) {
         return Optional.ofNullable(jsonArray).orElse(JsonValue.EMPTY_JSON_ARRAY).stream()
                 .filter(JsonString.class::isInstance)
-                .map(Util.compose(JsonString.class::cast, Util.compose(JsonString::getString, mapFunction)))
+                .map(mapFunction.compose(JsonString::getString).compose(JsonString.class::cast))
                 .filter(discardNulls ? Objects::nonNull : (elem) -> true)
                 .collect(Collectors.toList());
     }
@@ -707,6 +754,17 @@ public final class JavaxJson {
                 .map(JsonObject.class::cast)
                 .map(mapFunction)
                 .filter(discardNulls ? Objects::nonNull : (elem) -> true)
+                .collect(Collectors.toList());
+    }
+
+    public static <R> List<R> mapObjectValues(final JsonObject jsonObject,
+                                              final BiFunction<String, JsonObject, R> mapBiFunction,
+                                              final boolean discardNulls) {
+        return Optional.ofNullable(jsonObject).orElse(JsonValue.EMPTY_JSON_OBJECT).entrySet().stream()
+                .filter(Fun.testValue(value -> value.getValueType() == JsonValue.ValueType.OBJECT))
+                .map(Fun.mapValue(JsonValue::asJsonObject))
+                .map(Fun.mapEntry(mapBiFunction))
+                .filter(discardNulls ? Objects::nonNull : elem -> true)
                 .collect(Collectors.toList());
     }
 
