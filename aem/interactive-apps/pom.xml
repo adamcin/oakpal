@@ -130,7 +130,7 @@
                 <artifactId>site-maven-plugin</artifactId>
                 <configuration>
                     <message>Creating site for ${project.artifactId} ${project.version}</message>
-                    <path>${project.artifactId}</path>
+                    <path>${project.parent.artifactId}/${project.artifactId}</path>
                 </configuration>
             </plugin>
         </plugins>
