@@ -43,10 +43,7 @@ import net.adamcin.oakpal.webster.WebsterTarget;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- *
- */
-public final class WebsterChecklistTarget implements WebsterTarget {
+final class WebsterChecklistTarget implements WebsterTarget {
     private static final Logger LOGGER = LoggerFactory.getLogger(WebsterChecklistTarget.class);
 
     static final String KEY_TYPE = "type";
