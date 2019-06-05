@@ -107,16 +107,10 @@ public final class ForcedRoot implements JavaxJson.ObjectConvertible, Comparable
 
     @Override
     public JsonObject toJson() {
-        JavaxJson.Obj json = obj().key(KEY_PATH, this.path);
-
-        if (this.primaryType != null) {
-            json.key(KEY_PRIMARY_TYPE, this.primaryType);
-        }
-
-        if (this.mixinTypes != null && !this.mixinTypes.isEmpty()) {
-            json.key(KEY_MIXIN_TYPES, this.mixinTypes);
-        }
-        return json.get();
+        return obj().key(KEY_PATH, this.path)
+                .key(KEY_PRIMARY_TYPE).opt(this.primaryType)
+                .key(KEY_MIXIN_TYPES).opt(this.mixinTypes)
+                .get();
     }
 
     @Override

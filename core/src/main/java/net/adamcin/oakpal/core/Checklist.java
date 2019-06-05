@@ -252,14 +252,7 @@ public final class Checklist implements JavaxJson.ObjectConvertible {
     public String toString() {
         return "Checklist{" +
                 "moduleName='" + moduleName + '\'' +
-                ", name='" + name + '\'' +
-                ", cndUrls=" + cndUrls +
-                ", jcrNamespaces=" + jcrNamespaces +
-                ", jcrNodetypes=" + jcrNodetypes +
-                ", jcrPrivileges=" + jcrPrivileges +
-                ", forcedRoots=" + forcedRoots +
-                ", checks=" + checks +
-                '}';
+                ", json='" + toJson().toString() + "'}";
     }
 
     /**
@@ -272,29 +265,17 @@ public final class Checklist implements JavaxJson.ObjectConvertible {
         if (this.originalJson != null) {
             return this.originalJson;
         } else {
-            JavaxJson.Obj json = obj().key(KEY_NAME, getName());
-            if (!getJcrNamespaces().isEmpty()) {
-                json.key(KEY_JCR_NAMESPACES, JavaxJson.wrap(getJcrNamespaces()));
-            }
-            if (!getJcrNodetypes().isEmpty()) {
-                json.key(KEY_JCR_NODETYPES,
-                        JavaxJson.wrap(JsonCnd
-                                .toJson(getJcrNodetypes(),
-                                        JsonCnd.toNamespaceMapping(getJcrNamespaces()))));
-            }
-            if (!getJcrPrivileges().isEmpty()) {
-                json.key(KEY_JCR_PRIVILEGES, JavaxJson.wrap(getJcrPrivileges()));
-            }
-            if (!getCndUrls().isEmpty()) {
-                json.key(KEY_CND_URLS, JavaxJson.wrap(getCndUrls()));
-            }
-            if (!getForcedRoots().isEmpty()) {
-                json.key(KEY_FORCED_ROOTS, JavaxJson.wrap(getForcedRoots()));
-            }
-            if (!getChecks().isEmpty()) {
-                json.key(KEY_CHECKS, JavaxJson.wrap(getChecks()));
-            }
-            return json.get();
+            return obj()
+                    .key(KEY_NAME).opt(getName())
+                    .key(KEY_CHECKS).opt(getChecks())
+                    .key(KEY_FORCED_ROOTS).opt(getForcedRoots())
+                    .key(KEY_CND_URLS).opt(getCndUrls())
+                    .key(KEY_JCR_NODETYPES).opt(JsonCnd
+                            .toJson(getJcrNodetypes(),
+                                    JsonCnd.toNamespaceMapping(getJcrNamespaces())))
+                    .key(KEY_JCR_PRIVILEGES).opt(getJcrPrivileges())
+                    .key(KEY_JCR_NAMESPACES).opt(getJcrNamespaces())
+                    .get();
         }
     }
 

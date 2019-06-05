@@ -104,7 +104,7 @@
                             <bnd><![CDATA[
                                 Bundle-SymbolicName: net.adamcin.oakpal.webster
                                 Automatic-Module-Name: net.adamcin.oakpal.webster
-                                Export-Package: net.adamcin.oakpal.webster
+                                Export-Package: net.adamcin.oakpal.webster,net.adamcin.oakpal.webster.targets
                             ]]></bnd>
                         </configuration>
                     </execution>
