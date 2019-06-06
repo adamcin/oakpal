@@ -21,7 +21,6 @@ import static net.adamcin.oakpal.core.Fun.composeTest;
 import static net.adamcin.oakpal.core.Fun.infer1;
 import static net.adamcin.oakpal.core.Fun.inferTest1;
 import static net.adamcin.oakpal.core.Fun.mapKey;
-import static net.adamcin.oakpal.core.Fun.mapValue;
 import static net.adamcin.oakpal.core.Fun.onEntry;
 import static net.adamcin.oakpal.core.Fun.testValue;
 import static net.adamcin.oakpal.core.Fun.toEntry;
@@ -214,6 +213,7 @@ public final class JsonCnd {
      * a String comparator with a check for residual tokens to push them to the end of a list.
      */
     private static final transient Comparator<String> COMPARATOR_PUSH_RESIDUALS;
+
     static {
         final Comparator<String> keyComparator = Comparator.comparing(String::toString);
         COMPARATOR_PUSH_RESIDUALS = (s1, s2) -> {
@@ -471,17 +471,17 @@ public final class JsonCnd {
                         .filter(testValue(JavaxJson::nonEmptyValue))
                         .map(mapKey(uncheck1(jcrNameOrResidual(resolver)).compose(QItemDefinition::getName)))
                         .sorted(Map.Entry.comparingByKey(COMPARATOR_PUSH_RESIDUALS))
-                        .collect(JsonCollectors.toJsonObject()),
+                        .map(Map.Entry::getValue)
+                        .collect(JsonCollectors.toJsonArray()),
                 // read definition
-                resolver -> (def, value) -> def.setPropertyDefs(value.asJsonObject().entrySet().stream()
-                        .filter(testValue(JavaxJson::nonEmptyValue))
-                        .map(mapValue((name, pValue) -> {
+                resolver -> (def, value) -> def.setPropertyDefs(value.asJsonArray().stream()
+                        .filter(JavaxJson::nonEmptyValue)
+                        .map(pValue -> {
                             QPropertyDefinitionBuilder pDef = new QPropertyDefinitionBuilder();
-                            pDef.setName(uncheck1(qNameOrResidual(resolver)).apply(name));
                             pDef.setDeclaringNodeType(def.getName());
                             PropertyDefinitionKey.readAllTo(resolver, pDef, pValue);
                             return pDef.build();
-                        })).map(Map.Entry::getValue).toArray(QPropertyDefinition[]::new))
+                        }).toArray(QPropertyDefinition[]::new))
         ),
         /**
          * Child Node Definitions.
@@ -495,17 +495,17 @@ public final class JsonCnd {
                         .filter(testValue(JavaxJson::nonEmptyValue))
                         .map(mapKey(uncheck1(jcrNameOrResidual(resolver)).compose(QItemDefinition::getName)))
                         .sorted(Map.Entry.comparingByKey(COMPARATOR_PUSH_RESIDUALS))
-                        .collect(JsonCollectors.toJsonObject()),
+                        .map(Map.Entry::getValue)
+                        .collect(JsonCollectors.toJsonArray()),
                 // read definition
-                resolver -> (def, value) -> def.setChildNodeDefs(value.asJsonObject().entrySet().stream()
-                        .filter(testValue(JavaxJson::nonEmptyValue))
-                        .map(mapValue((name, pValue) -> {
+                resolver -> (def, value) -> def.setChildNodeDefs(value.asJsonArray().stream()
+                        .filter(JavaxJson::nonEmptyValue)
+                        .map(pValue -> {
                             QNodeDefinitionBuilder nDef = new QNodeDefinitionBuilder();
-                            nDef.setName(uncheck1(qNameOrResidual(resolver)).apply(name));
                             nDef.setDeclaringNodeType(def.getName());
                             ChildNodeDefinitionKey.readAllTo(resolver, nDef, pValue);
                             return nDef.build();
-                        })).map(Map.Entry::getValue).toArray(QNodeDefinition[]::new)));
+                        }).toArray(QNodeDefinition[]::new)));
 
         /**
          * Read all of this type's key tokens from the parent json object to mutate the provided builder.
@@ -906,6 +906,17 @@ public final class JsonCnd {
      */
     enum PropertyDefinitionKey implements KeyDefinitionToken<QPropertyDefinitionBuilder, QPropertyDefinition> {
         /**
+         * Item name.
+         *
+         * @see ItemDefinition#getName()
+         */
+        NAME("name",
+                // write json
+                (def, resolver) -> wrap(uncheck1(jcrNameOrResidual(resolver)).apply(def.getName())),
+                // read definition
+                resolver -> (def, value) -> def.setName(uncheck1(qNameOrResidual(resolver))
+                        .compose(JSON_VALUE_STRING).apply(value))),
+        /**
          * Required Property Type.
          *
          * @see PropertyType
@@ -1156,6 +1167,17 @@ public final class JsonCnd {
      */
     enum ChildNodeDefinitionKey
             implements KeyDefinitionToken<QNodeDefinitionBuilder, QNodeDefinition> {
+        /**
+         * Item name.
+         *
+         * @see ItemDefinition#getName()
+         */
+        NAME("name",
+                // write json
+                (def, resolver) -> wrap(uncheck1(jcrNameOrResidual(resolver)).apply(def.getName())),
+                // read definition
+                resolver -> (def, value) -> def.setName(uncheck1(qNameOrResidual(resolver))
+                        .compose(JSON_VALUE_STRING).apply(value))),
         /**
          * Required Primary Types.
          *
