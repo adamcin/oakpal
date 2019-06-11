@@ -19,7 +19,6 @@ package net.adamcin.oakpal.maven.mojo;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.Paths;
 import javax.json.JsonObject;
 
 import net.adamcin.oakpal.maven.component.OakpalComponentConfigurator;
@@ -39,28 +38,38 @@ import org.apache.maven.plugins.annotations.Parameter;
  */
 @Mojo(name = "webster", requiresDirectInvocation = true, configurator = OakpalComponentConfigurator.HINT)
 public class WebsterMojo extends org.apache.maven.plugin.AbstractMojo {
+    public static final String PARAM_REPOSITORY_HOME = "webster.repositoryHome";
+    public static final String PARAM_OAK_RUN_ARGS = "webster.oakRunArgs";
+    public static final String PARAM_TMPDIR = "webster.tmpdir";
 
     /**
-     * The path to a segmentstore directory containing a journal.log file and the rest of an Oak SegmentTar NodeStore. If
-     * a sibling datastore folder exists, it will be treated as a FileBlobStore. Otherwise, inline blobs will be assumed.
+     * The path to a folder containing a {@code segmentstore} directory, that also contains a {@code journal.log} file
+     * and the rest of an Oak SegmentTar NodeStore. If a {@code datastore} child folder also exists, it will be treated
+     * as a FileBlobStore. Otherwise, inline blobs will be assumed.
      * <p>
      * If this folder does not exist, is null, or is the current directory, the mojo will gracefully opt out of definition
      * export.
      * <p>
      * This can be overridden using the webster.oakRunArgsString property.
      */
-    @Parameter(property = "webster.segmentStore")
-    private File websterSegmentStore;
+    @Parameter(property = PARAM_REPOSITORY_HOME)
+    private File websterRepositoryHome;
 
     /**
      * If the Oak repository NodeStore requires more complex configurations.
      */
-    @Parameter(property = "webster.oakRunArgsString")
+    @Parameter(property = PARAM_OAK_RUN_ARGS)
     private String websterOakRunArgs;
 
     /**
+     * Specify a particular director for creation of temporary segment stores.
+     */
+    @Parameter(property = PARAM_TMPDIR, defaultValue = "${project.build.directory}/webster-tmpdir")
+    private File websterTempDirectory;
+
+    /**
      * Directory containing resources for a FileVault archive. This is required for "nodetypes" and "privileges" targets.
-     * It is also possible to reference the built filevault-package artifact, as in
+     * It is also possible to reference the built content-package artifact, as in
      * "${project.build.directory}/${project.build.finalName}.zip", if this goal is executed after completion of the
      * "package" phase.
      */
@@ -68,16 +77,10 @@ public class WebsterMojo extends org.apache.maven.plugin.AbstractMojo {
     private File websterArchiveRoot;
 
     /**
-     * Specify the list of targets to update
+     * Specify the list of targets to update.
      */
-    @Parameter(required = true)
+    @Parameter
     private JsonObject websterTargets;
-
-    /**
-     * Specify a particular director for creation of temporary segment stores.
-     */
-    @Parameter(property = "webster.tmpdir", defaultValue = "${project.build.directory}/webster-tmpdir")
-    private File websterTempDirectory;
 
     /**
      * The Oak repository spin up and query process can be quite verbose. By default, Webster sets
@@ -103,6 +106,11 @@ public class WebsterMojo extends org.apache.maven.plugin.AbstractMojo {
             suppressOakLogging();
         }
 
+        if (websterTargets == null || websterTargets.isEmpty()) {
+            getLog().info("No websterTargets configuration found in plugin configuration. skipping webster execution.");
+            return;
+        }
+
         try {
             builder.withTargets(JsonTargetFactory.fromJsonHintMap(baseDir, websterTargets));
         } catch (Exception e) {
@@ -115,33 +123,39 @@ public class WebsterMojo extends org.apache.maven.plugin.AbstractMojo {
                         websterOakRunArgs);
                 builder.withFixtureProvider(() ->
                         JcrFactory.getNodeStoreFixture(true, CliArgParser.parse(websterOakRunArgs)));
-            } else if (websterSegmentStore != null
-                    && websterSegmentStore.isDirectory()
-                    && !Files.isSameFile(websterSegmentStore.toPath(), Paths.get(""))) {
-                getLog().info("Using webster.segmentStore to configure NodeStore: " +
-                        websterSegmentStore.getAbsolutePath());
-                builder.withFixtureProvider(() -> JcrFactory.getReadOnlyFixture(websterSegmentStore.getAbsoluteFile()));
+            } else if (websterRepositoryHome != null
+                    && websterRepositoryHome.isDirectory()) {
+                getLog().info("Using webster.repositoryHome to configure NodeStore: " +
+                        websterRepositoryHome.getAbsolutePath());
+                final File segmentStore = new File(websterRepositoryHome, "segmentstore");
+                if (!(new File(segmentStore, "journal.log")).isFile()) {
+                    getLog().info("segmentstore/journal.log file not found in configured webster.repositoryHome.");
+                    return;
+                }
+
+                builder.withFixtureProvider(() -> JcrFactory.getReadOnlyFixture(segmentStore));
             } else {
-                getLog().info("No source Oak nodestore provided. skipping webster execution.");
+                getLog().info("No source Oak repository provided. skipping webster execution.");
                 return;
             }
 
             websterTempDirectory.mkdirs();
-            final File globalSegmentStore = Files
-                    .createTempDirectory(websterTempDirectory.toPath(), "webster_segmentstore")
+            final File globalRepositoryHome = Files
+                    .createTempDirectory(websterTempDirectory.toPath(), "webster_repository")
                     .toFile().getAbsoluteFile();
 
             try {
-                WebsterPlan plan = builder.withGlobalSegmentStore(globalSegmentStore).build();
+                WebsterPlan plan = builder
+                        .withGlobalSegmentStore(new File(globalRepositoryHome, "segmentstore")).build();
                 plan.perform();
             } catch (Exception e) {
                 throw new MojoExecutionException("Failed to execute Webster plan.", e);
             } finally {
                 try {
-                    FileUtils.deleteDirectory(globalSegmentStore);
+                    FileUtils.deleteDirectory(globalRepositoryHome);
                 } catch (IOException e) {
                     getLog().error("Failed to delete temp global segment store: "
-                            + globalSegmentStore.getAbsolutePath(), e);
+                            + globalRepositoryHome.getAbsolutePath(), e);
                 }
             }
         } catch (IOException e) {

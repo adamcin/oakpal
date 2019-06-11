@@ -89,7 +89,7 @@ public final class ChecklistExporter {
         private List<Op> operations = new ArrayList<>();
         private List<String> exportTypeDefs = new ArrayList<>();
         private List<Rule> pathScopes = new ArrayList<>();
-        private List<Rule> nodeTypeScopes = new ArrayList<>();
+        private List<Rule> nodeTypeFilters = new ArrayList<>();
         private List<JcrNs> nsMapping = new ArrayList<>();
 
         /**
@@ -140,12 +140,12 @@ public final class ChecklistExporter {
          * operations and/or replaced in existing checklists. Use EXCLUDE patterns to protect existing forced roots from
          * being overwritten by a particular instance of {@link ChecklistExporter}.
          *
-         * @param pathScopes the list of include/exclude patterns
+         * @param scopePaths the list of include/exclude patterns
          * @return this builder
          * @see Rule#lastMatch(List, String)
          */
-        public Builder withScopePaths(final List<Rule> pathScopes) {
-            this.pathScopes = Optional.ofNullable(pathScopes).orElse(Collections.emptyList());
+        public Builder withScopePaths(final List<Rule> scopePaths) {
+            this.pathScopes = Optional.ofNullable(scopePaths).orElse(Collections.emptyList());
             return this;
         }
 
@@ -155,12 +155,12 @@ public final class ChecklistExporter {
          * JCR namespace or CND that exists in a template repository for other purposes. For example, an EXCLUDE rule
          * for "cq:.*" would exclude any types in the cq namespace.
          *
-         * @param nodeTypeScopes the list of include/exclude patterns
+         * @param nodeTypeFilters the list of include/exclude patterns
          * @return this builder
          * @see Rule#lastMatch(List, String)
          */
-        public Builder withScopeNodeTypes(final List<Rule> nodeTypeScopes) {
-            this.nodeTypeScopes = Optional.ofNullable(nodeTypeScopes).orElse(Collections.emptyList());
+        public Builder withNodeTypeFilters(final List<Rule> nodeTypeFilters) {
+            this.nodeTypeFilters = Optional.ofNullable(nodeTypeFilters).orElse(Collections.emptyList());
             return this;
         }
 
@@ -178,7 +178,7 @@ public final class ChecklistExporter {
         /**
          * To export node types that aren't necessarily referenced in exported forced roots or in a node type selector,
          * list them here in the same format as you would in a node type selector. These are also filtered by
-         * {@link #nodeTypeScopes}, which makes sense if you select a broad supertype for export, but want to restrict the
+         * {@link #nodeTypeFilters}, which makes sense if you select a broad supertype for export, but want to restrict the
          * resulting exported subtypes to a particular namespace, or to exclude an enumerated list of subtypes.
          *
          * @param exportNodeTypes the list of JCR node types to export
@@ -196,7 +196,7 @@ public final class ChecklistExporter {
          * @return the new {@link ChecklistExporter} instance
          */
         public ChecklistExporter build() {
-            return new ChecklistExporter(this.operations, this.exportTypeDefs, this.pathScopes, this.nodeTypeScopes,
+            return new ChecklistExporter(this.operations, this.exportTypeDefs, this.pathScopes, this.nodeTypeFilters,
                     this.nsMapping);
         }
     }
@@ -238,18 +238,18 @@ public final class ChecklistExporter {
     private final List<Op> operations;
     private final List<String> exportTypeDefs;
     private final List<Rule> pathScopes;
-    private final List<Rule> nodeTypeScopes;
+    private final List<Rule> nodeTypeFilters;
     private final List<JcrNs> jcrNamespaces;
 
     private ChecklistExporter(final List<Op> operations,
                               final List<String> exportTypeDefs,
                               final List<Rule> pathScopes,
-                              final List<Rule> nodeTypeScopes,
+                              final List<Rule> nodeTypeFilters,
                               final List<JcrNs> jcrNamespaces) {
         this.operations = operations;
         this.exportTypeDefs = exportTypeDefs;
         this.pathScopes = pathScopes;
-        this.nodeTypeScopes = nodeTypeScopes;
+        this.nodeTypeFilters = nodeTypeFilters;
         this.jcrNamespaces = jcrNamespaces;
     }
 
@@ -398,7 +398,7 @@ public final class ChecklistExporter {
                 .collect(Collectors.toSet());
         return (resolver, type) -> {
             final String name = type.getName();
-            return Rule.lastMatch(nodeTypeScopes, name).isInclude()
+            return Rule.lastMatch(nodeTypeFilters, name).isInclude()
                     && (singleTypes.contains(name) || Stream.of(type.getSupertypes())
                     .map(NodeType::getName).anyMatch(superTypes::contains));
         };
@@ -668,12 +668,12 @@ public final class ChecklistExporter {
         ForcedRoot forcedRoot = new ForcedRoot();
         forcedRoot.setPath(node.getPath());
         final String primaryType = node.getPrimaryNodeType().getName();
-        if (Rule.lastMatch(nodeTypeScopes, primaryType).isInclude()) {
+        if (Rule.lastMatch(nodeTypeFilters, primaryType).isInclude()) {
             forcedRoot.setPrimaryType(primaryType);
         }
         final List<String> mixinTypes = Stream.of(node.getMixinNodeTypes())
                 .map(NodeType::getName)
-                .filter(name -> Rule.lastMatch(nodeTypeScopes, name).isInclude())
+                .filter(name -> Rule.lastMatch(nodeTypeFilters, name).isInclude())
                 .collect(Collectors.toList());
         forcedRoot.setMixinTypes(mixinTypes);
         return Optional.of(forcedRoot);

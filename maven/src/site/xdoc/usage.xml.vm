@@ -198,7 +198,7 @@
             </div>
             <p>
                 Check &lt;config&gt; elements are transformed to the JSON format expected by the
-                <tt>ProgressCheckFactory</tt> by the <a href="apidocs/net/adamcin/oakpal/maven/component/JSONObjectConverter.html">JSONObjectConverter</a>.
+                <tt>ProgressCheckFactory</tt> by the <a href="apidocs/net/adamcin/oakpal/maven/component/JavaxJsonObjectConverter.html">JavaxJsonObjectConverter</a>.
             </p>
         </section>
         <section name="4. Write a Script Check">

@@ -22,9 +22,11 @@
             <item name="Introduction" href="index.html" />
             <item name="Goals" href="plugin-info.html" />
             <item name="Usage" href="usage.html" />
+            <item name="Webster: Managing Nodetypes" href="webster-managing-nodetypes.html" />
             <item name="Writing a Script Check" href="writing-a-script-check.html" />
             <item name="The Basic Checklist" href="../oakpal-core/the-basic-checklist.html" />
             <item name="Publishing a Checklist" href="../oakpal-core/publishing-a-checklist.html" />
+            <item name="Webster: Generating Checklist Initial State" href="webster-generating-checklist-initial-state.html" />
             <item name="JavaDocs" href="apidocs/index.html" />
         </menu>
     </body>

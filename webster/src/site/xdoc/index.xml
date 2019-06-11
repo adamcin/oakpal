@@ -21,7 +21,9 @@
     <body>
         <section name="oakpal-webster">
             <p>
-                Webster collects definitions and writes them down...
+                Webster collects definitions and writes them down. This site section will document the Webster library.
+                For current usage details, please refer to the
+                <a href="../oakpal-maven-plugin/webster-mojo.html">oakpal:webster</a> maven goal documentation.
             </p>
         </section>
         <section name="Requirements">

@@ -176,7 +176,7 @@ public class ChecklistExporterTest {
             ChecklistExporter diffExporter = new ChecklistExporter.Builder()
                     .byNodeType("sling:Folder")
                     .withScopePaths(Rule.fromJsonArray(arr(key("type", "include").key("pattern", pathPrefix + "/ordered.*")).get()))
-                    .withScopeNodeTypes(Rule.fromJsonArray(arr(key("type", "exclude").key("pattern", "sling:.*")).get()))
+                    .withNodeTypeFilters(Rule.fromJsonArray(arr(key("type", "exclude").key("pattern", "sling:.*")).get()))
                     .build();
 
             try (JsonReader reader = Json.createReader(new FileInputStream(fullPassChecklist))) {
@@ -436,15 +436,15 @@ public class ChecklistExporterTest {
             node1.addMixin("sling:Resource");
             node1.addMixin("sling:ResourceSuperType");
 
-            ChecklistExporter mixExporter = new ChecklistExporter.Builder().withScopeNodeTypes(
+            ChecklistExporter mixExporter = new ChecklistExporter.Builder().withNodeTypeFilters(
                     Rule.fromJsonArray(arr(key("type", "include").key("pattern", "mix:.*"))
                             .get())).build();
 
-            ChecklistExporter slingExporter = new ChecklistExporter.Builder().withScopeNodeTypes(
+            ChecklistExporter slingExporter = new ChecklistExporter.Builder().withNodeTypeFilters(
                     Rule.fromJsonArray(arr(key("type", "include").key("pattern", "sling:.*"))
                             .get())).build();
 
-            ChecklistExporter rtExporter = new ChecklistExporter.Builder().withScopeNodeTypes(
+            ChecklistExporter rtExporter = new ChecklistExporter.Builder().withNodeTypeFilters(
                     Rule.fromJsonArray(arr(key("type", "include").key("pattern", "sling:Resource"))
                             .get())).build();
 

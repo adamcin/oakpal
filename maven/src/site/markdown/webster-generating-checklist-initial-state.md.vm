@@ -1,0 +1,165 @@
+Webster: Generating Checklist Initial State
+===========================================
+
+Sometimes, an OakPAL Checklist may need to provide a significant amount 
+of initial JCR state to support progress check functionality. This initial state is defined by the following keys:
+
+* `jcrNamespaces`: An array of objects that map a namespace `prefix` to a namespace `uri`, as in:
+```json
+"jcrNamespaces":[
+  {"prefix":"sling","uri":"http://..."},
+  {"prefix":"granite","uri":"http://..."}
+]
+```
+
+* `jcrNodetypes`: A map of `JsonCnd`-formatted node type definitions, for example:
+```json
+"jcrNodetypes":{
+  "sling:Folder":{
+    ">":[
+      "nt:folder"
+    ],
+    "-":[
+      {
+        "name":"*",
+        "type":"undefined"
+      },
+      {
+        "name":"*",
+        "type":"undefined",
+        "@":[
+          "multiple"
+        ]
+      }
+    ],
+    "+":[
+      {
+        "name":"*",
+        "types":[
+          "nt:base"
+        ],
+        "=":"sling:Folder",
+        "@":[
+          "version"
+        ]
+      }
+    ]
+  },
+  "sling:OrderedFolder":{
+    ">":[
+      "sling:Folder"
+    ],
+    "@":[
+      "orderable"
+    ],
+    "+":[
+      {
+        "name":"*",
+        "types":[
+          "nt:base"
+        ],
+        "=":"sling:OrderedFolder",
+        "@":[
+          "version"
+        ]
+      }
+    ]
+  }
+}
+```
+
+* `forcedRoots`: An array of root paths to create with optional `primaryType` and `mixinTypes` declared, such as:
+```json
+"forcedRoots":[
+  {
+    "path":"/libs/fd/xfaforms/clientlibs/loadingProfile",
+    "primaryType":"cq:ClientLibraryFolder",
+    "mixinTypes":[
+      "granite:FinalArea"
+    ]
+  },
+  {
+    "path":"/libs/fd/xfaforms/clientlibs/manifest",
+    "primaryType":"nt:folder",
+    "mixinTypes":[
+      "granite:InternalArea"
+    ]
+  }
+]
+```
+
+Webster can be used to manage this state by selecting forcedRoots by JCR path, by node type, or by query. 
+The namespaces and node types required by these forcedRoots are automatically included, as well as any transitive 
+dependencies declared by the selected node type definitions.
+
+To enable this functionality, you must first add a `oakpal-maven-plugin` configuration to your `jar` module that hosts your oakpal checklist:
+
+    <plugin>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>${project.artifactId}</artifactId>
+        <version>${project.version}</version>
+        <configuration>
+            <websterTargets>
+                <checklist>
+                    <file>src/main/resources/OAKPAL-INF/checklist.json</file>
+                    <config>
+                    </config>
+                </checklist>
+            </websterTargets>
+        </configuration>
+    </plugin>
+    
+Within the `config` element, you will want to specify at least one of these selectors:
+
+* `selectPaths`: Webster will attempt to get a node for each specified `path` element, and if it exists, it will add that node to the 
+checklist as a `forcedRoot`.
+
+* `selectNodeTypes`: Webster will run a query for all nodes that match the list of `nodeType` elements. By default, the query
+will match each node type *exactly*, unless you prefix that node type name with a `+` indicating a covariant, or subtype, match
+is desired. Practically speaking, an explicitly selected type translates to a JCR query of the form,
+`FROM [nt:base] WHERE [jcr:primaryType] = <type> OR [jcr:mixinTypes] = <type>`, while a covariant (`+`) type translates to a query
+in the form of, `FROM [<type>]`. Any node types listed in the `selectNodeTypes` element will be exported in the `jcrNodetypes` object by default.
+
+* `selectQuery`: Webster will execute any arbitrary JCR query that you specify as the value for the `selectQuery` element, and add any returned 
+nodes to the checklist as `forcedRoot` objects.
+
+So, for example, to export every node with a `mix:title` type or subtype, you could use the following config:
+
+    <plugin>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>${project.artifactId}</artifactId>
+        <version>${project.version}</version>
+        <configuration>
+            <websterTargets>
+                <checklist>
+                    <file>src/main/resources/OAKPAL-INF/checklist.json</file>
+                    <config>
+                        <selectNodeTypes>
+                            <nodeType>+mix:title</nodeType>
+                        </selectNodeTypes>
+                    </config>
+                </checklist>
+            </websterTargets>
+        </configuration>
+    </plugin>
+    
+Some additional config properties are supported:
+
+* `scopePaths`: (`List<Rule>`) Limit the scope of `forcedRoot` paths affected by the webster execution. You can export different subsets of `forcedRoot` elements in the same 
+checklist by subdividing the scope for each execution and specifying an `updatePolicy` of `merge` or `replace`.
+
+* `updatePolicy`: ForcedRoot update policy governs how repeated webster executions will affect previously exported `forcedRoot` paths. Can be 
+
+  * `merge`: only replace forced roots when an exported root has the same path as an existing root. Otherwise, don't delete existing `forcedRoot` elements.
+  
+  * `replace`: delete all `scopePaths`-included `forcedRoot` elements before exporting new `forcedRoot` elements, which will also be filtered by `scopePaths`.
+  
+  * `truncate`: delete all existing `forcedRoot` elements, regardless of `scopePaths`, before exporting new `forcedRoot` elements, which will be filtered by `scopePaths`.
+
+* `nodeTypeFilters`: (`List<Rule>`) Limit the possible node types selected for export in `jcrNodetypes` and `forcedRoots` according to whether they are included by this list of 
+filter rules. `forcedRoot` elements with an excluded primaryType or mixinTypes value will still be exported, but without the excluded type names in either of those properties.
+
+* `exportNodeTypes`: Ensure that this list of `nodeType` elements are also included in the exported `jcrNodetypes` object, even if no matching `forcedRoots` are exported. By default, 
+each `nodeType` element will select a single node type *exactly*, unless you prefix that node type name with a `+` indicating a covariant, or subtype, match is desired. This has 
+essentially the same effect as `selectNodeTypes`, except that it doesn't affect the selection of nodes exported as `forcedRoots`.
+

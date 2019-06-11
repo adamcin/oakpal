@@ -1,0 +1,94 @@
+Webster: Managing nodetypes
+===========================
+
+Because of the open-source nature of OakPAL, combined with the largely AEM-focused use cases, one of the more laborious tasks that is part of 
+setup and maintenance of an OakPAL-validated `content-package` project is exporting and updating a `nodetypes.cnd` file in the package 
+`META-INF/vault` directory. While it is possible to export all installed node types from AEM and keep that in a module source 
+directory purely for testing, a better practice is to only export those node type definitions that are actually referenced in the package source 
+and include that CND in the package artifact itself. 
+
+Webster is an independent tool that is included in the `oakpal-maven-plugin` that can be used to export and update a subset of JCR node types from 
+an AEM repository.
+
+The minimum necessary configuration to support this is to add a `websterTargets` element to the `oakpal-maven-plugin` configuration in the 
+`content-package` pom, with an empty `nodetypes` child element. This assumes that your target file should exist at 
+`src/main/content/META-INF/vault/nodetypes.cnd`:
+
+
+    <plugin>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>${project.artifactId}</artifactId>
+        <version>${project.version}</version>
+        <configuration>
+            <websterTargets>
+                <nodetypes/>
+            </websterTargets>
+        </configuration>
+    </plugin>
+
+If the file should exist somewhere else, like `src/main/resources/vault-inf/nodetypes.cnd` 
+for example, then you will need to specify the `file` element as well:
+
+    <plugin>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>${project.artifactId}</artifactId>
+        <version>${project.version}</version>
+        <configuration>
+            <websterTargets>
+                <nodetypes>
+                    <file>src/main/resources/vault-inf/nodetypes.cnd</file>
+                </nodetypes>
+            </websterTargets>
+        </configuration>
+    </plugin>
+
+Then, you should execute `oakpal:webster` in content-package module directory, and remember to specify the `webster.repositoryHome` property:
+
+    $ mvn oakpal:webster -Dwebster.repositoryHome=${HOME}/Desktop/crx-quickstart/repository
+    ...
+    [INFO] --- ${project.artifactId}:${project.version}:webster (default-cli) @ example-content ---
+    [INFO] Using webster.repositoryHome to configure NodeStore: /Users/example/Desktop/crx-quickstart/repository
+    [INFO] Webster Plan: Performing plan with SegmentTar global nodestore...
+    [INFO] Nodetypes CND written to /Users/example/projects/aem-project/content/src/main/content/META-INF/vault/nodetypes.cnd
+    [INFO] ------------------------------------------------------------------------
+    [INFO] BUILD SUCCESS
+    [INFO] ------------------------------------------------------------------------
+    [INFO] Total time:  14.694 s
+    [INFO] Finished at: 2019-06-10T10:01:29-07:00
+    [INFO] ------------------------------------------------------------------------
+
+## Managing Privileges
+
+It is also common to have references to JCR privileges in the package source, as values in `rep:privileges` properties in `_rep_policy.xml` files.
+Webster can also be configured to manage the `META-INF/vault/privileges.xml` file in the package. In this case you will want to add the 
+`<privileges/>` target to the configuration after the `<nodetypes/>` target:
+
+    <plugin>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>${project.artifactId}</artifactId>
+        <version>${project.version}</version>
+        <configuration>
+            <websterTargets>
+                <nodetypes/>
+                <privileges/>
+            </websterTargets>
+        </configuration>
+    </plugin>
+    
+Then, when you execute `oakpal:webster` (remember to specify the `webster.repositoryHome` property), you would see an indication that the 
+`privileges.xml` was also written to the appropriate file.
+
+    $ mvn oakpal:webster -Dwebster.repositoryHome=${HOME}/Desktop/crx-quickstart/repository
+    ...
+    [INFO] --- ${project.artifactId}:${project.version}:webster (default-cli) @ example-content ---
+    [INFO] Using webster.repositoryHome to configure NodeStore: /Users/example/Desktop/crx-quickstart/repository
+    [INFO] Webster Plan: Performing plan with SegmentTar global nodestore...
+    [INFO] Nodetypes CND written to /Users/example/projects/aem-project/content/src/main/content/META-INF/vault/nodetypes.cnd
+    [INFO] Privileges XML written to /Users/example/projects/aem-project/content/src/main/content/META-INF/vault/privileges.xml
+    [INFO] ------------------------------------------------------------------------
+    [INFO] BUILD SUCCESS
+    [INFO] ------------------------------------------------------------------------
+    [INFO] Total time:  14.694 s
+    [INFO] Finished at: 2019-06-10T10:01:29-07:00
+    [INFO] ------------------------------------------------------------------------
+

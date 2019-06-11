@@ -53,7 +53,7 @@ final class WebsterChecklistTarget implements WebsterTarget {
     static final String COMPACT_KEY_BY_QUERY = "selectQuery";
     static final String KEY_SELECTORS = "selectors";
     static final String KEY_SCOPE_PATHS = "scopePaths";
-    static final String KEY_SCOPE_NODE_TYPES = "scopeNodeTypes";
+    static final String KEY_NODE_TYPE_FILTERS = "nodeTypeFilters";
     static final String KEY_JCR_NAMESPACES = "jcrNamespaces";
     static final String KEY_UPDATE_POLICY = "updatePolicy";
     static final String KEY_EXPORT_NODETYPES = "exportNodeTypes";
@@ -153,9 +153,9 @@ final class WebsterChecklistTarget implements WebsterTarget {
             List<Rule> scopePaths = Rule.fromJsonArray(config.getJsonArray(KEY_SCOPE_PATHS));
             exporter.withScopePaths(scopePaths);
         }
-        if (config.containsKey(KEY_SCOPE_NODE_TYPES)) {
-            List<Rule> scopeNodeTypes = Rule.fromJsonArray(config.getJsonArray(KEY_SCOPE_NODE_TYPES));
-            exporter.withScopeNodeTypes(scopeNodeTypes);
+        if (config.containsKey(KEY_NODE_TYPE_FILTERS)) {
+            List<Rule> nodeTypeFilters = Rule.fromJsonArray(config.getJsonArray(KEY_NODE_TYPE_FILTERS));
+            exporter.withNodeTypeFilters(nodeTypeFilters);
         }
         if (config.containsKey(KEY_JCR_NAMESPACES)) {
             List<JcrNs> jcrNsList = JavaxJson.mapArrayOfObjects(config.getJsonArray(KEY_JCR_NAMESPACES),

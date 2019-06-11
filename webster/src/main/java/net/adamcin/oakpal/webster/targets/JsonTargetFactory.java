@@ -17,7 +17,9 @@
 package net.adamcin.oakpal.webster.targets;
 
 import static net.adamcin.oakpal.core.Fun.uncheck1;
+import static net.adamcin.oakpal.core.Fun.uncheck2;
 import static net.adamcin.oakpal.core.JavaxJson.mapArrayOfObjects;
+import static net.adamcin.oakpal.core.JavaxJson.mapObjectValues;
 import static net.adamcin.oakpal.core.JavaxJson.obj;
 
 import java.io.File;
@@ -31,13 +33,28 @@ import net.adamcin.oakpal.webster.WebsterTarget;
 import net.adamcin.oakpal.webster.WebsterTargetFactory;
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * TODO Examples...
+ */
 public enum JsonTargetFactory implements WebsterTargetFactory {
+    /**
+     * The nodetypes target maintains nodetypes.cnd files in a filevault-package archive root, at the
+     * {@code src/main/content/META-INF/vault/nodetypes.cnd} path by default.
+     */
     NODETYPES(WebsterNodetypesTarget::fromJson),
 
+    /**
+     * The privileges target maintains a privileges.xml file in a filevault-package archive root, at the
+     * {@code src/main/content/META-INF/vault/privileges.xml} path by default.
+     */
     PRIVILEGES((target, config) -> {
         return new WebsterPrivilegesTarget(target);
     }),
 
+    /**
+     * The checklist target helps maintain checklist json files in an oakpal module. There is no default path, so it
+     * must be specified.
+     */
     CHECKLIST(WebsterChecklistTarget::fromJson);
 
     JsonTargetFactory(final WebsterTargetFactory actionFactory) {
@@ -76,6 +93,17 @@ public enum JsonTargetFactory implements WebsterTargetFactory {
         return byType(action).createTarget(target, config);
     }
 
+    /**
+     * For convenience, one target of each type is supported at the root of the targets configuration object, with each
+     * key referencing the type of the target. This is referred to as the hint map. A fourth key, {@link #HINT_KEY_MORE_TARGETS},
+     * defines a list of additional targets of any of the supported types, but the {@link #KEY_TYPE} attribute must be
+     * specified for each entry.
+     *
+     * @param baseDir     the base directory for resolving relative paths
+     * @param jsonHintMap the root webster targets configuration object
+     * @return a list of constructed webster targets
+     * @throws Exception if configuration syntax is invalid
+     */
     public static List<WebsterTarget> fromJsonHintMap(@NotNull final File baseDir,
                                                       @NotNull final JsonObject jsonHintMap) throws Exception {
         List<WebsterTarget> targets = new ArrayList<>();
@@ -90,6 +118,9 @@ public enum JsonTargetFactory implements WebsterTargetFactory {
                 if (entry.getValue().getValueType() == JsonValue.ValueType.ARRAY) {
                     targets.addAll(mapArrayOfObjects(entry.getValue().asJsonArray(),
                             uncheck1(json -> fromJson(baseDir, json, null))));
+                } else if (entry.getValue().getValueType() == JsonValue.ValueType.OBJECT) {
+                    targets.addAll(mapObjectValues(entry.getValue().asJsonObject(),
+                            uncheck2((label, json) -> fromJson(baseDir, json, label)), true));
                 }
             }
         }
