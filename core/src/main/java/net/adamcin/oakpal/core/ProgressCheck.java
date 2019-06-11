@@ -18,6 +18,7 @@ package net.adamcin.oakpal.core;
 
 import java.io.File;
 import java.util.List;
+import java.util.jar.Manifest;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -71,6 +72,18 @@ public interface ProgressCheck extends ScanListener, ViolationReporter {
      * @param parentId  the package ID of the parent package.
      */
     default void identifySubpackage(PackageId packageId, PackageId parentId) {
+
+    }
+
+    /**
+     * If the package provides a {@link Manifest}, it will be provided to the check using this method, prior to calling
+     * {@link #beforeExtract(PackageId, Session, PackageProperties, MetaInf, List)}.
+     *
+     * @param packageId the package ID of the newly opened package
+     * @param manifest  the parsed manifest
+     * @since 1.3.0
+     */
+    default void readManifest(PackageId packageId, Manifest manifest) {
 
     }
 

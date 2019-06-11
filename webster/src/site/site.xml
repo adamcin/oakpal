@@ -19,6 +19,9 @@
         <menu name="Overview">
             <item name="Introduction" href="index.html" />
             <item name="JavaDocs" href="apidocs/index.html" />
+            <item name="oakpal:webster Goal" href="../oakpal-maven-plugin/webster-mojo.html" />
+            <item name="Managing Nodetypes" href="../oakpal-maven-plugin/webster-managing-nodetypes.html" />
+            <item name="Generating Checklist Initial State" href="../oakpal-maven-plugin/webster-generating-checklist-initial-state.html" />
         </menu>
     </body>
 </project>

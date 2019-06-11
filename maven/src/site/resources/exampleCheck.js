@@ -36,6 +36,7 @@
  * import org.apache.jackrabbit.vault.packaging.PackageProperties;
  * import org.apache.jackrabbit.vault.fs.config.MetaInf;
  * import java.io.File;
+ * import java.util.jar.Manifest
  * import javax.jcr.Node;
  * import javax.jcr.Session;
  */
@@ -67,6 +68,17 @@ function identifyPackage(packageId /* PackageId */, file /* File */) {
  * @param parentId          the package ID of the parent package.
  */
 function identifySubpackage(packageId /* PackageId */, parentId /* PackageId */) {
+
+}
+
+/**
+ * Called when a package has a jar manifest that can be read for additional metadata, like Export-Package.
+ *
+ * @param packageId         the package ID of the newly opened package
+ * @param manifest          the parsed manifest
+ * @since 1.3.0
+ */
+function readManifest(packageId /* PackageId */, manifest /* Manifest */) {
 
 }
 

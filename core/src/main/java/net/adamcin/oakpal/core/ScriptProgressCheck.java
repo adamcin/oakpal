@@ -29,6 +29,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.jar.Manifest;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -81,6 +82,7 @@ public final class ScriptProgressCheck implements ProgressCheck {
     public static final String INVOKE_ON_STARTED_SCAN = "startedScan";
     public static final String INVOKE_ON_IDENTIFY_PACKAGE = "identifyPackage";
     public static final String INVOKE_ON_IDENTIFY_SUBPACKAGE = "identifySubpackage";
+    public static final String INVOKE_ON_READ_MANIFEST = "readManifest";
     public static final String INVOKE_ON_BEFORE_EXTRACT = "beforeExtract";
     public static final String INVOKE_ON_IMPORTED_PATH = "importedPath";
     public static final String INVOKE_ON_DELETED_PATH = "deletedPath";
@@ -204,6 +206,11 @@ public final class ScriptProgressCheck implements ProgressCheck {
     @Override
     public void identifySubpackage(final PackageId packageId, final PackageId parentId) {
         guardHandler(INVOKE_ON_IDENTIFY_SUBPACKAGE, handle -> handle.apply(packageId, parentId));
+    }
+
+    @Override
+    public void readManifest(final PackageId packageId, final Manifest manifest) {
+        guardHandler(INVOKE_ON_READ_MANIFEST, handle -> handle.apply(packageId, manifest));
     }
 
     @Override

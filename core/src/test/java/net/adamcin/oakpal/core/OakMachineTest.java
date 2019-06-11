@@ -18,6 +18,12 @@ package net.adamcin.oakpal.core;
 
 import static org.junit.Assert.assertTrue;
 
+import java.io.File;
+import java.util.concurrent.CompletableFuture;
+import java.util.jar.Manifest;
+
+import net.adamcin.oakpal.testing.TestPackageUtil;
+import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.junit.Test;
 
 public class OakMachineTest {
@@ -38,5 +44,22 @@ public class OakMachineTest {
             assertTrue("/home/users/system should exist", session.nodeExists("/home/users/system"));
             assertTrue("/home/groups should exist", session.nodeExists("/home/groups"));
         });
+    }
+
+    @Test
+    public void testReadManifest() throws Exception {
+        final File testPackage = TestPackageUtil.prepareTestPackage("null-dependency-test.zip");
+        final CompletableFuture<Boolean> manifestWasRead = new CompletableFuture<>();
+        ProgressCheck check = new SimpleProgressCheck() {
+            @Override
+            public void readManifest(final PackageId packageId, final Manifest manifest) {
+                manifestWasRead.complete(Util.getManifestHeaderValues(manifest, "Content-Package-Id")
+                        .contains("my_packages:null-dependency-test"));
+            }
+        };
+
+        new OakMachine.Builder().withProgressChecks(check).build().scanPackage(testPackage);
+        assertTrue("manifest was read, and produced correct value for Content-Package-Id",
+                manifestWasRead.isDone() && manifestWasRead.get());
     }
 }

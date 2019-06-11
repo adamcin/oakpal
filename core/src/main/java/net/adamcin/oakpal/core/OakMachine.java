@@ -16,15 +16,23 @@
 
 package net.adamcin.oakpal.core;
 
+import static net.adamcin.oakpal.core.Fun.uncheck1;
+import static net.adamcin.oakpal.core.Fun.uncheckVoid1;
+
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.Properties;
+import java.util.jar.JarInputStream;
+import java.util.jar.Manifest;
 import java.util.stream.Collectors;
 import javax.jcr.Node;
+import javax.jcr.Property;
 import javax.jcr.PropertyType;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
@@ -439,6 +447,21 @@ public final class OakMachine {
             throws IOException, PackageException, RepositoryException {
 
         final PackageId packageId = jcrPackage.getPackage().getId();
+
+        if (!preInstall) {
+            Optional.ofNullable(jcrPackage.getData()).map(uncheck1(Property::getBinary)).ifPresent(
+                    uncheckVoid1(binary -> {
+                        try (InputStream input = binary.getStream();
+                             JarInputStream jarInput = new JarInputStream(input)) {
+                            final Manifest manifest = jarInput.getManifest();
+                            if (manifest != null) {
+                                progressChecks.forEach(handler ->
+                                        handler.readManifest(packageId, new Manifest(manifest)));
+                            }
+                        }
+                    }));
+        }
+
         final Session inspectSession = Util.wrapSessionReadOnly(admin);
         final ProgressTrackerListener tracker =
                 new ImporterListenerAdapter(packageId, progressChecks, inspectSession, preInstall);
@@ -519,7 +542,7 @@ public final class OakMachine {
             }
 
             processPackage(admin, manager, jcrPackage, preInstall);
-        } catch (IOException | PackageException | RepositoryException e) {
+        } catch (IOException | PackageException | RepositoryException | Fun.FunRuntimeException e) {
             throw new AbortedScanException(e, file);
         }
     }

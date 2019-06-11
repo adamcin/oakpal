@@ -21,6 +21,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.jar.Manifest;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -66,6 +67,11 @@ public class Echo implements ProgressCheck {
     @Override
     public void identifySubpackage(final PackageId packageId, final PackageId parentId) {
         echo("identifySubpackage(packageId: %s, parentId: %s)", packageId, parentId);
+    }
+
+    @Override
+    public void readManifest(final PackageId packageId, final Manifest manifest) {
+        echo("readManifest(packageId: %s, manifestKeys: %s)", packageId, manifest.getEntries().keySet());
     }
 
     @Override
