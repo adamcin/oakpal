@@ -46,6 +46,17 @@
         <tag>HEAD</tag>
     </scm>
 
+    <distributionManagement>
+        <snapshotRepository>
+            <id>ossrh</id>
+            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+        </snapshotRepository>
+        <site>
+            <id>site</id>
+            <url>scm:git:git@github.com:adamcin/oakpal.git</url>
+        </site>
+    </distributionManagement>
+
     <modules>
         <module>core</module>
         <module>webster</module>
@@ -185,20 +196,6 @@
                     <version>2.3.1</version>
                 </plugin>
                 <plugin>
-                    <groupId>com.github.github</groupId>
-                    <artifactId>site-maven-plugin</artifactId>
-                    <version>0.13.0.OSS-M1</version>
-                    <executions>
-                        <execution>
-                            <id>github-site-deploy</id>
-                            <goals>
-                                <goal>site</goal>
-                            </goals>
-                            <phase>site</phase>
-                        </execution>
-                    </executions>
-                </plugin>
-                <plugin>
                     <groupId>org.codehaus.mojo</groupId>
                     <artifactId>templating-maven-plugin</artifactId>
                     <!-- Be sure to use the last version. Check on the website's plugin -->
@@ -235,6 +232,14 @@
             </plugins>
         </pluginManagement>
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-scm-publish-plugin</artifactId>
+                <version>3.0.0</version>
+                <configuration>
+                    <scmBranch>gh-pages</scmBranch>
+                </configuration>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-release-plugin</artifactId>
@@ -277,26 +282,9 @@
                     </dependency>
                 </dependencies>
             </plugin>
-            <plugin>
-                <groupId>com.github.github</groupId>
-                <artifactId>site-maven-plugin</artifactId>
-                <configuration>
-                    <message>Creating site for ${project.artifactId} ${project.version}</message>
-                    <noJekyll>true</noJekyll>
-                    <merge>true</merge>
-                    <repositoryOwner>adamcin</repositoryOwner>
-                    <repositoryName>oakpal</repositoryName>
-                </configuration>
-            </plugin>
         </plugins>
     </build>
 
-    <distributionManagement>
-        <snapshotRepository>
-            <id>ossrh</id>
-            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-        </snapshotRepository>
-    </distributionManagement>
 
     <profiles>
         <profile>

@@ -21,11 +21,6 @@
         <version>1.7</version>
     </skin>
     <googleAnalyticsAccountId>UA-37073514-1</googleAnalyticsAccountId>
-    <custom>
-        <fluidoSkin>
-            <facebookLike />
-        </fluidoSkin>
-    </custom>
 
     <bannerLeft>
         <name>OakPAL - Oak Package Acceptance Library</name>

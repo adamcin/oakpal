@@ -131,14 +131,6 @@
                     </execution>
                 </executions>
             </plugin>
-            <plugin>
-                <groupId>com.github.github</groupId>
-                <artifactId>site-maven-plugin</artifactId>
-                <configuration>
-                    <message>Creating site for ${project.artifactId} ${project.version}</message>
-                    <path>${project.artifactId}</path>
-                </configuration>
-            </plugin>
         </plugins>
     </build>
 
