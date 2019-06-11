@@ -32,7 +32,7 @@
     <parent>
         <groupId>net.adamcin.oakpal</groupId>
         <artifactId>oakpal</artifactId>
-        <version>1.3.0-SNAPSHOT</version>
+        <version>1.3.0</version>
         <relativePath>..</relativePath>
     </parent>
 
@@ -54,7 +54,7 @@
         <url>https://github.com/adamcin/oakpal</url>
         <developerConnection>scm:git:git@github.com:adamcin/oakpal.git</developerConnection>
         <connection>scm:git://github.com/adamcin/oakpal.git</connection>
-        <tag>HEAD</tag>
+        <tag>oakpal-1.3.0</tag>
     </scm>
 
     <modules>
@@ -99,7 +99,7 @@
             <dependency>
                 <groupId>net.adamcin.oakpal</groupId>
                 <artifactId>net.adamcin.oakpal.interactive</artifactId>
-                <version>1.3.0-SNAPSHOT</version>
+                <version>1.3.0</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
