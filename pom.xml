@@ -59,6 +59,7 @@
 
     <modules>
         <module>core</module>
+        <module>cli</module>
         <module>webster</module>
         <module>maven</module>
         <module>testing</module>
@@ -285,7 +286,6 @@
         </plugins>
     </build>
 
-
     <profiles>
         <profile>
             <id>release</id>
@@ -405,21 +405,6 @@
             </plugin>
         </plugins>
     </reporting>
-
-    <pluginRepositories>
-        <pluginRepository>
-            <id>oss-github-maven-plugins</id>
-            <url>https://raw.github.com/home1-oss/maven-plugins/mvn-repo</url>
-            <name>Forked github-maven-plugins that upload faster</name>
-            <layout>default</layout>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-            <releases>
-                <enabled>true</enabled>
-            </releases>
-        </pluginRepository>
-    </pluginRepositories>
 
     <dependencyManagement>
         <dependencies>
