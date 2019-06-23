@@ -26,8 +26,6 @@ import javax.json.Json;
 import javax.json.JsonObject;
 import javax.json.JsonValue;
 
-import org.json.JSONObject;
-
 /**
  * Unified class path locator for PackageLister classes and scripts.
  */
@@ -48,21 +46,7 @@ public final class Locator {
      * @throws Exception on any error or failure to find a resource for given name.
      */
     public static ProgressCheck loadProgressCheck(final String impl) throws Exception {
-        return loadProgressCheck(impl, (JsonObject) null);
-    }
-
-    /**
-     * Attempt to load a {@link ProgressCheck} from a particular class loader.
-     *
-     * @param impl   className or resourceName
-     * @param config provide an optional config object (may be ignored by the check.)
-     * @return a new {@link ProgressCheck} instance for the given name
-     * @throws Exception on any error or failure to find a resource for given name.
-     * @deprecated 1.2.0 Please use {@link #loadProgressCheck(String, JsonObject)} instead
-     */
-    @Deprecated
-    public static ProgressCheck loadProgressCheck(final String impl, final JSONObject config) throws Exception {
-        return loadProgressCheck(impl, config, Util.getDefaultClassLoader());
+        return loadProgressCheck(impl, null);
     }
 
     /**
@@ -75,28 +59,6 @@ public final class Locator {
      */
     public static ProgressCheck loadProgressCheck(final String impl, final JsonObject config) throws Exception {
         return loadProgressCheck(impl, config, Util.getDefaultClassLoader());
-    }
-
-    /**
-     * Attempt to load a {@link ProgressCheck} from a particular class loader. The {@code impl} value is first tried as
-     * a fully-qualified class name, and if a {@code Class<?>} is found, it is first checked for the
-     * {@link ProgressCheckFactory} interface, and then for the {@link ProgressCheck} interface. If a class is not
-     * found, {@link Locator} assumes the {@code impl} value represents a resource name for an
-     * {@link javax.script.Invocable} script, and attempts to create a {@link ScriptProgressCheck} from it.
-     *
-     * @param impl        className or resourceName
-     * @param config      provide an optional config object (may be ignored by the check.)
-     * @param classLoader a specific classLoader to use
-     * @return a new {@link ProgressCheck} instance for the given name
-     * @throws Exception on any error or failure to find a resource for given name.
-     * @deprecated 1.2.0 Please use {@link #loadProgressCheck(String, JsonObject, ClassLoader)} instead
-     */
-    @Deprecated
-    public static ProgressCheck loadProgressCheck(final String impl, final JSONObject config,
-                                                  final ClassLoader classLoader) throws Exception {
-        return loadProgressCheck(impl,
-                config != null ? Json.createObjectBuilder(config.toMap()).build() : null,
-                classLoader);
     }
 
     /**

@@ -18,9 +18,7 @@ package net.adamcin.oakpal.core.checks;
 
 import static net.adamcin.oakpal.core.JavaxJson.arrayOrEmpty;
 import static net.adamcin.oakpal.core.JavaxJson.mapArrayOfStrings;
-import static net.adamcin.oakpal.core.JavaxJson.optArray;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -30,7 +28,6 @@ import javax.jcr.Session;
 import javax.jcr.nodetype.NodeTypeDefinition;
 import javax.json.JsonObject;
 
-import net.adamcin.oakpal.core.JavaxJson;
 import net.adamcin.oakpal.core.ProgressCheck;
 import net.adamcin.oakpal.core.ProgressCheckFactory;
 import net.adamcin.oakpal.core.SimpleProgressCheck;
@@ -93,7 +90,7 @@ import org.apache.jackrabbit.vault.packaging.PackageProperties;
  *     }
  * </pre>
  */
-public final class JcrProperties extends CompatBaseFactory implements ProgressCheckFactory {
+public final class JcrProperties implements ProgressCheckFactory {
     public static final String CONFIG_SCOPE_PATHS = "scopePaths";
     public static final String CONFIG_DENY_NODE_TYPES = "denyNodeTypes";
     public static final String CONFIG_SCOPE_NODE_TYPES = "scopeNodeTypes";

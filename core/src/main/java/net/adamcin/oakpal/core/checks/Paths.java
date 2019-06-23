@@ -64,7 +64,7 @@ import org.apache.jackrabbit.vault.packaging.PackageId;
  * <dd>By default, the severity of violations created by this check is MAJOR, but can be set to MINOR or SEVERE.</dd>
  * </dl>
  */
-public final class Paths extends CompatBaseFactory implements ProgressCheckFactory {
+public final class Paths implements ProgressCheckFactory {
     public static final String CONFIG_RULES = "rules";
     public static final String CONFIG_DENY_ALL_DELETES = "denyAllDeletes";
     public static final String CONFIG_SEVERITY = "severity";

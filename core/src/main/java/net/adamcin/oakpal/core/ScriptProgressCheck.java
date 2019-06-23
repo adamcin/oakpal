@@ -21,7 +21,6 @@ import static net.adamcin.oakpal.core.Util.isEmpty;
 import java.io.File;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.StringReader;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.util.Collection;
@@ -45,7 +44,6 @@ import javax.script.SimpleBindings;
 import org.apache.jackrabbit.vault.fs.config.MetaInf;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.apache.jackrabbit.vault.packaging.PackageProperties;
-import org.json.JSONObject;
 
 /**
  * The {@link ScriptProgressCheck} uses the {@link Invocable} interface from JSR223 to listen for scan events and

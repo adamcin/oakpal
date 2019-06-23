@@ -55,7 +55,7 @@ import org.apache.jackrabbit.vault.packaging.PackageProperties;
  * <dd>Set to true to suppress violations for filterSets with a root path of /.</dd>
  * </dl>
  */
-public final class FilterSets extends CompatBaseFactory implements ProgressCheckFactory {
+public final class FilterSets implements ProgressCheckFactory {
     public static final String CONFIG_IMPORT_MODE_SEVERITY = "importModeSeverity";
     public static final String CONFIG_ALLOW_EMPTY_FILTER = "allowEmptyFilter";
     public static final String CONFIG_ALLOW_ROOT_FILTER = "allowRootFilter";

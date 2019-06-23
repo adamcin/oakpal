@@ -1,0 +1,55 @@
+oakpal [ <options> ] <scanFile> [ <scanFile> ... ]
+
+  Options
+  -------
+
+  -h | --help                       : Print this help message and exit
+  -v | --version                    : Print the OakPAL CLI version and exit
+  -j | --json                       : Write check reports in JSON format
+  -o | --outfile <outFile>          : Write check reports to the specified <outFile>
+                                      instead of writing to stdout.
+  -n | --chart-name <chartName>     : Specify a different chart name to lookup in the
+                                      $OAKPAL_PATH. By default, the first chart named
+                                      "oakpal-chart.json" is used.
+  -f | --fail-severity <severity>   : Exit with a non-zero code if any violations are
+                                      reported with a severity level equal to or higher
+                                      than <severity>. Can be MINOR, MAJOR, or SEVERE.
+                                      If not specified, the default fail severity is MAJOR.
+  <scanFile> [ <scanFile> ... ]     : Scan package files using the chart discovered on
+                                      the $OAKPAL_PATH.
+
+  Environment
+  -----------
+  OAKPAL_PATH                       : Specify this variable to provide OAR files/directories
+                                      and additional OakPAL modules. This should be a colon-
+                                      delimited (or semicolon-delimited on Windows) list of
+                                      filesystem paths. Each element should be one of either:
+
+                                          .oar files:     An OAR file is a JAR file constructed
+                                                          with an "Oakpal-Class-Path" Manifest
+                                                          header specifying embedded JARs and
+                                                          directories to add to the scan
+                                                          classpath.
+                                          .jar files:     Other JAR files will simply be added
+                                                          to the scan classpath.
+                                          directories:    Directories in the OAKPAL_PATH will
+                                                          be treated as expanded OAR files.
+                                                          JARs located within a "lib" subfolder
+                                                          will be added to the scan classpath.
+
+                                      Additionally, the OAKPAL_PATH variable will be used to
+                                      find the OakPAL Chart file to use for the scan.
+                                      Each folder, JAR, or OAR file on OAKPAL_PATH will be
+                                      inspected for an immediate child named "oakpal-chart.json",
+                                      in the order specified in the variable, and the first
+                                      found will be used.
+
+  Exit Codes
+  ----------
+  0   : success
+  1   : general error unrelated to scan execution
+  9   : aborted scan
+  10  : at least one SEVERE violation reported
+  11  : at least one MAJOR violation reported (but no SEVERE violations)
+  12  : at least one MINOR violation reported (but no MAJOR or SEVERE violations)
+

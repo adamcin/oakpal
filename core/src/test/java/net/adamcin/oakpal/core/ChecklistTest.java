@@ -20,12 +20,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 import java.io.InputStream;
-
 import javax.json.Json;
 import javax.json.JsonReader;
 
-import org.json.JSONObject;
-import org.json.JSONTokener;
 import org.junit.Test;
 
 public class ChecklistTest {

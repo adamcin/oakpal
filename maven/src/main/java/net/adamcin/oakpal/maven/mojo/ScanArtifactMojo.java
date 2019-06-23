@@ -63,9 +63,7 @@ public class ScanArtifactMojo extends AbstractScanMojo {
             try {
                 reports = getBuilder().build().scanPackage(packageArtifact.get());
             } catch (AbortedScanException e) {
-                String currentFilePath = e.getCurrentPackageFile()
-                        .map(f -> "Failed package: " + f.getAbsolutePath()).orElse("");
-                throw new MojoExecutionException("Failed to execute package scan. " + currentFilePath, e);
+                throw new MojoExecutionException("Failed to execute package scan. " + e.getMessage(), e);
             }
 
             try {

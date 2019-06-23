@@ -67,7 +67,7 @@ public final class JavaxJson {
      * @param value the JsonValue to test
      * @return true if not null or empty
      */
-    static boolean nonEmptyValue(@Nullable final JsonValue value) {
+    static boolean nonEmptyValue(final @Nullable JsonValue value) {
         return !(value == null
                 || value.getValueType() == JsonValue.ValueType.NULL
                 || (value.getValueType() == JsonValue.ValueType.ARRAY && value.asJsonArray().isEmpty())

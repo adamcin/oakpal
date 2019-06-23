@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package net.adamcin.oakpal.interactive.impl;
+package net.adamcin.oakpal.core;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -26,45 +26,51 @@ import java.util.Collections;
 import java.util.List;
 
 import org.apache.jackrabbit.oak.commons.IOUtils;
-import org.apache.sling.api.resource.Resource;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * AutoCloseable Handle for a set of temporary package files extracted for a scan.
  */
-class ScanTempSpace implements AutoCloseable {
-    private final List<Resource> fileResources;
+public final class ScanTempSpace<R> implements AutoCloseable {
+    private final File tmpDir;
+    private final Fun.ThrowingFunction<R, InputStream> opener;
+    private final List<R> fileResources;
     private final List<File> tmpFiles;
     private boolean opened;
 
     /**
      * Create a temp file space for the provided list of package resources.
      *
-     * @param fileResources list of file Resources, each adaptable to {@link java.io.InputStream}.
+     * @param fileResources list of file Resources, each adaptable to {@link InputStream}.
      */
-    ScanTempSpace(final List<Resource> fileResources) {
+    public ScanTempSpace(final @NotNull List<R> fileResources,
+                         final @NotNull Fun.ThrowingFunction<R, InputStream> opener,
+                         final @Nullable File tmpDir) {
+        this.tmpDir = tmpDir;
         this.fileResources = new ArrayList<>(fileResources);
         this.tmpFiles = new ArrayList<>(fileResources.size());
+        this.opener = opener;
     }
 
     /**
      * Open by copying the InputStreams of each package Resource to its own temp file.
      *
      * @return the list of temp files
-     * @throws IOException for I/O errors
+     * @throws IOException for I/O exceptions
      */
-    List<File> open() throws IOException {
+    public List<File> open() throws IOException {
         if (!this.opened) {
             for (int i = 0; i < fileResources.size(); i++) {
-                final Resource resource = fileResources.get(i);
-                final File tmpFile = File.createTempFile("oakpaltmp", ".zip");
+                final R resource = fileResources.get(i);
+                final File tmpFile = File.createTempFile("oakpaltmp", ".zip", tmpDir);
                 tmpFiles.add(i, tmpFile);
 
-                try (InputStream in = resource.adaptTo(InputStream.class);
+                try (InputStream in = opener.tryApply(resource);
                      OutputStream out = new FileOutputStream(tmpFile)) {
-                    if (in == null) {
-                        throw new IOException("failed to adapt resource to InputStream: " + resource.getPath());
-                    }
                     IOUtils.copy(in, out);
+                } catch (final Exception e) {
+                    throw new IOException("failed to adapt resource to InputStream: " + resource.toString(), e);
                 }
             }
             this.opened = true;

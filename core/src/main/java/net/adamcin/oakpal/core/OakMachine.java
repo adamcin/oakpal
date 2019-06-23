@@ -22,6 +22,7 @@ import static net.adamcin.oakpal.core.Fun.uncheckVoid1;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -70,6 +71,7 @@ import org.apache.jackrabbit.vault.packaging.PackageException;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.apache.jackrabbit.vault.packaging.Packaging;
 import org.apache.jackrabbit.vault.packaging.VaultPackage;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Entry point for OakPAL Acceptance Library. See {@link ProgressCheck} for the event listener interface.
@@ -88,7 +90,7 @@ public final class OakMachine {
 
     private final ErrorListener errorListener;
 
-    private final List<File> preInstallPackages;
+    private final List<URL> preInstallUrls;
 
     private final List<InitStage> initStages;
 
@@ -97,13 +99,13 @@ public final class OakMachine {
     private OakMachine(final Packaging packagingService,
                        final List<ProgressCheck> progressChecks,
                        final ErrorListener errorListener,
-                       final List<File> preInstallPackages,
+                       final List<URL> preInstallUrls,
                        final List<InitStage> initStages,
                        final JcrCustomizer jcrCustomizer) {
         this.packagingService = packagingService != null ? packagingService : new DefaultPackagingService();
         this.progressChecks = progressChecks;
         this.errorListener = errorListener;
-        this.preInstallPackages = preInstallPackages;
+        this.preInstallUrls = preInstallUrls;
         this.initStages = initStages;
         this.jcrCustomizer = jcrCustomizer;
     }
@@ -120,7 +122,7 @@ public final class OakMachine {
 
         private ErrorListener errorListener = DEFAULT_ERROR_LISTENER;
 
-        private List<File> preInstallPackages = Collections.emptyList();
+        private List<URL> preInstallUrls = Collections.emptyList();
 
         private JcrCustomizer jcrCustomizer;
 
@@ -211,7 +213,9 @@ public final class OakMachine {
          *
          * @param preInstallPackage the list of pre-install package files
          * @return my builder self
+         * @deprecated 1.3.1 pre-install packages are now handled as URIs
          */
+        @Deprecated
         public Builder withPreInstallPackage(File... preInstallPackage) {
             if (preInstallPackage != null) {
                 return this.withPreInstallPackages(Arrays.asList(preInstallPackage));
@@ -227,15 +231,44 @@ public final class OakMachine {
          *
          * @param preInstallPackages the list of pre-install package files
          * @return my builder self
+         * @deprecated 1.3.1 pre-install packages are now handled as URIs
          */
+        @Deprecated
         public Builder withPreInstallPackages(List<File> preInstallPackages) {
             if (preInstallPackages != null) {
-                this.preInstallPackages = new ArrayList<>(preInstallPackages);
+                this.preInstallUrls = preInstallPackages.stream().map(uncheck1(File::toURL))
+                        .collect(Collectors.toList());
             } else {
-                this.preInstallPackages = Collections.emptyList();
+                this.preInstallUrls = Collections.emptyList();
             }
             return this;
         }
+
+        /**
+         * Provide a list of package files to install before each scan. Install events raised during
+         * pre-install are not passed to each {@link ProgressCheck}, but errors raised are passed to
+         * the {@link ErrorListener}.
+         *
+         * @param preInstallPackage the list of pre-install package files
+         * @return my builder self
+         */
+        public Builder withPreInstallUrl(@NotNull URL... preInstallPackage) {
+            return this.withPreInstallUrls(Arrays.asList(preInstallPackage));
+        }
+
+        /**
+         * Provide a list of package files to install before each scan. Install events raised during
+         * pre-install are not passed to each {@link ProgressCheck}, but errors raised are passed to
+         * the {@link ErrorListener}.
+         *
+         * @param preInstallPackages the list of pre-install package files
+         * @return my builder self
+         */
+        public Builder withPreInstallUrls(@NotNull List<URL> preInstallPackages) {
+            this.preInstallUrls = new ArrayList<>(preInstallPackages);
+            return this;
+        }
+
 
         /**
          * Provide a function to customize the {@link Jcr} builder prior to the scan.
@@ -257,7 +290,7 @@ public final class OakMachine {
             return new OakMachine(packagingService,
                     progressChecks,
                     errorListener,
-                    preInstallPackages,
+                    preInstallUrls,
                     initStages,
                     jcrCustomizer);
         }
@@ -271,8 +304,22 @@ public final class OakMachine {
         return errorListener;
     }
 
-    public List<File> getPreInstallPackages() {
-        return preInstallPackages;
+    /**
+     * Return the urls filtered and mapped back to files.
+     *
+     * @return the urls filtered and mapped back to files
+     * @deprecated 1.3.1 pre-install packages are now handled as URIs. use {@link #getPreInstallUrls()}.
+     */
+    @Deprecated
+    public List<File> getPreInstallFiles() {
+        return preInstallUrls.stream()
+                .map(uncheck1(URL::toURI))
+                .map(File::new)
+                .collect(Collectors.toList());
+    }
+
+    public List<URL> getPreInstallUrls() {
+        return preInstallUrls;
     }
 
     public List<CheckReport> scanPackage(File... file) throws AbortedScanException {
@@ -333,7 +380,7 @@ public final class OakMachine {
      * <li>{@link #loginAdmin(Repository)} opens an admin user JCR session.</li>
      * <li>{@link InitStage#initSession(Session, ErrorListener)} is called for each registered {@link InitStage}</li>
      * <li>{@link #processPackageFile(Session, JcrPackageManager, boolean, File)} is performed for each of the
-     * {@link #preInstallPackages}</li>
+     * {@link #preInstallUrls}</li>
      * <li>Each registered {@link ProgressCheck} receives a {@link ProgressCheck#startedScan()} event.</li>
      * <li>{@link #processPackageFile(Session, JcrPackageManager, boolean, File)} is performed for each of the elements
      * of the {@code files} array.</li>
@@ -366,8 +413,8 @@ public final class OakMachine {
 
             manager = packagingService.getPackageManager(admin);
 
-            for (File file : preInstallPackages) {
-                processPackageFile(admin, manager, true, file);
+            for (URL url : preInstallUrls) {
+                processPackageUrl(admin, manager, true, url);
             }
 
             progressChecks.forEach(ProgressCheck::startedScan);
@@ -523,25 +570,42 @@ public final class OakMachine {
         }
     }
 
+    private void processUploadedPackage(final Session admin,
+                                        final JcrPackageManager manager,
+                                        final boolean preInstall,
+                                        final JcrPackage jcrPackage) throws IOException, PackageException, RepositoryException {
+        final VaultPackage vaultPackage = jcrPackage.getPackage();
+        final PackageId packageId = vaultPackage.getId();
+        final File packageFile = vaultPackage.getFile();
+
+        if (!preInstall) {
+            progressChecks.forEach(handler -> {
+                try {
+                    handler.identifyPackage(packageId, packageFile);
+                } catch (Exception e) {
+                    getErrorListener().onListenerException(e, handler, packageId);
+                }
+            });
+        }
+
+        processPackage(admin, manager, jcrPackage, preInstall);
+    }
+
+    private void processPackageUrl(final Session admin, final JcrPackageManager manager, final boolean preInstall, final URL url)
+            throws AbortedScanException {
+        try (InputStream input = url.openStream();
+             JcrPackage jcrPackage = manager.upload(input, true, true)) {
+            processUploadedPackage(admin, manager, preInstall, jcrPackage);
+        } catch (IOException | PackageException | RepositoryException | Fun.FunRuntimeException e) {
+            throw new AbortedScanException(e, url);
+        }
+    }
+
     private void processPackageFile(final Session admin, final JcrPackageManager manager, final boolean preInstall, final File file)
             throws AbortedScanException {
 
         try (JcrPackage jcrPackage = manager.upload(file, false, true, null, true)) {
-            final VaultPackage vaultPackage = jcrPackage.getPackage();
-            final PackageId packageId = vaultPackage.getId();
-            final File packageFile = vaultPackage.getFile();
-
-            if (!preInstall) {
-                progressChecks.forEach(handler -> {
-                    try {
-                        handler.identifyPackage(packageId, packageFile);
-                    } catch (Exception e) {
-                        getErrorListener().onListenerException(e, handler, packageId);
-                    }
-                });
-            }
-
-            processPackage(admin, manager, jcrPackage, preInstall);
+            processUploadedPackage(admin, manager, preInstall, jcrPackage);
         } catch (IOException | PackageException | RepositoryException | Fun.FunRuntimeException e) {
             throw new AbortedScanException(e, file);
         }

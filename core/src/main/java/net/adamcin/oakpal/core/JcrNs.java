@@ -21,7 +21,6 @@ import static net.adamcin.oakpal.core.JavaxJson.key;
 import javax.json.JsonObject;
 
 import org.jetbrains.annotations.NotNull;
-import org.json.JSONObject;
 
 /**
  * Config DTO for JCR Namespace Prefix to URI Mappings.
@@ -65,21 +64,7 @@ public final class JcrNs implements JavaxJson.ObjectConvertible, Comparable<JcrN
      * @param json JSON object
      * @return a new JCR NS mapping
      */
-    @Deprecated
-    static JcrNs fromJSON(@NotNull final JSONObject json) {
-        JcrNs jcrNs = new JcrNs();
-        jcrNs.setPrefix(json.getString(KEY_PREFIX));
-        jcrNs.setUri(json.getString(KEY_URI));
-        return jcrNs;
-    }
-
-    /**
-     * Map a JSON object to a {@link JcrNs}.
-     *
-     * @param json JSON object
-     * @return a new JCR NS mapping
-     */
-    public static JcrNs fromJson(@NotNull final JsonObject json) {
+    public static JcrNs fromJson(final @NotNull JsonObject json) {
         if (!json.containsKey(KEY_PREFIX) || !json.containsKey(KEY_URI)) {
             return null;
         }
@@ -96,7 +81,7 @@ public final class JcrNs implements JavaxJson.ObjectConvertible, Comparable<JcrN
      * @param uri    the namespace uri
      * @return a new JCR namespace mapping
      */
-    public static JcrNs create(@NotNull final String prefix, @NotNull final String uri) {
+    public static JcrNs create(final @NotNull String prefix, final @NotNull String uri) {
         final JcrNs ns = new JcrNs();
         ns.setPrefix(prefix);
         ns.setUri(uri);
@@ -114,7 +99,7 @@ public final class JcrNs implements JavaxJson.ObjectConvertible, Comparable<JcrN
     }
 
     @Override
-    public int compareTo(@NotNull final JcrNs o) {
+    public int compareTo(final @NotNull JcrNs o) {
         return getPrefix().compareTo(o.getPrefix());
     }
 }

@@ -37,14 +37,11 @@ import java.util.jar.JarFile;
 import java.util.jar.Manifest;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 import javax.jcr.Session;
 
 import aQute.bnd.header.Parameters;
 import aQute.bnd.osgi.Domain;
 import net.adamcin.oakpal.core.jcrfacade.SessionFacade;
-import org.json.JSONArray;
-import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -186,59 +183,6 @@ public final class Util {
             logger.trace(format, item);
             return true;
         };
-    }
-
-    /**
-     * @param jsonArray the array to read objects and map to the specified type
-     * @param mapper    the mapper function
-     * @param <T>       the target type
-     * @return the mapped list
-     * @deprecated 1.2.0 org.json has been replaced with javax.json.
-     */
-    @Deprecated
-    public static <T> List<T> fromJSONArray(final JSONArray jsonArray, final Function<JSONObject, T> mapper) {
-        List<T> results = new ArrayList<>();
-        List<JSONObject> onlyObjects = stream(jsonArray)
-                .filter(json -> json instanceof JSONObject)
-                .map(JSONObject.class::cast)
-                .collect(Collectors.toList());
-
-        for (JSONObject json : onlyObjects) {
-            results.add(mapper.apply(json));
-        }
-
-        return Collections.unmodifiableList(results);
-    }
-
-    /**
-     * @param jsonArray the array to read objects and map to the specified type
-     * @return the mapped list
-     * @deprecated 1.2.0 org.json has been replaced with javax.json.
-     */
-    @Deprecated
-    public static List<String> fromJSONArrayAsStrings(final JSONArray jsonArray) {
-        return stream(jsonArray)
-                .map(String::valueOf)
-                .collect(Collectors.toList());
-    }
-
-    @Deprecated
-    public static <T> List<T> fromJSONArrayParsed(final JSONArray jsonArray,
-                                                  final TryFunction<String, T> parser,
-                                                  final BiConsumer<String, Exception> errorConsumer) {
-        return stream(jsonArray)
-                .map(String::valueOf)
-                .flatMap(composeTry(Stream::of, Stream::empty, parser, errorConsumer))
-                .collect(Collectors.toList());
-    }
-
-    @Deprecated
-    public static Stream<Object> stream(final JSONArray jsonArray) {
-        if (jsonArray != null) {
-            return StreamSupport.stream(jsonArray.spliterator(), false);
-        } else {
-            return Stream.empty();
-        }
     }
 
     /**

@@ -16,6 +16,9 @@
 
 package net.adamcin.oakpal.maven.mojo;
 
+import static net.adamcin.oakpal.core.Fun.compose;
+import static net.adamcin.oakpal.core.Fun.uncheck1;
+
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
@@ -24,18 +27,24 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
+import net.adamcin.oakpal.core.Chart;
 import net.adamcin.oakpal.core.CheckSpec;
-import net.adamcin.oakpal.core.ChecklistPlanner;
 import net.adamcin.oakpal.core.DefaultErrorListener;
 import net.adamcin.oakpal.core.ErrorListener;
 import net.adamcin.oakpal.core.ForcedRoot;
-import net.adamcin.oakpal.core.InitStage;
 import net.adamcin.oakpal.core.JcrNs;
-import net.adamcin.oakpal.core.Locator;
+import net.adamcin.oakpal.core.JsonCnd;
+import net.adamcin.oakpal.core.NamespaceMappingRequest;
 import net.adamcin.oakpal.core.OakMachine;
 import net.adamcin.oakpal.core.ProgressCheck;
+import net.adamcin.oakpal.core.Result;
 import net.adamcin.oakpal.core.SlingNodetypesScanner;
+import org.apache.jackrabbit.spi.QNodeTypeDefinition;
+import org.apache.jackrabbit.spi.commons.namespace.NamespaceMapping;
+import org.apache.jackrabbit.vault.fs.spi.NodeTypeSet;
 import org.apache.maven.model.Dependency;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Parameter;
@@ -277,13 +286,40 @@ abstract class AbstractScanMojo extends AbstractMojo {
     protected boolean deferBuildFailure;
 
     /**
-     * Construct an init stage purely from the relevant mojo parameters.
+     * Construct an OakMachine.Builder purely from the relevant mojo parameters.
      *
      * @return a complete init stage
      * @throws MojoExecutionException if an error occurs
      */
-    protected InitStage getMojoInitStage() throws MojoExecutionException {
-        InitStage.Builder builder = new InitStage.Builder();
+    protected OakMachine.Builder getBuilder() throws MojoExecutionException {
+        final ErrorListener errorListener = new DefaultErrorListener();
+        final Chart.Builder chartBuilder = new Chart.Builder(uncheck1(File::toURL).apply(this.project.getBasedir()));
+
+        chartBuilder.withChecklists(checklists);
+        chartBuilder.withChecks(checks);
+
+        final List<File> preInstall = new ArrayList<>();
+        if (preInstallArtifacts != null && !preInstallArtifacts.isEmpty()) {
+            List<Dependency> preInstallDeps = new ArrayList<>();
+            for (DependencyFilter depFilter : preInstallArtifacts) {
+                Dependency dep = project.getDependencies().stream()
+                        .filter(depFilter)
+                        .findFirst()
+                        .orElseGet(depFilter::toDependency);
+                preInstallDeps.add(dep);
+            }
+            List<File> preInstallResolved = resolveDependencies(preInstallDeps, false);
+            preInstall.addAll(preInstallResolved);
+        }
+
+        if (preInstallFiles != null) {
+            preInstall.addAll(preInstallFiles);
+        }
+
+        chartBuilder.withPreInstallUrls(preInstall.stream()
+                .map(uncheck1(File::toURL)).collect(Collectors.toList()));
+        chartBuilder.withJcrPrivileges(jcrPrivileges);
+        chartBuilder.withForcedRoots(forcedRoots);
 
         final Set<URL> unorderedCndUrls = new LinkedHashSet<>();
 
@@ -316,72 +352,30 @@ abstract class AbstractScanMojo extends AbstractMojo {
             }
         }
 
-        builder.withOrderedCndUrls(new ArrayList<>(unorderedCndUrls));
+        // read and aggregate nodetypes from CNDs
+        final NamespaceMapping initMapping = JsonCnd.toNamespaceMapping(jcrNamespaces);
+        List<NodeTypeSet> readSets = JsonCnd.readNodeTypes(initMapping,
+                new ArrayList<>(unorderedCndUrls)).stream()
+                .flatMap(Result::stream).collect(Collectors.toList());
 
-        if (jcrNamespaces != null) {
-            for (JcrNs ns : jcrNamespaces) {
-                builder = builder.withNs(ns.getPrefix(), ns.getUri());
-            }
-        }
+        final NodeTypeSet nodeTypeSet = JsonCnd.aggregateNodeTypes(initMapping, readSets);
+        final List<QNodeTypeDefinition> jcrNodetypes = new ArrayList<>(nodeTypeSet.getNodeTypes().values());
+        chartBuilder.withJcrNodetypes(jcrNodetypes);
 
-        if (jcrPrivileges != null) {
-            for (String privilege : jcrPrivileges) {
-                builder = builder.withPrivilege(privilege);
-            }
-        }
+        // build final namespace mapping
+        final NamespaceMappingRequest.Builder nsRequest = new NamespaceMappingRequest.Builder();
+        jcrNamespaces.stream().map(JcrNs::getPrefix).forEach(nsRequest::withRetainPrefix);
+        jcrPrivileges.stream().flatMap(JsonCnd::streamNsPrefix).forEach(nsRequest::withJCRName);
+        forcedRoots.stream().flatMap(compose(ForcedRoot::getNamespacePrefixes, Stream::of)).forEach(nsRequest::withJCRName);
+        jcrNodetypes.stream().flatMap(JsonCnd::namedBy).forEach(nsRequest::withQName);
 
-        if (forcedRoots != null) {
-            for (ForcedRoot forcedRoot : forcedRoots) {
-                builder = builder.withForcedRoot(forcedRoot);
-            }
-        }
+        chartBuilder.withJcrNamespaces(JsonCnd.toJcrNsList(nodeTypeSet.getNamespaceMapping(), nsRequest.build()));
 
-        return builder.build();
-    }
-
-    protected OakMachine.Builder getBuilder() throws MojoExecutionException {
-        final ErrorListener errorListener = new DefaultErrorListener();
-
-        final ChecklistPlanner checklistPlanner = new ChecklistPlanner(checklists);
-        checklistPlanner.discoverChecklists();
-
-        final List<ProgressCheck> allChecks;
         try {
-            allChecks = new ArrayList<>(Locator
-                    .loadFromCheckSpecs(checklistPlanner.getEffectiveCheckSpecs(checks),
-                            Thread.currentThread().getContextClassLoader()));
-        } catch (final Exception e) {
-            throw new MojoExecutionException("Error while loading progress checks.", e);
+            return chartBuilder.build().toOakMachineBuilder(errorListener,
+                    Thread.currentThread().getContextClassLoader());
+        } catch (Exception e) {
+            throw new MojoExecutionException("Failed to prepare scan chart: " + e.getMessage(), e);
         }
-
-        List<File> preInstall = new ArrayList<>();
-
-        if (preInstallArtifacts != null && !preInstallArtifacts.isEmpty()) {
-            List<Dependency> preInstallDeps = new ArrayList<>();
-            for (DependencyFilter depFilter : preInstallArtifacts) {
-                Dependency dep = project.getDependencies().stream()
-                        .filter(depFilter)
-                        .findFirst()
-                        .orElseGet(depFilter::toDependency);
-                preInstallDeps.add(dep);
-            }
-            List<File> preInstallResolved = resolveDependencies(preInstallDeps, false);
-            preInstall.addAll(preInstallResolved);
-        }
-
-        if (preInstallFiles != null) {
-            preInstall.addAll(preInstallFiles);
-        }
-
-        OakMachine.Builder machineBuilder = new OakMachine.Builder()
-                .withErrorListener(errorListener)
-                .withProgressChecks(allChecks)
-                // execute the mojo as an init stage first
-                .withInitStage(getMojoInitStage())
-                // followed by the checklist init stages
-                .withInitStages(checklistPlanner.getInitStages())
-                .withPreInstallPackages(preInstall);
-
-        return machineBuilder;
     }
 }

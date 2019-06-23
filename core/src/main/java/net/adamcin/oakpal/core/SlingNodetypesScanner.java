@@ -30,6 +30,9 @@ import java.util.jar.Manifest;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * Singleton class that fetches all node type definitions from OSGi bundle MANIFEST.MF files
  * with "Sling-Nodetypes" definitions in the classpath.

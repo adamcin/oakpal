@@ -16,8 +16,12 @@
 
 package net.adamcin.oakpal.core;
 
+import static net.adamcin.oakpal.core.Fun.uncheck1;
+
 import java.io.File;
+import java.net.URL;
 import java.util.Optional;
+import java.util.stream.Stream;
 import javax.jcr.Node;
 
 /**
@@ -25,6 +29,7 @@ import javax.jcr.Node;
  */
 public class AbortedScanException extends Exception {
 
+    private final URL currentPackageUrl;
     private final File currentPackageFile;
     private final Node currentPackageNode;
 
@@ -32,18 +37,32 @@ public class AbortedScanException extends Exception {
         super(cause);
         this.currentPackageFile = currentPackageFile;
         this.currentPackageNode = null;
+        this.currentPackageUrl = null;
+    }
+
+    public AbortedScanException(final Throwable cause, final URL currentPackageUrl) {
+        super(cause);
+        this.currentPackageFile = null;
+        this.currentPackageNode = null;
+        this.currentPackageUrl = currentPackageUrl;
     }
 
     public AbortedScanException(final Throwable cause, final Node currentPackageNode) {
         super(cause);
         this.currentPackageFile = null;
         this.currentPackageNode = currentPackageNode;
+        this.currentPackageUrl = null;
     }
 
     public AbortedScanException(Throwable cause) {
         super(cause);
         this.currentPackageFile = null;
         this.currentPackageNode = null;
+        this.currentPackageUrl = null;
+    }
+
+    public Optional<URL> getCurrentPackageUrl() {
+        return Optional.ofNullable(currentPackageUrl);
     }
 
     public Optional<File> getCurrentPackageFile() {
@@ -52,5 +71,20 @@ public class AbortedScanException extends Exception {
 
     public Optional<Node> getCurrentPackageNode() {
         return Optional.ofNullable(currentPackageNode);
+    }
+
+    @Override
+    public String getMessage() {
+        return getFailedPackageMessage() + super.getMessage();
+    }
+
+    public String getFailedPackageMessage() {
+        return Stream.of(
+                Optional.ofNullable(this.currentPackageNode).map(uncheck1(Node::getPath)),
+                Optional.ofNullable(this.currentPackageFile).map(File::getAbsolutePath),
+                Optional.ofNullable(this.currentPackageUrl).map(URL::toString))
+                .filter(Optional::isPresent)
+                .findFirst()
+                .map(location -> "(Failed package: " + location + ") ").orElse("");
     }
 }

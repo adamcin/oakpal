@@ -90,7 +90,7 @@
                                 Oakpal-Checklist: OAKPAL-INF/checklists/basic.json
                                 Export-Package: net.adamcin.oakpal.core,net.adamcin.oakpal.core.checks
                                 Private-Package: net.adamcin.oakpal.core.jcrfacade.*
-                                Import-Package: org.json;version="[${json.min.version},20180813]",!aQute.*,*
+                                Import-Package: !aQute.*,*
                             ]]></bnd>
                         </configuration>
                     </execution>
@@ -166,10 +166,6 @@
         <dependency>
             <groupId>org.apache.jackrabbit.vault</groupId>
             <artifactId>org.apache.jackrabbit.vault</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.json</groupId>
-            <artifactId>json</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.sling</groupId>

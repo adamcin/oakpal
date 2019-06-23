@@ -18,7 +18,6 @@ package net.adamcin.oakpal.core.checks;
 
 import static java.util.Optional.ofNullable;
 import static net.adamcin.oakpal.core.Fun.compose;
-import static net.adamcin.oakpal.core.Fun.infer1;
 import static net.adamcin.oakpal.core.JavaxJson.arrayOrEmpty;
 import static net.adamcin.oakpal.core.JavaxJson.hasNonNull;
 import static net.adamcin.oakpal.core.JavaxJson.mapArrayOfStrings;
@@ -69,7 +68,7 @@ import org.apache.jackrabbit.vault.packaging.PackageProperties;
  * matching the values in {@link ACHandlingLevelSet}.</dd>
  * </dl>
  */
-public final class AcHandling extends CompatBaseFactory implements ProgressCheckFactory {
+public final class AcHandling implements ProgressCheckFactory {
     public static final String CONFIG_ALLOWED_MODES = "allowedModes";
     public static final String CONFIG_LEVEL_SET = "levelSet";
     static final ACHandlingLevelSet DEFAULT_LEVEL_SET = ACHandlingLevelSet.NO_UNSAFE;

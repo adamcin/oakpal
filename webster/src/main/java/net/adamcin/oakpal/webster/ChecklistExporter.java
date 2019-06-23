@@ -302,25 +302,8 @@ public final class ChecklistExporter {
         }
     }
 
-    static String getNsPrefix(final String name) {
-        final String[] parts = name.split(":");
-        return parts.length > 1 ? parts[0] : null;
-    }
-
-    static Set<String> findJcrPrefixesInForcedRoot(final Set<String> acc, final ForcedRoot forcedRoot) {
-        Optional.ofNullable(forcedRoot.getPath()).ifPresent(path ->
-                Stream.of(path.split("/"))
-                        .filter(name -> !name.isEmpty())
-                        .map(ChecklistExporter::getNsPrefix)
-                        .filter(Objects::nonNull)
-                        .forEach(acc::add));
-        Optional.ofNullable(forcedRoot.getPrimaryType()).map(ChecklistExporter::getNsPrefix).ifPresent(acc::add);
-        Optional.ofNullable(forcedRoot.getMixinTypes()).map(mixins ->
-                mixins.stream()
-                        .map(ChecklistExporter::getNsPrefix)
-                        .filter(Objects::nonNull)
-                        .collect(Collectors.toList()))
-                .ifPresent(acc::addAll);
+    static Set<String> findJcrPrefixesInForcedRoot(final @NotNull Set<String> acc, final @NotNull ForcedRoot forcedRoot) {
+        acc.addAll(Arrays.asList(forcedRoot.getNamespacePrefixes()));
         return acc;
     }
 
@@ -461,7 +444,7 @@ public final class ChecklistExporter {
         final Set<String> finalPrefixes = new HashSet<>();
         if (!privileges.isEmpty()) {
             builder.add(Checklist.KEY_JCR_PRIVILEGES, JavaxJson.wrap(privileges));
-            privileges.stream().map(ChecklistExporter::getNsPrefix).forEachOrdered(finalPrefixes::add);
+            privileges.stream().flatMap(JsonCnd::streamNsPrefix).forEach(finalPrefixes::add);
         }
 
         newRoots.forEach(root -> existing.put(root.getPath(), root));

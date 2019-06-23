@@ -34,7 +34,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 import javax.json.Json;
 import javax.json.JsonArray;
 import javax.json.JsonObject;
@@ -43,10 +42,6 @@ import javax.json.JsonWriter;
 import javax.json.JsonWriterFactory;
 import javax.json.stream.JsonCollectors;
 import javax.json.stream.JsonGenerator;
-
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
 
 /**
  * Serialize violations to/from json.
@@ -155,52 +150,6 @@ public final class ReportMapper {
 
     static JsonObject violationToJson(final Violation violation) {
         return violation.toJson();
-    }
-
-
-    @Deprecated
-    public static JSONArray reportsToJSON(Collection<CheckReport> reports) throws JSONException {
-        return new JSONArray(reports.stream()
-                .map(ReportMapper::reportToJSON)
-                .collect(Collectors.toList()));
-    }
-
-    @Deprecated
-    private static JSONObject reportToJSON(CheckReport report) throws JSONException {
-        JSONObject jsonReport = new JSONObject();
-        if (report.getCheckName() != null) {
-            jsonReport.put(KEY_CHECK_NAME, report.getCheckName());
-        }
-
-        if (report.getViolations() != null) {
-            JSONArray jsonViolations = new JSONArray(report.getViolations().stream()
-                    .map(ReportMapper::violationToJSON)
-                    .collect(Collectors.toList()));
-            jsonReport.put(KEY_VIOLATIONS, jsonViolations);
-        }
-
-        return jsonReport;
-    }
-
-    @Deprecated
-    private static JSONObject violationToJSON(Violation violation) throws JSONException {
-        JSONObject jsonViolation = new JSONObject();
-        if (violation.getSeverity() != null) {
-            jsonViolation.put(KEY_SEVERITY, violation.getSeverity());
-        }
-
-        if (violation.getDescription() != null) {
-            jsonViolation.put(KEY_DESCRIPTION, violation.getDescription());
-        }
-
-        if (violation.getPackages() != null) {
-            JSONArray vPackages = new JSONArray(violation.getPackages().stream()
-                    .map(p -> p.toString())
-                    .collect(Collectors.toList()));
-            jsonViolation.put(KEY_PACKAGES, vPackages);
-        }
-
-        return jsonViolation;
     }
 
 }

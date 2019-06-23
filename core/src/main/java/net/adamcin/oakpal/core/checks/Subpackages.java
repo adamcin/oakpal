@@ -58,7 +58,7 @@ import org.apache.jackrabbit.vault.packaging.PackageId;
  * <dd>Set to true to report a violation for any subpackage installation.</dd>
  * </dl>
  */
-public final class Subpackages extends CompatBaseFactory implements ProgressCheckFactory {
+public final class Subpackages implements ProgressCheckFactory {
     public static final String CONFIG_RULES = "rules";
     public static final String CONFIG_DENY_ALL = "denyAll";
 

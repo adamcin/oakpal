@@ -101,10 +101,10 @@ public final class WebsterPlan {
         }
     }
 
-    WebsterPlan(@NotNull final FixtureProvider fixtureProvider,
-                @NotNull final List<WebsterTarget> targets,
-                @Nullable final File globalSegmentStore,
-                @Nullable final File archiveRoot) {
+    WebsterPlan(final @NotNull FixtureProvider fixtureProvider,
+                final @NotNull List<WebsterTarget> targets,
+                final @Nullable File globalSegmentStore,
+                final @Nullable File archiveRoot) {
         this.fixtureProvider = fixtureProvider;
         this.targets = new ArrayList<>(targets);
         this.globalSegmentStore = globalSegmentStore;

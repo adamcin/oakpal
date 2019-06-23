@@ -17,11 +17,15 @@
 package net.adamcin.oakpal.core;
 
 import static java.util.Optional.ofNullable;
+import static net.adamcin.oakpal.core.Fun.compose;
 import static net.adamcin.oakpal.core.Fun.composeTest;
+import static net.adamcin.oakpal.core.Fun.inSet;
 import static net.adamcin.oakpal.core.Fun.infer1;
 import static net.adamcin.oakpal.core.Fun.inferTest1;
 import static net.adamcin.oakpal.core.Fun.mapKey;
+import static net.adamcin.oakpal.core.Fun.mapValue;
 import static net.adamcin.oakpal.core.Fun.onEntry;
+import static net.adamcin.oakpal.core.Fun.testKey;
 import static net.adamcin.oakpal.core.Fun.testValue;
 import static net.adamcin.oakpal.core.Fun.toEntry;
 import static net.adamcin.oakpal.core.Fun.uncheck1;
@@ -32,6 +36,11 @@ import static net.adamcin.oakpal.core.JavaxJson.mapArrayOfStrings;
 import static net.adamcin.oakpal.core.JavaxJson.unwrap;
 import static net.adamcin.oakpal.core.JavaxJson.wrap;
 
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -40,6 +49,8 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -47,6 +58,7 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -60,8 +72,11 @@ import javax.json.JsonObject;
 import javax.json.JsonValue;
 import javax.json.stream.JsonCollectors;
 
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.cnd.Lexer;
 import org.apache.jackrabbit.commons.query.qom.Operator;
+import org.apache.jackrabbit.oak.InitialContent;
+import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.spi.Name;
 import org.apache.jackrabbit.spi.NameFactory;
 import org.apache.jackrabbit.spi.QItemDefinition;
@@ -83,7 +98,13 @@ import org.apache.jackrabbit.spi.commons.nodetype.QPropertyDefinitionBuilder;
 import org.apache.jackrabbit.spi.commons.nodetype.constraint.ValueConstraint;
 import org.apache.jackrabbit.spi.commons.value.QValueFactoryImpl;
 import org.apache.jackrabbit.spi.commons.value.ValueFormat;
+import org.apache.jackrabbit.vault.fs.spi.CNDReader;
+import org.apache.jackrabbit.vault.fs.spi.DefaultNodeTypeSet;
+import org.apache.jackrabbit.vault.fs.spi.NodeTypeSet;
+import org.apache.jackrabbit.vault.fs.spi.impl.jcr20.DefaultCNDReader;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Methods and types used to encode/decode QNodeTypeDefinitions as JSON for use in checklists.
@@ -92,9 +113,17 @@ import org.jetbrains.annotations.NotNull;
  * @see NodeTypeDefinitionQAdapter
  */
 public final class JsonCnd {
+    private static final Logger LOGGER = LoggerFactory.getLogger(JsonCnd.class);
     private JsonCnd() {
         // no instantiation
     }
+
+    public static final List<String> BUILTIN_NODETYPES = StreamSupport.stream(
+            InitialContent.INITIAL_CONTENT
+                    .getChildNode(JcrConstants.JCR_SYSTEM)
+                    .getChildNode(NodeTypeConstants.JCR_NODE_TYPES)
+                    .getChildNodeNames().spliterator(), false)
+            .collect(Collectors.toList());
 
     /**
      * Read a serialized JSON CND into a list of qualified node type definitions.
@@ -104,8 +133,8 @@ public final class JsonCnd {
      * @return a list of qualified node type definitions
      */
     public static List<QNodeTypeDefinition>
-    getQTypesFromJson(@NotNull final JsonObject json,
-                      @NotNull final NamespaceMapping mapping) {
+    getQTypesFromJson(final @NotNull JsonObject json,
+                      final @NotNull NamespaceMapping mapping) {
         return JavaxJson.mapObjectValues(json, uncheck2(qDefinitionMapper(mapping)), true);
     }
 
@@ -116,8 +145,8 @@ public final class JsonCnd {
      * @param mapping a JCR namespace mapping to resolve prefixes for qualified names
      * @return a JSON CND object
      */
-    public static JsonObject toJson(@NotNull final List<QNodeTypeDefinition> ntDefs,
-                                    @NotNull final NamespaceMapping mapping) {
+    public static JsonObject toJson(final @NotNull List<QNodeTypeDefinition> ntDefs,
+                                    final @NotNull NamespaceMapping mapping) {
         final NamePathResolver resolver = new DefaultNamePathResolver(mapping);
         return ntDefs.stream()
                 .map(def -> toEntry(def, NodeTypeDefinitionKey.writeAllJson(def, resolver)))
@@ -128,12 +157,25 @@ public final class JsonCnd {
     }
 
     /**
+     * Return a list of JCR namespace pairs exported from the provided mapping. Mapping failure results are silently discarded.
+     *
+     * @param mapping the namespace mapping to export from
+     * @param request the mapping request
+     * @return a list of resolved namespace pairs
+     */
+    public static List<JcrNs> toJcrNsList(final @NotNull NamespaceMapping mapping,
+                                          final @NotNull NamespaceMappingRequest request) {
+        return request.resolveToJcrNs(mapping).stream()
+                .flatMap(Result::stream).collect(Collectors.toList());
+    }
+
+    /**
      * Function to adapt a Session-linked NodeTypeDefinition as a qualified node type definition for writing to JSON.
      *
      * @param session a JCR session to use for resolving JCR names and paths
      * @return a map function for stream transformation
      */
-    public static Function<NodeTypeDefinition, QNodeTypeDefinition> adaptToQ(@NotNull final Session session) {
+    public static Function<NodeTypeDefinition, QNodeTypeDefinition> adaptToQ(final @NotNull Session session) {
         final NamePathResolver resolver = new DefaultNamePathResolver(session);
         return nodeTypeDefinition -> new NodeTypeDefinitionQAdapter(nodeTypeDefinition, resolver);
     }
@@ -145,7 +187,7 @@ public final class JsonCnd {
      * @param def a qualified node type definition
      * @return a stream of qualified names
      */
-    public static Stream<Name> namedBy(@NotNull final QNodeTypeDefinition def) {
+    public static Stream<Name> namedBy(final @NotNull QNodeTypeDefinition def) {
         return Stream.concat(Stream.of(def.getName()), def.getDependencies().stream());
     }
 
@@ -182,7 +224,7 @@ public final class JsonCnd {
      * @param resolver the NamePathResolver that provides JCR name resolution
      * @return the Name to String mapping function
      */
-    static Fun.ThrowingFunction<Name, String> jcrNameOrResidual(@NotNull final NamePathResolver resolver) {
+    static Fun.ThrowingFunction<Name, String> jcrNameOrResidual(final @NotNull NamePathResolver resolver) {
         return qName -> {
             if (QNAME_RESIDUAL.equals(qName)) {
                 return TOKEN_RESIDUAL;
@@ -199,7 +241,7 @@ public final class JsonCnd {
      * @param resolver the NamePathResolver that provides QName resolution
      * @return the String to Name mapping function
      */
-    static Fun.ThrowingFunction<String, Name> qNameOrResidual(@NotNull final NamePathResolver resolver) {
+    static Fun.ThrowingFunction<String, Name> qNameOrResidual(final @NotNull NamePathResolver resolver) {
         return jcrName -> {
             if (TOKEN_RESIDUAL.equals(jcrName)) {
                 return QNAME_RESIDUAL;
@@ -234,7 +276,7 @@ public final class JsonCnd {
      * @return a throwing bi-function mapping a JSON key and object value to a constructed node type definition
      */
     static Fun.ThrowingBiFunction<String, JsonObject, QNodeTypeDefinition>
-    nodeTypeDefinitionMapper(@NotNull final NamePathResolver resolver) {
+    nodeTypeDefinitionMapper(final @NotNull NamePathResolver resolver) {
         return (key, json) -> {
             final QNodeTypeDefinitionBuilder def = new QNodeTypeDefinitionBuilder();
             def.setName(qNameOrResidual(resolver).tryApply(key));
@@ -251,7 +293,7 @@ public final class JsonCnd {
      * @return a throwing bi-function mapping a JSON key and object value to a constructed {@link QNodeTypeDefinition}
      */
     static Fun.ThrowingBiFunction<String, JsonObject, QNodeTypeDefinition>
-    qDefinitionMapper(@NotNull final NamespaceMapping mapping) {
+    qDefinitionMapper(final @NotNull NamespaceMapping mapping) {
         return nodeTypeDefinitionMapper(new DefaultNamePathResolver(mapping));
     }
 
@@ -263,7 +305,7 @@ public final class JsonCnd {
      * @return the serializable string
      * @throws RepositoryException when {@link NamePathResolver} throws.
      */
-    static String qValueString(@NotNull final QValue qValue,
+    static String qValueString(final @NotNull QValue qValue,
                                @NotNull NamePathResolver resolver) throws RepositoryException {
         switch (qValue.getType()) {
             case PropertyType.NAME:
@@ -273,6 +315,78 @@ public final class JsonCnd {
             default:
                 return qValue.getString();
         }
+    }
+
+    /**
+     * Utility method to return a namespace prefix if a colon is present.
+     *
+     * @param name JCR name
+     * @return stream of single namespace prefix, or empty
+     */
+    public static @NotNull Stream<String> streamNsPrefix(final @NotNull String name) {
+        final String[] parts = name.split(":");
+        return parts.length > 1 ? Stream.of(parts[0]) : Stream.empty();
+    }
+
+    public static List<Result<NodeTypeSet>> readNodeTypes(final @NotNull NamespaceMapping mapping,
+                                                          final @NotNull List<URL> cndUrls) {
+        final List<Result<NodeTypeSet>> results = new ArrayList<>();
+        for (URL cndUrl : cndUrls) {
+            final CNDReader cndReader = new DefaultCNDReader();
+            try (Reader reader = new InputStreamReader(cndUrl.openStream(), StandardCharsets.UTF_8)) {
+                cndReader.read(reader, cndUrl.toExternalForm(), mapping);
+                results.add(Result.success(cndReader));
+            } catch (IOException e) {
+                results.add(Result.failure(new RuntimeException(cndUrl.toExternalForm(), e)));
+            }
+        }
+        return results;
+    }
+
+    public static NodeTypeSet aggregateNodeTypes(final @NotNull NamespaceMapping mapping,
+                                                 final @NotNull List<NodeTypeSet> nodeTypeSets) {
+
+        final NamespaceMapping aggregateMapping = new NamespaceMapping(mapping);
+        final Set<Name> builtinTypes = BUILTIN_NODETYPES.stream()
+                .map(uncheck1(QName.BUILTIN_RESOLVER::getQName))
+                .collect(Collectors.toSet());
+        final Map<Name, List<QNodeTypeDefinition>> unfilteredTypes = nodeTypeSets.stream().flatMap(
+                compose(compose(NodeTypeSet::getNodeTypes, Map::entrySet), Set::stream))
+                .filter(testKey(inSet(builtinTypes).negate()))
+                .map(mapValue(Collections::singletonList))
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (left, right) -> {
+                    final List<QNodeTypeDefinition> combined = new ArrayList<>(left);
+                    combined.addAll(right);
+                    return combined;
+                }));
+
+        final Set<Name> unfilteredNames = unfilteredTypes.keySet();
+        final Map<Name, QNodeTypeDefinition> satisfied = unfilteredTypes.entrySet().stream()
+                .map(mapValue(types ->
+                        types.stream()
+                                .filter(type ->
+                                        type.getDependencies().stream()
+                                                .noneMatch(inSet(builtinTypes).or(inSet(unfilteredNames)).negate()))
+                ))
+                .map(mapValue(Stream::findFirst))
+                .filter(testValue(Optional::isPresent))
+                .collect(Collectors.toMap(Map.Entry::getKey, compose(Map.Entry::getValue, Optional::get)));
+
+        final Set<Name> unsatisfiedNames = unfilteredNames.stream().filter(inSet(satisfied.keySet()).negate())
+                .collect(Collectors.toSet());
+
+        if (!unsatisfiedNames.isEmpty()) {
+            LOGGER.debug("[aggregateNodeTypes] unsatisfied node type names: {}", unsatisfiedNames.toString());
+        }
+
+        unsatisfiedNames.stream()
+                .map(name -> toEntry(name, unfilteredTypes.getOrDefault(name,
+                        Collections.emptyList()).stream().findFirst()))
+                .filter(testValue(Optional::isPresent))
+                .map(mapValue(Optional::get))
+                .forEach(entry -> satisfied.put(entry.getKey(), entry.getValue()));
+
+        return new DefaultNodeTypeSet("<aggregate>", satisfied.values(), aggregateMapping);
     }
 
     /**
@@ -375,10 +489,10 @@ public final class JsonCnd {
      * @param <K>         the {@link KeyDefinitionToken} enum type, appropriately parameterized to {@link B} and {@link D}
      */
     private static <B, D, K extends KeyDefinitionToken<B, D>> void
-    internalReadAllTo(@NotNull final NamePathResolver resolver,
-                      @NotNull final B builder,
-                      @NotNull final JsonValue parentValue,
-                      @NotNull final K[] tokens) {
+    internalReadAllTo(final @NotNull NamePathResolver resolver,
+                      final @NotNull B builder,
+                      final @NotNull JsonValue parentValue,
+                      final @NotNull K[] tokens) {
         if (parentValue.getValueType() == JsonValue.ValueType.OBJECT) {
             JsonObject json = parentValue.asJsonObject();
             Stream.of(tokens)
@@ -402,9 +516,9 @@ public final class JsonCnd {
      * @return a JsonObject to write as an aggregrate of all the key tokens supported for this definition
      */
     private static <D, K extends KeyDefinitionToken<?, D>> JsonValue
-    internalWriteAllJson(@NotNull final D def,
-                         @NotNull final NamePathResolver resolver,
-                         @NotNull final K[] tokens) {
+    internalWriteAllJson(final @NotNull D def,
+                         final @NotNull NamePathResolver resolver,
+                         final @NotNull K[] tokens) {
         return Stream.of(tokens)
                 .filter(DefinitionToken::nonUnknown)
                 .map(key -> toEntry(key.getToken(), key.writeJson(def, resolver)))
@@ -516,9 +630,9 @@ public final class JsonCnd {
          *                 {@link #internalReadAllTo(NamePathResolver, Object, JsonValue, KeyDefinitionToken[])})
          * @see #nodeTypeDefinitionMapper(NamePathResolver)
          */
-        static void readAllTo(@NotNull final NamePathResolver resolver,
-                              @NotNull final QNodeTypeDefinitionBuilder builder,
-                              @NotNull final JsonValue value) {
+        static void readAllTo(final @NotNull NamePathResolver resolver,
+                              final @NotNull QNodeTypeDefinitionBuilder builder,
+                              final @NotNull JsonValue value) {
             internalReadAllTo(resolver, builder, value, values());
         }
 
@@ -530,8 +644,8 @@ public final class JsonCnd {
          * @return an untyped JsonObject parent of all of this type's key tokens
          * @see #toJson(List, NamespaceMapping)
          */
-        static JsonValue writeAllJson(@NotNull final QNodeTypeDefinition def,
-                                      @NotNull final NamePathResolver resolver) {
+        static JsonValue writeAllJson(final @NotNull QNodeTypeDefinition def,
+                                      final @NotNull NamePathResolver resolver) {
             return internalWriteAllJson(def, resolver, values());
         }
 
@@ -622,8 +736,8 @@ public final class JsonCnd {
          * @param attributesValue the untyped JsonArray of attribute tokens
          * @see NodeTypeDefinitionKey#ATTRIBUTES
          */
-        static void readAttributes(@NotNull final QNodeTypeDefinitionBuilder builder,
-                                   @NotNull final JsonValue attributesValue) {
+        static void readAttributes(final @NotNull QNodeTypeDefinitionBuilder builder,
+                                   final @NotNull JsonValue attributesValue) {
             if (attributesValue.getValueType() == JsonValue.ValueType.ARRAY) {
                 JsonArray attributes = attributesValue.asJsonArray();
                 attributes.stream()
@@ -638,7 +752,7 @@ public final class JsonCnd {
          * @param def the node type definition to check attributes against
          * @return a list of writable attribute tokens
          */
-        static List<String> getAttributeTokens(@NotNull final QNodeTypeDefinition def) {
+        static List<String> getAttributeTokens(final @NotNull QNodeTypeDefinition def) {
             return Stream.of(values())
                     .filter(value -> value.isWritable(def))
                     .map(DefinitionToken::getToken)
@@ -651,7 +765,7 @@ public final class JsonCnd {
          * @param token a String representation of a token
          * @return the matching enum value or {@link #UNKNOWN}
          */
-        static TypeDefinitionAttribute forToken(@NotNull final String token) {
+        static TypeDefinitionAttribute forToken(final @NotNull String token) {
             for (TypeDefinitionAttribute value : values()) {
                 if (value.token.equalsIgnoreCase(token)) {
                     return value;
@@ -678,12 +792,12 @@ public final class JsonCnd {
         }
 
         @Override
-        public boolean isWritable(@NotNull final QNodeTypeDefinition def) {
+        public boolean isWritable(final @NotNull QNodeTypeDefinition def) {
             return checkWritable.test(def);
         }
 
         @Override
-        public void readTo(@NotNull final QNodeTypeDefinitionBuilder builder) {
+        public void readTo(final @NotNull QNodeTypeDefinitionBuilder builder) {
             readToBuilder.accept(builder);
         }
     }
@@ -795,7 +909,7 @@ public final class JsonCnd {
          * @param def the item definition
          * @return a list of base item definition attribute tokens
          */
-        static List<String> getAttributeTokens(@NotNull final QItemDefinition def) {
+        static List<String> getAttributeTokens(final @NotNull QItemDefinition def) {
             return Stream.of(values())
                     .filter(value -> value.isWritable(def))
                     .map(DefinitionToken::getToken)
@@ -813,7 +927,7 @@ public final class JsonCnd {
          * @return a list of base item definition attribute tokens followed by subtype item definition attribute tokens
          */
         static <D extends QItemDefinition, T extends AttributeDefinitionToken<?, D>> List<String>
-        getMoreItemDefAttributeTokens(@NotNull final D def, @NotNull T[] subtypeTokens) {
+        getMoreItemDefAttributeTokens(final @NotNull D def, @NotNull T[] subtypeTokens) {
             final List<String> attrs = new ArrayList<>(ItemDefinitionAttribute.getAttributeTokens(def));
             Stream.of(subtypeTokens).filter(value -> value.isWritable(def)).map(T::getToken).forEachOrdered(attrs::add);
             return attrs;
@@ -826,8 +940,8 @@ public final class JsonCnd {
          * @param builder    an item definition builder
          * @param attributes a JsonArray of attributes
          */
-        private static void readAttributes(@NotNull final QItemDefinitionBuilder builder,
-                                           @NotNull final JsonArray attributes) {
+        private static void readAttributes(final @NotNull QItemDefinitionBuilder builder,
+                                           final @NotNull JsonArray attributes) {
             attributes.stream().map(infer1(ItemDefinitionAttribute::forToken).compose(JSON_VALUE_STRING))
                     .filter(DefinitionToken::nonUnknown).forEachOrdered(attr -> attr.readTo(builder));
         }
@@ -844,9 +958,9 @@ public final class JsonCnd {
          * @param <T>             item definition subtype token type parameter
          */
         static <B extends QItemDefinitionBuilder, T extends AttributeDefinitionToken<B, ?>> void
-        readAttributes(@NotNull final B builder,
-                       @NotNull final JsonValue attributesValue,
-                       @NotNull final Function<String, T> tokenMapper) {
+        readAttributes(final @NotNull B builder,
+                       final @NotNull JsonValue attributesValue,
+                       final @NotNull Function<String, T> tokenMapper) {
             if (attributesValue.getValueType() == JsonValue.ValueType.ARRAY) {
                 JsonArray attributes = attributesValue.asJsonArray();
                 ItemDefinitionAttribute.readAttributes(builder, attributes);
@@ -861,7 +975,7 @@ public final class JsonCnd {
          * @param token a String representation of a token
          * @return the matching enum value or {@link #UNKNOWN}
          */
-        static ItemDefinitionAttribute forToken(@NotNull final String token) {
+        static ItemDefinitionAttribute forToken(final @NotNull String token) {
             for (ItemDefinitionAttribute value : values()) {
                 if (value.token.equalsIgnoreCase(token)) {
                     return value;
@@ -883,7 +997,7 @@ public final class JsonCnd {
         }
 
         @Override
-        public boolean isWritable(@NotNull final QItemDefinition def) {
+        public boolean isWritable(final @NotNull QItemDefinition def) {
             return checkWritable.test(def);
         }
 
@@ -893,7 +1007,7 @@ public final class JsonCnd {
         }
 
         @Override
-        public void readTo(@NotNull final QItemDefinitionBuilder builder) {
+        public void readTo(final @NotNull QItemDefinitionBuilder builder) {
             readToBuilder.accept(builder);
         }
     }
@@ -991,9 +1105,9 @@ public final class JsonCnd {
          * @param builder  the property definition builder
          * @param value    the untyped parent JsonObject
          */
-        static void readAllTo(@NotNull final NamePathResolver resolver,
-                              @NotNull final QPropertyDefinitionBuilder builder,
-                              @NotNull final JsonValue value) {
+        static void readAllTo(final @NotNull NamePathResolver resolver,
+                              final @NotNull QPropertyDefinitionBuilder builder,
+                              final @NotNull JsonValue value) {
             internalReadAllTo(resolver, builder, value, values());
         }
 
@@ -1005,8 +1119,8 @@ public final class JsonCnd {
          * @param resolver the NamePathResolver to use for mapping namespaces to JCR name prefixes
          * @return the new parent JsonObject representing the property definition
          */
-        static JsonValue writeAllJson(@NotNull final QPropertyDefinition def,
-                                      @NotNull final NamePathResolver resolver) {
+        static JsonValue writeAllJson(final @NotNull QPropertyDefinition def,
+                                      final @NotNull NamePathResolver resolver) {
             return internalWriteAllJson(def, resolver, values());
         }
 
@@ -1014,9 +1128,9 @@ public final class JsonCnd {
         final BiFunction<QPropertyDefinition, NamePathResolver, JsonValue> writeJsonValue;
         final Function<NamePathResolver, BiConsumer<QPropertyDefinitionBuilder, JsonValue>> readToBuilder;
 
-        PropertyDefinitionKey(@NotNull final String token,
-                              @NotNull final BiFunction<QPropertyDefinition, NamePathResolver, JsonValue> writeJsonValue,
-                              @NotNull final Function<NamePathResolver, BiConsumer<QPropertyDefinitionBuilder, JsonValue>> readToBuilder) {
+        PropertyDefinitionKey(final @NotNull String token,
+                              final @NotNull BiFunction<QPropertyDefinition, NamePathResolver, JsonValue> writeJsonValue,
+                              final @NotNull Function<NamePathResolver, BiConsumer<QPropertyDefinitionBuilder, JsonValue>> readToBuilder) {
             this.token = token;
             this.writeJsonValue = writeJsonValue;
             this.readToBuilder = readToBuilder;
@@ -1028,15 +1142,15 @@ public final class JsonCnd {
         }
 
         @Override
-        public void readTo(@NotNull final NamePathResolver resolver,
-                           @NotNull final QPropertyDefinitionBuilder builder,
-                           @NotNull final JsonValue value) {
+        public void readTo(final @NotNull NamePathResolver resolver,
+                           final @NotNull QPropertyDefinitionBuilder builder,
+                           final @NotNull JsonValue value) {
             this.readToBuilder.apply(resolver).accept(builder, value);
         }
 
         @Override
-        public JsonValue writeJson(@NotNull final QPropertyDefinition def,
-                                   @NotNull final NamePathResolver resolver) {
+        public JsonValue writeJson(final @NotNull QPropertyDefinition def,
+                                   final @NotNull NamePathResolver resolver) {
             return writeJsonValue.apply(def, resolver);
         }
     }
@@ -1100,8 +1214,8 @@ public final class JsonCnd {
          * @param attributesValue the untyped json array of attribute tokens
          * @see ItemDefinitionAttribute#readAttributes(QItemDefinitionBuilder, JsonValue, Function)
          */
-        static void readAttributes(@NotNull final QPropertyDefinitionBuilder builder,
-                                   @NotNull final JsonValue attributesValue) {
+        static void readAttributes(final @NotNull QPropertyDefinitionBuilder builder,
+                                   final @NotNull JsonValue attributesValue) {
             ItemDefinitionAttribute.readAttributes(builder, attributesValue, PropertyDefinitionAttribute::forToken);
         }
 
@@ -1112,7 +1226,7 @@ public final class JsonCnd {
          * @param def the property definition
          * @return the list of property definition attribute tokens
          */
-        static List<String> getAttributeTokens(@NotNull final QPropertyDefinition def) {
+        static List<String> getAttributeTokens(final @NotNull QPropertyDefinition def) {
             return ItemDefinitionAttribute.getMoreItemDefAttributeTokens(def, values());
         }
 
@@ -1122,7 +1236,7 @@ public final class JsonCnd {
          * @param token a String representation of a token
          * @return the matching enum value or {@link #UNKNOWN}
          */
-        static PropertyDefinitionAttribute forToken(@NotNull final String token) {
+        static PropertyDefinitionAttribute forToken(final @NotNull String token) {
             for (PropertyDefinitionAttribute value : values()) {
                 if (value.token.equalsIgnoreCase(token)) {
                     return value;
@@ -1144,12 +1258,12 @@ public final class JsonCnd {
         }
 
         @Override
-        public boolean isWritable(@NotNull final QPropertyDefinition def) {
+        public boolean isWritable(final @NotNull QPropertyDefinition def) {
             return checkWritable.test(def);
         }
 
         @Override
-        public void readTo(@NotNull final QPropertyDefinitionBuilder builder) {
+        public void readTo(final @NotNull QPropertyDefinitionBuilder builder) {
             readToBuilder.accept(builder);
         }
 

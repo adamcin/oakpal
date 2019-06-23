@@ -38,8 +38,6 @@ import net.adamcin.oakpal.core.SimpleViolation;
 import net.adamcin.oakpal.core.Util;
 import net.adamcin.oakpal.core.Violation;
 import org.apache.jackrabbit.vault.packaging.PackageId;
-import org.json.JSONArray;
-import org.json.JSONObject;
 
 /**
  * Encapsulation of constraints on a JCR property for the {@link JcrProperties} check.
@@ -75,25 +73,6 @@ public final class JcrPropertyConstraints {
     public static final String CONFIG_SEVERITY = "severity";
     public static final Violation.Severity DEFAULT_SEVERITY = Violation.Severity.MAJOR;
 
-    @Deprecated
-    public static JcrPropertyConstraints fromJSON(final JSONObject checkJson) {
-        final String name = checkJson.getString(CONFIG_NAME);
-        final boolean denyIfAbsent = checkJson.has(CONFIG_DENY_IF_ABSENT)
-                && checkJson.getBoolean(CONFIG_DENY_IF_ABSENT);
-        final boolean denyIfPresent = checkJson.has(CONFIG_DENY_IF_PRESENT)
-                && checkJson.getBoolean(CONFIG_DENY_IF_PRESENT);
-        final boolean denyIfMultivalued = checkJson.has(CONFIG_DENY_IF_MULTIVALUED)
-                && checkJson.getBoolean(CONFIG_DENY_IF_MULTIVALUED);
-        final String requireType = checkJson.optString(CONFIG_REQUIRE_TYPE);
-        final List<Rule> valueRules = Rule.fromJSON(checkJson.optJSONArray(CONFIG_VALUE_RULES));
-        final Violation.Severity severity = checkJson.has(CONFIG_SEVERITY)
-                ? Violation.Severity.valueOf(checkJson.getString(CONFIG_SEVERITY).toUpperCase())
-                : Violation.Severity.MAJOR;
-
-        return new JcrPropertyConstraints(name, denyIfAbsent, denyIfPresent, denyIfMultivalued, requireType, valueRules,
-                severity);
-    }
-
     public static JcrPropertyConstraints fromJson(final JsonObject checkJson) {
         final String name = checkJson.getString(CONFIG_NAME);
         final boolean denyIfAbsent = hasNonNull(checkJson, CONFIG_DENY_IF_ABSENT)
@@ -109,11 +88,6 @@ public final class JcrPropertyConstraints {
 
         return new JcrPropertyConstraints(name, denyIfAbsent, denyIfPresent, denyIfMultivalued, requireType, valueRules,
                 severity);
-    }
-
-    @Deprecated
-    public static List<JcrPropertyConstraints> fromJSON(final JSONArray rulesArray) {
-        return Util.fromJSONArray(rulesArray, JcrPropertyConstraints::fromJSON);
     }
 
     public static List<JcrPropertyConstraints> fromJsonArray(final JsonArray rulesArray) {
