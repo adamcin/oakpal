@@ -277,6 +277,14 @@ abstract class AbstractScanMojo extends AbstractMojo {
     protected boolean deferBuildFailure;
 
     /**
+     * If this is set to true, InstallHooks in scanned packages will be ignored.
+     *
+     * @since 1.4.0
+     */
+    @Parameter
+    protected boolean skipInstallHooks;
+
+    /**
      * Construct an init stage purely from the relevant mojo parameters.
      *
      * @return a complete init stage
@@ -381,6 +389,10 @@ abstract class AbstractScanMojo extends AbstractMojo {
                 // followed by the checklist init stages
                 .withInitStages(checklistPlanner.getInitStages())
                 .withPreInstallPackages(preInstall);
+
+        if (skipInstallHooks) {
+            machineBuilder.withInstallHookProcessorFactory(OakMachine.NOOP_INSTALL_HOOK_PROCESSOR_FACTORY);
+        }
 
         return machineBuilder;
     }

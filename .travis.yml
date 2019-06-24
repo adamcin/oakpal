@@ -1,4 +1,6 @@
 language: java
+jdk: oraclejdk8
+dist: trusty
 script:
   - mvn -B verify
 after_success:
