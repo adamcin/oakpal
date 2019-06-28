@@ -4,20 +4,16 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.Collections;
 import java.util.Map;
-import java.util.regex.Pattern;
-import java.util.stream.Stream;
+import java.util.Properties;
 
-import net.adamcin.oakpal.core.Fun;
 import net.adamcin.oakpal.core.Nothing;
 import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Abstraction of standard CLI environment I/O channels.
  */
 public interface Console {
-    String ENV_OAKPAL_PATH = "OAKPAL_PATH";
+    String ENV_OAKPAL_OPEAR = "OAKPAL_OPEAR";
 
     /**
      * Return the current working directory (at time of execution).
@@ -37,6 +33,16 @@ public interface Console {
     @NotNull
     default Map<String, String> getEnv() {
         return Collections.emptyMap();
+    }
+
+    /**
+     * Return the system properties.
+     *
+     * @return the system properties
+     */
+    @NotNull
+    default Properties getSystemProperties() {
+        return new Properties(System.getProperties());
     }
 
     /**
@@ -68,18 +74,4 @@ public interface Console {
      * Dispose open printers.
      */
     void dispose();
-
-    /**
-     * Get the directories specified by the OAKPAL_PATH environment variable.
-     *
-     * @return the directories specified by the OAKPAL_PATH environment variable
-     */
-    @NotNull
-    default File[] getOakpalPath() {
-        final File cwd = getCwd();
-        return Stream.of(getEnv().getOrDefault(ENV_OAKPAL_PATH, "")
-                .split(Pattern.quote(File.pathSeparator)))
-                .filter(Fun.inferTest1(String::isEmpty).negate()).map(path -> new File(cwd, path))
-                .toArray(File[]::new);
-    }
 }

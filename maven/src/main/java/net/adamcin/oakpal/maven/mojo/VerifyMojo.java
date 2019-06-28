@@ -36,7 +36,7 @@ import org.apache.maven.plugins.annotations.Parameter;
  * @since 1.1.0
  */
 @Mojo(name = "verify", defaultPhase = LifecyclePhase.VERIFY, configurator = OakpalComponentConfigurator.HINT)
-public class VerifyMojo extends AbstractMojo {
+public class VerifyMojo extends AbstractITestMojo {
 
     /**
      * Specifically skip this plugin's execution.

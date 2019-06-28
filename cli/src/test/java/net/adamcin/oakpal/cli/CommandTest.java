@@ -1,8 +1,8 @@
 package net.adamcin.oakpal.cli;
 
-import static net.adamcin.oakpal.core.Fun.result0;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -16,11 +16,8 @@ import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
 import javax.json.Json;
 import javax.json.JsonObject;
-import javax.json.JsonReader;
 
 import net.adamcin.oakpal.core.CheckReport;
 import net.adamcin.oakpal.core.Nothing;
@@ -79,7 +76,7 @@ public class CommandTest {
             reader.lines()
                     .map(line -> Json.createReader(new StringReader(line)).readObject())
                     .forEachOrdered(readObjects::add);
-        } catch (IOException e ) {
+        } catch (IOException e) {
             // shouldn't happen
         }
         assertEquals("should read same number of objects as there are reports",
@@ -96,10 +93,15 @@ public class CommandTest {
         final Command command = new Command();
         final StringWriter sw = new StringWriter();
         try (PrintWriter writer = new PrintWriter(sw)) {
+            assertNotNull("commandStrategy", commandStrategy);
+            assertNotNull("writer", writer);
             commandStrategy.apply(command, message -> IO.empty.flatMap(nothing -> {
                 writer.println(message);
                 return IO.empty;
             })).get();
+        } catch (NullPointerException e) {
+            LOGGER.error("wut", e);
+            throw e;
         }
         return sw.toString();
     }

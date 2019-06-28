@@ -1,4 +1,4 @@
 #!/bin/sh
 appHome="$(cd "$(dirname "$(dirname "$0")")" && pwd)"
-java -jar "${appHome}"/oakpal-cli-*.jar "$@"
+java ${JAVA_OPTS} -jar "${appHome}"/oakpal-cli-*.jar "$@"
 

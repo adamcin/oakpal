@@ -15,16 +15,32 @@ import org.apache.jackrabbit.spi.QNodeTypeDefinition;
 import org.apache.jackrabbit.spi.commons.namespace.NamespaceMapping;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
- * A chart is a reproducible execution plan, similar in design to a Checklist, but with the following differences:
+ * A plan is a reproducible execution plan, similar in design to a Checklist, but with the following differences:
  * 1. Identified by URL, supporting retrieval on the classpath.
  * 2. No support for referencing external CND files.
  * 3. Can reference pre-install packages by URL.
- * 4. Can not aggregate multiple charts per execution.
+ * 4. Can not aggregate multiple plans per execution.
  */
-public final class Chart implements JavaxJson.ObjectConvertible {
-    public static final URL DEFAULT_CHART_URL = Chart.class.getResource("default-chart.json");
+public final class OakpalPlan implements JavaxJson.ObjectConvertible {
+    private static final Logger LOGGER = LoggerFactory.getLogger(OakpalPlan.class);
+    /**
+     * Preferred default plan when a custom classpath is specified without specifying a plan name. This is also
+     * the preferred plan when a user indicates that NO plan should be used.
+     * <p>
+     * This should not be used as a default when a plan name is specified by a user, but is not found.
+     */
+    public static final URL EMPTY_PLAN_URL = OakpalPlan.class.getResource("empty-plan.json");
+    /**
+     * Preferred default plan when no custom classpath is specified, and no plan name is specified.
+     * <p>
+     * This should not be used as a default when a plan name is specified by a user, but is not found.
+     */
+    public static final URL BASIC_PLAN_URL = OakpalPlan.class.getResource("basic-plan.json");
+
     public static final String KEY_CHECKLISTS = "checklists";
     public static final String KEY_CHECKS = "checks";
     public static final String KEY_FORCED_ROOTS = "forcedRoots";
@@ -43,15 +59,15 @@ public final class Chart implements JavaxJson.ObjectConvertible {
     private final List<ForcedRoot> forcedRoots;
     private final List<CheckSpec> checks;
 
-    private Chart(final @Nullable URL base,
-                  final @Nullable JsonObject originalJson,
-                  final @NotNull List<String> checklists,
-                  final @NotNull List<URL> preInstallUrls,
-                  final @NotNull List<JcrNs> jcrNamespaces,
-                  final @NotNull List<QNodeTypeDefinition> jcrNodetypes,
-                  final @NotNull List<String> jcrPrivileges,
-                  final @NotNull List<ForcedRoot> forcedRoots,
-                  final @NotNull List<CheckSpec> checks) {
+    private OakpalPlan(final @Nullable URL base,
+                       final @Nullable JsonObject originalJson,
+                       final @NotNull List<String> checklists,
+                       final @NotNull List<URL> preInstallUrls,
+                       final @NotNull List<JcrNs> jcrNamespaces,
+                       final @NotNull List<QNodeTypeDefinition> jcrNodetypes,
+                       final @NotNull List<String> jcrPrivileges,
+                       final @NotNull List<ForcedRoot> forcedRoots,
+                       final @NotNull List<CheckSpec> checks) {
         this.base = base;
         this.originalJson = originalJson;
         this.checklists = checklists;
@@ -113,6 +129,7 @@ public final class Chart implements JavaxJson.ObjectConvertible {
     }
 
     InitStage toInitStage() {
+        LOGGER.debug("[Plan#toInitStage] json={}", this.toJson());
         InitStage.Builder builder = new InitStage.Builder();
 
         for (JcrNs ns : jcrNamespaces) {
@@ -152,10 +169,10 @@ public final class Chart implements JavaxJson.ObjectConvertible {
                 .withPreInstallUrls(preInstallUrls);
     }
 
-    public static Result<Chart> fromJson(final @NotNull URL jsonUrl) {
+    public static Result<OakpalPlan> fromJson(final @NotNull URL jsonUrl) {
         try (JsonReader reader = Json.createReader(jsonUrl.openStream())) {
             JsonObject json = reader.readObject();
-            Chart.Builder builder = new Chart.Builder(jsonUrl);
+            OakpalPlan.Builder builder = new OakpalPlan.Builder(jsonUrl);
             if (hasNonNull(json, KEY_PREINSTALL_URLS)) {
                 builder.withPreInstallUrls(JavaxJson.mapArrayOfStrings(json.getJsonArray(KEY_PREINSTALL_URLS),
                         Fun.uncheck1(url -> new URL(jsonUrl, url))));
@@ -239,12 +256,12 @@ public final class Chart implements JavaxJson.ObjectConvertible {
             return this;
         }
 
-        private Chart build(final @Nullable JsonObject originalJson) {
-            return new Chart(base, originalJson, checklists, preInstallUrls, jcrNamespaces,
+        private OakpalPlan build(final @Nullable JsonObject originalJson) {
+            return new OakpalPlan(base, originalJson, checklists, preInstallUrls, jcrNamespaces,
                     jcrNodetypes, jcrPrivileges, forcedRoots, checks);
         }
 
-        public Chart build() {
+        public OakpalPlan build() {
             return build(null);
         }
     }

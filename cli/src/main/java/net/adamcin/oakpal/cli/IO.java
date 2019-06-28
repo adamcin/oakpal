@@ -6,8 +6,9 @@ import java.util.function.Supplier;
 import net.adamcin.oakpal.core.Nothing;
 
 /**
+ * Just a simple IO monad.
  *
- * @param <A>
+ * @param <A> the type of value read from "input" after execution, to be fed back into the functional execution chain.
  */
 public interface IO<A> extends Supplier<A> {
 

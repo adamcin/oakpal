@@ -62,6 +62,32 @@ public class DependencyFilter implements Predicate<Dependency> {
         return dependency;
     }
 
+    public DependencyFilter withGroupId(final String groupId) {
+        this.setGroupId(groupId);
+        return this;
+    }
+
+    public DependencyFilter withArtifactId(final String artifactId) {
+        this.setArtifactId(artifactId);
+        return this;
+    }
+
+    public DependencyFilter withVersion(final String version) {
+        this.setVersion(version);
+        return this;
+    }
+
+    public DependencyFilter withType(final String type) {
+        this.setType(type);
+        return this;
+    }
+
+
+    public DependencyFilter withClassifier(final String classifier) {
+        this.setClassifier(classifier);
+        return this;
+    }
+
     public String getGroupId() {
         return groupId;
     }

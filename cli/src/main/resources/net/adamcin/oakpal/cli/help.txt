@@ -1,0 +1,50 @@
+oakpal [ <options> ] <opearFile> <scanFile> [ <scanFile> ... ]
+
+  Options
+  -------
+
+  -h | --help                       : Print this help message and exit.
+  -v | --version                    : Print the OakPAL CLI version and exit.
+  -j | --json                       : Write check reports in JSON format.
+  -o | --outfile <outFile>          : Write check reports to the specified <outFile>
+                                      instead of writing to stdout.
+  -f | --opear-file <opearFile>     : Specify an OPEAR file to use (overrides $OAKPAL_OPEAR).
+  -p | --plan <planName>            : Specify a different plan name to lookup in the specified opear.
+                                      By default, the first plan exported by a specified opear will be used,
+                                      or if no opear is specified, the basic oakpal plan will be used.
+       --no-plan                    : Use no plan for the scan. Overrides the default behavior, which otherwise
+                                      uses the oakpal core "basic-plan.json".
+  -s | --severity-fail <severity>   : Exit with a non-zero code if any violations are
+                                      reported with a severity level equal to or higher
+                                      than <severity>. Can be MINOR, MAJOR, or SEVERE.
+                                      If not specified, the default fail severity is MAJOR.
+  <scanFile> [ <scanFile> ... ]     : Scan package files using the plan discovered on
+                                      the $OAKPAL_PATH.
+
+  Environment
+  -----------
+  OAKPAL_OPEAR  : Specify this variable to provide an OPEAR file/directory containing plans and checklist modules.
+                  An OPEAR file is a JAR file constructed with the following Manifest headers, borrowed from OSGi:
+
+                  Bundle-SymbolicName : This OSGi header is used for the opear cache key, and is required for the
+                                        other headers should be recognized.
+                  Bundle-Version      : This OSGi Manifest header is optional, and when present, used as part of the
+                                        cache key.
+                  Bundle-ClassPath    : This OSGi Manifest header specifies embedded JARs and directories that are
+                                        added to the plan classpath. If not present, the default value of ".", or
+                                        the root of the container, is added to the classpath.
+
+                  When a path to a directory is specified using OAKPAL_OPEAR or -f/--opear-file, it will be treated
+                  exactly as an extracted OPEAR archive, except for when it does not contain a META-INF/MANIFEST.MF.
+                  In that case, oakpal will look for a file in the root of the directory named "plan.json" to use
+                  as the execution plan, or it will default to the oakpal basic plan.
+
+  Exit Codes
+  ----------
+  0   : success
+  1   : general error unrelated to scan execution
+  9   : aborted scan
+  10  : at least one SEVERE violation reported
+  11  : at least one MAJOR violation reported (but no SEVERE violations)
+  12  : at least one MINOR violation reported (but no MAJOR or SEVERE violations)
+

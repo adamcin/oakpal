@@ -8,6 +8,8 @@ import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A type representing either a successful result value, or failure, with an error.
@@ -15,6 +17,7 @@ import org.jetbrains.annotations.NotNull;
  * @param <V> The result type.
  */
 public abstract class Result<V> implements Serializable {
+    private static final Logger LOGGER = LoggerFactory.getLogger(Result.class);
     private Result() {
         /* construct from factory */
     }
@@ -44,6 +47,14 @@ public abstract class Result<V> implements Serializable {
     public abstract Result<V> orElse(final @NotNull Supplier<Result<V>> defaultValue);
 
     public abstract Stream<V> stream();
+
+    public final boolean isSuccess() {
+        return !isFailure();
+    }
+
+    public final boolean isFailure() {
+        return getError().isPresent();
+    }
 
     public abstract Optional<RuntimeException> getError();
 
@@ -79,16 +90,19 @@ public abstract class Result<V> implements Serializable {
 
         @Override
         public V getOrElse(final V defaultValue) {
+            logSupression();
             return defaultValue;
         }
 
         @Override
         public V getOrElse(final @NotNull Supplier<V> defaultValue) {
+            logSupression();
             return defaultValue.get();
         }
 
         @Override
         public Result<V> orElse(final @NotNull Supplier<Result<V>> defaultValue) {
+            logSupression();
             return defaultValue.get();
         }
 
@@ -102,9 +116,17 @@ public abstract class Result<V> implements Serializable {
             return Optional.of(this.exception);
         }
 
+
         @Override
         public String toString() {
             return String.format("Failure(%s)", exception.getMessage());
+        }
+
+        private void logSupression() {
+            LOGGER.debug("suppressed failure [stacktrace visible in TRACE logging]: {}", this);
+            if (LOGGER.isTraceEnabled()) {
+                LOGGER.trace("thrown:", this.exception);
+            }
         }
     }
 

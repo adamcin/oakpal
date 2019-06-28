@@ -8,6 +8,7 @@ import java.io.PrintWriter;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 
 import net.adamcin.oakpal.core.Nothing;
 import org.jetbrains.annotations.NotNull;
@@ -19,28 +20,36 @@ import org.jetbrains.annotations.NotNull;
 final class Main implements Console {
     private final File cwd;
     private final Map<String, String> env;
+    private final Properties systemProperties;
     private final PrintStream stdout;
     private final PrintStream stderr;
     private final Map<File, DisposablePrinter> printers = new HashMap<>();
 
-    Main(final File cwd,
-         final Map<String, String> env,
-         final PrintStream stdout,
-         final PrintStream stderr) {
+    Main(final @NotNull File cwd,
+         final @NotNull Map<String, String> env,
+         final @NotNull Properties systemProperties,
+         final @NotNull PrintStream stdout,
+         final @NotNull PrintStream stderr) {
         this.cwd = cwd;
         this.env = env;
+        this.systemProperties = systemProperties;
         this.stdout = stdout;
         this.stderr = stderr;
     }
 
     @Override
-    public File getCwd() {
+    public @NotNull File getCwd() {
         return this.cwd;
     }
 
     @Override
-    public Map<String, String> getEnv() {
+    public @NotNull Map<String, String> getEnv() {
         return Collections.unmodifiableMap(this.env);
+    }
+
+    @Override
+    public @NotNull Properties getSystemProperties() {
+        return this.systemProperties;
     }
 
     @Override
@@ -59,7 +68,7 @@ final class Main implements Console {
         };
     }
 
-    class DisposablePrinterImpl implements DisposablePrinter {
+    static class DisposablePrinterImpl implements DisposablePrinter {
         final PrintWriter writer;
 
         DisposablePrinterImpl(final @NotNull PrintWriter writer) {
@@ -130,7 +139,9 @@ final class Main implements Console {
                 && "main".equals(last.getMethodName());
 
         Main main = new Main(new File(".").getAbsoluteFile(),
-                System.getenv(), System.out, System.err);
+                Collections.unmodifiableMap(System.getenv()),
+                new Properties(System.getProperties()),
+                System.out, System.err);
 
         if (iStartedIt) {
             System.setOut(System.err);

@@ -78,7 +78,7 @@ import org.jetbrains.annotations.NotNull;
  */
 public final class OakMachine {
     public static final String NS_URI_OAKPAL = "oakpaltmp";
-    public static final String NS_PREFIX_OAKPAL = "oakpal";
+    public static final String NS_PREFIX_OAKPAL = "oakpaltmp";
     public static final String LN_UNDECLARED = "Undeclared";
     public static final String NT_UNDECLARED = "{" + NS_URI_OAKPAL + "}" + LN_UNDECLARED;
 
@@ -403,15 +403,13 @@ public final class OakMachine {
 
             admin = loginAdmin(scanRepo);
 
+            final JcrPackageManager manager = packagingService.getPackageManager(admin);
+
             addOakpalTypes(admin);
 
             for (InitStage initStage : this.initStages) {
                 initStage.initSession(admin, getErrorListener());
             }
-
-            final JcrPackageManager manager;
-
-            manager = packagingService.getPackageManager(admin);
 
             for (URL url : preInstallUrls) {
                 processPackageUrl(admin, manager, true, url);
@@ -452,6 +450,8 @@ public final class OakMachine {
     }
 
     private void addOakpalTypes(final Session admin) throws RepositoryException {
+        admin.getWorkspace().getNamespaceRegistry().registerNamespace(NS_PREFIX_OAKPAL, NS_URI_OAKPAL);
+        admin.setNamespacePrefix(NS_PREFIX_OAKPAL, NS_URI_OAKPAL);
         TemplateBuilderFactory builderFactory = new TemplateBuilderFactory(admin);
         builderFactory.setNamespace(NS_PREFIX_OAKPAL, NS_URI_OAKPAL);
 
@@ -732,6 +732,4 @@ public final class OakMachine {
             OakMachine.this.getErrorListener().onImporterException(e, packageId, path);
         }
     }
-
-
 }

@@ -46,7 +46,7 @@ public class DefaultErrorListener implements ErrorListener {
             reportViolation(
                     new SimpleViolation(Violation.Severity.MAJOR,
                             String.format("NodeType registration error (%s): %s \"%s\"",
-                                    resource.toString(), e.getClass().getName(), e.getMessage())));
+                                    String.valueOf(resource), e.getClass().getName(), e.getMessage())));
         }
     }
 

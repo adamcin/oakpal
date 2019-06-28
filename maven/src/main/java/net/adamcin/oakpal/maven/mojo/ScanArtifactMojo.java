@@ -21,8 +21,9 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 
-import net.adamcin.oakpal.core.AbortedScanException;
 import net.adamcin.oakpal.core.CheckReport;
+import net.adamcin.oakpal.core.DefaultErrorListener;
+import net.adamcin.oakpal.core.OakMachine;
 import net.adamcin.oakpal.core.ReportMapper;
 import net.adamcin.oakpal.maven.component.OakpalComponentConfigurator;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -40,13 +41,26 @@ import org.apache.maven.plugins.annotations.ResolutionScope;
  */
 @Mojo(name = "scan", requiresDependencyResolution = ResolutionScope.TEST, configurator = OakpalComponentConfigurator.HINT,
         defaultPhase = LifecyclePhase.INTEGRATION_TEST)
-public class ScanArtifactMojo extends AbstractScanMojo {
+public class ScanArtifactMojo extends AbstractITestWithPlanMojo {
 
     /**
      * Specifically skip this plugin's execution.
      */
     @Parameter(property = "oakpal.scan.skip")
     public boolean skip;
+
+    /**
+     * If violations are reported, defer the build failure until a subsequent verify goal. Set this to true when build
+     * has more than one scan execution, so that all errors can be reported. Otherwise, the first execution with
+     * failure-level violations will fail the build before the subsequent scan executions have a chance to run.
+     * <p>
+     * If this is set to true, be sure the {@code verify} goal has been activated for the build, otherwise violations
+     * will not be printed and failure-level violations will be implicitly ignored.
+     *
+     * @since 1.1.0
+     */
+    @Parameter
+    protected boolean deferBuildFailure;
 
     @Override
     protected boolean isIndividuallySkipped() {
@@ -61,8 +75,10 @@ public class ScanArtifactMojo extends AbstractScanMojo {
         if (packageArtifact.isPresent() && packageArtifact.get().exists()) {
             List<CheckReport> reports;
             try {
-                reports = getBuilder().build().scanPackage(packageArtifact.get());
-            } catch (AbortedScanException e) {
+                final OakMachine machine = buildPlan().toOakMachineBuilder(new DefaultErrorListener(),
+                    Thread.currentThread().getContextClassLoader()).build();
+                reports = machine.scanPackage(packageArtifact.get());
+            } catch (Exception e) {
                 throw new MojoExecutionException("Failed to execute package scan. " + e.getMessage(), e);
             }
 

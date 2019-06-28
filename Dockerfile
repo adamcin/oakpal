@@ -10,9 +10,8 @@ COPY --from=build /app/cli/target/oakpal-cli-*-dist.tar.gz /app
 RUN tar --strip-components 1 -C /app/oakpal-cli -zxf /app/oakpal-cli-*-dist.tar.gz \
       && rm -f /app/oakpal-cli-*-dist.tar.gz
 
-
-ENV OAKPAL_PLAN "/planspace"
-RUN mkdir -p "$OAKPAL_PLAN"
+ENV JAVA_OPTS ""
+ENV OAKPAL_PATH "."
 RUN mkdir -p /workspace
 WORKDIR /workspace
 ENTRYPOINT ["/app/oakpal-cli/bin/oakpal.sh"]

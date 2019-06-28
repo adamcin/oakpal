@@ -19,7 +19,7 @@ import java.util.Properties;
 import java.util.function.Function;
 
 import net.adamcin.oakpal.core.AbortedScanException;
-import net.adamcin.oakpal.core.Chart;
+import net.adamcin.oakpal.core.OakpalPlan;
 import net.adamcin.oakpal.core.CheckReport;
 import net.adamcin.oakpal.core.DefaultErrorListener;
 import net.adamcin.oakpal.core.Nothing;
@@ -38,10 +38,8 @@ final class Command {
     private static final Integer EXIT_SEVERE_VIOLATION = 10;
     private static final Integer EXIT_MAJOR_VIOLATION = 11;
     private static final Integer EXIT_MINOR_VIOLATION = 12;
-    private static final String VERSION_PROPERTIES_NAME =
-            Command.class.getPackage().getName() + "/version.properties";
-    private static final String COMMAND_HELP_TXT =
-            Command.class.getPackage().getName() + "/help.txt";
+    private static final String VERSION_PROPERTIES_NAME = "version.properties";
+    private static final String COMMAND_HELP_TXT = "help.txt";
 
     IO<Integer> perform(final @NotNull Console console, final @NotNull String[] args) {
         final Result<Options> optsResult = parseArgs(console, args);
@@ -58,13 +56,11 @@ final class Command {
                 return printVersion(console::printLine).add(IO.unit(0));
             }
 
-            final ClassLoader cl = Loader.getPathClassLoader(console,
-                    Command.class.getClassLoader());
-
-            final URL chartUrl = Loader.findChartLocation(console, opts.getChartName());
-            final Result<List<CheckReport>> scanResult = Chart.fromJson(chartUrl)
-                    .flatMap(result1(chart ->
-                            chart.toOakMachineBuilder(new DefaultErrorListener(), cl)))
+            final ClassLoader cl = opts.getScanClassLoader();
+            final URL planUrl = opts.getPlanUrl();
+            final Result<List<CheckReport>> scanResult = OakpalPlan.fromJson(planUrl)
+                    .flatMap(result1(plan ->
+                            plan.toOakMachineBuilder(new DefaultErrorListener(), cl)))
                     .map(OakMachine.Builder::build).flatMap(oak -> runOakScan(opts, oak));
 
             if (scanResult.getError().isPresent()) {
@@ -99,7 +95,7 @@ final class Command {
     }
 
     IO<Nothing> printHelp(final @NotNull Function<Object, IO<Nothing>> linePrinter) {
-        try (InputStream input = Command.class.getClassLoader().getResourceAsStream(COMMAND_HELP_TXT);
+        try (InputStream input = Command.class.getResourceAsStream(COMMAND_HELP_TXT);
              BufferedReader reader = new BufferedReader(new InputStreamReader(input, StandardCharsets.UTF_8))) {
             return reader.lines().map(linePrinter).reduce(IO.empty, IO::add);
         } catch (IOException e) {
@@ -109,7 +105,7 @@ final class Command {
 
     IO<Nothing> printVersion(final @NotNull Function<Object, IO<Nothing>> linePrinter) {
         final Properties properties = new Properties();
-        try (InputStream input = Command.class.getClassLoader().getResourceAsStream(VERSION_PROPERTIES_NAME)) {
+        try (InputStream input = Command.class.getResourceAsStream(VERSION_PROPERTIES_NAME)) {
             properties.load(input);
             return linePrinter.apply("OakPAL CLI " + properties.getProperty("version"));
         } catch (IOException e) {
@@ -141,6 +137,10 @@ final class Command {
                 case "--version":
                     builder.setJustVersion(!isNoOpt);
                     break;
+                case "-f":
+                case "--opear-file":
+                    builder.setOpearFile(isNoOpt ? null : new File(console.getCwd(), args[++i]));
+                    break;
                 case "-o":
                 case "--outfile":
                     builder.setOutFile(isNoOpt ? null : new File(console.getCwd(), args[++i]));
@@ -149,12 +149,13 @@ final class Command {
                 case "--json":
                     builder.setOutputJson(!isNoOpt);
                     break;
-                case "-n":
-                case "--chart":
-                    builder.setChartName(isNoOpt ? null : args[++i]);
+                case "-p":
+                case "--plan":
+                    builder.setNoPlan(isNoOpt);
+                    builder.setPlanName(isNoOpt ? null : args[++i]);
                     break;
-                case "-f":
-                case "--fail-severity":
+                case "-s":
+                case "--severity-fail":
                     final String severityArg = args[++i];
                     final Result<Violation.Severity> severityResult = result1(Violation.Severity::byName)
                             .apply(severityArg);

@@ -16,43 +16,19 @@
 
 package net.adamcin.oakpal.maven.mojo;
 
-import static net.adamcin.oakpal.core.Fun.compose;
-import static net.adamcin.oakpal.core.Fun.uncheck1;
-
 import java.io.File;
-import java.io.IOException;
-import java.net.URL;
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
-import net.adamcin.oakpal.core.Chart;
 import net.adamcin.oakpal.core.CheckSpec;
-import net.adamcin.oakpal.core.DefaultErrorListener;
-import net.adamcin.oakpal.core.ErrorListener;
 import net.adamcin.oakpal.core.ForcedRoot;
 import net.adamcin.oakpal.core.JcrNs;
-import net.adamcin.oakpal.core.JsonCnd;
-import net.adamcin.oakpal.core.NamespaceMappingRequest;
-import net.adamcin.oakpal.core.OakMachine;
-import net.adamcin.oakpal.core.ProgressCheck;
-import net.adamcin.oakpal.core.Result;
-import net.adamcin.oakpal.core.SlingNodetypesScanner;
-import org.apache.jackrabbit.spi.QNodeTypeDefinition;
-import org.apache.jackrabbit.spi.commons.namespace.NamespaceMapping;
-import org.apache.jackrabbit.vault.fs.spi.NodeTypeSet;
-import org.apache.maven.model.Dependency;
-import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Parameter;
 
 /**
  * Base scan class defining scanner parameters.
  */
-abstract class AbstractScanMojo extends AbstractMojo {
+abstract class AbstractITestWithPlanMojo extends AbstractITestMojo implements PlanBuilderParams, MojoWithPlanParams {
 
     /**
      * Specify a list of content-package artifacts to download and pre-install before the scanned packages.
@@ -167,11 +143,11 @@ abstract class AbstractScanMojo extends AbstractMojo {
     protected List<ForcedRoot> forcedRoots = new ArrayList<>();
 
     /**
-     * Specify a list of Checks to locate and load as {@link ProgressCheck}s.
+     * Specify a list of Checks to locate and load as {@link net.adamcin.oakpal.core.ProgressCheck}s.
      * <p>
      * Minimally, there are two ways to define a {@link CheckSpec}. To load a check from the project's test output
      * directory, you must specify the {@code impl} value as a classPath-relative resource name for script checks, or as
-     * a fully-qualified class name for Java {@link ProgressCheck} implementations.
+     * a fully-qualified class name for Java {@link net.adamcin.oakpal.core.ProgressCheck} implementations.
      * <p>
      * For example, if your script check source is located at {@code src/test/resources/OAKPAL-INF/scripts/acme-vault-enforcer.js}:
      * <pre>
@@ -272,110 +248,55 @@ abstract class AbstractScanMojo extends AbstractMojo {
     @Parameter(name = "checklists")
     protected List<String> checklists = new ArrayList<>();
 
-    /**
-     * If violations are reported, defer the build failure until a subsequent verify goal. Set this to true when build
-     * has more than one scan execution, so that all errors can be reported. Otherwise, the first execution with
-     * failure-level violations will fail the build before the subsequent scan executions have a chance to run.
-     * <p>
-     * If this is set to true, be sure the {@code verify} goal has been activated for the build, otherwise violations
-     * will not be printed and failure-level violations will be implicitly ignored.
-     *
-     * @since 1.1.0
-     */
-    @Parameter
-    protected boolean deferBuildFailure;
-
-    /**
-     * Construct an OakMachine.Builder purely from the relevant mojo parameters.
-     *
-     * @return a complete init stage
-     * @throws MojoExecutionException if an error occurs
-     */
-    protected OakMachine.Builder getBuilder() throws MojoExecutionException {
-        final ErrorListener errorListener = new DefaultErrorListener();
-        final Chart.Builder chartBuilder = new Chart.Builder(uncheck1(File::toURL).apply(this.project.getBasedir()));
-
-        chartBuilder.withChecklists(checklists);
-        chartBuilder.withChecks(checks);
-
-        final List<File> preInstall = new ArrayList<>();
-        if (preInstallArtifacts != null && !preInstallArtifacts.isEmpty()) {
-            List<Dependency> preInstallDeps = new ArrayList<>();
-            for (DependencyFilter depFilter : preInstallArtifacts) {
-                Dependency dep = project.getDependencies().stream()
-                        .filter(depFilter)
-                        .findFirst()
-                        .orElseGet(depFilter::toDependency);
-                preInstallDeps.add(dep);
-            }
-            List<File> preInstallResolved = resolveDependencies(preInstallDeps, false);
-            preInstall.addAll(preInstallResolved);
-        }
-
-        if (preInstallFiles != null) {
-            preInstall.addAll(preInstallFiles);
-        }
-
-        chartBuilder.withPreInstallUrls(preInstall.stream()
-                .map(uncheck1(File::toURL)).collect(Collectors.toList()));
-        chartBuilder.withJcrPrivileges(jcrPrivileges);
-        chartBuilder.withForcedRoots(forcedRoots);
-
-        final Set<URL> unorderedCndUrls = new LinkedHashSet<>();
-
-        if (cndNames != null) {
-            try {
-                Map<String, URL> pluginNtds = SlingNodetypesScanner.resolveNodeTypeDefinitions(cndNames);
-                for (String cndName : cndNames) {
-                    if (!pluginNtds.containsKey(cndName)) {
-                        throw new MojoExecutionException("Failed to find node type definition on classpath for cndName " + cndName);
-                    }
-                }
-                unorderedCndUrls.addAll(pluginNtds.values());
-            } catch (Exception e) {
-                throw new MojoExecutionException("Failed to resolve cndNames.", e);
-            }
-        }
-
-        if (slingNodeTypes) {
-            try {
-                List<URL> pluginNtds = SlingNodetypesScanner.findNodeTypeDefinitions();
-                for (URL ntd : pluginNtds) {
-                    if (!unorderedCndUrls.contains(ntd)) {
-                        getLog().info(SlingNodetypesScanner.SLING_NODETYPES + ": Discovered node types: "
-                                + ntd.toString());
-                    }
-                }
-                unorderedCndUrls.addAll(pluginNtds);
-            } catch (IOException e) {
-                throw new MojoExecutionException("Failed to resolve cndNames.", e);
-            }
-        }
-
-        // read and aggregate nodetypes from CNDs
-        final NamespaceMapping initMapping = JsonCnd.toNamespaceMapping(jcrNamespaces);
-        List<NodeTypeSet> readSets = JsonCnd.readNodeTypes(initMapping,
-                new ArrayList<>(unorderedCndUrls)).stream()
-                .flatMap(Result::stream).collect(Collectors.toList());
-
-        final NodeTypeSet nodeTypeSet = JsonCnd.aggregateNodeTypes(initMapping, readSets);
-        final List<QNodeTypeDefinition> jcrNodetypes = new ArrayList<>(nodeTypeSet.getNodeTypes().values());
-        chartBuilder.withJcrNodetypes(jcrNodetypes);
-
-        // build final namespace mapping
-        final NamespaceMappingRequest.Builder nsRequest = new NamespaceMappingRequest.Builder();
-        jcrNamespaces.stream().map(JcrNs::getPrefix).forEach(nsRequest::withRetainPrefix);
-        jcrPrivileges.stream().flatMap(JsonCnd::streamNsPrefix).forEach(nsRequest::withJCRName);
-        forcedRoots.stream().flatMap(compose(ForcedRoot::getNamespacePrefixes, Stream::of)).forEach(nsRequest::withJCRName);
-        jcrNodetypes.stream().flatMap(JsonCnd::namedBy).forEach(nsRequest::withQName);
-
-        chartBuilder.withJcrNamespaces(JsonCnd.toJcrNsList(nodeTypeSet.getNamespaceMapping(), nsRequest.build()));
-
-        try {
-            return chartBuilder.build().toOakMachineBuilder(errorListener,
-                    Thread.currentThread().getContextClassLoader());
-        } catch (Exception e) {
-            throw new MojoExecutionException("Failed to prepare scan chart: " + e.getMessage(), e);
-        }
+    @Override
+    public final PlanBuilderParams getPlanBuilderParams() {
+        return this;
     }
+
+    @Override
+    public List<DependencyFilter> getPreInstallArtifacts() {
+        return preInstallArtifacts;
+    }
+
+    @Override
+    public List<File> getPreInstallFiles() {
+        return preInstallFiles;
+    }
+
+    @Override
+    public List<String> getCndNames() {
+        return cndNames;
+    }
+
+    @Override
+    public boolean isSlingNodeTypes() {
+        return slingNodeTypes;
+    }
+
+    @Override
+    public List<JcrNs> getJcrNamespaces() {
+        return jcrNamespaces;
+    }
+
+    @Override
+    public List<String> getJcrPrivileges() {
+        return jcrPrivileges;
+    }
+
+    @Override
+    public List<ForcedRoot> getForcedRoots() {
+        return forcedRoots;
+    }
+
+    @Override
+    public List<CheckSpec> getChecks() {
+        return checks;
+    }
+
+    @Override
+    public List<String> getChecklists() {
+        return checklists;
+    }
+
+
 }
