@@ -13,6 +13,7 @@ import javax.json.JsonReader;
 
 import org.apache.jackrabbit.spi.QNodeTypeDefinition;
 import org.apache.jackrabbit.spi.commons.namespace.NamespaceMapping;
+import org.apache.jackrabbit.util.Text;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -50,6 +51,7 @@ public final class OakpalPlan implements JavaxJson.ObjectConvertible {
     public static final String KEY_PREINSTALL_URLS = "preInstallUrls";
 
     private final URL base;
+    private final String name;
     private final JsonObject originalJson;
     private final List<String> checklists;
     private final List<URL> preInstallUrls;
@@ -61,6 +63,7 @@ public final class OakpalPlan implements JavaxJson.ObjectConvertible {
 
     private OakpalPlan(final @Nullable URL base,
                        final @Nullable JsonObject originalJson,
+                       final @NotNull String name,
                        final @NotNull List<String> checklists,
                        final @NotNull List<URL> preInstallUrls,
                        final @NotNull List<JcrNs> jcrNamespaces,
@@ -70,6 +73,7 @@ public final class OakpalPlan implements JavaxJson.ObjectConvertible {
                        final @NotNull List<CheckSpec> checks) {
         this.base = base;
         this.originalJson = originalJson;
+        this.name = name;
         this.checklists = checklists;
         this.preInstallUrls = preInstallUrls;
         this.jcrNamespaces = jcrNamespaces;
@@ -77,6 +81,10 @@ public final class OakpalPlan implements JavaxJson.ObjectConvertible {
         this.jcrPrivileges = jcrPrivileges;
         this.forcedRoots = forcedRoots;
         this.checks = checks;
+    }
+
+    public String getName() {
+        return this.name;
     }
 
     public JsonObject getOriginalJson() {
@@ -172,7 +180,7 @@ public final class OakpalPlan implements JavaxJson.ObjectConvertible {
     public static Result<OakpalPlan> fromJson(final @NotNull URL jsonUrl) {
         try (JsonReader reader = Json.createReader(jsonUrl.openStream())) {
             JsonObject json = reader.readObject();
-            OakpalPlan.Builder builder = new OakpalPlan.Builder(jsonUrl);
+            OakpalPlan.Builder builder = new OakpalPlan.Builder(jsonUrl, Text.getName(jsonUrl.getPath()));
             if (hasNonNull(json, KEY_PREINSTALL_URLS)) {
                 builder.withPreInstallUrls(JavaxJson.mapArrayOfStrings(json.getJsonArray(KEY_PREINSTALL_URLS),
                         Fun.uncheck1(url -> new URL(jsonUrl, url))));
@@ -209,6 +217,7 @@ public final class OakpalPlan implements JavaxJson.ObjectConvertible {
 
     public static final class Builder {
         private final URL base;
+        private final String name;
         private List<String> checklists = Collections.emptyList();
         private List<URL> preInstallUrls = Collections.emptyList();
         private List<JcrNs> jcrNamespaces = Collections.emptyList();
@@ -217,8 +226,9 @@ public final class OakpalPlan implements JavaxJson.ObjectConvertible {
         private List<ForcedRoot> forcedRoots = Collections.emptyList();
         private List<CheckSpec> checks = Collections.emptyList();
 
-        public Builder(final URL base) {
+        public Builder(final URL base, final String name) {
             this.base = base;
+            this.name = name;
         }
 
         public Builder withChecklists(List<String> checklists) {
@@ -257,7 +267,7 @@ public final class OakpalPlan implements JavaxJson.ObjectConvertible {
         }
 
         private OakpalPlan build(final @Nullable JsonObject originalJson) {
-            return new OakpalPlan(base, originalJson, checklists, preInstallUrls, jcrNamespaces,
+            return new OakpalPlan(base, originalJson, name, checklists, preInstallUrls, jcrNamespaces,
                     jcrNodetypes, jcrPrivileges, forcedRoots, checks);
         }
 

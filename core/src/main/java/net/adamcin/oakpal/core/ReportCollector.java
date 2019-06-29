@@ -22,7 +22,7 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Simple collector of violations for use by {@link ProgressCheck} implementations.
+ * Simple logAndRestream of violations for use by {@link ProgressCheck} implementations.
  */
 public final class ReportCollector implements ViolationReporter {
     private final List<Violation> violations = new ArrayList<>();

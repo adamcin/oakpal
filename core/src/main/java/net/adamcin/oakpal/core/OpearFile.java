@@ -136,21 +136,6 @@ public final class OpearFile implements Opear {
         return new OpearMetadata(directory.getName(), plans, new String[]{"."}, true);
     }
 
-    public static Result<OpearFile> fromDirectory(final @NotNull File directory) {
-        return Result.success(Optional.of(new File(directory, JarFile.MANIFEST_NAME)))
-                .flatMap(oMfFile -> oMfFile
-                        // non-existent manifest should indicate simple directory.
-                        // see .orElseGet() at the end of this chain
-                        .filter(File::exists)
-                        // if the manifest file exists, expect a valid manifest object.
-                        .map(OpearFile::readExpectedManifest)
-                        .map(manResult -> manResult.flatMap(OpearFile::validateOpearManifest))
-                        // only when manifest file does not exist, return success with simple metadata
-                        .orElseGet(() -> Result.success(metaForSimpleDir(directory)))
-                )
-                .map(meta -> new OpearFile(directory, meta));
-    }
-
     static Result<String[]> validateUriHeaderValues(final @NotNull Manifest manifest,
                                                     final @NotNull Attributes.Name headerName) {
         if (!manifest.getMainAttributes().containsKey(headerName)) {
@@ -197,6 +182,21 @@ public final class OpearFile implements Opear {
                                                 )))));
     }
 
+    public static Result<OpearFile> fromDirectory(final @NotNull File directory) {
+        return Result.success(Optional.of(new File(directory, JarFile.MANIFEST_NAME)))
+                .flatMap(oMfFile -> oMfFile
+                        // non-existent manifest should indicate simple directory.
+                        // see .orElseGet() at the end of this chain
+                        .filter(File::exists)
+                        // if the manifest file exists, expect a valid manifest object.
+                        .map(OpearFile::readExpectedManifest)
+                        .map(manResult -> manResult.flatMap(OpearFile::validateOpearManifest))
+                        // only when manifest file does not exist, return success with simple metadata
+                        .orElseGet(() -> Result.success(metaForSimpleDir(directory)))
+                )
+                .map(meta -> new OpearFile(directory, meta));
+    }
+
     public static Result<OpearFile> fromJar(final @NotNull JarFile jarFile, final @NotNull File cacheBaseDir) {
         return result1(JarFile::getManifest).apply(jarFile)
                 .flatMap(OpearFile::validateOpearManifest)
@@ -240,4 +240,6 @@ public final class OpearFile implements Opear {
                         .orElseGet(() -> Result.<File>failure("failed to cache jarFile" + jarFile.getName())))
                 .orElse(Result.success(cacheDir));
     }
+
+
 }

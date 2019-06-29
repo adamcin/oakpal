@@ -12,4 +12,8 @@ public final class Nothing {
     private Nothing() {
         /* prevent instantiation */
     }
+
+    public Nothing combine(final Nothing nothing) {
+        return this;
+    }
 }

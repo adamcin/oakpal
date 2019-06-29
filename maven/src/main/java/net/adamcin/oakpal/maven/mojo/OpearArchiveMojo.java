@@ -1,14 +1,20 @@
 package net.adamcin.oakpal.maven.mojo;
 
+import static net.adamcin.oakpal.core.Fun.compose;
 import static net.adamcin.oakpal.core.Fun.composeTest;
+import static net.adamcin.oakpal.core.Fun.doEach1;
 import static net.adamcin.oakpal.core.Fun.inSet;
+import static net.adamcin.oakpal.core.Fun.result1;
 import static net.adamcin.oakpal.core.Fun.testValue;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URI;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -18,7 +24,10 @@ import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import net.adamcin.oakpal.core.Nothing;
+import net.adamcin.oakpal.core.OakpalPlan;
 import net.adamcin.oakpal.core.Opear;
+import net.adamcin.oakpal.core.Result;
 import net.adamcin.oakpal.maven.component.OakpalComponentConfigurator;
 import org.apache.maven.archiver.MavenArchiveConfiguration;
 import org.apache.maven.archiver.MavenArchiver;
@@ -61,8 +70,11 @@ public class OpearArchiveMojo extends AbstractCommonMojo {
     @Parameter(defaultValue = "${project.build.finalName}", required = true)
     private String finalName;
 
-    @Parameter(defaultValue = "${project.build.directory}/opear-plans", required = true)
-    private File plansDirectory;
+    @Parameter(defaultValue = "${project.build.directory}/opear-plans/plan.json", required = true)
+    private File defaultPlanFile;
+
+    @Parameter
+    private List<File> additionalPlans = new ArrayList<>();
 
     @Parameter(defaultValue = "${project.build.directory}", required = true)
     private File outputDirectory;
@@ -182,4 +194,30 @@ public class OpearArchiveMojo extends AbstractCommonMojo {
         return acc;
     }
 
+    /**
+     * Collect external resources and rewrite plans to produce a self-contained opear.
+     *
+     * @param toDir the directory to write to.
+     * @return result containing list of plan names
+     */
+    Result<List<String>> shrinkWrapPlans(final @NotNull File toDir) {
+        final Map<URL, String> redirects = new HashMap<>();
+        final List<OakpalPlan> plans = new ArrayList<>();
+        final Result<Nothing> initialResult;
+        if (defaultPlanFile.isFile()) {
+            initialResult = Result.success(defaultPlanFile)
+                    .flatMap(compose(File::toURI, result1(URI::toURL)))
+                    .flatMap(OakpalPlan::fromJson)
+                    .map(doEach1(plans::add));
+        } else {
+            initialResult = Result.success(Nothing.instance);
+        }
+
+        initialResult.flatMap(nothing ->
+                additionalPlans.stream()
+                        .map(compose(File::toURI, result1(URI::toURL)))
+                        .map(planUrlResult ->
+                                planUrlResult.flatMap(OakpalPlan::fromJson).map(doEach1(plans::add))).collect(Result.logAndRestream())
+        );
+    }
 }

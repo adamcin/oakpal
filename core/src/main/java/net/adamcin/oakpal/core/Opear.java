@@ -1,5 +1,6 @@
 package net.adamcin.oakpal.core;
 
+import java.io.File;
 import java.net.URL;
 
 import org.jetbrains.annotations.NotNull;
@@ -40,4 +41,6 @@ public interface Opear {
      * @return a classloader with permission to load all classes and resources in the opear
      */
     ClassLoader getPlanClassLoader(final @NotNull ClassLoader parent);
+
+
 }
