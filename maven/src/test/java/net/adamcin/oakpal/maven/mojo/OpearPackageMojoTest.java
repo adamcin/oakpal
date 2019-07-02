@@ -16,10 +16,22 @@
 
 package net.adamcin.oakpal.maven.mojo;
 
-import java.io.File;
+import static net.adamcin.oakpal.core.Fun.result1;
 
+import java.io.File;
+import java.io.InputStream;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.jar.JarFile;
+
+import net.adamcin.oakpal.core.Fun;
+import net.adamcin.oakpal.core.OakpalPlan;
+import net.adamcin.oakpal.core.OpearFile;
+import net.adamcin.oakpal.core.Result;
+import org.apache.jackrabbit.oak.Oak;
 import org.apache.maven.plugin.testing.MojoRule;
 import org.apache.maven.shared.utils.io.FileUtils;
+import org.apache.maven.shared.utils.io.IOUtil;
 import org.codehaus.plexus.ContainerConfiguration;
 import org.junit.Rule;
 import org.junit.Test;
@@ -99,6 +111,38 @@ public class OpearPackageMojoTest extends OakpalMojoTestCaseBase {
             e.printStackTrace(System.err);
             throw e;
         }
+
+        File opearFile = opearPair.getProject().getArtifact().getFile();
+        File opearCache = new File(opearTarget, "opear.cache");
+        assertTrue("opearFile should exist at " + opearFile.getAbsolutePath(), opearFile.exists());
+
+        Result<OpearFile> opearResult = result1((File file) -> new JarFile(file, true))
+                .apply(opearFile)
+                .flatMap(jar -> OpearFile.fromJar(jar, opearCache));
+        opearResult.throwCause(Exception.class);
+        assertTrue("opear result should be success ", opearResult.isSuccess());
+        Result<OakpalPlan> plan = opearResult.map(OpearFile::getDefaultPlan).flatMap(OakpalPlan::fromJson);
+        plan.throwCause(Exception.class);
+
+        assertTrue("opear plan should be empty", plan.map(OakpalPlan::getChecklists)
+                .getOrElse(Arrays.asList("not a checklist")).isEmpty());
+
+        assertFalse("opear nodetypes should not be empty",
+                plan.map(OakpalPlan::getJcrNodetypes).getOrElse(Collections.emptyList()).isEmpty());
+
+
+        Result<String> echoCheckSource = opearResult.flatMap(result1(opear -> {
+            try (InputStream is = opear.getPlanClassLoader(getClassLoader()).getResourceAsStream("echoCheck.js")) {
+                if (is == null) {
+                    throw new Exception("failed to find echoCheck.js");
+                } else {
+                    return IOUtil.toString(is);
+                }
+            }
+        }));
+
+        assertTrue("echoCheckSource should contain 'function getCheckName'",
+                echoCheckSource.getOrElse("").contains("function getCheckName"));
     }
 
 }

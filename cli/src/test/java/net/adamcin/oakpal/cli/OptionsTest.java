@@ -82,4 +82,17 @@ public class OptionsTest {
             assertTrue("json should have 'message' key", json.containsKey("message"));
         }
     }
+
+    @Test
+    public void testOpearFile() {
+        final Console console = mock(Console.class);
+        when(console.getCwd()).thenReturn(tempDir);
+        Options.Builder builder = new Options.Builder().setOpearFile(new File("src/test/resources/opears/emptyplan"));
+
+        final Result<Options> optionsResult = builder.build(console);
+        assertFalse("options build is successful", optionsResult.getError().isPresent());
+        optionsResult.forEach(options ->
+                assertTrue("opearFile should be a directory: " + options.getOpearFile().getAbsolutePath(),
+                options.getOpearFile().isDirectory()));
+    }
 }
