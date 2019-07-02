@@ -150,7 +150,7 @@ public class WebsterMojo extends AbstractMojo {
                         .withGlobalSegmentStore(new File(globalRepositoryHome, "segmentstore")).build();
                 plan.perform();
             } catch (Exception e) {
-                throw new MojoExecutionException("Failed to execute Webster plan.", e);
+                throw new MojoFailureException("Failed to execute Webster plan.", e);
             } finally {
                 try {
                     FileUtils.deleteDirectory(globalRepositoryHome);

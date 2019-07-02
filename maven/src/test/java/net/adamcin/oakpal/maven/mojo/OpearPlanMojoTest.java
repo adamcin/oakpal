@@ -18,13 +18,16 @@ package net.adamcin.oakpal.maven.mojo;
 
 import java.io.File;
 
-import net.adamcin.oakpal.testing.TestPackageUtil;
 import org.apache.maven.plugin.testing.MojoRule;
+import org.apache.maven.shared.utils.io.FileUtils;
 import org.codehaus.plexus.ContainerConfiguration;
 import org.junit.Rule;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-public class OpearFileArchiveMojoTest extends OakpalMojoTestCaseBase {
+public class OpearPlanMojoTest extends OakpalMojoTestCaseBase {
+    private static final Logger LOGGER = LoggerFactory.getLogger(OpearPlanMojoTest.class);
 
     @Rule
     public MojoRule rule = new MojoRule() {
@@ -54,18 +57,17 @@ public class OpearFileArchiveMojoTest extends OakpalMojoTestCaseBase {
 
     @Test
     public void testExecute1() throws Exception {
-        File pom = getTestFile("src/test/resources/unit/opear1/pom.xml");
-        assertNotNull(pom);
-        assertTrue(pom.exists());
+        File buildPlanPom = getTestFile("src/test/resources/unit/opear-plan1/pom.xml");
+        FileUtils.deleteDirectory(new File(buildPlanPom.getParentFile(), "target"));
+        assertNotNull(buildPlanPom);
+        assertTrue(buildPlanPom.exists());
 
-        SessionAndProject pair = buildProject(pom);
-
-        //pair.getProject().getArtifact().setFile(TestPackageUtil.prepareTestPackage("fullcoverage.zip"));
+        SessionAndProject pair = buildProject(buildPlanPom);
 
         try {
-            OpearArchiveMojo myMojo = (OpearArchiveMojo) lookupConfiguredMojo(pair.getProject(), "opear");
-            assertNotNull("myMojo null", myMojo);
-            myMojo.execute();
+            OpearPlanMojo planMojo = (OpearPlanMojo) lookupConfiguredMojo(pair.getProject(), "opear-plan");
+            assertNotNull("planMojo null", planMojo);
+            planMojo.execute();
         } catch (Exception e) {
             e.printStackTrace(System.err);
             throw e;

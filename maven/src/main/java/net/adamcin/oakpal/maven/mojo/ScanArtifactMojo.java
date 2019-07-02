@@ -76,17 +76,17 @@ public class ScanArtifactMojo extends AbstractITestWithPlanMojo {
             List<CheckReport> reports;
             try {
                 final OakMachine machine = buildPlan().toOakMachineBuilder(new DefaultErrorListener(),
-                    Thread.currentThread().getContextClassLoader()).build();
+                        Thread.currentThread().getContextClassLoader()).build();
                 reports = machine.scanPackage(packageArtifact.get());
             } catch (Exception e) {
-                throw new MojoExecutionException("Failed to execute package scan. " + e.getMessage(), e);
+                throw new MojoFailureException("Failed to execute package scan. " + e.getMessage(), e);
             }
 
             try {
                 ReportMapper.writeReportsToFile(reports, summaryFile);
                 getLog().info("Check report summary written to " + summaryFile.getPath());
             } catch (final IOException e) {
-                throw new MojoExecutionException("Failed to write summary reports.", e);
+                throw new MojoFailureException("Failed to write summary reports.", e);
             }
 
             if (deferBuildFailure) {
@@ -95,7 +95,7 @@ public class ScanArtifactMojo extends AbstractITestWithPlanMojo {
                 reactToReports(reports);
             }
         } else {
-            throw new MojoExecutionException("Failed to resolve file for project artifact.");
+            throw new MojoFailureException("Failed to resolve file for project artifact.");
         }
     }
 }

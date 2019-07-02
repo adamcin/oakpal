@@ -9,12 +9,20 @@ import net.adamcin.oakpal.core.JcrNs;
 
 public interface PlanBuilderParams {
     List<DependencyFilter> getPreInstallArtifacts();
+
     List<File> getPreInstallFiles();
+
     List<String> getCndNames();
+
     boolean isSlingNodeTypes();
+
     List<JcrNs> getJcrNamespaces();
+
     List<String> getJcrPrivileges();
+
     List<ForcedRoot> getForcedRoots();
+
     List<CheckSpec> getChecks();
+
     List<String> getChecklists();
 }

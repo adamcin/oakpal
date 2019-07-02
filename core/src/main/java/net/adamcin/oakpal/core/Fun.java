@@ -17,19 +17,20 @@
 package net.adamcin.oakpal.core;
 
 import java.util.AbstractMap;
-import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
+import java.util.function.BinaryOperator;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -50,12 +51,25 @@ public final class Fun {
         return element.map(Stream::of).orElse(Stream.empty());
     }
 
+    public static <T> @NotNull Function<T, T> tee(final @NotNull Consumer<T> consumer) {
+        return input -> {
+            consumer.accept(input);
+            return input;
+        };
+    }
+
     public static <T> @NotNull Function<T, Nothing> doEach1(final @NotNull Consumer<T> consumer) {
-        return input -> { consumer.accept(input); return Nothing.instance; };
+        return input -> {
+            consumer.accept(input);
+            return Nothing.instance;
+        };
     }
 
     public static <T, U> @NotNull BiFunction<T, U, Nothing> doEach2(final @NotNull BiConsumer<T, U> consumer) {
-        return (input0, input1) -> { consumer.accept(input0, input1); return Nothing.instance; };
+        return (input0, input1) -> {
+            consumer.accept(input0, input1);
+            return Nothing.instance;
+        };
     }
 
     public static <T, R> @NotNull Function<T, R> constant1(final @NotNull Supplier<R> supplier) {
@@ -136,9 +150,37 @@ public final class Fun {
         return methodRef;
     }
 
+    public static <K, V> Function<Map.Entry<K, V>, Map.Entry<K, V>>
+    entryTee(final @NotNull BiConsumer<K, V> consumer) {
+        return entry -> {
+            consumer.accept(entry.getKey(), entry.getValue());
+            return entry;
+        };
+    }
+
+    public static <K, V> Function<K, Map.Entry<K, V>>
+    zipKeysWithValueFunc(final @NotNull Function<K, V> valueFunc) {
+        return key -> toEntry(key, valueFunc.apply(key));
+    }
+
+    public static <K, V> Function<V, Map.Entry<K, V>>
+    zipValuesWithKeyFunc(final @NotNull Function<V, K> keyFunction) {
+        return value -> toEntry(keyFunction.apply(value), value);
+    }
+
     public static <K, V> Map.Entry<K, V>
     toEntry(final @Nullable K key, final @Nullable V value) {
         return new AbstractMap.SimpleEntry<>(key, value);
+    }
+
+    public static <K, V> Collector<Map.Entry<K, V>, ?, Map<K, V>>
+    entriesToMap() {
+        return Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue);
+    }
+
+    public static <K, V> Collector<Map.Entry<K, V>, ?, Map<K, V>>
+    entriesToMap(final @NotNull BinaryOperator<V> mergeFunction) {
+        return Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, mergeFunction);
     }
 
     public static <K, V, R> Function<Map.Entry<K, V>, R>
@@ -199,6 +241,7 @@ public final class Fun {
     public static <T> Predicate<T> inSet(final @NotNull Set<? super T> haystack) {
         return haystack::contains;
     }
+
     @FunctionalInterface
     public interface ThrowingSupplier<R> {
         R tryGet() throws Exception;
@@ -247,23 +290,23 @@ public final class Fun {
      * Composes four lambdas into a single function for use with flatMap() defined by {@link java.util.stream.Stream},
      * {@link java.util.Optional}, etc. Useful for eliminating clumsy try/catch blocks from lambdas.
      *
-     * @param monadUnit the "unit" (or "single") function defined by the appropriate monad. I.E. Stream::of,
-     *                  Optional::of, or Optional::ofNullable.
-     * @param monadZero the "zero" (or "empty") function defined by the appropriate monad, as in Stream::empty,
-     *                  or Optional::empty
-     * @param onElement some function that produces type {@code R} when given an object of type {@code T}, or fails
-     *                  with an Exception.
-     * @param onError   an optional consumer function to perform some logic when the parser function throws.
-     *                  Receives both the failing input element and the caught Exception.
-     * @param <M>       The captured monad type, which must match the return types of the {@code monadUnit} and
-     *                  {@code monadZero} functions, but which is not involved in the {@code onElement} or
-     *                  {@code onError} functions.
-     * @param <T>       The input type mapped by the monad, i.e. the String type in {@code Stream<String>}.
-     * @param <R>       The output type mapped by the monad, i.e. the URL type in {@code Stream<URL>}.
+     * @param monoidUnit the "unit" (or "single") function defined by the appropriate monoid/monad. I.E. Stream::of,
+     *                   Optional::of, or Optional::ofNullable.
+     * @param monoidZero the "zero" (or "empty") function defined by the appropriate monoid/monad, as in Stream::empty,
+     *                   or Optional::empty
+     * @param onElement  some function that produces type {@code R} when given an object of type {@code T}, or fails
+     *                   with an Exception.
+     * @param onError    an optional consumer function to perform some logic when the parser function throws.
+     *                   Receives both the failing input element and the caught Exception.
+     * @param <M>        The captured monad type, which must match the return types of the {@code monoidUnit} and
+     *                   {@code monoidZero} functions, but which is not involved in the {@code onElement} or
+     *                   {@code onError} functions.
+     * @param <T>        The input type mapped by the monoid/monad, i.e. the String type in {@code Stream<String>}.
+     * @param <R>        The output type mapped by the monoid/monad, i.e. the URL type in {@code Stream<URL>}.
      * @return a flatMappable function
      */
-    public static <M, T, R> Function<T, M> composeTry(final Function<R, M> monadUnit,
-                                                      final Supplier<M> monadZero,
+    public static <M, T, R> Function<T, M> composeTry(final Function<R, M> monoidUnit,
+                                                      final Supplier<M> monoidZero,
                                                       final ThrowingFunction<T, R> onElement,
                                                       final BiConsumer<T, Exception> onError) {
         final BiConsumer<T, Exception> consumeError = onError != null
@@ -273,10 +316,10 @@ public final class Fun {
 
         return (element) -> {
             try {
-                return monadUnit.apply(onElement.tryApply(element));
+                return monoidUnit.apply(onElement.tryApply(element));
             } catch (final Exception error) {
                 consumeError.accept(element, error);
-                return monadZero.get();
+                return monoidZero.get();
             }
         };
     }

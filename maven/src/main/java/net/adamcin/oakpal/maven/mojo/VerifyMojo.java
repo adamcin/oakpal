@@ -71,7 +71,7 @@ public class VerifyMojo extends AbstractITestMojo {
                 }
             }
         } catch (final Exception e) {
-            throw new MojoExecutionException("Failed to read check report summary file.", e);
+            throw new MojoFailureException("Failed to read check report summary file.", e);
         }
 
         reactToReports(reports);

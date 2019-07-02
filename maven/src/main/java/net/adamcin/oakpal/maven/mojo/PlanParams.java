@@ -1,22 +1,23 @@
 package net.adamcin.oakpal.maven.mojo;
 
 import java.io.File;
+import java.util.Collections;
 import java.util.List;
 
 import net.adamcin.oakpal.core.CheckSpec;
 import net.adamcin.oakpal.core.ForcedRoot;
 import net.adamcin.oakpal.core.JcrNs;
 
-public final class DefaultPlanBuilderParams implements PlanBuilderParams {
-    private List<DependencyFilter> preInstallArtifacts;
-    private List<File> preInstallFiles;
-    private List<String> cndNames;
+public final class PlanParams implements PlanBuilderParams {
+    private List<DependencyFilter> preInstallArtifacts = Collections.emptyList();
+    private List<File> preInstallFiles = Collections.emptyList();
+    private List<String> cndNames = Collections.emptyList();
     private boolean slingNodeTypes;
-    private List<JcrNs> jcrNamespaces;
-    private List<String> jcrPrivileges;
-    private List<ForcedRoot> forcedRoots;
-    private List<CheckSpec> checks;
-    private List<String> checklists;
+    private List<JcrNs> jcrNamespaces = Collections.emptyList();
+    private List<String> jcrPrivileges = Collections.emptyList();
+    private List<ForcedRoot> forcedRoots = Collections.emptyList();
+    private List<CheckSpec> checks = Collections.emptyList();
+    private List<String> checklists = Collections.emptyList();
 
     @Override
     public List<DependencyFilter> getPreInstallArtifacts() {
@@ -97,5 +98,20 @@ public final class DefaultPlanBuilderParams implements PlanBuilderParams {
 
     public void setChecklists(final List<String> checklists) {
         this.checklists = checklists;
+    }
+
+    @Override
+    public String toString() {
+        return "PlanParams{" +
+                "preInstallArtifacts=" + preInstallArtifacts +
+                ", preInstallFiles=" + preInstallFiles +
+                ", cndNames=" + cndNames +
+                ", slingNodeTypes=" + slingNodeTypes +
+                ", jcrNamespaces=" + jcrNamespaces +
+                ", jcrPrivileges=" + jcrPrivileges +
+                ", forcedRoots=" + forcedRoots +
+                ", checks=" + checks +
+                ", checklists=" + checklists +
+                '}';
     }
 }

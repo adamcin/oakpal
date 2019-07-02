@@ -232,6 +232,13 @@
             <artifactId>oakpal-testing</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>net.adamcin.recap</groupId>
+            <artifactId>recap-graniteui</artifactId>
+            <version>1.0.1</version>
+            <type>zip</type>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
 </project>

@@ -17,10 +17,10 @@ public class ResultTest {
                 .map(result1(value -> value / (value % 3)))
                 .collect(Collectors.toList());
 
-        Result<List<Integer>> allAreGood = rawValues.stream().collect(Result.collectOrFailOnFirst(Collectors.toList()));
+        Result<List<Integer>> allAreGood = rawValues.stream().collect(Result.tryCollect(Collectors.toList()));
 
         assertTrue("allAreGood is a failure", allAreGood.isFailure());
         assertTrue("failure is an " + allAreGood.getError().get().getClass().getName(),
-                allAreGood.getError().get() instanceof ArithmeticException);
+                allAreGood.findCause(ArithmeticException.class::isInstance).isPresent());
     }
 }

@@ -26,19 +26,21 @@
     <name>Test OpearArchiveMojo</name>
 
     <build>
-        <outputDirectory>src/main/resources</outputDirectory>
+        <testOutputDirectory>src/test/resources</testOutputDirectory>
         <plugins>
             <plugin>
                 <groupId>net.adamcin.oakpal</groupId>
                 <artifactId>oakpal-maven-plugin</artifactId>
                 <configuration>
-                    <planFile>${project.build.directory}/plan.json</planFile>
+                    <planParams>
+                        <slingNodeTypes>true</slingNodeTypes>
+                    </planParams>
                 </configuration>
                 <executions>
                     <execution>
-                        <id>default-opear-package</id>
+                        <id>default-opear-plan</id>
                         <goals>
-                            <goal>opear-package</goal>
+                            <goal>opear-plan</goal>
                         </goals>
                     </execution>
                 </executions>
@@ -49,7 +51,7 @@
         <dependency>
             <groupId>net.adamcin.oakpal</groupId>
             <artifactId>oakpal-core</artifactId>
-            <version>1.3.0</version>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.sling</groupId>

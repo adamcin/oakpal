@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Enumeration;
@@ -39,9 +40,11 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.jcr.Session;
 
+import aQute.bnd.header.Attrs;
 import aQute.bnd.header.Parameters;
 import aQute.bnd.osgi.Domain;
 import net.adamcin.oakpal.core.jcrfacade.SessionFacade;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -83,6 +86,16 @@ public final class Util {
         Domain domain = Domain.domain(manifest);
         Parameters params = domain.getParameters(headerName);
         return new ArrayList<>(params.keySet());
+    }
+
+    public static String escapeManifestHeaderValue(final @NotNull String... values) {
+        return escapeManifestHeaderValues(Arrays.asList(values));
+    }
+
+    public static String escapeManifestHeaderValues(final @NotNull List<String> values) {
+        Parameters parameters = new Parameters();
+        values.stream().forEachOrdered(value -> parameters.put(value, new Attrs()));
+        return parameters.toString();
     }
 
     public static List<URL> resolveManifestResources(final URL manifestUrl, final List<String> resources) {

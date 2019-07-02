@@ -82,7 +82,6 @@ public class DependencyFilter implements Predicate<Dependency> {
         return this;
     }
 
-
     public DependencyFilter withClassifier(final String classifier) {
         this.setClassifier(classifier);
         return this;

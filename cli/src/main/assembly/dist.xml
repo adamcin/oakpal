@@ -27,6 +27,7 @@
             <excludes>
                 <exclude>${project.groupId}:${project.artifactId}:jar:*</exclude>
             </excludes>
+            <useProjectArtifact>true</useProjectArtifact>
         </dependencySet>
     </dependencySets>
 </assembly>

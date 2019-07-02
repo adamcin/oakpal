@@ -17,9 +17,6 @@
 package net.adamcin.oakpal.maven.mojo;
 
 import java.io.File;
-import java.net.URL;
-import java.net.URLClassLoader;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -27,14 +24,9 @@ import java.util.stream.Collectors;
 import net.adamcin.oakpal.core.CheckReport;
 import net.adamcin.oakpal.core.Violation;
 import org.apache.jackrabbit.vault.packaging.PackageId;
-import org.apache.maven.execution.MavenSession;
-import org.apache.maven.model.Dependency;
-import org.apache.maven.plugin.MojoExecution;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.Parameter;
-import org.apache.maven.repository.RepositorySystem;
-import org.apache.maven.settings.Settings;
 
 /**
  * Base Mojo providing access to maven context.
@@ -75,42 +67,19 @@ abstract class AbstractITestMojo extends AbstractCommonMojo {
 
     protected abstract boolean isIndividuallySkipped();
 
+    @Override
+    public boolean isTestScopeContainer() {
+        return true;
+    }
+
     private ClassLoader containerClassLoader;
 
-    protected ClassLoader getContainerClassLoader() throws MojoExecutionException {
+    protected ClassLoader getContainerClassLoader() throws MojoFailureException {
         if (containerClassLoader == null) {
             this.containerClassLoader = createContainerClassLoader();
         }
 
         return this.containerClassLoader;
-    }
-
-    private ClassLoader createContainerClassLoader() throws MojoExecutionException {
-        final List<File> dependencyJars = new ArrayList<>();
-        getProject().ifPresent(project -> {
-            dependencyJars.add(new File(project.getBuild().getTestOutputDirectory()));
-        });
-
-        List<Dependency> unresolvedDependencies = new ArrayList<>();
-
-        getProject().ifPresent(project ->
-                unresolvedDependencies.addAll(project.getDependencies().stream()
-                        .filter(dependency -> "jar".equals(dependency.getType()))
-                        .filter(dependency -> "test".equals(dependency.getScope()))
-                        .collect(Collectors.toList()))
-        );
-
-        dependencyJars.addAll(resolveDependencies(unresolvedDependencies, true));
-
-        try {
-            List<URL> urls = new ArrayList<>(dependencyJars.size());
-            for (File file : dependencyJars) {
-                urls.add(file.toURI().toURL());
-            }
-            return new URLClassLoader(urls.toArray(new URL[urls.size()]), getClass().getClassLoader());
-        } catch (Exception e) {
-            throw new MojoExecutionException("ClassLoader error: ", e);
-        }
     }
 
     protected void reactToReports(List<CheckReport> reports) throws MojoFailureException {

@@ -16,4 +16,6 @@ public interface MojoWithCommonParams extends Mojo {
     Settings getSettings();
 
     Optional<MavenProject> getProject();
+
+
 }

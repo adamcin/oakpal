@@ -142,7 +142,7 @@ public class ScanManyArtifactsMojo extends AbstractITestWithPlanMojo {
 
             if (unresolvedArtifact.isPresent()) {
                 Artifact a = unresolvedArtifact.get();
-                throw new MojoExecutionException(String.format("Failed to resolve file for artifact: %s:%s:%s",
+                throw new MojoFailureException(String.format("Failed to resolve file for artifact: %s:%s:%s",
                         a.getGroupId(), a.getArtifactId(), a.getVersion()));
             }
 
@@ -166,16 +166,16 @@ public class ScanManyArtifactsMojo extends AbstractITestWithPlanMojo {
         } catch (AbortedScanException e) {
             String currentFilePath = e.getCurrentPackageFile()
                     .map(f -> "Failed package: " + f.getAbsolutePath()).orElse("");
-            throw new MojoExecutionException("Failed to execute package scan. " + currentFilePath, e);
+            throw new MojoFailureException("Failed to execute package scan. " + currentFilePath, e);
         } catch (Exception e) {
-            throw new MojoExecutionException("Failed to execute package scan.", e);
+            throw new MojoFailureException("Failed to execute package scan.", e);
         }
 
         try {
             ReportMapper.writeReportsToFile(reports, summaryFile);
             getLog().info("Check report summary written to " + summaryFile.getPath());
         } catch (final IOException e) {
-            throw new MojoExecutionException("Failed to write summary reports.", e);
+            throw new MojoFailureException("Failed to write summary reports.", e);
         }
 
         if (deferBuildFailure) {

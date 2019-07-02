@@ -14,11 +14,11 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import net.adamcin.oakpal.core.OakpalPlan;
 import net.adamcin.oakpal.core.ForcedRoot;
 import net.adamcin.oakpal.core.JcrNs;
 import net.adamcin.oakpal.core.JsonCnd;
 import net.adamcin.oakpal.core.NamespaceMappingRequest;
+import net.adamcin.oakpal.core.OakpalPlan;
 import net.adamcin.oakpal.core.Result;
 import net.adamcin.oakpal.core.SlingNodetypesScanner;
 import org.apache.jackrabbit.spi.QNodeTypeDefinition;
@@ -26,11 +26,20 @@ import org.apache.jackrabbit.spi.commons.namespace.NamespaceMapping;
 import org.apache.jackrabbit.vault.fs.spi.NodeTypeSet;
 import org.apache.maven.model.Dependency;
 import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.project.MavenProject;
 
 interface MojoWithPlanParams extends MojoWithCommonParams, MojoWithRepositoryParams {
 
     PlanBuilderParams getPlanBuilderParams();
+
+    default URL getPlanBaseUrl() {
+        return uncheck1(File::toURL).apply(getProject().map(MavenProject::getBasedir).orElse(new File(".")));
+    }
+
+    default String getPlanName() {
+        return null;
+    }
 
     /**
      * Construct an Oakpal Plan purely from the relevant mojo parameters.
@@ -38,11 +47,11 @@ interface MojoWithPlanParams extends MojoWithCommonParams, MojoWithRepositoryPar
      * @return a complete init stage
      * @throws MojoExecutionException if an error occurs
      */
-    default OakpalPlan buildPlan() throws MojoExecutionException {
+    default OakpalPlan buildPlan() throws MojoFailureException {
         final PlanBuilderParams params = getPlanBuilderParams();
-        final OakpalPlan.Builder planBuilder = new OakpalPlan.Builder(uncheck1(File::toURL)
-                .apply(getProject().map(MavenProject::getBasedir).orElse(new File("."))));
+        final OakpalPlan.Builder planBuilder = new OakpalPlan.Builder(getPlanBaseUrl(), getPlanName());
 
+        getLog().debug("building plan: " + params);
         planBuilder.withChecklists(params.getChecklists());
         planBuilder.withChecks(params.getChecks());
 
@@ -78,12 +87,13 @@ interface MojoWithPlanParams extends MojoWithCommonParams, MojoWithRepositoryPar
                 Map<String, URL> pluginNtds = SlingNodetypesScanner.resolveNodeTypeDefinitions(params.getCndNames());
                 for (String cndName : params.getCndNames()) {
                     if (!pluginNtds.containsKey(cndName)) {
-                        throw new MojoExecutionException("Failed to find node type definition on classpath for cndName " + cndName);
+                        throw new MojoExecutionException("Failed to find node type definition on classpath for cndName "
+                                + cndName);
                     }
                 }
                 unorderedCndUrls.addAll(pluginNtds.values());
             } catch (Exception e) {
-                throw new MojoExecutionException("Failed to resolve cndNames.", e);
+                throw new MojoFailureException("Failed to resolve cndNames.", e);
             }
         }
 
@@ -98,7 +108,7 @@ interface MojoWithPlanParams extends MojoWithCommonParams, MojoWithRepositoryPar
                 }
                 unorderedCndUrls.addAll(pluginNtds);
             } catch (IOException e) {
-                throw new MojoExecutionException("Failed to resolve cndNames.", e);
+                throw new MojoFailureException("Failed to resolve cndNames.", e);
             }
         }
 

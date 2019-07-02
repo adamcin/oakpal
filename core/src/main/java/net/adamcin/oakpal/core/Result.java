@@ -57,7 +57,7 @@ public abstract class Result<V> implements Serializable {
 
     public abstract Stream<V> stream();
 
-    public abstract Result<V> logError();
+    public abstract Result<V> teeLogError();
 
     public final boolean isSuccess() {
         return !isFailure();
@@ -67,18 +67,56 @@ public abstract class Result<V> implements Serializable {
         return getError().isPresent();
     }
 
+    /**
+     * All Failures will be created with a top-level RuntimeException. This method returns it if this result is a
+     * failure. Otherwise, Optional.empty() is returned for a success.
+     *
+     * @return the top level runtime exception or empty if success
+     */
     public abstract Optional<RuntimeException> getError();
 
+    /**
+     * Feeling down because of too much functional wrapping? This method has you covered. Rethrow the highest result
+     * error cause matching the provided type to so you can catch it like old times.
+     *
+     * @param errorType the class providing the particular Exception type parameter
+     * @param <E>       the particular Exception type parameter
+     * @throws E if any cause in the chain is an instance of the provided errorType, that cause is rethrown
+     */
+    public final <E extends Exception> void throwCause(final @NotNull Class<E> errorType) throws E {
+        Optional<E> cause = findCause(errorType::isInstance).map(errorType::cast);
+        if (cause.isPresent()) {
+            throw cause.get();
+        }
+    }
+
+    /**
+     * Filters the exception stack as a stream using the provided Throwable predicate. Since the top-level exception may
+     * be an internal RuntimeException, you can use this method to determine if a particular Throwable type was thrown.
+     *
+     * @param predicate the Throwable filter
+     * @return some matching throwable or empty
+     */
     public final Optional<Throwable> findCause(final @NotNull Predicate<Throwable> predicate) {
-        return Optional.empty();
+        return getError().map(Result::causing).orElse(Stream.empty()).filter(predicate).findFirst();
     }
 
-    /*
-    private static Optional<Throwable> findCause(final @NotNull Throwable parent, final @NotNull Predicate<Throwable> predicate) {
-        return Optional.of(parent).filter(predicate);(() -> Optional.ofNullable(parent.getCause()).filter(predicate));
+    /**
+     * Produces a stream of Throwable causes for the provided throwable.
+     *
+     * @param caused the top-level exception
+     * @return a stream of throwable causes
+     */
+    static Stream<Throwable> causing(final @NotNull Throwable caused) {
+        return Stream.concat(Optional.of(caused).map(Stream::of).orElse(Stream.empty()),
+                Optional.ofNullable(caused.getCause()).map(Result::causing).orElse(Stream.empty()));
     }
-    */
 
+    /**
+     * Standard forEach method calling a consumer to accept the value. Not executed on a Failure.
+     *
+     * @param consumer the consumer
+     */
     public abstract void forEach(final @NotNull Consumer<V> consumer);
 
     private static final class Failure<V> extends Result<V> {
@@ -151,7 +189,7 @@ public abstract class Result<V> implements Serializable {
         }
 
         @Override
-        public Result<V> logError() {
+        public Result<V> teeLogError() {
             LOGGER.debug("failure [stacktrace visible in TRACE logging]: {}", this);
             logTrace();
             return this;
@@ -211,7 +249,7 @@ public abstract class Result<V> implements Serializable {
         }
 
         @Override
-        public Result<V> logError() {
+        public Result<V> teeLogError() {
             return this;
         }
 
@@ -252,7 +290,7 @@ public abstract class Result<V> implements Serializable {
      * @param <V> wrapped incremental value type
      * @param <A> wrapped accumulator type
      */
-    static final class Builder<V, A> implements Consumer<Result<V>> {
+    public static final class Builder<V, A> implements Consumer<Result<V>> {
         final Result<A> resultAcc;
         final AtomicReference<Result<A>> latch;
         final BiConsumer<A, V> accumulator;
@@ -266,12 +304,13 @@ public abstract class Result<V> implements Serializable {
 
         @Override
         public void accept(final Result<V> valueResult) {
-            latch.accumulateAndGet(resultAcc, (fromLatch, fromArg) ->
-                    fromLatch.flatMap(state ->
-                            valueResult.map(value -> {
-                                accumulator.accept(state, value);
-                                return state;
-                            })));
+            latch.accumulateAndGet(resultAcc,
+                    (fromLatch, fromArg) ->
+                            fromLatch.flatMap(state ->
+                                    valueResult.map(value -> {
+                                        accumulator.accept(state, value);
+                                        return state;
+                                    })));
         }
 
         Result<A> build() {
@@ -284,23 +323,29 @@ public abstract class Result<V> implements Serializable {
      * 1. the collected values of the streamed results according using supplied collector
      * 2. the first encountered failure
      *
+     * This method is indented to invert the relationship between the Result monoid and the Stream/Collector type,
+     * such that this transformation becomes easier: {@code List<Result<A>> -> Result<List<A>>}
+     *
      * @param collector the underlying collector
-     * @param <V> the incremental value
-     * @param <R> the intended container type
-     * @param <A> the collector's accumulator type
+     * @param <V>       the incremental value
+     * @param <R>       the intended container type
+     * @param <A>       the collector's accumulator type
      * @return if all successful, a Result of a Collection; otherwise, the first encountered failure
      */
     public static <V, R, A> Collector<Result<V>, Builder<V, A>, Result<R>>
-    collectOrFailOnFirst(final @NotNull Collector<V, A, R> collector) {
+    tryCollect(final @NotNull Collector<V, A, R> collector) {
 
         final Supplier<Builder<V, A>>
+                // first arg
                 supplier = () ->
                 new Builder<>(Result.success(collector.supplier().get()), collector.accumulator());
 
         final BiConsumer<Result.Builder<V, A>, Result<V>>
+                // second arg
                 accumulator = Builder::accept;
 
         final BinaryOperator<Builder<V, A>>
+                // third arg
                 combiner =
                 (builder0, builder1) -> new Builder<>(
                         builder0.build().flatMap(left ->
@@ -309,12 +354,17 @@ public abstract class Result<V> implements Serializable {
                         collector.accumulator());
 
         final Function<Builder<V, A>, Result<R>>
+                // fourth arg
                 finisher = acc -> acc.build().map(collector.finisher());
 
-        return Collector.of(supplier, accumulator, combiner, finisher,
-                collector.characteristics().stream()
-                        .filter(charac -> charac != Collector.Characteristics.IDENTITY_FINISH)
-                        .toArray(Collector.Characteristics[]::new));
+        final Collector.Characteristics[]
+                // fifth arg
+                characteristics = collector.characteristics().stream()
+                // remove IDENTITY_FINISH, but pass thru the other characteristics.
+                .filter(charac -> charac != Collector.Characteristics.IDENTITY_FINISH)
+                .toArray(Collector.Characteristics[]::new);
+
+        return Collector.of(supplier, accumulator, combiner, finisher, characteristics);
     }
 
     public static <V> Collector<Result<V>, Stream.Builder<Result<V>>, Stream<Result<V>>>
@@ -327,12 +377,12 @@ public abstract class Result<V> implements Serializable {
         return new RestreamLogCollector<>(": " + message);
     }
 
-    private static final class RestreamLogCollector<T>
+    static final class RestreamLogCollector<T>
             implements Collector<Result<T>, Stream.Builder<Result<T>>, Stream<Result<T>>> {
-        private final Supplier<Stream.Builder<Result<T>>> supplier;
-        private final BiConsumer<Stream.Builder<Result<T>>, Result<T>> accum;
+        final Supplier<Stream.Builder<Result<T>>> supplier;
+        final BiConsumer<Stream.Builder<Result<T>>, Result<T>> accum;
 
-        private RestreamLogCollector(final @NotNull String collectorMessage) {
+        RestreamLogCollector(final @NotNull String collectorMessage) {
             if (LOGGER.isDebugEnabled()) {
                 final Throwable creation = new Throwable();
                 this.supplier = () -> {
@@ -340,7 +390,7 @@ public abstract class Result<V> implements Serializable {
                     LOGGER.trace("created here", creation);
                     return Stream.builder();
                 };
-                this.accum = (builder, element) -> builder.accept(element.logError());
+                this.accum = (builder, element) -> builder.accept(element.teeLogError());
             } else {
                 this.supplier = Stream::builder;
                 this.accum = Stream.Builder::accept;

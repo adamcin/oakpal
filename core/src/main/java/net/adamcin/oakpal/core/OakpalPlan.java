@@ -1,12 +1,19 @@
 package net.adamcin.oakpal.core;
 
+import static net.adamcin.oakpal.core.Fun.compose;
+import static net.adamcin.oakpal.core.Fun.result1;
+import static net.adamcin.oakpal.core.Fun.uncheck1;
 import static net.adamcin.oakpal.core.JavaxJson.hasNonNull;
 
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 import javax.json.Json;
 import javax.json.JsonObject;
 import javax.json.JsonReader;
@@ -41,6 +48,11 @@ public final class OakpalPlan implements JavaxJson.ObjectConvertible {
      * This should not be used as a default when a plan name is specified by a user, but is not found.
      */
     public static final URL BASIC_PLAN_URL = OakpalPlan.class.getResource("basic-plan.json");
+
+    /**
+     * When otherwise unspecified, the default name for a plan should be plan.json.
+     */
+    public static final String DEFAULT_PLAN_NAME = "plan.json";
 
     public static final String KEY_CHECKLISTS = "checklists";
     public static final String KEY_CHECKS = "checks";
@@ -83,6 +95,10 @@ public final class OakpalPlan implements JavaxJson.ObjectConvertible {
         this.checks = checks;
     }
 
+    public URL getBase() {
+        return this.base;
+    }
+
     public String getName() {
         return this.name;
     }
@@ -119,18 +135,48 @@ public final class OakpalPlan implements JavaxJson.ObjectConvertible {
         return checks;
     }
 
+    static URI relativizeToBaseParent(final @NotNull URI baseUri, final @NotNull URI uri) throws URISyntaxException {
+        if (baseUri.isOpaque() || uri.isOpaque()) {
+            return uri;
+        } else if (baseUri.getPath().contains("/") && baseUri.getPath().endsWith(".json")) {
+            final String basePath = baseUri.getPath().substring(0, baseUri.getPath().lastIndexOf("/") + 1);
+            final URI newBase = new URI(baseUri.getScheme(), baseUri.getUserInfo(), baseUri.getHost(),
+                    baseUri.getPort(), basePath, baseUri.getQuery(), baseUri.getFragment());
+            return newBase.relativize(uri);
+        } else {
+            return baseUri.relativize(uri);
+        }
+    }
+
     @Override
     public JsonObject toJson() {
         if (this.originalJson != null) {
             return this.originalJson;
         }
 
+        final List<String> preInstallStrings = new ArrayList<>();
+
+        if (!preInstallUrls.isEmpty()) {
+            preInstallStrings.addAll(Optional.ofNullable(base)
+                    .map(result1(URL::toURI))
+                    .map(baseUriResult -> baseUriResult.flatMap(baseUri ->
+                            preInstallUrls.stream()
+                                    .map(result1(URL::toURI))
+                                    .map(uriResult -> uriResult
+                                            .map(compose(uncheck1(uri -> relativizeToBaseParent(baseUri, uri)),
+                                                    URI::toString)))
+                                    .collect(Result.tryCollect(Collectors.toList()))
+                    ))
+                    .orElseGet(() -> Result.failure("Plan base URI is empty. preInstallUrls will not be relativized"))
+                    .getOrElse(() -> preInstallUrls.stream().map(URL::toExternalForm).collect(Collectors.toList())));
+        }
+
         return JavaxJson.obj()
-                .key(KEY_PREINSTALL_URLS).opt(preInstallUrls)
+                .key(KEY_PREINSTALL_URLS).opt(preInstallStrings)
                 .key(KEY_CHECKLISTS).opt(checklists)
                 .key(KEY_CHECKS).opt(checks)
                 .key(KEY_FORCED_ROOTS).opt(forcedRoots)
-                .key(KEY_JCR_NODETYPES).opt(jcrNodetypes)
+                .key(KEY_JCR_NODETYPES).opt(JsonCnd.toJson(jcrNodetypes, JsonCnd.toNamespaceMapping(jcrNamespaces)))
                 .key(KEY_JCR_PRIVILEGES).opt(jcrPrivileges)
                 .key(KEY_JCR_NAMESPACES).opt(jcrNamespaces)
                 .get();
@@ -179,11 +225,11 @@ public final class OakpalPlan implements JavaxJson.ObjectConvertible {
 
     public static Result<OakpalPlan> fromJson(final @NotNull URL jsonUrl) {
         try (JsonReader reader = Json.createReader(jsonUrl.openStream())) {
-            JsonObject json = reader.readObject();
-            OakpalPlan.Builder builder = new OakpalPlan.Builder(jsonUrl, Text.getName(jsonUrl.getPath()));
+            final JsonObject json = reader.readObject();
+            final OakpalPlan.Builder builder = new OakpalPlan.Builder(jsonUrl, Text.getName(jsonUrl.getPath()));
             if (hasNonNull(json, KEY_PREINSTALL_URLS)) {
                 builder.withPreInstallUrls(JavaxJson.mapArrayOfStrings(json.getJsonArray(KEY_PREINSTALL_URLS),
-                        Fun.uncheck1(url -> new URL(jsonUrl, url))));
+                        uncheck1(url -> new URL(jsonUrl, url))));
             }
             if (hasNonNull(json, KEY_CHECKLISTS)) {
                 builder.withChecklists(JavaxJson.mapArrayOfStrings(json.getJsonArray(KEY_CHECKLISTS)));
@@ -226,42 +272,57 @@ public final class OakpalPlan implements JavaxJson.ObjectConvertible {
         private List<ForcedRoot> forcedRoots = Collections.emptyList();
         private List<CheckSpec> checks = Collections.emptyList();
 
-        public Builder(final URL base, final String name) {
+        public Builder(final @Nullable URL base, final @Nullable String name) {
             this.base = base;
-            this.name = name;
+            this.name = Optional.ofNullable(name)
+                    .orElseGet(() -> Optional.ofNullable(base)
+                            .map(compose(compose(URL::getPath, Text::getName),
+                                    // ensure that the plan name ends with a json extension.
+                                    baseName -> baseName.replaceAll("(\\.json)?$", ".json")))
+                            .orElse(DEFAULT_PLAN_NAME));
         }
 
-        public Builder withChecklists(List<String> checklists) {
+        public Builder startingWithPlan(final @NotNull OakpalPlan plan) {
+            return this.withChecklists(plan.getChecklists())
+                    .withChecks(plan.getChecks())
+                    .withForcedRoots(plan.getForcedRoots())
+                    .withJcrNamespaces(plan.getJcrNamespaces())
+                    .withJcrNodetypes(plan.getJcrNodetypes())
+                    .withJcrPrivileges(plan.getJcrPrivileges())
+                    .withPreInstallUrls(plan.getPreInstallUrls());
+        }
+
+        public Builder withChecklists(final @NotNull List<String> checklists) {
             this.checklists = new ArrayList<>(checklists);
             return this;
         }
 
-        public Builder withPreInstallUrls(List<URL> preInstallUrls) {
+        public Builder withPreInstallUrls(final @NotNull List<URL> preInstallUrls) {
             this.preInstallUrls = new ArrayList<>(preInstallUrls);
             return this;
         }
 
-        public Builder withJcrNamespaces(List<JcrNs> jcrNamespaces) {
+        public Builder withJcrNamespaces(final @NotNull List<JcrNs> jcrNamespaces) {
             this.jcrNamespaces = new ArrayList<>(jcrNamespaces);
             return this;
         }
 
-        public Builder withJcrNodetypes(List<QNodeTypeDefinition> jcrNodetypes) {
+        public Builder withJcrNodetypes(final @NotNull List<QNodeTypeDefinition> jcrNodetypes) {
             this.jcrNodetypes = new ArrayList<>(jcrNodetypes);
             return this;
         }
 
-        public Builder withJcrPrivileges(List<String> jcrPrivileges) {
+        public Builder withJcrPrivileges(final @NotNull List<String> jcrPrivileges) {
             this.jcrPrivileges = new ArrayList<>(jcrPrivileges);
             return this;
         }
 
-        public Builder withForcedRoots(List<ForcedRoot> forcedRoots) {
+        public Builder withForcedRoots(final @NotNull List<ForcedRoot> forcedRoots) {
             this.forcedRoots = new ArrayList<>(forcedRoots);
             return this;
         }
 
-        public Builder withChecks(List<CheckSpec> checks) {
+        public Builder withChecks(final @NotNull List<CheckSpec> checks) {
             this.checks = new ArrayList<>(checks);
             return this;
         }
