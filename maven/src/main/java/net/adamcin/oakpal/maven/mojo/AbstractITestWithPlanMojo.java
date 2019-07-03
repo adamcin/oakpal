@@ -248,6 +248,14 @@ abstract class AbstractITestWithPlanMojo extends AbstractITestMojo implements Pl
     @Parameter(name = "checklists")
     protected List<String> checklists = new ArrayList<>();
 
+    /**
+     * If this is set to true, InstallHooks in scanned packages will be ignored.
+     *
+     * @since 1.4.0
+     */
+    @Parameter
+    protected boolean skipInstallHooks;
+
     @Override
     public final PlanBuilderParams getPlanBuilderParams() {
         return this;
@@ -298,5 +306,8 @@ abstract class AbstractITestWithPlanMojo extends AbstractITestMojo implements Pl
         return checklists;
     }
 
-
+    @Override
+    public boolean isSkipInstallHooks() {
+        return skipInstallHooks;
+    }
 }
