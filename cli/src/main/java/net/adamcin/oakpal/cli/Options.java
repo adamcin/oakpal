@@ -21,11 +21,13 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 class Options {
+    static final String CACHE_DIR_NAME = ".oakpal-cache";
     static final Options DEFAULT_OPTIONS = new Options();
     private final boolean justHelp;
     private final boolean justVersion;
     private final URL planUrl;
     private final ClassLoader scanClassLoader;
+    private final File cacheDir;
     private final File opearFile;
     private final String planName;
     private final List<File> scanFiles;
@@ -35,6 +37,7 @@ class Options {
     Options() {
         this(true, true,
                 OakpalPlan.BASIC_PLAN_URL, Options.class.getClassLoader(),
+                new File(System.getProperty("java.io.tmpdir")),
                 null, null,
                 Collections.emptyList(),
                 message -> IO.empty,
@@ -45,6 +48,7 @@ class Options {
             final boolean justVersion,
             final @NotNull URL planUrl,
             final @NotNull ClassLoader scanClassLoader,
+            final @NotNull File cacheDir,
             final @Nullable File opearFile,
             final @Nullable String planName,
             final @NotNull List<File> scanFiles,
@@ -54,6 +58,7 @@ class Options {
         this.justVersion = justVersion;
         this.planUrl = planUrl;
         this.scanClassLoader = scanClassLoader;
+        this.cacheDir = cacheDir;
         this.opearFile = opearFile;
         this.planName = planName;
         this.scanFiles = scanFiles;
@@ -75,6 +80,10 @@ class Options {
 
     public ClassLoader getScanClassLoader() {
         return scanClassLoader;
+    }
+
+    public File getCacheDir() {
+        return cacheDir;
     }
 
     public @Nullable File getOpearFile() {
@@ -104,6 +113,7 @@ class Options {
         private boolean noPlan;
         private String planName;
         private File outFile;
+        private File cacheDir;
         private File opearFile;
         private List<File> scanFiles = new ArrayList<>();
         private Violation.Severity failOnSeverity = Violation.Severity.MAJOR;
@@ -138,6 +148,11 @@ class Options {
             return this;
         }
 
+        public Builder setCacheDir(final @Nullable File cacheDir) {
+            this.cacheDir = cacheDir;
+            return this;
+        }
+
         public Builder setOpearFile(final @Nullable File opearFile) {
             this.opearFile = opearFile;
             return this;
@@ -158,13 +173,16 @@ class Options {
                     new File(console.getCwd(),
                             console.getEnv().getOrDefault(Console.ENV_OAKPAL_OPEAR, ".")));
 
-            final File cacheBaseDir = new File(console.getCwd(), ".opear-cache");
-            cacheBaseDir.mkdirs();
+            final File realCacheDir = this.cacheDir != null
+                    ? this.cacheDir
+                    : new File(console.getCwd(), CACHE_DIR_NAME);
+            final File opearCache = new File(realCacheDir, "opears");
+            opearCache.mkdirs();
 
             final Result<OpearFile> opearResult = Result.success(opearResolved).flatMap(file -> {
                 if (file.isFile()) {
                     try (JarFile jarFile = new JarFile(opearResolved, true)) {
-                        return OpearFile.fromJar(jarFile, cacheBaseDir);
+                        return OpearFile.fromJar(jarFile, opearCache);
                     } catch (IOException e) {
                         return Result.failure(String.format("%s is not a jar format file", opearResolved.getPath()), e);
                     }
@@ -180,7 +198,8 @@ class Options {
                             .flatMap(planUrl ->
                                     messageWriter(console, outputJson, outFile).map(writer ->
                                             new Options(justHelp, justVersion, planUrl,
-                                                    opear.getPlanClassLoader(getClass().getClassLoader()), opearFile,
+                                                    opear.getPlanClassLoader(getClass().getClassLoader()),
+                                                    realCacheDir, opearFile,
                                                     planName, scanFiles, writer, failOnSeverity))));
         }
 

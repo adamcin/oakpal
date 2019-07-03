@@ -225,7 +225,7 @@ public final class OakpalPlan implements JavaxJson.ObjectConvertible {
         }
 
         return new OakMachine.Builder()
-                .withInstallHookProcessorFactory(OakMachine.NOOP_INSTALL_HOOK_PROCESSOR_FACTORY)
+                .withSkipInstallHooks(skipInstallHooks)
                 .withErrorListener(errorListener)
                 .withProgressChecks(allChecks)
                 .withInitStages(checklistPlanner.getInitStages())

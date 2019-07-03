@@ -23,7 +23,7 @@ import java.io.File;
 
 public class BadInstallHookTest {
 
-    @Test(expected = NoClassDefFoundError.class)
+    @Test(expected = AbortedScanException.class)
     public void testBadInstallHook() throws Exception {
         File badInstallHookPackage = TestPackageUtil.prepareTestPackageFromFolder("bad-install-hook.zip",
                 new File("src/test/resources/package_with_bad_installhook"));
@@ -36,7 +36,7 @@ public class BadInstallHookTest {
         File badInstallHookPackage = TestPackageUtil.prepareTestPackageFromFolder("bad-install-hook.zip",
                 new File("src/test/resources/package_with_bad_installhook"));
 
-        new OakMachine.Builder().withInstallHookProcessorFactory(OakMachine.NOOP_INSTALL_HOOK_PROCESSOR_FACTORY)
+        new OakMachine.Builder().withSkipInstallHooks(true)
                 .build().scanPackage(badInstallHookPackage);
     }
 }

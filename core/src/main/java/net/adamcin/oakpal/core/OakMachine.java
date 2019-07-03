@@ -63,12 +63,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 import org.apache.jackrabbit.vault.fs.api.ProgressTrackerListener;
-import org.apache.jackrabbit.vault.fs.api.VaultInputSource;
-import org.apache.jackrabbit.vault.fs.io.Archive;
-import org.apache.jackrabbit.vault.fs.io.ImportOptions;
 import org.apache.jackrabbit.vault.packaging.DependencyHandling;
-import org.apache.jackrabbit.vault.packaging.InstallContext;
-import org.apache.jackrabbit.vault.packaging.InstallHookProcessor;
 import org.apache.jackrabbit.vault.packaging.InstallHookProcessorFactory;
 import org.apache.jackrabbit.vault.packaging.JcrPackage;
 import org.apache.jackrabbit.vault.packaging.JcrPackageManager;
@@ -103,13 +98,16 @@ public final class OakMachine {
 
     private final InstallHookProcessorFactory installHookProcessorFactory;
 
+    private final boolean skipInstallHooks;
+
     private OakMachine(final Packaging packagingService,
                        final List<ProgressCheck> progressChecks,
                        final ErrorListener errorListener,
                        final List<URL> preInstallUrls,
                        final List<InitStage> initStages,
                        final JcrCustomizer jcrCustomizer,
-                       final InstallHookProcessorFactory installHookProcessorFactory) {
+                       final InstallHookProcessorFactory installHookProcessorFactory,
+                       final boolean skipInstallHooks) {
         this.packagingService = packagingService != null ? packagingService : new DefaultPackagingService();
         this.progressChecks = progressChecks;
         this.errorListener = errorListener;
@@ -117,6 +115,7 @@ public final class OakMachine {
         this.initStages = initStages;
         this.jcrCustomizer = jcrCustomizer;
         this.installHookProcessorFactory = installHookProcessorFactory;
+        this.skipInstallHooks = skipInstallHooks;
     }
 
     /**
@@ -136,6 +135,8 @@ public final class OakMachine {
         private JcrCustomizer jcrCustomizer;
 
         private InstallHookProcessorFactory installHookProcessorFactory;
+
+        private boolean skipInstallHooks;
 
         /**
          * Provide a {@link Packaging} service for use in retrieving a {@link JcrPackageManager} for an admin session.
@@ -303,6 +304,11 @@ public final class OakMachine {
             return this;
         }
 
+        public Builder withSkipInstallHooks(final boolean skipInstallHooks) {
+            this.skipInstallHooks = skipInstallHooks;
+            return this;
+        }
+
         /**
          * Construct a {@link OakMachine} from the {@link Builder} state.
          *
@@ -315,36 +321,10 @@ public final class OakMachine {
                     preInstallUrls,
                     initStages,
                     jcrCustomizer,
-                    installHookProcessorFactory);
+                    installHookProcessorFactory,
+                    skipInstallHooks);
         }
     }
-
-    public static final InstallHookProcessorFactory NOOP_INSTALL_HOOK_PROCESSOR_FACTORY = new InstallHookProcessorFactory() {
-        @Override
-        public InstallHookProcessor createInstallHookProcessor() {
-            return NOOP_INSTALL_HOOK_PROCESSOR;
-        }
-    };
-
-    private static final InstallHookProcessor NOOP_INSTALL_HOOK_PROCESSOR = new InstallHookProcessor() {
-        @Override
-        public void registerHooks(Archive archive, ClassLoader classLoader) {
-        }
-
-        @Override
-        public void registerHook(VaultInputSource vaultInputSource, ClassLoader classLoader) {
-        }
-
-        @Override
-        public boolean hasHooks() {
-            return false;
-        }
-
-        @Override
-        public boolean execute(InstallContext installContext) {
-            return true;
-        }
-    };
 
     public List<ProgressCheck> getProgressChecks() {
         return progressChecks;
@@ -563,14 +543,12 @@ public final class OakMachine {
         final ProgressTrackerListener tracker =
                 new ImporterListenerAdapter(packageId, progressChecks, inspectSession, preInstall);
 
-        ImportOptions options = new ImportOptions();
+        InternalImportOptions options = new InternalImportOptions();
         options.setNonRecursive(true);
         options.setDependencyHandling(DependencyHandling.IGNORE);
         options.setListener(tracker);
-
-        if (installHookProcessorFactory != null) {
-            options = new ImportOptionsWithInstallHookProcessorFactory(options, installHookProcessorFactory);
-        }
+        options.setSkipInstallHooks(skipInstallHooks);
+        options.setInstallHookProcessorFactoryDelegate(installHookProcessorFactory);
 
         List<PackageId> subpacks = Arrays.asList(jcrPackage.extractSubpackages(options));
 
