@@ -61,6 +61,7 @@ public final class OakpalPlan implements JavaxJson.ObjectConvertible {
     public static final String KEY_JCR_NODETYPES = "jcrNodetypes";
     public static final String KEY_JCR_PRIVILEGES = "jcrPrivileges";
     public static final String KEY_PREINSTALL_URLS = "preInstallUrls";
+    public static final String KEY_SKIP_INSTALL_HOOKS = "skipInstallHooks";
 
     private final URL base;
     private final String name;
@@ -72,6 +73,7 @@ public final class OakpalPlan implements JavaxJson.ObjectConvertible {
     private final List<String> jcrPrivileges;
     private final List<ForcedRoot> forcedRoots;
     private final List<CheckSpec> checks;
+    private final boolean skipInstallHooks;
 
     private OakpalPlan(final @Nullable URL base,
                        final @Nullable JsonObject originalJson,
@@ -82,7 +84,8 @@ public final class OakpalPlan implements JavaxJson.ObjectConvertible {
                        final @NotNull List<QNodeTypeDefinition> jcrNodetypes,
                        final @NotNull List<String> jcrPrivileges,
                        final @NotNull List<ForcedRoot> forcedRoots,
-                       final @NotNull List<CheckSpec> checks) {
+                       final @NotNull List<CheckSpec> checks,
+                       final boolean skipInstallHooks) {
         this.base = base;
         this.originalJson = originalJson;
         this.name = name;
@@ -93,6 +96,7 @@ public final class OakpalPlan implements JavaxJson.ObjectConvertible {
         this.jcrPrivileges = jcrPrivileges;
         this.forcedRoots = forcedRoots;
         this.checks = checks;
+        this.skipInstallHooks = skipInstallHooks;
     }
 
     public URL getBase() {
@@ -133,6 +137,10 @@ public final class OakpalPlan implements JavaxJson.ObjectConvertible {
 
     public List<CheckSpec> getChecks() {
         return checks;
+    }
+
+    public boolean isSkipInstallHooks() {
+        return skipInstallHooks;
     }
 
     static URI relativizeToBaseParent(final @NotNull URI baseUri, final @NotNull URI uri) throws URISyntaxException {
@@ -179,6 +187,7 @@ public final class OakpalPlan implements JavaxJson.ObjectConvertible {
                 .key(KEY_JCR_NODETYPES).opt(JsonCnd.toJson(jcrNodetypes, JsonCnd.toNamespaceMapping(jcrNamespaces)))
                 .key(KEY_JCR_PRIVILEGES).opt(jcrPrivileges)
                 .key(KEY_JCR_NAMESPACES).opt(jcrNamespaces)
+                .key(KEY_SKIP_INSTALL_HOOKS).opt(skipInstallHooks)
                 .get();
     }
 
@@ -216,6 +225,7 @@ public final class OakpalPlan implements JavaxJson.ObjectConvertible {
         }
 
         return new OakMachine.Builder()
+                .withInstallHookProcessorFactory(OakMachine.NOOP_INSTALL_HOOK_PROCESSOR_FACTORY)
                 .withErrorListener(errorListener)
                 .withProgressChecks(allChecks)
                 .withInitStages(checklistPlanner.getInitStages())
@@ -255,6 +265,9 @@ public final class OakpalPlan implements JavaxJson.ObjectConvertible {
             if (hasNonNull(json, KEY_JCR_PRIVILEGES)) {
                 builder.withJcrPrivileges(JavaxJson.mapArrayOfStrings(json.getJsonArray(KEY_JCR_PRIVILEGES)));
             }
+            if (hasNonNull(json, KEY_SKIP_INSTALL_HOOKS)) {
+                builder.withSkipInstallHooks(json.getBoolean(KEY_SKIP_INSTALL_HOOKS));
+            }
             return Result.success(builder.build(json));
         } catch (IOException e) {
             return Result.failure(e);
@@ -271,6 +284,7 @@ public final class OakpalPlan implements JavaxJson.ObjectConvertible {
         private List<String> jcrPrivileges = Collections.emptyList();
         private List<ForcedRoot> forcedRoots = Collections.emptyList();
         private List<CheckSpec> checks = Collections.emptyList();
+        private boolean skipInstallHooks;
 
         public Builder(final @Nullable URL base, final @Nullable String name) {
             this.base = base;
@@ -327,9 +341,14 @@ public final class OakpalPlan implements JavaxJson.ObjectConvertible {
             return this;
         }
 
+        public Builder withSkipInstallHooks(final boolean skipInstallHooks) {
+            this.skipInstallHooks = skipInstallHooks;
+            return this;
+        }
+
         private OakpalPlan build(final @Nullable JsonObject originalJson) {
             return new OakpalPlan(base, originalJson, name, checklists, preInstallUrls, jcrNamespaces,
-                    jcrNodetypes, jcrPrivileges, forcedRoots, checks);
+                    jcrNodetypes, jcrPrivileges, forcedRoots, checks, skipInstallHooks);
         }
 
         public OakpalPlan build() {

@@ -25,4 +25,6 @@ public interface PlanBuilderParams {
     List<CheckSpec> getChecks();
 
     List<String> getChecklists();
+
+    boolean isSkipInstallHooks();
 }

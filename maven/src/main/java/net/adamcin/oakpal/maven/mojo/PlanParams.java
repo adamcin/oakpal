@@ -18,6 +18,7 @@ public final class PlanParams implements PlanBuilderParams {
     private List<ForcedRoot> forcedRoots = Collections.emptyList();
     private List<CheckSpec> checks = Collections.emptyList();
     private List<String> checklists = Collections.emptyList();
+    private boolean skipInstallHooks;
 
     @Override
     public List<DependencyFilter> getPreInstallArtifacts() {
@@ -101,6 +102,15 @@ public final class PlanParams implements PlanBuilderParams {
     }
 
     @Override
+    public boolean isSkipInstallHooks() {
+        return skipInstallHooks;
+    }
+
+    public void setSkipInstallHooks(final boolean skipInstallHooks) {
+        this.skipInstallHooks = skipInstallHooks;
+    }
+
+    @Override
     public String toString() {
         return "PlanParams{" +
                 "preInstallArtifacts=" + preInstallArtifacts +
@@ -112,6 +122,7 @@ public final class PlanParams implements PlanBuilderParams {
                 ", forcedRoots=" + forcedRoots +
                 ", checks=" + checks +
                 ", checklists=" + checklists +
+                ", skipInstallHooks=" + skipInstallHooks +
                 '}';
     }
 }
