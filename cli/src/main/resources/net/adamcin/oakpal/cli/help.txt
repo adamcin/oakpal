@@ -1,4 +1,4 @@
-oakpal [ <options> ] <opearFile> <scanFile> [ <scanFile> ... ]
+oakpal [ <options> ] <opearFile> [ <scanFile> ... ]
 
   Options
   -------
@@ -8,7 +8,8 @@ oakpal [ <options> ] <opearFile> <scanFile> [ <scanFile> ... ]
   -j | --json                       : Write check reports in JSON format.
   -o | --outfile <outFile>          : Write check reports to the specified <outFile>
                                       instead of writing to stdout.
-  -f | --opear-file <opearFile>     : Specify an OPEAR file to use (overrides $OAKPAL_OPEAR).
+  -f | --file <opearFile>           : Specify an OPEAR file to use (overrides $OAKPAL_OPEAR).
+  -c | --cache <directory>          : Specify a cache directory for oakpal (default: ${CWD}/.oakpal-cache)
   -p | --plan <planName>            : Specify a different plan name to lookup in the specified opear.
                                       By default, the first plan exported by a specified opear will be used,
                                       or if no opear is specified, the basic oakpal plan will be used.
@@ -18,8 +19,7 @@ oakpal [ <options> ] <opearFile> <scanFile> [ <scanFile> ... ]
                                       reported with a severity level equal to or higher
                                       than <severity>. Can be MINOR, MAJOR, or SEVERE.
                                       If not specified, the default fail severity is MAJOR.
-  <scanFile> [ <scanFile> ... ]     : Scan package files using the plan discovered on
-                                      the $OAKPAL_PATH.
+  <scanFile> ...                    : Scan package files in the order specified.
 
   Environment
   -----------
@@ -33,8 +33,10 @@ oakpal [ <options> ] <opearFile> <scanFile> [ <scanFile> ... ]
                   Bundle-ClassPath    : This OSGi Manifest header specifies embedded JARs and directories that are
                                         added to the plan classpath. If not present, the default value of ".", or
                                         the root of the container, is added to the classpath.
+                  Oakpal-Plan         : This header specifies the plan (or plans) exported by the archive, which must be
+                                        json files located within the archive, addressed as relative to the archive root.
 
-                  When a path to a directory is specified using OAKPAL_OPEAR or -f/--opear-file, it will be treated
+                  When a path to a directory is specified using OAKPAL_OPEAR or -f/--file, it will be treated
                   exactly as an extracted OPEAR archive, except for when it does not contain a META-INF/MANIFEST.MF.
                   In that case, oakpal will look for a file in the root of the directory named "plan.json" to use
                   as the execution plan, or it will default to the oakpal basic plan.

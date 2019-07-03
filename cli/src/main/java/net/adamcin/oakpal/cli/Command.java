@@ -19,11 +19,11 @@ import java.util.Properties;
 import java.util.function.Function;
 
 import net.adamcin.oakpal.core.AbortedScanException;
-import net.adamcin.oakpal.core.OakpalPlan;
 import net.adamcin.oakpal.core.CheckReport;
 import net.adamcin.oakpal.core.DefaultErrorListener;
 import net.adamcin.oakpal.core.Nothing;
 import net.adamcin.oakpal.core.OakMachine;
+import net.adamcin.oakpal.core.OakpalPlan;
 import net.adamcin.oakpal.core.Result;
 import net.adamcin.oakpal.core.Violation;
 import org.jetbrains.annotations.NotNull;
@@ -64,7 +64,7 @@ final class Command {
                     .map(OakMachine.Builder::build).flatMap(oak -> runOakScan(opts, oak));
 
             if (scanResult.getError().isPresent()) {
-                return console.printLineErr(scanResult.getError().get().getMessage())
+                return console.printLineErr(scanResult.teeLogError().getError().get().getMessage())
                         .add(IO.unit(EXIT_ABORTED_SCAN));
             } else {
                 final List<CheckReport> reports = scanResult.getOrElse(Collections.emptyList());
@@ -126,7 +126,7 @@ final class Command {
         for (int i = 0; i < args.length; i++) {
             final String wholeOpt = args[i];
             final boolean isNoOpt = wholeOpt.startsWith(NO_OPT_PREFIX);
-            final String opt = isNoOpt ? wholeOpt.substring(NO_OPT_PREFIX.length()) : wholeOpt;
+            final String opt = isNoOpt ? "--" + wholeOpt.substring(NO_OPT_PREFIX.length()) : wholeOpt;
 
             switch (opt) {
                 case "-h":
@@ -138,8 +138,12 @@ final class Command {
                     builder.setJustVersion(!isNoOpt);
                     break;
                 case "-f":
-                case "--opear-file":
+                case "--file":
                     builder.setOpearFile(isNoOpt ? null : new File(console.getCwd(), args[++i]));
+                    break;
+                case "-c":
+                case "--cache":
+                    builder.setCacheDir(isNoOpt ? null : new File(console.getCwd(), args[++i]));
                     break;
                 case "-o":
                 case "--outfile":

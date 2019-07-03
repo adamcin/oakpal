@@ -5,6 +5,7 @@ import static net.adamcin.oakpal.core.Fun.result1;
 import java.io.File;
 import java.io.PrintStream;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -12,12 +13,15 @@ import java.util.Properties;
 
 import net.adamcin.oakpal.core.Nothing;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * {@link Main} hosts the {@link #main(String[])} method, and as an object, captures ENV, stdin, stdout, and stderr as
  * abstracted variables for use by commands.
  */
 final class Main implements Console {
+    private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
     private final File cwd;
     private final Map<String, String> env;
     private final Properties systemProperties;
@@ -83,7 +87,9 @@ final class Main implements Console {
         @Override
         public IO<Nothing> apply(final Object object) {
             return () -> {
+                LOGGER.debug("[Main.DisposablePrinterImpl] apply({})", object);
                 writer.println(object.toString());
+                writer.flush();
                 return Nothing.instance;
             };
         }
@@ -103,7 +109,7 @@ final class Main implements Console {
 
     @Override
     public DisposablePrinter openPrinter(final @NotNull File outFile) {
-        DisposablePrinter printer = result1((File file) -> new PrintWriter(file)).apply(outFile)
+        DisposablePrinter printer = result1((File file) -> new PrintWriter(file, StandardCharsets.UTF_8.name())).apply(outFile)
                 .map(writer -> (DisposablePrinter) new DisposablePrinterImpl(writer))
                 .getOrElse(SILENT_PRINTER);
         printers.put(outFile, printer);
@@ -138,13 +144,16 @@ final class Main implements Console {
         final boolean iStartedIt = Main.class.getName().equals(last.getClassName())
                 && "main".equals(last.getMethodName());
 
+        final PrintStream out = System.out;
+        if (iStartedIt) {
+            System.setOut(System.err);
+        }
         Main main = new Main(new File(".").getAbsoluteFile(),
                 Collections.unmodifiableMap(System.getenv()),
                 new Properties(System.getProperties()),
-                System.out, System.err);
+                out, System.err);
 
         if (iStartedIt) {
-            System.setOut(System.err);
             Runtime.getRuntime().exit(main.doMain(args));
         } else {
             main.doMain(args);
