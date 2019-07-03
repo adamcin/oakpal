@@ -304,6 +304,12 @@ public final class OakMachine {
             return this;
         }
 
+        /**
+         * Set to {@code true} to skip any install hook processing during the scan.
+         *
+         * @param skipInstallHooks true to skip install hooks
+         * @return my builder self
+         */
         public Builder withSkipInstallHooks(final boolean skipInstallHooks) {
             this.skipInstallHooks = skipInstallHooks;
             return this;
