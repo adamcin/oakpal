@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE properties SYSTEM "http://java.sun.com/dtd/properties.dtd">
+<properties>
+<comment>OakPAL Testing - Hook Test Content Package</comment>
+<entry key="createdBy">jedelson</entry>
+<entry key="name">oakpal-testing-hooktest.ui.apps</entry>
+<entry key="acHandling">merge_preserve</entry>
+<entry key="created">2019-06-24T20:25:50.546-0400</entry>
+<entry key="groupId">com.myco.testing</entry>
+<entry key="version">0.0.1-SNAPSHOT</entry>
+<entry key="requiresRoot">false</entry>
+<entry key="group">my-co</entry>
+<entry key="description">Maven Multimodule project for OakPAL Testing - HookTest.</entry>
+<entry key="artifactId">oakpal-testing-hooktest.ui.apps</entry>
+<entry key="path">/etc/packages/my-co/oakpal-testing-hooktest.ui.apps.zip</entry>
+</properties>
