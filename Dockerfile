@@ -1,9 +1,9 @@
 FROM maven:3.6.1-jdk-8 AS build
 ADD . /app
 WORKDIR /app
-RUN mvn clean install -pl testing,core,cli -DskipTests
+RUN mvn clean install -pl testing,core,cli
 
-FROM adoptopenjdk/openjdk8:alpine-slim
+FROM adoptopenjdk/openjdk8:alpine
 COPY --from=registry.hub.docker.com/adamcin/jvshim /go/bin/jvshim /usr/bin/java
 RUN mkdir -p /app/oakpal-cli
 COPY --from=build /app/cli/target/oakpal-cli-*-dist.tar.gz /app

@@ -1,4 +1,4 @@
-# prototype dockerfile
+# prototype dockerfile for faster iterations
 FROM adoptopenjdk/openjdk8:alpine
 COPY --from=registry.hub.docker.com/adamcin/jvshim /go/bin/jvshim /usr/bin/java
 RUN mkdir -p /app/oakpal-cli
