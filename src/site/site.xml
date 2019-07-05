@@ -40,6 +40,7 @@
         </links>
         <menu name="Overview">
             <item name="Introduction" href="index.html" />
+            <item name="The OakPAL Plan" href="the-oakpal-plan.html" />
         </menu>
         <menu ref="modules" inherit="bottom"/>
         <menu name="Resources @ Github" inherit="bottom">

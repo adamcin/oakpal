@@ -5,4 +5,4 @@ Details:
 
 Main-Class: net.adamcin.oakpal.cli.Main
 
-`Main scan [ <file> ... ]`
+see [`Main --help`](src/main/resources/net/adamcin/oakpal/cli/help.txt)
