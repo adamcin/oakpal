@@ -48,7 +48,7 @@ public class DefaultErrorListener implements ErrorListener {
             onNodeTypeRegistrationError(e.getCause(), resource);
         } else {
             final String message = String.format("NodeType registration error (%s): %s \"%s\"",
-                                    String.valueOf(resource), e.getClass().getName(), e.getMessage());
+                    String.valueOf(resource), e.getClass().getName(), e.getMessage());
             LOGGER.trace("[onNodeTypeRegistrationError] stack trace for: " + message, e);
             reportViolation(new SimpleViolation(Violation.Severity.MAJOR, message));
         }
@@ -60,7 +60,7 @@ public class DefaultErrorListener implements ErrorListener {
             onJcrNamespaceRegistrationError(e.getCause(), prefix, uri);
         } else {
             final String message = String.format("JCR namespace registration error (%s=%s): %s \"%s\"",
-                                    prefix, uri, e.getClass().getName(), e.getMessage());
+                    prefix, uri, e.getClass().getName(), e.getMessage());
             LOGGER.trace("[onJcrNamespaceRegistrationError] stack trace for: " + message, e);
             reportViolation(new SimpleViolation(Violation.Severity.MAJOR, message));
         }
@@ -72,7 +72,7 @@ public class DefaultErrorListener implements ErrorListener {
             onJcrPrivilegeRegistrationError(e.getCause(), jcrPrivilege);
         } else {
             final String message = String.format("JCR privilege registration error (%s): %s \"%s\"",
-                                    jcrPrivilege, e.getClass().getName(), e.getMessage());
+                    jcrPrivilege, e.getClass().getName(), e.getMessage());
             LOGGER.trace("[onJcrPrivilegeRegistrationError] stack trace for: " + message, e);
             reportViolation(new SimpleViolation(Violation.Severity.MAJOR, message));
         }
@@ -84,7 +84,7 @@ public class DefaultErrorListener implements ErrorListener {
             onForcedRootCreationError(e.getCause(), forcedRoot);
         } else {
             final String message = String.format("Forced root creation error (%s): %s \"%s\"",
-                                    forcedRoot.getPath(), e.getClass().getName(), e.getMessage());
+                    forcedRoot, e.getClass().getName(), e.getMessage());
             LOGGER.trace("[onForcedRootCreationError] stack trace for: " + message, e);
             reportViolation(new SimpleViolation(Violation.Severity.MAJOR, message));
         }
@@ -93,7 +93,8 @@ public class DefaultErrorListener implements ErrorListener {
     @Override
     public void onListenerException(final Exception e, final ProgressCheck listener, final PackageId packageId) {
         final String message = String.format("Listener error (%s): %s \"%s\"",
-                listener.getClass().getName(), e.getClass().getName(), e.getMessage());
+                Optional.ofNullable(listener).map(lstr -> lstr.getClass().getName()).orElse(null),
+                e.getClass().getName(), e.getMessage());
         LOGGER.trace("[onListenerException] stack trace for: " + message, e);
         reportViolation(new SimpleViolation(Violation.Severity.MAJOR, message, packageId));
     }
