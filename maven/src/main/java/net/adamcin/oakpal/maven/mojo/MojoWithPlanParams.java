@@ -79,7 +79,7 @@ interface MojoWithPlanParams extends MojoWithCommonParams, MojoWithRepositoryPar
                 .map(uncheck1(File::toURL)).collect(Collectors.toList()));
         planBuilder.withJcrPrivileges(params.getJcrPrivileges());
         planBuilder.withForcedRoots(params.getForcedRoots());
-        planBuilder.withSkipInstallHooks(params.isSkipInstallHooks());
+        planBuilder.withEnablePreInstallHooks(params.isEnablePreInstallHooks());
 
         final Set<URL> unorderedCndUrls = new LinkedHashSet<>();
 

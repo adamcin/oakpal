@@ -5,6 +5,7 @@ import java.util.List;
 
 import net.adamcin.oakpal.core.CheckSpec;
 import net.adamcin.oakpal.core.ForcedRoot;
+import net.adamcin.oakpal.core.InstallHookPolicy;
 import net.adamcin.oakpal.core.JcrNs;
 
 public interface PlanBuilderParams {
@@ -26,5 +27,7 @@ public interface PlanBuilderParams {
 
     List<String> getChecklists();
 
-    boolean isSkipInstallHooks();
+    boolean isEnablePreInstallHooks();
+
+    InstallHookPolicy getInstallHookPolicy();
 }

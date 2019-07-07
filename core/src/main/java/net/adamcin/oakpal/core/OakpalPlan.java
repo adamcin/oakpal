@@ -61,7 +61,8 @@ public final class OakpalPlan implements JavaxJson.ObjectConvertible {
     public static final String KEY_JCR_NODETYPES = "jcrNodetypes";
     public static final String KEY_JCR_PRIVILEGES = "jcrPrivileges";
     public static final String KEY_PREINSTALL_URLS = "preInstallUrls";
-    public static final String KEY_SKIP_INSTALL_HOOKS = "skipInstallHooks";
+    public static final String KEY_ENABLE_PRE_INSTALL_HOOKS = "enablePreInstallHooks";
+    public static final String KEY_INSTALL_HOOK_POLICY = "installHookPolicy";
 
     private final URL base;
     private final String name;
@@ -73,7 +74,8 @@ public final class OakpalPlan implements JavaxJson.ObjectConvertible {
     private final List<String> jcrPrivileges;
     private final List<ForcedRoot> forcedRoots;
     private final List<CheckSpec> checks;
-    private final boolean skipInstallHooks;
+    private final boolean enablePreInstallHooks;
+    private final InstallHookPolicy scanInstallHookPolicy;
 
     private OakpalPlan(final @Nullable URL base,
                        final @Nullable JsonObject originalJson,
@@ -85,7 +87,8 @@ public final class OakpalPlan implements JavaxJson.ObjectConvertible {
                        final @NotNull List<String> jcrPrivileges,
                        final @NotNull List<ForcedRoot> forcedRoots,
                        final @NotNull List<CheckSpec> checks,
-                       final boolean skipInstallHooks) {
+                       final boolean enablePreInstallHooks,
+                       final @Nullable InstallHookPolicy scanInstallHookPolicy) {
         this.base = base;
         this.originalJson = originalJson;
         this.name = name;
@@ -96,7 +99,8 @@ public final class OakpalPlan implements JavaxJson.ObjectConvertible {
         this.jcrPrivileges = jcrPrivileges;
         this.forcedRoots = forcedRoots;
         this.checks = checks;
-        this.skipInstallHooks = skipInstallHooks;
+        this.enablePreInstallHooks = enablePreInstallHooks;
+        this.scanInstallHookPolicy = scanInstallHookPolicy;
     }
 
     public URL getBase() {
@@ -139,8 +143,12 @@ public final class OakpalPlan implements JavaxJson.ObjectConvertible {
         return checks;
     }
 
-    public boolean isSkipInstallHooks() {
-        return skipInstallHooks;
+    public boolean isEnablePreInstallHooks() {
+        return enablePreInstallHooks;
+    }
+
+    public InstallHookPolicy getScanInstallHookPolicy() {
+        return scanInstallHookPolicy;
     }
 
     static URI relativizeToBaseParent(final @NotNull URI baseUri, final @NotNull URI uri) throws URISyntaxException {
@@ -187,7 +195,8 @@ public final class OakpalPlan implements JavaxJson.ObjectConvertible {
                 .key(KEY_JCR_NODETYPES).opt(JsonCnd.toJson(jcrNodetypes, JsonCnd.toNamespaceMapping(jcrNamespaces)))
                 .key(KEY_JCR_PRIVILEGES).opt(jcrPrivileges)
                 .key(KEY_JCR_NAMESPACES).opt(jcrNamespaces)
-                .key(KEY_SKIP_INSTALL_HOOKS).opt(skipInstallHooks)
+                .key(KEY_ENABLE_PRE_INSTALL_HOOKS).opt(enablePreInstallHooks, false)
+                .key(KEY_INSTALL_HOOK_POLICY).opt(scanInstallHookPolicy)
                 .get();
     }
 
@@ -225,12 +234,14 @@ public final class OakpalPlan implements JavaxJson.ObjectConvertible {
         }
 
         return new OakMachine.Builder()
-                .withSkipInstallHooks(skipInstallHooks)
                 .withErrorListener(errorListener)
                 .withProgressChecks(allChecks)
                 .withInitStages(checklistPlanner.getInitStages())
                 .withInitStage(toInitStage())
-                .withPreInstallUrls(preInstallUrls);
+                .withPreInstallUrls(preInstallUrls)
+                .withInstallHookPolicy(scanInstallHookPolicy)
+                .withInstallHookClassLoader(classLoader)
+                .withEnablePreInstallHooks(enablePreInstallHooks);
     }
 
     public static Result<OakpalPlan> fromJson(final @NotNull URL jsonUrl) {
@@ -265,8 +276,12 @@ public final class OakpalPlan implements JavaxJson.ObjectConvertible {
             if (hasNonNull(json, KEY_JCR_PRIVILEGES)) {
                 builder.withJcrPrivileges(JavaxJson.mapArrayOfStrings(json.getJsonArray(KEY_JCR_PRIVILEGES)));
             }
-            if (hasNonNull(json, KEY_SKIP_INSTALL_HOOKS)) {
-                builder.withSkipInstallHooks(json.getBoolean(KEY_SKIP_INSTALL_HOOKS));
+            if (hasNonNull(json, KEY_ENABLE_PRE_INSTALL_HOOKS)) {
+                builder.withEnablePreInstallHooks(json.getBoolean(KEY_ENABLE_PRE_INSTALL_HOOKS));
+            }
+            if (hasNonNull(json, KEY_INSTALL_HOOK_POLICY)) {
+                builder.withInstallHookPolicy(InstallHookPolicy.forName(
+                        json.getString(KEY_INSTALL_HOOK_POLICY)));
             }
             return Result.success(builder.build(json));
         } catch (IOException e) {
@@ -284,7 +299,8 @@ public final class OakpalPlan implements JavaxJson.ObjectConvertible {
         private List<String> jcrPrivileges = Collections.emptyList();
         private List<ForcedRoot> forcedRoots = Collections.emptyList();
         private List<CheckSpec> checks = Collections.emptyList();
-        private boolean skipInstallHooks;
+        private boolean enablePreInstallHooks;
+        private InstallHookPolicy scanInstallHookPolicy;
 
         public Builder(final @Nullable URL base, final @Nullable String name) {
             this.base = base;
@@ -303,6 +319,8 @@ public final class OakpalPlan implements JavaxJson.ObjectConvertible {
                     .withJcrNamespaces(plan.getJcrNamespaces())
                     .withJcrNodetypes(plan.getJcrNodetypes())
                     .withJcrPrivileges(plan.getJcrPrivileges())
+                    .withEnablePreInstallHooks(plan.isEnablePreInstallHooks())
+                    .withInstallHookPolicy(plan.getScanInstallHookPolicy())
                     .withPreInstallUrls(plan.getPreInstallUrls());
         }
 
@@ -341,14 +359,19 @@ public final class OakpalPlan implements JavaxJson.ObjectConvertible {
             return this;
         }
 
-        public Builder withSkipInstallHooks(final boolean skipInstallHooks) {
-            this.skipInstallHooks = skipInstallHooks;
+        public Builder withEnablePreInstallHooks(final boolean skipInstallHooks) {
+            this.enablePreInstallHooks = skipInstallHooks;
+            return this;
+        }
+
+        public Builder withInstallHookPolicy(final InstallHookPolicy scanInstallHookPolicy) {
+            this.scanInstallHookPolicy = scanInstallHookPolicy;
             return this;
         }
 
         private OakpalPlan build(final @Nullable JsonObject originalJson) {
             return new OakpalPlan(base, originalJson, name, checklists, preInstallUrls, jcrNamespaces,
-                    jcrNodetypes, jcrPrivileges, forcedRoots, checks, skipInstallHooks);
+                    jcrNodetypes, jcrPrivileges, forcedRoots, checks, enablePreInstallHooks, scanInstallHookPolicy);
         }
 
         public OakpalPlan build() {

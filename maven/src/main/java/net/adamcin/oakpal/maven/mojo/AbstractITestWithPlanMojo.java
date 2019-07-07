@@ -22,6 +22,7 @@ import java.util.List;
 
 import net.adamcin.oakpal.core.CheckSpec;
 import net.adamcin.oakpal.core.ForcedRoot;
+import net.adamcin.oakpal.core.InstallHookPolicy;
 import net.adamcin.oakpal.core.JcrNs;
 import org.apache.maven.plugins.annotations.Parameter;
 
@@ -249,12 +250,20 @@ abstract class AbstractITestWithPlanMojo extends AbstractITestMojo implements Pl
     protected List<String> checklists = new ArrayList<>();
 
     /**
-     * If this is set to true, InstallHooks in scanned packages will be ignored.
+     * If this is set to true, InstallHooks in pre-install packages will be enabled.
      *
      * @since 1.4.0
      */
     @Parameter
-    protected boolean skipInstallHooks;
+    protected boolean enablePreInstallHooks;
+
+    /**
+     * Specify a policy for InstallHooks in scanned packages. InstallHooks are skipped by default.
+     *
+     * @since 1.4.0
+     */
+    @Parameter
+    protected InstallHookPolicy installHookPolicy;
 
     @Override
     public final PlanBuilderParams getPlanBuilderParams() {
@@ -307,7 +316,12 @@ abstract class AbstractITestWithPlanMojo extends AbstractITestMojo implements Pl
     }
 
     @Override
-    public boolean isSkipInstallHooks() {
-        return skipInstallHooks;
+    public boolean isEnablePreInstallHooks() {
+        return enablePreInstallHooks;
+    }
+
+    @Override
+    public InstallHookPolicy getInstallHookPolicy() {
+        return installHookPolicy;
     }
 }

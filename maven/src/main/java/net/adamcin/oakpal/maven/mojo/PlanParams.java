@@ -6,6 +6,7 @@ import java.util.List;
 
 import net.adamcin.oakpal.core.CheckSpec;
 import net.adamcin.oakpal.core.ForcedRoot;
+import net.adamcin.oakpal.core.InstallHookPolicy;
 import net.adamcin.oakpal.core.JcrNs;
 
 public final class PlanParams implements PlanBuilderParams {
@@ -18,7 +19,8 @@ public final class PlanParams implements PlanBuilderParams {
     private List<ForcedRoot> forcedRoots = Collections.emptyList();
     private List<CheckSpec> checks = Collections.emptyList();
     private List<String> checklists = Collections.emptyList();
-    private boolean skipInstallHooks;
+    private boolean enablePreInstallHooks;
+    private InstallHookPolicy installHookPolicy;
 
     @Override
     public List<DependencyFilter> getPreInstallArtifacts() {
@@ -102,12 +104,21 @@ public final class PlanParams implements PlanBuilderParams {
     }
 
     @Override
-    public boolean isSkipInstallHooks() {
-        return skipInstallHooks;
+    public boolean isEnablePreInstallHooks() {
+        return enablePreInstallHooks;
     }
 
-    public void setSkipInstallHooks(final boolean skipInstallHooks) {
-        this.skipInstallHooks = skipInstallHooks;
+    public void setEnablePreInstallHooks(final boolean skipInstallHooks) {
+        this.enablePreInstallHooks = skipInstallHooks;
+    }
+
+    @Override
+    public InstallHookPolicy getInstallHookPolicy() {
+        return installHookPolicy;
+    }
+
+    public void setInstallHookPolicy(final InstallHookPolicy installHookPolicy) {
+        this.installHookPolicy = installHookPolicy;
     }
 
     @Override
@@ -122,7 +133,8 @@ public final class PlanParams implements PlanBuilderParams {
                 ", forcedRoots=" + forcedRoots +
                 ", checks=" + checks +
                 ", checklists=" + checklists +
-                ", skipInstallHooks=" + skipInstallHooks +
+                ", enablePreInstallHooks=" + enablePreInstallHooks +
+                ", installHookPolicy=" + installHookPolicy +
                 '}';
     }
 }

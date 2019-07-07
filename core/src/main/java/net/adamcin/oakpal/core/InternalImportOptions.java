@@ -18,6 +18,7 @@ package net.adamcin.oakpal.core;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Optional;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
@@ -34,13 +35,16 @@ import org.apache.jackrabbit.vault.packaging.InstallContext;
 import org.apache.jackrabbit.vault.packaging.InstallHookProcessor;
 import org.apache.jackrabbit.vault.packaging.InstallHookProcessorFactory;
 import org.apache.jackrabbit.vault.packaging.PackageException;
+import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.apache.jackrabbit.vault.packaging.Packaging;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 final class InternalImportOptions extends ImportOptions implements InstallHookProcessorFactory {
-    private static final String INSTALL_HOOK_PROCESSOR_IMPL_CLASS = "org.apache.jackrabbit.vault.packaging.impl.InstallHookProcessorImpl";
+    private static final String INSTALL_HOOK_PROCESSOR_IMPL_CLASS =
+            "org.apache.jackrabbit.vault.packaging.impl.InstallHookProcessorImpl";
     private static final Logger LOGGER = LoggerFactory.getLogger(InternalImportOptions.class);
     static final InstallHookProcessor NOOP_INSTALL_HOOK_PROCESSOR = new InstallHookProcessor() {
         @Override
@@ -62,13 +66,15 @@ final class InternalImportOptions extends ImportOptions implements InstallHookPr
         }
     };
 
+    private final PackageId packageId;
     private final ImportOptions optionsDelegate;
     private final Class<? extends InstallHookProcessor> internalInstallHookProcessorClazz;
 
     private InstallHookProcessorFactory installHookProcessorFactoryDelegate;
-    private boolean skipInstallHooks;
+    private InstallHookPolicy installHookPolicy;
+    private ErrorListener violationReporter;
 
-    InternalImportOptions() {
+    InternalImportOptions(final @NotNull PackageId packageId) {
         Class<? extends InstallHookProcessor> clazz = null;
         try {
             clazz = Packaging.class.getClassLoader()
@@ -77,24 +83,29 @@ final class InternalImportOptions extends ImportOptions implements InstallHookPr
             LOGGER.warn("Failed to load internal InstallHookProcessorImpl from Packaging classloader. Will default to " +
                     "noop if an InstallHookProcessorFactory delegate is not provided.", e);
         }
+        this.packageId = packageId;
         this.internalInstallHookProcessorClazz = clazz;
         this.optionsDelegate = new ImportOptions();
     }
 
-    private InternalImportOptions(final @Nullable ImportOptions optionsDelegate,
+    private InternalImportOptions(final @NotNull PackageId packageId,
+                                  final @Nullable ImportOptions optionsDelegate,
                                   final @Nullable Class<? extends InstallHookProcessor> internalInstallHookProcessorClazz) {
+        this.packageId = packageId;
         this.optionsDelegate = optionsDelegate != null ? optionsDelegate : new ImportOptions();
         this.internalInstallHookProcessorClazz = internalInstallHookProcessorClazz;
     }
 
     @Override
     public InstallHookProcessor createInstallHookProcessor() {
-        if (!skipInstallHooks) {
+        if (!isSkip()) {
             if (installHookProcessorFactoryDelegate != null) {
-                return new InstallHookProcessorWrapper(installHookProcessorFactoryDelegate.createInstallHookProcessor());
+                return new InstallHookProcessorWrapper(packageId, installHookPolicy, violationReporter,
+                        installHookProcessorFactoryDelegate.createInstallHookProcessor());
             } else if (internalInstallHookProcessorClazz != null) {
                 try {
-                    return new InstallHookProcessorWrapper(internalInstallHookProcessorClazz.newInstance());
+                    return new InstallHookProcessorWrapper(packageId, installHookPolicy, violationReporter,
+                            internalInstallHookProcessorClazz.newInstance());
                 } catch (InstantiationException | IllegalAccessException e) {
                     LOGGER.error("failed to create instance of wrapped processor class", e);
                 }
@@ -103,12 +114,17 @@ final class InternalImportOptions extends ImportOptions implements InstallHookPr
         return NOOP_INSTALL_HOOK_PROCESSOR;
     }
 
+    private boolean isSkip() {
+        return installHookPolicy == InstallHookPolicy.SKIP;
+    }
+
     @Override
     public ImportOptions copy() {
-        InternalImportOptions options = new InternalImportOptions(optionsDelegate.copy(),
+        InternalImportOptions options = new InternalImportOptions(packageId, optionsDelegate.copy(),
                 internalInstallHookProcessorClazz);
         options.setInstallHookProcessorFactoryDelegate(this.installHookProcessorFactoryDelegate);
-        options.setSkipInstallHooks(this.skipInstallHooks);
+        options.setInstallHookPolicy(installHookPolicy);
+        options.setViolationReporter(violationReporter);
         return options;
     }
 
@@ -120,47 +136,95 @@ final class InternalImportOptions extends ImportOptions implements InstallHookPr
         this.installHookProcessorFactoryDelegate = installHookProcessorFactoryDelegate;
     }
 
-    public boolean isSkipInstallHooks() {
-        return skipInstallHooks;
+    public InstallHookPolicy getInstallHookPolicy() {
+        return installHookPolicy;
     }
 
-    public void setSkipInstallHooks(final boolean skipInstallHooks) {
-        this.skipInstallHooks = skipInstallHooks;
+    public void setInstallHookPolicy(final InstallHookPolicy installHookPolicy) {
+        this.installHookPolicy = installHookPolicy;
+    }
+
+    public ErrorListener getViolationReporter() {
+        return violationReporter;
+    }
+
+    public void setViolationReporter(final ErrorListener violationReporter) {
+        this.violationReporter = violationReporter;
     }
 
     static final class InstallHookProcessorWrapper implements InstallHookProcessor {
+        private final PackageId packageId;
+        private final InstallHookPolicy policy;
+        private final ErrorListener reporter;
         private final InstallHookProcessor wrapped;
 
-        InstallHookProcessorWrapper(final InstallHookProcessor wrapped) {
+        InstallHookProcessorWrapper(final PackageId packageId,
+                                    final InstallHookPolicy policy,
+                                    final ErrorListener reporter,
+                                    final InstallHookProcessor wrapped) {
+            this.packageId = packageId;
+            this.policy = policy;
+            this.reporter = reporter;
             this.wrapped = wrapped;
         }
 
         @Override
         public void registerHooks(final Archive archive, final ClassLoader classLoader) throws PackageException {
             try {
-                this.wrapped.registerHooks(archive, classLoader);
-            } catch (final LinkageError error) {
-                throw new PackageException("Uncaught class loading error during hook registration.", error);
+                try {
+                    this.wrapped.registerHooks(archive, classLoader);
+                } catch (final LinkageError error) {
+                    throw new PackageException("Uncaught linkage error: " + error.getMessage(), error);
+                }
+            } catch (final PackageException e) {
+                if (getPolicy() == InstallHookPolicy.ABORT) {
+                    throw e;
+                } else {
+                    reporter.onInstallHookError(e, packageId);
+                }
+            }
+            if (getPolicy() == InstallHookPolicy.PROHIBIT) {
+                reporter.onProhibitedInstallHookRegistration(packageId);
             }
         }
 
         @Override
         public void registerHook(final VaultInputSource input, final ClassLoader classLoader) throws IOException, PackageException {
+            final String systemId = input.getSystemId() != null ? input.getSystemId() : "";
             try {
                 this.wrapped.registerHook(input, classLoader);
             } catch (final LinkageError error) {
-                throw new PackageException("Uncaught class loading error during hook registration.", error);
+                final PackageException throwable =
+                        new PackageException("Uncaught linkage error (systemId=" + systemId + "): " + error.getMessage(),
+                                error);
+                if (getPolicy() == InstallHookPolicy.ABORT) {
+                    throw throwable;
+                } else {
+                    reporter.onInstallHookError(throwable, packageId);
+                }
             }
         }
 
         @Override
         public boolean hasHooks() {
-            return this.wrapped.hasHooks();
+            if (getPolicy() == InstallHookPolicy.PROHIBIT) {
+                return false;
+            } else {
+                return this.wrapped.hasHooks();
+            }
         }
 
         @Override
         public boolean execute(final InstallContext context) {
-            return this.wrapped.execute(context);
+            if (getPolicy() == InstallHookPolicy.PROHIBIT) {
+                return true;
+            } else {
+                return this.wrapped.execute(context);
+            }
+        }
+
+        private InstallHookPolicy getPolicy() {
+            return Optional.ofNullable(policy).orElse(InstallHookPolicy.DEFAULT);
         }
     }
 

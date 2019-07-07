@@ -16,10 +16,17 @@
 
 package net.adamcin.oakpal.core;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import net.adamcin.oakpal.testing.TestPackageUtil;
 import org.junit.Test;
 
 import java.io.File;
+import java.util.Collection;
+import java.util.List;
+import java.util.Optional;
 
 public class BadInstallHookTest {
 
@@ -28,7 +35,25 @@ public class BadInstallHookTest {
         File badInstallHookPackage = TestPackageUtil.prepareTestPackageFromFolder("bad-install-hook.zip",
                 new File("src/test/resources/package_with_bad_installhook"));
 
-        new OakMachine.Builder().build().scanPackage(badInstallHookPackage);
+        new OakMachine.Builder()
+                .withInstallHookPolicy(InstallHookPolicy.ABORT)
+                .build().scanPackage(badInstallHookPackage);
+    }
+
+    @Test
+    public void testBadInstallHookReportViolation() throws Exception {
+        File badInstallHookPackage = TestPackageUtil.prepareTestPackageFromFolder("bad-install-hook.zip",
+                new File("src/test/resources/package_with_bad_installhook"));
+
+        Collection<CheckReport> reports = new OakMachine.Builder()
+                .withInstallHookPolicy(InstallHookPolicy.REPORT)
+                .build().scanPackage(badInstallHookPackage);
+        assertFalse("reports should not be empty", reports.isEmpty());
+        CheckReport errorReport = reports.iterator().next();
+        assertFalse("violations should not be empty", errorReport.getViolations().isEmpty());
+        Optional<Violation> violation = errorReport.getViolations().stream()
+                .filter(viol -> viol.getDescription().startsWith("InstallHook error")).findFirst();
+        assertTrue("description should start with InstallHook error", violation.isPresent());
     }
 
     @Test()
@@ -36,7 +61,8 @@ public class BadInstallHookTest {
         File badInstallHookPackage = TestPackageUtil.prepareTestPackageFromFolder("bad-install-hook.zip",
                 new File("src/test/resources/package_with_bad_installhook"));
 
-        new OakMachine.Builder().withSkipInstallHooks(true)
+        new OakMachine.Builder()
+                .withInstallHookPolicy(InstallHookPolicy.SKIP)
                 .build().scanPackage(badInstallHookPackage);
     }
 }

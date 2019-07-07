@@ -47,6 +47,7 @@ import javax.json.JsonValue;
 import javax.json.stream.JsonCollectors;
 
 import org.apache.jackrabbit.util.ISO8601;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -72,6 +73,15 @@ public final class JavaxJson {
                 || value.getValueType() == JsonValue.ValueType.NULL
                 || (value.getValueType() == JsonValue.ValueType.ARRAY && value.asJsonArray().isEmpty())
                 || (value.getValueType() == JsonValue.ValueType.OBJECT && value.asJsonObject().isEmpty()));
+    }
+
+    /**
+     * @param value        the JsonValue to test
+     * @param defaultValue the default JsonValue to test against
+     * @return true if provided value is not equal to the provided default value
+     */
+    static boolean nonDefaultValue(final @Nullable JsonValue value, final @NotNull JsonValue defaultValue) {
+        return !defaultValue.equals(value);
     }
 
     /**
@@ -426,6 +436,16 @@ public final class JavaxJson {
             }
         }
 
+        public Obj opt(final Object value, final Object defaultValue) {
+            JsonValue wrapped = wrap(value);
+            JsonValue wrappedDefault = wrap(defaultValue);
+            if (nonDefaultValue(wrapped, wrappedDefault)) {
+                return obj.key(this.key, wrapped);
+            } else {
+                return obj;
+            }
+        }
+
         public Obj getObj() {
             return this.obj;
         }
@@ -615,6 +635,15 @@ public final class JavaxJson {
         public Arr opt(final Object value) {
             JsonValue wrapped = wrap(value);
             if (nonEmptyValue(wrapped)) {
+                this.values.add(JavaxJson.val(wrapped));
+            }
+            return this;
+        }
+
+        public Arr opt(final Object value, final Object defaultValue) {
+            JsonValue wrapped = wrap(value);
+            JsonValue wrappedDefault = wrap(defaultValue);
+            if (nonDefaultValue(wrapped, wrappedDefault)) {
                 this.values.add(JavaxJson.val(wrapped));
             }
             return this;

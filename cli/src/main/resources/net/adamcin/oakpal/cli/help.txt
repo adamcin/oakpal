@@ -1,4 +1,4 @@
-oakpal [ <options> ] <opearFile> [ <scanFile> ... ]
+oakpal [ <options> ] <scanFile> ...
 
   Options
   -------
@@ -8,8 +8,8 @@ oakpal [ <options> ] <opearFile> [ <scanFile> ... ]
   -j | --json                       : Write check reports in JSON format.
   -o | --outfile <outFile>          : Write check reports to the specified <outFile>
                                       instead of writing to stdout.
-  -f | --file <opearFile>           : Specify an OPEAR file to use (overrides $OAKPAL_OPEAR).
   -c | --cache <directory>          : Specify a cache directory for oakpal (default: ${CWD}/.oakpal-cache)
+  -f | --file <opearFile>           : Specify an OPEAR file to use (overrides $OAKPAL_OPEAR).
   -p | --plan <planName>            : Specify a different plan name to lookup in the specified opear.
                                       By default, the first plan exported by a specified opear will be used,
                                       or if no opear is specified, the basic oakpal plan will be used.

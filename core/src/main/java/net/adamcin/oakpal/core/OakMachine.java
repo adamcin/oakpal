@@ -98,7 +98,11 @@ public final class OakMachine {
 
     private final InstallHookProcessorFactory installHookProcessorFactory;
 
-    private final boolean skipInstallHooks;
+    private final ClassLoader installHookClassLoader;
+
+    private final boolean enablePreInstallHooks;
+
+    private final InstallHookPolicy scanInstallHookPolicy;
 
     private OakMachine(final Packaging packagingService,
                        final List<ProgressCheck> progressChecks,
@@ -107,7 +111,9 @@ public final class OakMachine {
                        final List<InitStage> initStages,
                        final JcrCustomizer jcrCustomizer,
                        final InstallHookProcessorFactory installHookProcessorFactory,
-                       final boolean skipInstallHooks) {
+                       final ClassLoader installHookClassLoader,
+                       final boolean enablePreInstallHooks,
+                       final InstallHookPolicy scanInstallHookPolicy) {
         this.packagingService = packagingService != null ? packagingService : new DefaultPackagingService();
         this.progressChecks = progressChecks;
         this.errorListener = errorListener;
@@ -115,7 +121,9 @@ public final class OakMachine {
         this.initStages = initStages;
         this.jcrCustomizer = jcrCustomizer;
         this.installHookProcessorFactory = installHookProcessorFactory;
-        this.skipInstallHooks = skipInstallHooks;
+        this.installHookClassLoader = installHookClassLoader;
+        this.enablePreInstallHooks = enablePreInstallHooks;
+        this.scanInstallHookPolicy = scanInstallHookPolicy;
     }
 
     /**
@@ -134,9 +142,13 @@ public final class OakMachine {
 
         private JcrCustomizer jcrCustomizer;
 
+        private ClassLoader installHookClassLoader;
+
         private InstallHookProcessorFactory installHookProcessorFactory;
 
-        private boolean skipInstallHooks;
+        private boolean enablePreInstallHooks;
+
+        private InstallHookPolicy scanInstallHookPolicy;
 
         /**
          * Provide a {@link Packaging} service for use in retrieving a {@link JcrPackageManager} for an admin session.
@@ -305,13 +317,33 @@ public final class OakMachine {
         }
 
         /**
-         * Set to {@code true} to skip any install hook processing during the scan.
          *
-         * @param skipInstallHooks true to skip install hooks
+         * @param classLoader the classloader to use for loading hooks
          * @return my builder self
          */
-        public Builder withSkipInstallHooks(final boolean skipInstallHooks) {
-            this.skipInstallHooks = skipInstallHooks;
+        public Builder withInstallHookClassLoader(final ClassLoader classLoader) {
+            this.installHookClassLoader = classLoader;
+            return this;
+        }
+
+        /**
+         * Set to {@code true} to enable pre-install package install hooks for the scan.
+         *
+         * @param enablePreInstallHooks true to enable pre-install package install hooks
+         * @return my builder self
+         */
+        public Builder withEnablePreInstallHooks(final boolean enablePreInstallHooks) {
+            this.enablePreInstallHooks = enablePreInstallHooks;
+            return this;
+        }
+
+        /**
+         *
+         * @param scanInstallHookPolicy
+         * @return
+         */
+        public Builder withInstallHookPolicy(final InstallHookPolicy scanInstallHookPolicy) {
+            this.scanInstallHookPolicy = scanInstallHookPolicy;
             return this;
         }
 
@@ -328,7 +360,9 @@ public final class OakMachine {
                     initStages,
                     jcrCustomizer,
                     installHookProcessorFactory,
-                    skipInstallHooks);
+                    installHookClassLoader != null ? installHookClassLoader : Util.getDefaultClassLoader(),
+                    enablePreInstallHooks,
+                    scanInstallHookPolicy);
         }
     }
 
@@ -549,12 +583,23 @@ public final class OakMachine {
         final ProgressTrackerListener tracker =
                 new ImporterListenerAdapter(packageId, progressChecks, inspectSession, preInstall);
 
-        InternalImportOptions options = new InternalImportOptions();
+        InternalImportOptions options = new InternalImportOptions(packageId);
         options.setNonRecursive(true);
         options.setDependencyHandling(DependencyHandling.IGNORE);
         options.setListener(tracker);
-        options.setSkipInstallHooks(skipInstallHooks);
         options.setInstallHookProcessorFactoryDelegate(installHookProcessorFactory);
+        options.setHookClassLoader(installHookClassLoader);
+        options.setViolationReporter(errorListener);
+        // we default to disabling install hooks for preinstall packages, since preinstall packages are
+        // 1) more likely to come off-the-shelf, targeting a larger application's class path
+        // 2) not the subject of an oakpal scan, and thus primarily valuable for the packaged content, not for hook behavior
+        if (preInstall) {
+            options.setInstallHookPolicy(enablePreInstallHooks
+                    ? InstallHookPolicy.ABORT
+                    : InstallHookPolicy.SKIP);
+        } else {
+            options.setInstallHookPolicy(scanInstallHookPolicy);
+        }
 
         List<PackageId> subpacks = Arrays.asList(jcrPackage.extractSubpackages(options));
 
