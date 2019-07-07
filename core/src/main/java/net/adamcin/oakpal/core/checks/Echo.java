@@ -71,7 +71,8 @@ public class Echo implements ProgressCheck {
 
     @Override
     public void readManifest(final PackageId packageId, final Manifest manifest) {
-        echo("readManifest(packageId: %s, manifestKeys: %s)", packageId, manifest.getEntries().keySet());
+        echo("readManifest(packageId: %s, manifestKeys: %s)", packageId,
+                Optional.ofNullable(manifest).map(man -> man.getEntries().keySet()).orElse(null));
     }
 
     @Override
