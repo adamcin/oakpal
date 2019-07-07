@@ -16,14 +16,18 @@
 
 package net.adamcin.oakpal.core;
 
+import static net.adamcin.oakpal.core.Fun.inferTest1;
+import static net.adamcin.oakpal.core.Fun.streamIt;
 import static net.adamcin.oakpal.core.JavaxJson.mapArrayOfStrings;
 import static net.adamcin.oakpal.core.JavaxJson.obj;
 import static net.adamcin.oakpal.core.JavaxJson.optArray;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.stream.Stream;
 import javax.json.JsonObject;
 
 import org.jetbrains.annotations.NotNull;
@@ -40,7 +44,8 @@ public final class ForcedRoot implements JavaxJson.ObjectConvertible, Comparable
 
     private String primaryType;
 
-    private List<String> mixinTypes;
+    @NotNull
+    private List<String> mixinTypes = Collections.emptyList();
 
     public String getPath() {
         return path;
@@ -80,7 +85,7 @@ public final class ForcedRoot implements JavaxJson.ObjectConvertible, Comparable
         if (mixinTypes != null) {
             this.mixinTypes = Arrays.asList(mixinTypes);
         } else {
-            this.mixinTypes = null;
+            this.mixinTypes = Collections.emptyList();
         }
         return this;
     }
@@ -105,6 +110,23 @@ public final class ForcedRoot implements JavaxJson.ObjectConvertible, Comparable
         return forcedRoot;
     }
 
+    /**
+     * List the namespace prefixes referenced by elements of this forcedRoot.
+     *
+     * @return an array of namespace prefixes
+     */
+    public String[] getNamespacePrefixes() {
+        return Stream.concat(
+                streamIt(path).flatMap(path ->
+                        Stream.of(path.split("/"))
+                                .filter(inferTest1(String::isEmpty).negate())
+                                .flatMap(JsonCnd::streamNsPrefix)),
+                Stream.concat(
+                        streamIt(primaryType).flatMap(JsonCnd::streamNsPrefix),
+                        mixinTypes.stream().flatMap(JsonCnd::streamNsPrefix)))
+                .toArray(String[]::new);
+    }
+
     @Override
     public JsonObject toJson() {
         return obj().key(KEY_PATH, this.path)
@@ -114,7 +136,7 @@ public final class ForcedRoot implements JavaxJson.ObjectConvertible, Comparable
     }
 
     @Override
-    public int compareTo(@NotNull final ForcedRoot o) {
+    public int compareTo(final @NotNull ForcedRoot o) {
         return (Optional.ofNullable(this.getPath()).orElse("") + "/")
                 .compareTo(Optional.ofNullable(o.getPath()).orElse("") + "/");
     }

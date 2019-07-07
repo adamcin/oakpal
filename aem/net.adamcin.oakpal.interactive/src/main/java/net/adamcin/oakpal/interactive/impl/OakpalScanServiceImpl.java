@@ -17,6 +17,7 @@
 package net.adamcin.oakpal.interactive.impl;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -28,6 +29,7 @@ import net.adamcin.oakpal.core.InitStage;
 import net.adamcin.oakpal.core.Locator;
 import net.adamcin.oakpal.core.OakMachine;
 import net.adamcin.oakpal.core.ProgressCheck;
+import net.adamcin.oakpal.core.ScanTempSpace;
 import net.adamcin.oakpal.interactive.ChecklistTracker;
 import net.adamcin.oakpal.interactive.OakpalScanInput;
 import net.adamcin.oakpal.interactive.OakpalScanResult;
@@ -105,8 +107,8 @@ class OakpalScanServiceImpl implements OakpalScanService {
         builder.withInitStages(planner.getInitStages());
         builder.withProgressChecks(allChecks);
 
-        try (ScanTempSpace preInstallSpace = new ScanTempSpace(prePkgResources);
-             ScanTempSpace scanSpace = new ScanTempSpace(pkgResources);
+        try (ScanTempSpace<Resource> preInstallSpace = new ScanTempSpace<>(prePkgResources, OakpalScanServiceImpl::adaptResource, null);
+             ScanTempSpace<Resource> scanSpace = new ScanTempSpace<>(pkgResources, OakpalScanServiceImpl::adaptResource, null);
              PlatformCndExport cndExport = new PlatformCndExport(resolver)) {
 
             if (input.isInstallPlatformNodetypes()) {
@@ -120,6 +122,10 @@ class OakpalScanServiceImpl implements OakpalScanService {
             result.setReports(reportList);
             return result;
         }
+    }
+
+    static InputStream adaptResource(final Resource resource) {
+        return resource.adaptTo(InputStream.class);
     }
 
     class ScanResult implements OakpalScanResult {

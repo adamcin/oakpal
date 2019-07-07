@@ -22,7 +22,10 @@ import javax.jcr.NamespaceRegistry;
 
 import org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants;
 import org.apache.jackrabbit.spi.Name;
+import org.apache.jackrabbit.spi.commons.conversion.DefaultNamePathResolver;
+import org.apache.jackrabbit.spi.commons.conversion.NamePathResolver;
 import org.apache.jackrabbit.spi.commons.namespace.NamespaceMapping;
+import org.apache.jackrabbit.spi.commons.namespace.NamespaceResolver;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -42,6 +45,7 @@ public final class QName {
     public static final String NAMESPACE_OAK = "http://jackrabbit.apache.org/oak/ns/1.0";
 
     public static final NamespaceMapping BUILTIN_MAPPINGS = new NamespaceMapping();
+    public static final NamePathResolver BUILTIN_RESOLVER = new DefaultNamePathResolver(BUILTIN_MAPPINGS);
 
     static {
         try {
@@ -76,9 +80,9 @@ public final class QName {
      * @param uri       the namespace URI
      */
     public QName(@NotNull final Type type,
-                 @Nullable final String prefix,
+                 final @Nullable String prefix,
                  @NotNull final String localName,
-                 @Nullable final String uri) {
+                 final @Nullable String uri) {
         this.type = type;
         this.prefix = prefix;
         this.localName = localName;

@@ -36,7 +36,7 @@ import org.apache.maven.plugins.annotations.Parameter;
  * @since 1.1.0
  */
 @Mojo(name = "verify", defaultPhase = LifecyclePhase.VERIFY, configurator = OakpalComponentConfigurator.HINT)
-public class VerifyMojo extends AbstractMojo {
+public class VerifyMojo extends AbstractITestMojo {
 
     /**
      * Specifically skip this plugin's execution.
@@ -71,7 +71,7 @@ public class VerifyMojo extends AbstractMojo {
                 }
             }
         } catch (final Exception e) {
-            throw new MojoExecutionException("Failed to read check report summary file.", e);
+            throw new MojoFailureException("Failed to read check report summary file.", e);
         }
 
         reactToReports(reports);

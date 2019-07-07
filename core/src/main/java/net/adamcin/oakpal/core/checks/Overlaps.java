@@ -55,7 +55,7 @@ import org.apache.jackrabbit.vault.packaging.PackageProperties;
  * the highest severity encountered.</dd>
  * </dl>
  */
-public final class Overlaps extends CompatBaseFactory implements ProgressCheckFactory {
+public final class Overlaps implements ProgressCheckFactory {
     public static final String CONFIG_REPORT_ALL_OVERLAPS = "reportAllOverlaps";
 
     @Override

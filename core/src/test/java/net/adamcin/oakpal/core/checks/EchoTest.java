@@ -45,6 +45,11 @@ public class EchoTest {
     }
 
     @Test
+    public void testReadManifest() {
+        new Echo().readManifest(null, null);
+    }
+
+    @Test
     public void testIdentifyPackage() {
         new Echo().identifyPackage(null, null);
     }

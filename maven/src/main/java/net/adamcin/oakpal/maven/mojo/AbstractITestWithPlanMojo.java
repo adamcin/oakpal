@@ -17,33 +17,19 @@
 package net.adamcin.oakpal.maven.mojo;
 
 import java.io.File;
-import java.io.IOException;
-import java.net.URL;
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 import net.adamcin.oakpal.core.CheckSpec;
-import net.adamcin.oakpal.core.ChecklistPlanner;
-import net.adamcin.oakpal.core.DefaultErrorListener;
-import net.adamcin.oakpal.core.ErrorListener;
 import net.adamcin.oakpal.core.ForcedRoot;
-import net.adamcin.oakpal.core.InitStage;
+import net.adamcin.oakpal.core.InstallHookPolicy;
 import net.adamcin.oakpal.core.JcrNs;
-import net.adamcin.oakpal.core.Locator;
-import net.adamcin.oakpal.core.OakMachine;
-import net.adamcin.oakpal.core.ProgressCheck;
-import net.adamcin.oakpal.core.SlingNodetypesScanner;
-import org.apache.maven.model.Dependency;
-import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Parameter;
 
 /**
  * Base scan class defining scanner parameters.
  */
-abstract class AbstractScanMojo extends AbstractMojo {
+abstract class AbstractITestWithPlanMojo extends AbstractITestMojo implements PlanBuilderParams, MojoWithPlanParams {
 
     /**
      * Specify a list of content-package artifacts to download and pre-install before the scanned packages.
@@ -158,11 +144,11 @@ abstract class AbstractScanMojo extends AbstractMojo {
     protected List<ForcedRoot> forcedRoots = new ArrayList<>();
 
     /**
-     * Specify a list of Checks to locate and load as {@link ProgressCheck}s.
+     * Specify a list of Checks to locate and load as {@link net.adamcin.oakpal.core.ProgressCheck}s.
      * <p>
      * Minimally, there are two ways to define a {@link CheckSpec}. To load a check from the project's test output
      * directory, you must specify the {@code impl} value as a classPath-relative resource name for script checks, or as
-     * a fully-qualified class name for Java {@link ProgressCheck} implementations.
+     * a fully-qualified class name for Java {@link net.adamcin.oakpal.core.ProgressCheck} implementations.
      * <p>
      * For example, if your script check source is located at {@code src/test/resources/OAKPAL-INF/scripts/acme-vault-enforcer.js}:
      * <pre>
@@ -264,136 +250,78 @@ abstract class AbstractScanMojo extends AbstractMojo {
     protected List<String> checklists = new ArrayList<>();
 
     /**
-     * If violations are reported, defer the build failure until a subsequent verify goal. Set this to true when build
-     * has more than one scan execution, so that all errors can be reported. Otherwise, the first execution with
-     * failure-level violations will fail the build before the subsequent scan executions have a chance to run.
-     * <p>
-     * If this is set to true, be sure the {@code verify} goal has been activated for the build, otherwise violations
-     * will not be printed and failure-level violations will be implicitly ignored.
-     *
-     * @since 1.1.0
-     */
-    @Parameter
-    protected boolean deferBuildFailure;
-
-    /**
-     * If this is set to true, InstallHooks in scanned packages will be ignored.
+     * If this is set to true, InstallHooks in pre-install packages will be enabled.
      *
      * @since 1.4.0
      */
     @Parameter
-    protected boolean skipInstallHooks;
+    protected boolean enablePreInstallHooks;
 
     /**
-     * Construct an init stage purely from the relevant mojo parameters.
+     * Specify a policy for InstallHooks in scanned packages. InstallHooks are skipped by default.
      *
-     * @return a complete init stage
-     * @throws MojoExecutionException if an error occurs
+     * @since 1.4.0
      */
-    protected InitStage getMojoInitStage() throws MojoExecutionException {
-        InitStage.Builder builder = new InitStage.Builder();
+    @Parameter
+    protected InstallHookPolicy installHookPolicy;
 
-        final Set<URL> unorderedCndUrls = new LinkedHashSet<>();
-
-        if (cndNames != null) {
-            try {
-                Map<String, URL> pluginNtds = SlingNodetypesScanner.resolveNodeTypeDefinitions(cndNames);
-                for (String cndName : cndNames) {
-                    if (!pluginNtds.containsKey(cndName)) {
-                        throw new MojoExecutionException("Failed to find node type definition on classpath for cndName " + cndName);
-                    }
-                }
-                unorderedCndUrls.addAll(pluginNtds.values());
-            } catch (Exception e) {
-                throw new MojoExecutionException("Failed to resolve cndNames.", e);
-            }
-        }
-
-        if (slingNodeTypes) {
-            try {
-                List<URL> pluginNtds = SlingNodetypesScanner.findNodeTypeDefinitions();
-                for (URL ntd : pluginNtds) {
-                    if (!unorderedCndUrls.contains(ntd)) {
-                        getLog().info(SlingNodetypesScanner.SLING_NODETYPES + ": Discovered node types: "
-                                + ntd.toString());
-                    }
-                }
-                unorderedCndUrls.addAll(pluginNtds);
-            } catch (IOException e) {
-                throw new MojoExecutionException("Failed to resolve cndNames.", e);
-            }
-        }
-
-        builder.withOrderedCndUrls(new ArrayList<>(unorderedCndUrls));
-
-        if (jcrNamespaces != null) {
-            for (JcrNs ns : jcrNamespaces) {
-                builder = builder.withNs(ns.getPrefix(), ns.getUri());
-            }
-        }
-
-        if (jcrPrivileges != null) {
-            for (String privilege : jcrPrivileges) {
-                builder = builder.withPrivilege(privilege);
-            }
-        }
-
-        if (forcedRoots != null) {
-            for (ForcedRoot forcedRoot : forcedRoots) {
-                builder = builder.withForcedRoot(forcedRoot);
-            }
-        }
-
-        return builder.build();
+    @Override
+    public final PlanBuilderParams getPlanBuilderParams() {
+        return this;
     }
 
-    protected OakMachine.Builder getBuilder() throws MojoExecutionException {
-        final ErrorListener errorListener = new DefaultErrorListener();
+    @Override
+    public List<DependencyFilter> getPreInstallArtifacts() {
+        return preInstallArtifacts;
+    }
 
-        final ChecklistPlanner checklistPlanner = new ChecklistPlanner(checklists);
-        checklistPlanner.discoverChecklists();
+    @Override
+    public List<File> getPreInstallFiles() {
+        return preInstallFiles;
+    }
 
-        final List<ProgressCheck> allChecks;
-        try {
-            allChecks = new ArrayList<>(Locator
-                    .loadFromCheckSpecs(checklistPlanner.getEffectiveCheckSpecs(checks),
-                            Thread.currentThread().getContextClassLoader()));
-        } catch (final Exception e) {
-            throw new MojoExecutionException("Error while loading progress checks.", e);
-        }
+    @Override
+    public List<String> getCndNames() {
+        return cndNames;
+    }
 
-        List<File> preInstall = new ArrayList<>();
+    @Override
+    public boolean isSlingNodeTypes() {
+        return slingNodeTypes;
+    }
 
-        if (preInstallArtifacts != null && !preInstallArtifacts.isEmpty()) {
-            List<Dependency> preInstallDeps = new ArrayList<>();
-            for (DependencyFilter depFilter : preInstallArtifacts) {
-                Dependency dep = project.getDependencies().stream()
-                        .filter(depFilter)
-                        .findFirst()
-                        .orElseGet(depFilter::toDependency);
-                preInstallDeps.add(dep);
-            }
-            List<File> preInstallResolved = resolveDependencies(preInstallDeps, false);
-            preInstall.addAll(preInstallResolved);
-        }
+    @Override
+    public List<JcrNs> getJcrNamespaces() {
+        return jcrNamespaces;
+    }
 
-        if (preInstallFiles != null) {
-            preInstall.addAll(preInstallFiles);
-        }
+    @Override
+    public List<String> getJcrPrivileges() {
+        return jcrPrivileges;
+    }
 
-        OakMachine.Builder machineBuilder = new OakMachine.Builder()
-                .withErrorListener(errorListener)
-                .withProgressChecks(allChecks)
-                // execute the mojo as an init stage first
-                .withInitStage(getMojoInitStage())
-                // followed by the checklist init stages
-                .withInitStages(checklistPlanner.getInitStages())
-                .withPreInstallPackages(preInstall);
+    @Override
+    public List<ForcedRoot> getForcedRoots() {
+        return forcedRoots;
+    }
 
-        if (skipInstallHooks) {
-            machineBuilder.withInstallHookProcessorFactory(OakMachine.NOOP_INSTALL_HOOK_PROCESSOR_FACTORY);
-        }
+    @Override
+    public List<CheckSpec> getChecks() {
+        return checks;
+    }
 
-        return machineBuilder;
+    @Override
+    public List<String> getChecklists() {
+        return checklists;
+    }
+
+    @Override
+    public boolean isEnablePreInstallHooks() {
+        return enablePreInstallHooks;
+    }
+
+    @Override
+    public InstallHookPolicy getInstallHookPolicy() {
+        return installHookPolicy;
     }
 }

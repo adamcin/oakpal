@@ -21,7 +21,7 @@ import static net.adamcin.oakpal.core.Util.isEmpty;
 import java.io.File;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.StringReader;
+import java.io.PrintWriter;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.util.Collection;
@@ -41,11 +41,11 @@ import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
 import javax.script.SimpleBindings;
+import javax.script.SimpleScriptContext;
 
 import org.apache.jackrabbit.vault.fs.config.MetaInf;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.apache.jackrabbit.vault.packaging.PackageProperties;
-import org.json.JSONObject;
 
 /**
  * The {@link ScriptProgressCheck} uses the {@link Invocable} interface from JSR223 to listen for scan events and
@@ -287,12 +287,18 @@ public final class ScriptProgressCheck implements ProgressCheck {
                 }
                 final ScriptHelper helper = new ScriptHelper();
                 scriptBindings.put(BINDING_SCRIPT_HELPER, helper);
-
-                engine.setBindings(scriptBindings, ScriptContext.ENGINE_SCOPE);
+                engine.setContext(contextWithBindings(scriptBindings));
                 engine.eval(new InputStreamReader(is, Charset.forName("UTF-8")));
                 return new ScriptProgressCheck((Invocable) engine, helper, scriptUrl);
             }
         }
+    }
+
+    private static ScriptContext contextWithBindings(final Bindings bindings) {
+        ScriptContext context = new SimpleScriptContext();
+        context.setBindings(bindings, ScriptContext.ENGINE_SCOPE);
+        context.setWriter(context.getErrorWriter());
+        return context;
     }
 
     private static class InlineScriptProgressCheckFactory implements ProgressCheckFactory {
@@ -314,8 +320,7 @@ public final class ScriptProgressCheck implements ProgressCheck {
             }
             final ScriptHelper helper = new ScriptHelper();
             scriptBindings.put(BINDING_SCRIPT_HELPER, helper);
-
-            engine.setBindings(scriptBindings, ScriptContext.ENGINE_SCOPE);
+            engine.setContext(contextWithBindings(scriptBindings));
             engine.eval(this.source);
             return new ScriptProgressCheck((Invocable) engine, helper, null);
         }

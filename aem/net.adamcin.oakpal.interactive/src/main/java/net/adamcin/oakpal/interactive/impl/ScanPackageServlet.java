@@ -17,6 +17,7 @@
 package net.adamcin.oakpal.interactive.impl;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -33,6 +34,7 @@ import net.adamcin.oakpal.core.Locator;
 import net.adamcin.oakpal.core.OakMachine;
 import net.adamcin.oakpal.core.ProgressCheck;
 import net.adamcin.oakpal.core.ReportMapper;
+import net.adamcin.oakpal.core.ScanTempSpace;
 import net.adamcin.oakpal.interactive.ChecklistTracker;
 import org.apache.jackrabbit.vault.packaging.Packaging;
 import org.apache.sling.api.SlingHttpServletRequest;
@@ -115,7 +117,8 @@ class ScanPackageServlet extends SlingAllMethodsServlet {
 
         final OakMachine machine = builder.build();
 
-        try (ScanTempSpace tempSpace = new ScanTempSpace(pkgResources)) {
+        try (ScanTempSpace<Resource> tempSpace = new ScanTempSpace<>(pkgResources,
+                res -> res.adaptTo(InputStream.class), null)) {
             List<CheckReport> reportList = machine.scanPackages(tempSpace.open());
             ReportMapper.writeReports(reportList, response::getWriter);
         } catch (final AbortedScanException e) {

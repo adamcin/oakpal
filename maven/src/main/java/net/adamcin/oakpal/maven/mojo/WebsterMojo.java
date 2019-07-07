@@ -27,6 +27,7 @@ import net.adamcin.oakpal.webster.JcrFactory;
 import net.adamcin.oakpal.webster.WebsterPlan;
 import net.adamcin.oakpal.webster.targets.JsonTargetFactory;
 import org.apache.commons.io.FileUtils;
+import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.Mojo;
@@ -37,7 +38,7 @@ import org.apache.maven.plugins.annotations.Parameter;
  * files managed in a maven project.
  */
 @Mojo(name = "webster", requiresDirectInvocation = true, configurator = OakpalComponentConfigurator.HINT)
-public class WebsterMojo extends org.apache.maven.plugin.AbstractMojo {
+public class WebsterMojo extends AbstractMojo {
     public static final String PARAM_REPOSITORY_HOME = "webster.repositoryHome";
     public static final String PARAM_OAK_RUN_ARGS = "webster.oakRunArgs";
     public static final String PARAM_TMPDIR = "webster.tmpdir";
@@ -149,7 +150,7 @@ public class WebsterMojo extends org.apache.maven.plugin.AbstractMojo {
                         .withGlobalSegmentStore(new File(globalRepositoryHome, "segmentstore")).build();
                 plan.perform();
             } catch (Exception e) {
-                throw new MojoExecutionException("Failed to execute Webster plan.", e);
+                throw new MojoFailureException("Failed to execute Webster plan.", e);
             } finally {
                 try {
                     FileUtils.deleteDirectory(globalRepositoryHome);

@@ -24,11 +24,13 @@ import static net.adamcin.oakpal.core.ReportMapper.KEY_SEVERITY;
 import java.util.Collection;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import javax.json.JsonObject;
 
 import aQute.bnd.annotation.ConsumerType;
 import org.apache.jackrabbit.vault.packaging.PackageId;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Report type for validations.
@@ -65,8 +67,31 @@ public interface Violation extends JavaxJson.ObjectConvertible {
             this.ordinal = ordinal;
         }
 
+        /**
+         * Runtime throwing function to lookup severity codes by name.
+         *
+         * @param name the severity level name
+         * @return the associated severity level
+         */
+        public static Severity byName(final @NotNull String name) {
+            for (Severity value : values()) {
+                if (value.name().equalsIgnoreCase(name)) {
+                    return value;
+                }
+            }
+            throw new IllegalArgumentException("Unknown severity level: " + name);
+        }
+
         public boolean isLessSevereThan(Severity other) {
             return this.ordinal > other.ordinal;
+        }
+
+        public Predicate<Severity> meetsMinimumSeverity() {
+            return other -> !other.isLessSevereThan(this);
+        }
+
+        public Severity maxSeverity(final @NotNull Severity other) {
+            return this.isLessSevereThan(other) ? other : this;
         }
     }
 
@@ -98,7 +123,7 @@ public interface Violation extends JavaxJson.ObjectConvertible {
      */
     @Override
     default JsonObject toJson() {
-                JavaxJson.Obj json = obj();
+        JavaxJson.Obj json = obj();
         Optional.ofNullable(this.getSeverity()).ifPresent(json.key(KEY_SEVERITY)::val);
         Optional.ofNullable(this.getDescription()).ifPresent(json.key(KEY_DESCRIPTION)::val);
         Optional.ofNullable(this.getPackages())

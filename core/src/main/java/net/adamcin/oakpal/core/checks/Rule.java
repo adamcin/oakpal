@@ -16,8 +16,6 @@
 
 package net.adamcin.oakpal.core.checks;
 
-import static net.adamcin.oakpal.core.OrgJson.key;
-
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -27,10 +25,6 @@ import javax.json.JsonArray;
 import javax.json.JsonObject;
 
 import net.adamcin.oakpal.core.JavaxJson;
-import net.adamcin.oakpal.core.OrgJson;
-import net.adamcin.oakpal.core.Util;
-import org.json.JSONArray;
-import org.json.JSONObject;
 
 /**
  * Standard Rule tuple capturing a rule type (include/exclude or allow/deny) and a regex pattern.
@@ -45,7 +39,7 @@ import org.json.JSONObject;
  * are assumed).</dd>
  * </dl>
  */
-public final class Rule implements OrgJson.ObjectConvertible, JavaxJson.ObjectConvertible {
+public final class Rule implements JavaxJson.ObjectConvertible {
     static final Pattern PATTERN_MATCH_ALL = Pattern.compile(".*");
 
     /**
@@ -151,18 +145,6 @@ public final class Rule implements OrgJson.ObjectConvertible, JavaxJson.ObjectCo
     }
 
     /**
-     * Serializes the rule to an {@link org.json.JSONObject}.
-     *
-     * @return a JSONObject
-     * @deprecated 1.2.0 use {@link JavaxJson.ObjectConvertible#toJson()} instead.
-     */
-    @Deprecated
-    @Override
-    public JSONObject toJSON() {
-        return key(CONFIG_TYPE, getType().name()).key(CONFIG_PATTERN, getPattern().pattern()).get();
-    }
-
-    /**
      * Serializes the rule to a {@link javax.json.JsonObject}.
      *
      * @return a JsonObject
@@ -208,39 +190,12 @@ public final class Rule implements OrgJson.ObjectConvertible, JavaxJson.ObjectCo
      * Conveniently creates a list of Rules from the conventional use case of a JSON array containing a list of rule
      * JSON objects to be evaluated in sequence.
      *
-     * @param rulesArray a JSON array where calling {@link #fromJSON(JSONObject)} on each element will construct a
-     *                   valid {@link Rule}
-     * @return a list of rules to be evaluated in sequence.
-     * @deprecated 1.2.0 use {@link #fromJsonArray(JsonArray)} instead
-     */
-    @Deprecated
-    public static List<Rule> fromJSON(final JSONArray rulesArray) {
-        return Util.fromJSONArray(rulesArray, Rule::fromJSON);
-    }
-
-    /**
-     * Conveniently creates a list of Rules from the conventional use case of a JSON array containing a list of rule
-     * JSON objects to be evaluated in sequence.
-     *
-     * @param rulesArray a JSON array where calling {@link #fromJSON(JSONObject)} on each element will construct a
+     * @param rulesArray a JSON array where calling {@link #fromJson(JsonObject)} on each element will construct a
      *                   valid {@link Rule}
      * @return a list of rules to be evaluated in sequence.
      */
     public static List<Rule> fromJsonArray(final JsonArray rulesArray) {
         return JavaxJson.mapArrayOfObjects(rulesArray, Rule::fromJson);
-    }
-
-    /**
-     * Construct a single rule from a JSON object with keys {@code type} and {@code pattern}.
-     *
-     * @param ruleJson a single rule config object
-     * @return a new rule
-     * @deprecated 1.2.0 use {@link #fromJson(JsonObject)} instead
-     */
-    @Deprecated
-    public static Rule fromJSON(final JSONObject ruleJson) {
-        return new Rule(Rule.RuleType.fromName(ruleJson.getString(CONFIG_TYPE)),
-                Pattern.compile(ruleJson.getString(CONFIG_PATTERN)));
     }
 
     /**

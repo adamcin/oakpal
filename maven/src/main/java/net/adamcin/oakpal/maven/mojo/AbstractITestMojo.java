@@ -17,62 +17,21 @@
 package net.adamcin.oakpal.maven.mojo;
 
 import java.io.File;
-import java.net.URL;
-import java.net.URLClassLoader;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import net.adamcin.oakpal.core.CheckReport;
 import net.adamcin.oakpal.core.Violation;
 import org.apache.jackrabbit.vault.packaging.PackageId;
-import org.apache.maven.artifact.Artifact;
-import org.apache.maven.artifact.repository.DefaultRepositoryRequest;
-import org.apache.maven.artifact.repository.RepositoryRequest;
-import org.apache.maven.artifact.resolver.ArtifactResolutionRequest;
-import org.apache.maven.artifact.resolver.ArtifactResolutionResult;
-import org.apache.maven.execution.MavenSession;
-import org.apache.maven.model.Dependency;
-import org.apache.maven.plugin.MojoExecution;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
-import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.plugins.annotations.Parameter;
-import org.apache.maven.project.MavenProject;
-import org.apache.maven.repository.RepositorySystem;
-import org.apache.maven.settings.Settings;
 
 /**
  * Base Mojo providing access to maven context.
  */
-abstract class AbstractMojo extends org.apache.maven.plugin.AbstractMojo {
-    private static final List<String> IT_PHASES = Arrays.asList(
-            "pre-integration-test",
-            "integration-test",
-            "post-integration-test",
-            "verify");
-
-    /**
-     * package private for tests.
-     */
-    @Component
-    RepositorySystem repositorySystem;
-
-    @Parameter(defaultValue = "${mojoExecution}", readonly = true)
-    protected MojoExecution execution;
-
-    @Parameter(defaultValue = "${session}", readonly = true)
-    protected MavenSession session;
-
-    @Parameter(defaultValue = "${settings}", readonly = true)
-    protected Settings settings;
-
-    @Parameter(defaultValue = "${project}", readonly = true, required = false)
-    protected MavenProject project;
+abstract class AbstractITestMojo extends AbstractCommonMojo {
 
     /**
      * Conventional switch to skip integration-test phase goals.
@@ -106,83 +65,21 @@ abstract class AbstractMojo extends org.apache.maven.plugin.AbstractMojo {
     @Parameter(defaultValue = "MAJOR")
     protected Violation.Severity failOnSeverity = Violation.Severity.MAJOR;
 
-    protected Optional<MavenProject> getProject() {
-        return Optional.ofNullable(project);
-    }
-
     protected abstract boolean isIndividuallySkipped();
+
+    @Override
+    public boolean isTestScopeContainer() {
+        return true;
+    }
 
     private ClassLoader containerClassLoader;
 
-    protected Set<Artifact> depToArtifact(final Dependency dependency, final RepositoryRequest baseRequest,
-                                          final boolean transitive) {
-        Artifact artifact = repositorySystem.createDependencyArtifact(dependency);
-        ArtifactResolutionRequest request = new ArtifactResolutionRequest(baseRequest);
-        request.setArtifact(artifact);
-        request.setResolveTransitively(transitive);
-        ArtifactResolutionResult result = repositorySystem.resolve(request);
-        return transitive ? result.getArtifacts() : Collections.singleton(artifact);
-    }
-
-    protected List<File> resolveDependencies(final List<Dependency> dependencies, final boolean transitive)
-            throws MojoExecutionException {
-        RepositoryRequest baseRequest = DefaultRepositoryRequest.getRepositoryRequest(session, project);
-
-        Set<Artifact> preResolved = dependencies.stream()
-                .map(d -> depToArtifact(d, baseRequest, transitive))
-                .flatMap(Set::stream)
-                .collect(Collectors.toSet());
-
-        Optional<Artifact> unresolvedArtifact = preResolved.stream()
-                .filter(a -> a.getFile() == null || !a.getFile().exists())
-                .findFirst();
-
-        if (unresolvedArtifact.isPresent()) {
-            Artifact a = unresolvedArtifact.get();
-            throw new MojoExecutionException(String.format("Failed to resolve file for artifact: %s:%s:%s",
-                    a.getGroupId(), a.getArtifactId(), a.getVersion()));
-        }
-
-        return preResolved.stream()
-                .map(Artifact::getFile)
-                .filter(File::exists)
-                .collect(Collectors.toList());
-    }
-
-    protected ClassLoader getContainerClassLoader() throws MojoExecutionException {
+    protected ClassLoader getContainerClassLoader() throws MojoFailureException {
         if (containerClassLoader == null) {
             this.containerClassLoader = createContainerClassLoader();
         }
 
         return this.containerClassLoader;
-    }
-
-    private ClassLoader createContainerClassLoader() throws MojoExecutionException {
-        final List<File> dependencyJars = new ArrayList<>();
-        getProject().ifPresent(project -> {
-            dependencyJars.add(new File(project.getBuild().getTestOutputDirectory()));
-        });
-
-        List<Dependency> unresolvedDependencies = new ArrayList<>();
-
-        getProject().ifPresent(project ->
-                unresolvedDependencies.addAll(project.getDependencies().stream()
-                        .filter(dependency -> "jar".equals(dependency.getType()))
-                        .filter(dependency -> "test".equals(dependency.getScope()))
-                        .collect(Collectors.toList()))
-        );
-
-        dependencyJars.addAll(resolveDependencies(unresolvedDependencies, true));
-
-        try {
-            List<URL> urls = new ArrayList<>(dependencyJars.size());
-            for (File file : dependencyJars) {
-                urls.add(file.toURI().toURL());
-            }
-            return new URLClassLoader(urls.toArray(new URL[urls.size()]), getClass().getClassLoader());
-        } catch (Exception e) {
-            throw new MojoExecutionException("ClassLoader error: ", e);
-        }
     }
 
     protected void reactToReports(List<CheckReport> reports) throws MojoFailureException {
@@ -218,7 +115,6 @@ abstract class AbstractMojo extends org.apache.maven.plugin.AbstractMojo {
             throw new MojoFailureException(errorMessage);
         }
     }
-
 
     void executeGuardedIntegrationTest() throws MojoExecutionException, MojoFailureException {
 

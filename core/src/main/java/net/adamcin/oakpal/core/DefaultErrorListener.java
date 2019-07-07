@@ -18,14 +18,18 @@ package net.adamcin.oakpal.core;
 
 import java.net.URL;
 import java.util.Collection;
+import java.util.Optional;
 import javax.jcr.PathNotFoundException;
 
 import org.apache.jackrabbit.vault.packaging.PackageId;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Default implementation which reports all exceptions as violations.
  */
 public class DefaultErrorListener implements ErrorListener {
+    private static final Logger LOGGER = LoggerFactory.getLogger(DefaultErrorListener.class);
 
     private final ReportCollector collector = new ReportCollector();
 
@@ -43,10 +47,10 @@ public class DefaultErrorListener implements ErrorListener {
         if (e.getCause() != null) {
             onNodeTypeRegistrationError(e.getCause(), resource);
         } else {
-            reportViolation(
-                    new SimpleViolation(Violation.Severity.MAJOR,
-                            String.format("NodeType registration error (%s): %s \"%s\"",
-                                    resource.toString(), e.getClass().getName(), e.getMessage())));
+            final String message = String.format("NodeType registration error (%s): %s \"%s\"",
+                    String.valueOf(resource), e.getClass().getName(), e.getMessage());
+            LOGGER.trace("[onNodeTypeRegistrationError] stack trace for: " + message, e);
+            reportViolation(new SimpleViolation(Violation.Severity.MAJOR, message));
         }
     }
 
@@ -55,10 +59,10 @@ public class DefaultErrorListener implements ErrorListener {
         if (e.getCause() != null) {
             onJcrNamespaceRegistrationError(e.getCause(), prefix, uri);
         } else {
-            reportViolation(
-                    new SimpleViolation(Violation.Severity.MAJOR,
-                            String.format("JCR namespace registration error (%s=%s): %s \"%s\"",
-                                    prefix, uri, e.getClass().getName(), e.getMessage())));
+            final String message = String.format("JCR namespace registration error (%s=%s): %s \"%s\"",
+                    prefix, uri, e.getClass().getName(), e.getMessage());
+            LOGGER.trace("[onJcrNamespaceRegistrationError] stack trace for: " + message, e);
+            reportViolation(new SimpleViolation(Violation.Severity.MAJOR, message));
         }
     }
 
@@ -67,10 +71,10 @@ public class DefaultErrorListener implements ErrorListener {
         if (e.getCause() != null) {
             onJcrPrivilegeRegistrationError(e.getCause(), jcrPrivilege);
         } else {
-            reportViolation(
-                    new SimpleViolation(Violation.Severity.MAJOR,
-                            String.format("JCR privilege registration error (%s): %s \"%s\"",
-                                    jcrPrivilege, e.getClass().getName(), e.getMessage())));
+            final String message = String.format("JCR privilege registration error (%s): %s \"%s\"",
+                    jcrPrivilege, e.getClass().getName(), e.getMessage());
+            LOGGER.trace("[onJcrPrivilegeRegistrationError] stack trace for: " + message, e);
+            reportViolation(new SimpleViolation(Violation.Severity.MAJOR, message));
         }
     }
 
@@ -79,46 +83,59 @@ public class DefaultErrorListener implements ErrorListener {
         if (e.getCause() != null) {
             onForcedRootCreationError(e.getCause(), forcedRoot);
         } else {
-            reportViolation(
-                    new SimpleViolation(Violation.Severity.MAJOR,
-                            String.format("Forced root creation error (%s): %s \"%s\"",
-                                    forcedRoot.getPath(), e.getClass().getName(), e.getMessage())));
+            final String message = String.format("Forced root creation error (%s): %s \"%s\"",
+                    forcedRoot, e.getClass().getName(), e.getMessage());
+            LOGGER.trace("[onForcedRootCreationError] stack trace for: " + message, e);
+            reportViolation(new SimpleViolation(Violation.Severity.MAJOR, message));
         }
     }
 
     @Override
-    public void onListenerException(Exception e, ProgressCheck listener, PackageId packageId) {
-        reportViolation(
-                new SimpleViolation(Violation.Severity.MAJOR,
-                        String.format("Listener error (%s): %s \"%s\"",
-                                listener.getClass().getName(), e.getClass().getName(), e.getMessage()), packageId));
+    public void onListenerException(final Exception e, final ProgressCheck listener, final PackageId packageId) {
+        final String message = String.format("Listener error (%s): %s \"%s\"",
+                Optional.ofNullable(listener).map(lstr -> lstr.getClass().getName()).orElse(null),
+                e.getClass().getName(), e.getMessage());
+        LOGGER.trace("[onListenerException] stack trace for: " + message, e);
+        reportViolation(new SimpleViolation(Violation.Severity.MAJOR, message, packageId));
     }
 
     @Override
-    public void onSubpackageException(Exception e, PackageId packageId) {
-        reportViolation(
-                new SimpleViolation(Violation.Severity.MAJOR,
-                        String.format("Package error: %s \"%s\"",
-                                e.getClass().getName(), e.getMessage()), packageId));
+    public void onSubpackageException(final Exception e, final PackageId packageId) {
+        final String message = String.format("Package error: %s \"%s\"", e.getClass().getName(), e.getMessage());
+        LOGGER.trace("[onSubpackageException] stack trace for: " + message, e);
+        reportViolation(new SimpleViolation(Violation.Severity.MAJOR, message, packageId));
     }
 
     @Override
-    public void onImporterException(Exception e, PackageId packageId, String path) {
+    public void onImporterException(final Exception e, final PackageId packageId, final String path) {
         // Ignore PathNotFoundException, as it is thrown A LOT
         if (!(e instanceof PathNotFoundException)) {
-            reportViolation(
-                    new SimpleViolation(Violation.Severity.MAJOR,
-                            String.format("%s - Importer error: %s \"%s\"", path, e.getClass().getName(), e.getMessage()),
-                            packageId));
+            final String message = String.format("%s - Importer error: %s \"%s\"", path, e.getClass().getName(), e.getMessage());
+            LOGGER.trace("[onImporterException] stack trace for: " + message, e);
+            reportViolation(new SimpleViolation(Violation.Severity.MAJOR, message, packageId));
         }
     }
 
     @Override
-    public void onListenerPathException(Exception e, ProgressCheck handler, PackageId packageId, String path) {
-        reportViolation(
-                new SimpleViolation(Violation.Severity.MAJOR,
-                        String.format("%s - Listener error: %s \"%s\"", path, e.getClass().getName(), e.getMessage()),
-                        packageId));
+    public void onListenerPathException(final Exception e, final ProgressCheck handler,
+                                        final PackageId packageId, final String path) {
+        final String message = String.format("%s - Listener error: %s \"%s\"", path, e.getClass().getName(), e.getMessage());
+        LOGGER.trace("[onListenerPathException] stack trace for: " + message, e);
+        reportViolation(new SimpleViolation(Violation.Severity.MAJOR, message, packageId));
     }
 
+    @Override
+    public void onInstallHookError(final Throwable e, final PackageId packageId) {
+        final String message = String.format("InstallHook error: %s \"%s\"",
+                Optional.ofNullable(e.getCause()).orElse(e).getClass().getName(), e.getMessage());
+        LOGGER.trace("[onInstallHookError] stack trace for: " + message, e);
+        reportViolation(new SimpleViolation(Violation.Severity.MAJOR, message, packageId));
+    }
+
+    @Override
+    public void onProhibitedInstallHookRegistration(final PackageId packageId) {
+        reportViolation(
+                new SimpleViolation(Violation.Severity.MAJOR,
+                        "Policy prohibits the use of InstallHooks in packages", packageId));
+    }
 }

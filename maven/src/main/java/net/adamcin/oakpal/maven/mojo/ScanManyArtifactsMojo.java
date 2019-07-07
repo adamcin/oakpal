@@ -26,6 +26,8 @@ import java.util.stream.Collectors;
 
 import net.adamcin.oakpal.core.AbortedScanException;
 import net.adamcin.oakpal.core.CheckReport;
+import net.adamcin.oakpal.core.DefaultErrorListener;
+import net.adamcin.oakpal.core.OakMachine;
 import net.adamcin.oakpal.core.ReportMapper;
 import net.adamcin.oakpal.maven.component.OakpalComponentConfigurator;
 import org.apache.maven.artifact.Artifact;
@@ -50,13 +52,26 @@ import org.apache.maven.plugins.annotations.ResolutionScope;
  */
 @Mojo(name = "scan-many", configurator = OakpalComponentConfigurator.HINT,
         requiresDependencyResolution = ResolutionScope.TEST, defaultPhase = LifecyclePhase.INTEGRATION_TEST)
-public class ScanManyArtifactsMojo extends AbstractScanMojo {
+public class ScanManyArtifactsMojo extends AbstractITestWithPlanMojo {
 
     /**
      * Specifically skip this plugin's execution.
      */
     @Parameter(property = "oakpal.scan-many.skip")
     public boolean skip;
+
+    /**
+     * If violations are reported, defer the build failure until a subsequent verify goal. Set this to true when build
+     * has more than one scan execution, so that all errors can be reported. Otherwise, the first execution with
+     * failure-level violations will fail the build before the subsequent scan executions have a chance to run.
+     * <p>
+     * If this is set to true, be sure the {@code verify} goal has been activated for the build, otherwise violations
+     * will not be printed and failure-level violations will be implicitly ignored.
+     *
+     * @since 1.1.0
+     */
+    @Parameter
+    protected boolean deferBuildFailure;
 
     /**
      * Specify a list of content-package artifacts to download and scan in sequence.
@@ -127,7 +142,7 @@ public class ScanManyArtifactsMojo extends AbstractScanMojo {
 
             if (unresolvedArtifact.isPresent()) {
                 Artifact a = unresolvedArtifact.get();
-                throw new MojoExecutionException(String.format("Failed to resolve file for artifact: %s:%s:%s",
+                throw new MojoFailureException(String.format("Failed to resolve file for artifact: %s:%s:%s",
                         a.getGroupId(), a.getArtifactId(), a.getVersion()));
             }
 
@@ -145,18 +160,22 @@ public class ScanManyArtifactsMojo extends AbstractScanMojo {
 
         List<CheckReport> reports;
         try {
-            reports = getBuilder().build().scanPackages(resolvedArtifacts);
+            final OakMachine machine = buildPlan().toOakMachineBuilder(new DefaultErrorListener(),
+                    Thread.currentThread().getContextClassLoader()).build();
+            reports = machine.scanPackages(resolvedArtifacts);
         } catch (AbortedScanException e) {
             String currentFilePath = e.getCurrentPackageFile()
                     .map(f -> "Failed package: " + f.getAbsolutePath()).orElse("");
-            throw new MojoExecutionException("Failed to execute package scan. " + currentFilePath, e);
+            throw new MojoFailureException("Failed to execute package scan. " + currentFilePath, e);
+        } catch (Exception e) {
+            throw new MojoFailureException("Failed to execute package scan.", e);
         }
 
         try {
             ReportMapper.writeReportsToFile(reports, summaryFile);
             getLog().info("Check report summary written to " + summaryFile.getPath());
         } catch (final IOException e) {
-            throw new MojoExecutionException("Failed to write summary reports.", e);
+            throw new MojoFailureException("Failed to write summary reports.", e);
         }
 
         if (deferBuildFailure) {

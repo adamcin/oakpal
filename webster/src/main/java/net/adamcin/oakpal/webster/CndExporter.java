@@ -41,7 +41,6 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -53,13 +52,11 @@ import javax.jcr.nodetype.NodeTypeIterator;
 import javax.jcr.nodetype.NodeTypeTemplate;
 
 import net.adamcin.oakpal.core.Fun;
+import net.adamcin.oakpal.core.JsonCnd;
 import net.adamcin.oakpal.core.checks.Rule;
-import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.cnd.CompactNodeTypeDefReader;
 import org.apache.jackrabbit.commons.cnd.ParseException;
 import org.apache.jackrabbit.commons.cnd.TemplateBuilderFactory;
-import org.apache.jackrabbit.oak.InitialContent;
-import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.spi.Name;
 import org.apache.jackrabbit.spi.commons.conversion.DefaultNamePathResolver;
 import org.apache.jackrabbit.spi.commons.conversion.NamePathResolver;
@@ -115,12 +112,7 @@ public final class CndExporter {
         this.includeBuiltins = includeBuiltins;
     }
 
-    public static final List<String> BUILTIN_NODETYPES = StreamSupport.stream(
-            InitialContent.INITIAL_CONTENT
-                    .getChildNode(JcrConstants.JCR_SYSTEM)
-                    .getChildNode(NodeTypeConstants.JCR_NODE_TYPES)
-                    .getChildNodeNames().spliterator(), false)
-            .collect(Collectors.toList());
+    public static final List<String> BUILTIN_NODETYPES = JsonCnd.BUILTIN_NODETYPES;
 
     /**
      * Function type that provides a Writer.
@@ -141,9 +133,9 @@ public final class CndExporter {
      * @throws IOException         for I/O errors
      * @throws ParseException      if the initialCnd is not a valid CND file.
      */
-    public void writeNodetypes(@NotNull final File cndFile,
-                               @NotNull final Session session,
-                               @NotNull final List<String> desiredTypeNames)
+    public void writeNodetypes(final @NotNull File cndFile,
+                               final @NotNull Session session,
+                               final @NotNull List<String> desiredTypeNames)
             throws RepositoryException, IOException, ParseException {
         writeNodetypes(() -> new OutputStreamWriter(new FileOutputStream(cndFile), StandardCharsets.UTF_8),
                 session, desiredTypeNames, cndFile);
@@ -163,10 +155,10 @@ public final class CndExporter {
      * @throws IOException         for I/O errors
      * @throws ParseException      if the initialCnd is not a valid CND file.
      */
-    public void writeNodetypes(@NotNull final WriterOpener writerOpener,
-                               @NotNull final Session session,
-                               @NotNull final List<String> desiredTypeNames,
-                               @Nullable final File initialCnd)
+    public void writeNodetypes(final @NotNull WriterOpener writerOpener,
+                               final @NotNull Session session,
+                               final @NotNull List<String> desiredTypeNames,
+                               final @Nullable File initialCnd)
             throws RepositoryException, IOException, ParseException {
 
         final NamePathResolver resolver = new DefaultNamePathResolver(session);
@@ -248,8 +240,8 @@ public final class CndExporter {
      * @return a map of qualified names to exported node types.
      * @throws RepositoryException when session throws
      */
-    public static Map<Name, NodeTypeDefinition> retrieveNodeTypes(@NotNull final Session session,
-                                                                  @NotNull final Collection<Name> desiredTypeNames)
+    public static Map<Name, NodeTypeDefinition> retrieveNodeTypes(final @NotNull Session session,
+                                                                  final @NotNull Collection<Name> desiredTypeNames)
             throws RepositoryException {
         return retrieveNodeTypes(session, desiredTypeNames, null);
     }
@@ -265,9 +257,9 @@ public final class CndExporter {
      * @throws RepositoryException when session throws
      */
     public static Map<Name, NodeTypeDefinition>
-    retrieveNodeTypes(@NotNull final Session session,
-                      @NotNull final Collection<Name> desiredTypeNames,
-                      @Nullable final BiPredicate<NamePathResolver, NodeType> nodeTypeSelector)
+    retrieveNodeTypes(final @NotNull Session session,
+                      final @NotNull Collection<Name> desiredTypeNames,
+                      final @Nullable BiPredicate<NamePathResolver, NodeType> nodeTypeSelector)
             throws RepositoryException {
         final NamePathResolver resolver = new DefaultNamePathResolver(session);
         final Map<Name, NodeType> allTypes = new LinkedHashMap<>();
@@ -316,9 +308,9 @@ public final class CndExporter {
         return Stream.concat(superTypes, childTypes);
     }
 
-    static void addType(@NotNull final NamePathResolver resolver,
-                        @NotNull final Map<Name, NodeTypeDefinition> typeSet,
-                        @NotNull final NodeType def)
+    static void addType(final @NotNull NamePathResolver resolver,
+                        final @NotNull Map<Name, NodeTypeDefinition> typeSet,
+                        final @NotNull NodeType def)
             throws RepositoryException {
         final Name name = resolver.getQName(def.getName());
         if (typeSet.containsKey(name)) {

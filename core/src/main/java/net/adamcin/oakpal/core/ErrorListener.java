@@ -18,6 +18,7 @@ package net.adamcin.oakpal.core;
 
 import java.net.URL;
 
+import org.apache.jackrabbit.vault.packaging.PackageException;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 
 /**
@@ -103,6 +104,14 @@ public interface ErrorListener extends ScanListener, ViolationReporter {
      * @param packageId the offending package id
      */
     default void onSubpackageException(final Exception e, final PackageId packageId) {
+
+    }
+
+    default void onInstallHookError(final Throwable e, final PackageId packageId) {
+
+    }
+
+    default void onProhibitedInstallHookRegistration(final PackageId packageId) {
 
     }
 }

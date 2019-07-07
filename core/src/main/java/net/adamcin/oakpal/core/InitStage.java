@@ -46,7 +46,6 @@ import org.apache.jackrabbit.spi.commons.nodetype.NodeTypeDefinitionFactory;
  * Encapsulation of JCR initialization parameters for multistage inits.
  */
 public final class InitStage {
-
     private final List<URL> unorderedCndUrls;
 
     private final List<URL> orderedCndUrls;
@@ -287,18 +286,23 @@ public final class InitStage {
                     } catch (NamespaceException ex) {
                         admin.getWorkspace().getNamespaceRegistry().registerNamespace(prefix, uri);
                     }
-                } catch (final Throwable e) {
+                } catch (final Exception e) {
                     errorListener.onJcrNamespaceRegistrationError(e, prefix, uri);
                 }
             }
         }
 
         if (!qNodeTypes.isEmpty()) {
-            NodeTypeDefinitionFactory fac = new NodeTypeDefinitionFactory(admin);
-            List<NodeTypeDefinition> nodeTypes = fac.create(qNodeTypes);
+            try {
+                NodeTypeDefinitionFactory fac = new NodeTypeDefinitionFactory(admin);
+                List<NodeTypeDefinition> nodeTypes = fac.create(qNodeTypes);
 
-            admin.getWorkspace().getNodeTypeManager()
-                    .registerNodeTypes(nodeTypes.toArray(new NodeTypeDefinition[0]), true);
+                admin.getWorkspace().getNodeTypeManager()
+                        .registerNodeTypes(nodeTypes.toArray(new NodeTypeDefinition[0]), true);
+            } catch (final RepositoryException e) {
+                // TODO should an init stage also carry an optional source URL for this kind of thing?
+                errorListener.onNodeTypeRegistrationError(e, null);
+            }
         }
 
         if (!privileges.isEmpty()) {
@@ -307,7 +311,7 @@ public final class InitStage {
                 for (String privilege : privileges) {
                     try {
                         pm.registerPrivilege(privilege, false, new String[0]);
-                    } catch (final Throwable e) {
+                    } catch (final Exception e) {
                         errorListener.onJcrPrivilegeRegistrationError(e, privilege);
                     }
                 }
@@ -328,7 +332,7 @@ public final class InitStage {
                         rootNode.addMixin(mixinType);
                     }
                     admin.save();
-                } catch (final Throwable e) {
+                } catch (final Exception e) {
                     errorListener.onForcedRootCreationError(e, root);
                     admin.refresh(false);
                 }

@@ -1,0 +1,91 @@
+<!--
+  ~ Copyright 2018 Mark Adamcin
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>org.apache.maven.plugin.my.unit</groupId>
+    <artifactId>opear1</artifactId>
+    <version>1.0-SNAPSHOT</version>
+    <packaging>opear</packaging>
+    <name>Test OpearArchiveMojo</name>
+
+    <build>
+        <testOutputDirectory>src/test/resources</testOutputDirectory>
+        <plugins>
+            <plugin>
+                <groupId>net.adamcin.oakpal</groupId>
+                <artifactId>oakpal-maven-plugin</artifactId>
+                <configuration>
+                    <planParams>
+                        <slingNodeTypes>true</slingNodeTypes>
+                        <preInstallArtifacts>
+                            <artifact>
+                                <artifactId>recap-graniteui</artifactId>
+                            </artifact>
+                        </preInstallArtifacts>
+                        <forcedRoots>
+                            <root>
+                                <path>/acme:test</path>
+                            </root>
+                        </forcedRoots>
+                        <jcrPrivileges>
+                            <privilege>acme:meepMeep</privilege>
+                        </jcrPrivileges>
+                        <jcrNamespaces>
+                            <namespace>
+                                <prefix>acme</prefix>
+                                <uri>http://www.acme.com/</uri>
+                            </namespace>
+                        </jcrNamespaces>
+                        <cndNames>
+                            <cndName>simpleCnd.cnd</cndName>
+                        </cndNames>
+                    </planParams>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>default-opear-plan</id>
+                        <goals>
+                            <goal>opear-plan</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+    <dependencies>
+        <dependency>
+            <groupId>net.adamcin.oakpal</groupId>
+            <artifactId>oakpal-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.sling</groupId>
+            <artifactId>org.apache.sling.jcr.resource</artifactId>
+            <version>3.0.4</version>
+        </dependency>
+        <dependency>
+            <groupId>net.adamcin.recap</groupId>
+            <artifactId>recap-graniteui</artifactId>
+            <version>1.0.1</version>
+            <type>zip</type>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
+</project>

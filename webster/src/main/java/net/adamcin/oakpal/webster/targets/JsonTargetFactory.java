@@ -104,8 +104,8 @@ public enum JsonTargetFactory implements WebsterTargetFactory {
      * @return a list of constructed webster targets
      * @throws Exception if configuration syntax is invalid
      */
-    public static List<WebsterTarget> fromJsonHintMap(@NotNull final File baseDir,
-                                                      @NotNull final JsonObject jsonHintMap) throws Exception {
+    public static List<WebsterTarget> fromJsonHintMap(final @NotNull File baseDir,
+                                                      final @NotNull JsonObject jsonHintMap) throws Exception {
         List<WebsterTarget> targets = new ArrayList<>();
         for (Map.Entry<String, JsonValue> entry : jsonHintMap.entrySet()) {
             if (isTargetType(entry.getKey())) {

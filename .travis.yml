@@ -1,5 +1,9 @@
 language: java
-jdk: oraclejdk8
+jdk:
+  - openjdk8
+  - openjdk11
+  - oraclejdk8
+  - oraclejdk11
 dist: trusty
 script:
   - mvn -B verify

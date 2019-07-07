@@ -19,13 +19,18 @@ package net.adamcin.oakpal.core;
 import java.util.AbstractMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
+import java.util.function.BinaryOperator;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -38,128 +43,203 @@ public final class Fun {
         // no construct
     }
 
+    public static <T> Stream<T> streamIt(final @Nullable T element) {
+        return streamOpt(Optional.ofNullable(element));
+    }
+
+    public static <T> Stream<T> streamOpt(final @NotNull Optional<T> element) {
+        return element.map(Stream::of).orElse(Stream.empty());
+    }
+
+    public static <T> @NotNull Function<T, T> tee(final @NotNull Consumer<T> consumer) {
+        return input -> {
+            consumer.accept(input);
+            return input;
+        };
+    }
+
+    public static <T> @NotNull Function<T, Nothing> doEach1(final @NotNull Consumer<T> consumer) {
+        return input -> {
+            consumer.accept(input);
+            return Nothing.instance;
+        };
+    }
+
+    public static <T, U> @NotNull BiFunction<T, U, Nothing> doEach2(final @NotNull BiConsumer<T, U> consumer) {
+        return (input0, input1) -> {
+            consumer.accept(input0, input1);
+            return Nothing.instance;
+        };
+    }
+
+    public static <T, R> @NotNull Function<T, R> constant1(final @NotNull Supplier<R> supplier) {
+        return input -> supplier.get();
+    }
+
+    public static <T, U, R> @NotNull BiFunction<T, U, R> constant2(final @NotNull Supplier<R> supplier) {
+        return (input0, input1) -> supplier.get();
+    }
+
     public static <T, I, R> Function<T, R>
-    compose(@NotNull final Function<T, I> before, @NotNull final Function<I, R> after) {
-        return after.compose(before);
+    compose(final @NotNull Function<T, I> before, final @NotNull Function<I, R> after) {
+        return before.andThen(after);
+    }
+
+    public static <R, S> Supplier<S>
+    compose0(final @NotNull Supplier<R> before, final @NotNull Function<R, S> after) {
+        final Function<Nothing, S> composed = compose(constant1(before), after);
+        return () -> composed.apply(Nothing.instance);
     }
 
     public static <T, U, I, R> BiFunction<T, U, R>
-    compose2(@NotNull final BiFunction<T, U, I> before, @NotNull final Function<I, R> after) {
+    compose2(final @NotNull BiFunction<T, U, I> before, final @NotNull Function<I, R> after) {
         return before.andThen(after);
     }
 
     public static <T, P> Predicate<T>
-    composeTest(@NotNull final Function<T, P> inputFunction,
-                @NotNull final Predicate<P> testResult) {
+    composeTest(final @NotNull Function<T, P> inputFunction,
+                final @NotNull Predicate<P> testResult) {
         return input -> testResult.test(inputFunction.apply(input));
     }
 
     public static <T, U, P, Q> BiPredicate<T, U>
-    composeTest2(@NotNull final Function<T, P> inputTFunction,
-                 @NotNull final Function<U, Q> inputUFunction,
-                 @NotNull final BiPredicate<P, Q> testResult) {
+    composeTest2(final @NotNull Function<T, P> inputTFunction,
+                 final @NotNull Function<U, Q> inputUFunction,
+                 final @NotNull BiPredicate<P, Q> testResult) {
         return (inputT, inputU) -> testResult.test(inputTFunction.apply(inputT), inputUFunction.apply(inputU));
     }
 
     public static <T, U, P> BiPredicate<T, U>
-    composeTest2(@NotNull final BiFunction<T, U, P> inputFunction,
-                 @NotNull final Predicate<P> testResult) {
+    composeTest2(final @NotNull BiFunction<T, U, P> inputFunction,
+                 final @NotNull Predicate<P> testResult) {
         return (inputT, inputU) -> testResult.test(inputFunction.apply(inputT, inputU));
     }
 
     public static <T, R> Consumer<T>
-    toVoid1(@NotNull final Function<T, R> inputFunction) {
+    toVoid1(final @NotNull Function<T, R> inputFunction) {
         return inputFunction::apply;
     }
 
     public static <T, U, R> BiConsumer<T, U>
-    toVoid2(@NotNull final BiFunction<T, U, R> inputFunction) {
+    toVoid2(final @NotNull BiFunction<T, U, R> inputFunction) {
         return inputFunction::apply;
     }
 
     public static <T, R> Function<T, R>
-    infer1(@NotNull final Function<T, R> methodRef) {
+    infer1(final @NotNull Function<T, R> methodRef) {
         return methodRef;
     }
 
     public static <T, U, R> BiFunction<T, U, R>
-    infer2(@NotNull final BiFunction<T, U, R> methodRef) {
+    infer2(final @NotNull BiFunction<T, U, R> methodRef) {
         return methodRef;
     }
 
     public static <T> Supplier<T>
-    infer0(@NotNull final Supplier<T> methodRef) {
+    infer0(final @NotNull Supplier<T> methodRef) {
         return methodRef;
     }
 
     public static <T> Predicate<T>
-    inferTest1(@NotNull final Predicate<T> methodRef) {
+    inferTest1(final @NotNull Predicate<T> methodRef) {
         return methodRef;
     }
 
     public static <T, U> BiPredicate<T, U>
-    inferTest2(@NotNull final BiPredicate<T, U> methodRef) {
+    inferTest2(final @NotNull BiPredicate<T, U> methodRef) {
         return methodRef;
     }
 
+    public static <K, V> Function<Map.Entry<K, V>, Map.Entry<K, V>>
+    entryTee(final @NotNull BiConsumer<K, V> consumer) {
+        return entry -> {
+            consumer.accept(entry.getKey(), entry.getValue());
+            return entry;
+        };
+    }
+
+    public static <K, V> Function<K, Map.Entry<K, V>>
+    zipKeysWithValueFunc(final @NotNull Function<K, V> valueFunc) {
+        return key -> toEntry(key, valueFunc.apply(key));
+    }
+
+    public static <K, V> Function<V, Map.Entry<K, V>>
+    zipValuesWithKeyFunc(final @NotNull Function<V, K> keyFunction) {
+        return value -> toEntry(keyFunction.apply(value), value);
+    }
+
     public static <K, V> Map.Entry<K, V>
-    toEntry(@Nullable final K key, @Nullable final V value) {
+    toEntry(final @Nullable K key, final @Nullable V value) {
         return new AbstractMap.SimpleEntry<>(key, value);
     }
 
+    public static <K, V> Collector<Map.Entry<K, V>, ?, Map<K, V>>
+    entriesToMap() {
+        return Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue);
+    }
+
+    public static <K, V> Collector<Map.Entry<K, V>, ?, Map<K, V>>
+    entriesToMap(final @NotNull BinaryOperator<V> mergeFunction) {
+        return Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, mergeFunction);
+    }
+
     public static <K, V, R> Function<Map.Entry<K, V>, R>
-    mapEntry(@NotNull final BiFunction<K, V, R> biMapFunction) {
+    mapEntry(final @NotNull BiFunction<K, V, R> biMapFunction) {
         return entry -> biMapFunction.apply(entry.getKey(), entry.getValue());
     }
 
     public static <K, V, W> Function<Map.Entry<K, V>, Map.Entry<K, W>>
-    mapValue(@NotNull final BiFunction<K, V, W> valueBiFunction) {
+    mapValue(final @NotNull BiFunction<K, V, W> valueBiFunction) {
         return entry -> toEntry(entry.getKey(), valueBiFunction.apply(entry.getKey(), entry.getValue()));
     }
 
     public static <K, V, W> Function<Map.Entry<K, V>, Map.Entry<K, W>>
-    mapValue(@NotNull final Function<V, W> valueFunction) {
+    mapValue(final @NotNull Function<V, W> valueFunction) {
         return mapValue((key, value) -> valueFunction.apply(value));
     }
 
     public static <K, V, L> Function<Map.Entry<K, V>, Map.Entry<L, V>>
-    mapKey(@NotNull final BiFunction<K, V, L> keyBiFunction) {
+    mapKey(final @NotNull BiFunction<K, V, L> keyBiFunction) {
         return entry -> toEntry(keyBiFunction.apply(entry.getKey(), entry.getValue()), entry.getValue());
     }
 
     public static <K, V, L> Function<Map.Entry<K, V>, Map.Entry<L, V>>
-    mapKey(@NotNull final Function<K, L> keyFunction) {
+    mapKey(final @NotNull Function<K, L> keyFunction) {
         return mapKey((key, value) -> keyFunction.apply(key));
     }
 
     public static <K, V> Consumer<Map.Entry<K, V>>
-    onEntry(@NotNull final BiConsumer<K, V> biConsumer) {
+    onEntry(final @NotNull BiConsumer<K, V> biConsumer) {
         return entry -> biConsumer.accept(entry.getKey(), entry.getValue());
     }
 
     public static <K, V> Consumer<Map.Entry<K, V>>
-    onKey(@NotNull final Consumer<K> consumer) {
+    onKey(final @NotNull Consumer<K> consumer) {
         return entry -> consumer.accept(entry.getKey());
     }
 
     public static <K, V> Consumer<Map.Entry<K, V>>
-    onValue(@NotNull final Consumer<V> consumer) {
+    onValue(final @NotNull Consumer<V> consumer) {
         return entry -> consumer.accept(entry.getValue());
     }
 
     public static <K, V> Predicate<? super Map.Entry<K, V>>
-    testEntry(@NotNull final BiPredicate<K, V> biPredicate) {
+    testEntry(final @NotNull BiPredicate<K, V> biPredicate) {
         return entry -> biPredicate.test(entry.getKey(), entry.getValue());
     }
 
     public static <K, V> Predicate<? super Map.Entry<K, V>>
-    testValue(@NotNull final Predicate<V> valuePredicate) {
+    testValue(final @NotNull Predicate<V> valuePredicate) {
         return testEntry((key, value) -> valuePredicate.test(value));
     }
 
     public static <K, V> Predicate<? super Map.Entry<K, V>>
-    testKey(@NotNull final Predicate<K> keyPredicate) {
+    testKey(final @NotNull Predicate<K> keyPredicate) {
         return testEntry((key, value) -> keyPredicate.test(key));
+    }
+
+    public static <T> Predicate<T> inSet(final @NotNull Set<? super T> haystack) {
+        return haystack::contains;
     }
 
     @FunctionalInterface
@@ -201,7 +281,7 @@ public final class Fun {
      * Wrapping runtime error type for unchecked throwing functions.
      */
     public static final class FunRuntimeException extends RuntimeException {
-        private FunRuntimeException(@NotNull final Throwable cause) {
+        private FunRuntimeException(final @NotNull Throwable cause) {
             super(cause);
         }
     }
@@ -210,23 +290,23 @@ public final class Fun {
      * Composes four lambdas into a single function for use with flatMap() defined by {@link java.util.stream.Stream},
      * {@link java.util.Optional}, etc. Useful for eliminating clumsy try/catch blocks from lambdas.
      *
-     * @param monadUnit the "unit" (or "single") function defined by the appropriate monad. I.E. Stream::of,
-     *                  Optional::of, or Optional::ofNullable.
-     * @param monadZero the "zero" (or "empty") function defined by the appropriate monad, as in Stream::empty,
-     *                  or Optional::empty
-     * @param onElement some function that produces type {@code R} when given an object of type {@code T}, or fails
-     *                  with an Exception.
-     * @param onError   an optional consumer function to perform some logic when the parser function throws.
-     *                  Receives both the failing input element and the caught Exception.
-     * @param <M>       The captured monad type, which must match the return types of the {@code monadUnit} and
-     *                  {@code monadZero} functions, but which is not involved in the {@code onElement} or
-     *                  {@code onError} functions.
-     * @param <T>       The input type mapped by the monad, i.e. the String type in {@code Stream<String>}.
-     * @param <R>       The output type mapped by the monad, i.e. the URL type in {@code Stream<URL>}.
+     * @param monoidUnit the "unit" (or "single") function defined by the appropriate monoid/monad. I.E. Stream::of,
+     *                   Optional::of, or Optional::ofNullable.
+     * @param monoidZero the "zero" (or "empty") function defined by the appropriate monoid/monad, as in Stream::empty,
+     *                   or Optional::empty
+     * @param onElement  some function that produces type {@code R} when given an object of type {@code T}, or fails
+     *                   with an Exception.
+     * @param onError    an optional consumer function to perform some logic when the parser function throws.
+     *                   Receives both the failing input element and the caught Exception.
+     * @param <M>        The captured monad type, which must match the return types of the {@code monoidUnit} and
+     *                   {@code monoidZero} functions, but which is not involved in the {@code onElement} or
+     *                   {@code onError} functions.
+     * @param <T>        The input type mapped by the monoid/monad, i.e. the String type in {@code Stream<String>}.
+     * @param <R>        The output type mapped by the monoid/monad, i.e. the URL type in {@code Stream<URL>}.
      * @return a flatMappable function
      */
-    public static <M, T, R> Function<T, M> composeTry(final Function<R, M> monadUnit,
-                                                      final Supplier<M> monadZero,
+    public static <M, T, R> Function<T, M> composeTry(final Function<R, M> monoidUnit,
+                                                      final Supplier<M> monoidZero,
                                                       final ThrowingFunction<T, R> onElement,
                                                       final BiConsumer<T, Exception> onError) {
         final BiConsumer<T, Exception> consumeError = onError != null
@@ -236,17 +316,17 @@ public final class Fun {
 
         return (element) -> {
             try {
-                return monadUnit.apply(onElement.tryApply(element));
+                return monoidUnit.apply(onElement.tryApply(element));
             } catch (final Exception error) {
                 consumeError.accept(element, error);
-                return monadZero.get();
+                return monoidZero.get();
             }
         };
     }
 
 
     public static <R> Supplier<R>
-    uncheck0(@NotNull final ThrowingSupplier<R> mayThrowOnGet) {
+    uncheck0(final @NotNull ThrowingSupplier<R> mayThrowOnGet) {
         return () -> {
             try {
                 return mayThrowOnGet.tryGet();
@@ -256,8 +336,20 @@ public final class Fun {
         };
     }
 
+    public static <R> Supplier<Result<R>>
+    result0(final @NotNull ThrowingSupplier<R> mayThrowOnGet) {
+        final Supplier<R> unchecked = uncheck0(mayThrowOnGet);
+        return () -> {
+            try {
+                return Result.success(unchecked.get());
+            } catch (final RuntimeException e) {
+                return Result.failure(e);
+            }
+        };
+    }
+
     public static <T, R> Function<T, R>
-    uncheck1(@NotNull final ThrowingFunction<T, R> mayThrowOnApply) {
+    uncheck1(final @NotNull ThrowingFunction<T, R> mayThrowOnApply) {
         return input -> {
             try {
                 return mayThrowOnApply.tryApply(input);
@@ -267,8 +359,20 @@ public final class Fun {
         };
     }
 
+    public static <T, R> Function<T, Result<R>>
+    result1(final @NotNull ThrowingFunction<T, R> mayThrowOnGet) {
+        final Function<T, R> unchecked = uncheck1(mayThrowOnGet);
+        return input -> {
+            try {
+                return Result.success(unchecked.apply(input));
+            } catch (final RuntimeException e) {
+                return Result.failure(e);
+            }
+        };
+    }
+
     public static <T, U, R> BiFunction<T, U, R>
-    uncheck2(@NotNull final ThrowingBiFunction<T, U, R> mayThrowOnApply) {
+    uncheck2(final @NotNull ThrowingBiFunction<T, U, R> mayThrowOnApply) {
         return (inputT, inputU) -> {
             try {
                 return mayThrowOnApply.tryApply(inputT, inputU);
@@ -278,8 +382,20 @@ public final class Fun {
         };
     }
 
+    public static <T, U, R> BiFunction<T, U, Result<R>>
+    result2(final @NotNull ThrowingBiFunction<T, U, R> mayThrowOnApply) {
+        final BiFunction<T, U, R> unchecked = uncheck2(mayThrowOnApply);
+        return (inputT, inputU) -> {
+            try {
+                return Result.success(unchecked.apply(inputT, inputU));
+            } catch (final RuntimeException e) {
+                return Result.failure(e);
+            }
+        };
+    }
+
     public static <T> Predicate<T>
-    uncheckTest1(@NotNull final ThrowingPredicate<T> mayThrowOnTest) {
+    uncheckTest1(final @NotNull ThrowingPredicate<T> mayThrowOnTest) {
         return input -> {
             try {
                 return mayThrowOnTest.tryTest(input);
@@ -290,7 +406,7 @@ public final class Fun {
     }
 
     public static <T, U> BiPredicate<T, U>
-    uncheckTest2(@NotNull final ThrowingBiPredicate<T, U> mayThrowOnTest) {
+    uncheckTest2(final @NotNull ThrowingBiPredicate<T, U> mayThrowOnTest) {
         return (inputT, inputU) -> {
             try {
                 return mayThrowOnTest.tryTest(inputT, inputU);
@@ -301,7 +417,7 @@ public final class Fun {
     }
 
     public static <T> Consumer<T>
-    uncheckVoid1(@NotNull final ThrowingConsumer<T> mayThrowOnAccept) {
+    uncheckVoid1(final @NotNull ThrowingConsumer<T> mayThrowOnAccept) {
         return input -> {
             try {
                 mayThrowOnAccept.tryAccept(input);
@@ -312,7 +428,7 @@ public final class Fun {
     }
 
     public static <T, U> BiConsumer<T, U>
-    uncheckVoid2(@NotNull final ThrowingBiConsumer<T, U> mayThrowOnAccept) {
+    uncheckVoid2(final @NotNull ThrowingBiConsumer<T, U> mayThrowOnAccept) {
         return (inputT, inputU) -> {
             try {
                 mayThrowOnAccept.tryAccept(inputT, inputU);
@@ -323,7 +439,7 @@ public final class Fun {
     }
 
     public static <T> Predicate<T>
-    testOrDefault1(@NotNull final ThrowingPredicate<T> mayThrowOnTest, boolean defaultValue) {
+    testOrDefault1(final @NotNull ThrowingPredicate<T> mayThrowOnTest, boolean defaultValue) {
         return input -> {
             try {
                 return mayThrowOnTest.tryTest(input);
@@ -334,40 +450,22 @@ public final class Fun {
     }
 
     public static <R> Supplier<R>
-    tryOrDefault0(@NotNull final ThrowingSupplier<R> mayThrowOnGet, @Nullable R defaultValue) {
-        return () -> {
-            try {
-                return mayThrowOnGet.tryGet();
-            } catch (Exception e) {
-                return defaultValue;
-            }
-        };
+    tryOrDefault0(final @NotNull ThrowingSupplier<R> mayThrowOnGet, @Nullable R defaultValue) {
+        return compose0(result0(mayThrowOnGet), result -> result.getOrElse(defaultValue));
     }
 
     public static <T, R> Function<T, R>
-    tryOrDefault1(@NotNull final ThrowingFunction<T, R> mayThrowOnApply, @Nullable R defaultValue) {
-        return input -> {
-            try {
-                return mayThrowOnApply.tryApply(input);
-            } catch (Exception e) {
-                return defaultValue;
-            }
-        };
+    tryOrDefault1(final @NotNull ThrowingFunction<T, R> mayThrowOnApply, @Nullable R defaultValue) {
+        return compose(result1(mayThrowOnApply), result -> result.getOrElse(defaultValue));
     }
 
     public static <T, U, R> BiFunction<T, U, R>
-    tryOrDefault2(@NotNull final ThrowingBiFunction<T, U, R> mayThrowOnApply, @Nullable R defaultValue) {
-        return (inputT, inputU) -> {
-            try {
-                return mayThrowOnApply.tryApply(inputT, inputU);
-            } catch (Exception e) {
-                return defaultValue;
-            }
-        };
+    tryOrDefault2(final @NotNull ThrowingBiFunction<T, U, R> mayThrowOnApply, @Nullable R defaultValue) {
+        return compose2(result2(mayThrowOnApply), result -> result.getOrElse(defaultValue));
     }
 
     public static <R> Supplier<Optional<R>>
-    tryOrOptional0(@NotNull final ThrowingSupplier<R> mayThrowOnGet) {
+    tryOrOptional0(final @NotNull ThrowingSupplier<R> mayThrowOnGet) {
         return () -> {
             try {
                 return Optional.of(mayThrowOnGet.tryGet());
@@ -378,7 +476,7 @@ public final class Fun {
     }
 
     public static <T, R> Function<T, Optional<R>>
-    tryOrOptional1(@NotNull final ThrowingFunction<T, R> mayThrowOnApply) {
+    tryOrOptional1(final @NotNull ThrowingFunction<T, R> mayThrowOnApply) {
         return input -> {
             try {
                 return Optional.of(mayThrowOnApply.tryApply(input));
@@ -389,7 +487,7 @@ public final class Fun {
     }
 
     public static <T, U, R> BiFunction<T, U, Optional<R>>
-    tryOrOptional2(@NotNull final ThrowingBiFunction<T, U, R> mayThrowOnApply) {
+    tryOrOptional2(final @NotNull ThrowingBiFunction<T, U, R> mayThrowOnApply) {
         return (inputT, inputU) -> {
             try {
                 return Optional.of(mayThrowOnApply.tryApply(inputT, inputU));
@@ -400,7 +498,7 @@ public final class Fun {
     }
 
     public static <T> Consumer<T>
-    tryOrVoid1(@NotNull final ThrowingConsumer<T> mayThrowOnAccept) {
+    tryOrVoid1(final @NotNull ThrowingConsumer<T> mayThrowOnAccept) {
         return input -> {
             try {
                 mayThrowOnAccept.tryAccept(input);
@@ -412,7 +510,7 @@ public final class Fun {
 
 
     public static <T, U> BiConsumer<T, U>
-    tryOrVoid2(@NotNull final ThrowingBiConsumer<T, U> mayThrowOnAccept) {
+    tryOrVoid2(final @NotNull ThrowingBiConsumer<T, U> mayThrowOnAccept) {
         return (inputT, inputU) -> {
             try {
                 mayThrowOnAccept.tryAccept(inputT, inputU);
@@ -423,7 +521,7 @@ public final class Fun {
     }
 
     public static <T> Predicate<T>
-    tryOrFalse1(@NotNull final ThrowingPredicate<T> mayThrowOnTest) {
+    tryOrFalse1(final @NotNull ThrowingPredicate<T> mayThrowOnTest) {
         return input -> {
             try {
                 return mayThrowOnTest.tryTest(input);
@@ -434,7 +532,7 @@ public final class Fun {
     }
 
     public static <T, U> BiPredicate<T, U>
-    tryOrFalse2(@NotNull final ThrowingBiPredicate<T, U> mayThrowOnTest) {
+    tryOrFalse2(final @NotNull ThrowingBiPredicate<T, U> mayThrowOnTest) {
         return (inputT, inputU) -> {
             try {
                 return mayThrowOnTest.tryTest(inputT, inputU);

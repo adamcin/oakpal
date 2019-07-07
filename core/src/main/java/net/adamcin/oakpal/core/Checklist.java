@@ -56,7 +56,7 @@ public final class Checklist implements JavaxJson.ObjectConvertible {
     public static final String KEY_JCR_NAMESPACES = "jcrNamespaces";
     public static final String KEY_JCR_PRIVILEGES = "jcrPrivileges";
     public static final String KEY_FORCED_ROOTS = "forcedRoots";
-    static final String KEY_CHECKS = "checks";
+    public static final String KEY_CHECKS = "checks";
 
     private static final List<String> KEY_ORDER = Arrays.asList(
             Checklist.KEY_NAME,
@@ -80,7 +80,7 @@ public final class Checklist implements JavaxJson.ObjectConvertible {
         }
     };
 
-    public static <T> Comparator<T> comparingJsonKeys(@NotNull final Function<T, String> jsonKeyExtractor) {
+    public static <T> Comparator<T> comparingJsonKeys(final @NotNull Function<T, String> jsonKeyExtractor) {
         return (t1, t2) -> checklistKeyComparator.compare(jsonKeyExtractor.apply(t1), jsonKeyExtractor.apply(t2));
     }
 
@@ -94,15 +94,15 @@ public final class Checklist implements JavaxJson.ObjectConvertible {
     private final List<ForcedRoot> forcedRoots;
     private final List<CheckSpec> checks;
 
-    Checklist(@Nullable final JsonObject originalJson,
-              @Nullable final String moduleName,
-              @Nullable final String name,
-              @NotNull final List<URL> cndUrls,
-              @NotNull final List<JcrNs> jcrNamespaces,
-              @NotNull final List<QNodeTypeDefinition> jcrNodetypes,
-              @NotNull final List<String> jcrPrivileges,
-              @NotNull final List<ForcedRoot> forcedRoots,
-              @NotNull final List<CheckSpec> checks) {
+    Checklist(final @Nullable JsonObject originalJson,
+              final @Nullable String moduleName,
+              final @Nullable String name,
+              final @NotNull List<URL> cndUrls,
+              final @NotNull List<JcrNs> jcrNamespaces,
+              final @NotNull List<QNodeTypeDefinition> jcrNodetypes,
+              final @NotNull List<String> jcrPrivileges,
+              final @NotNull List<ForcedRoot> forcedRoots,
+              final @NotNull List<CheckSpec> checks) {
         this.originalJson = originalJson;
         this.moduleName = moduleName;
         this.name = name;
@@ -167,48 +167,48 @@ public final class Checklist implements JavaxJson.ObjectConvertible {
         private List<ForcedRoot> forcedRoots = new ArrayList<>();
         private List<CheckSpec> checks = new ArrayList<>();
 
-        Builder(@NotNull final String moduleName) {
+        Builder(final @NotNull String moduleName) {
             this.moduleName = moduleName;
         }
 
-        Builder withName(@Nullable final String name) {
+        Builder withName(final @Nullable String name) {
             this.name = name;
             return this;
         }
 
-        Builder withCndUrls(@NotNull final List<URL> cndUrls) {
+        Builder withCndUrls(final @NotNull List<URL> cndUrls) {
             this.cndUrls.addAll(cndUrls);
             return this;
         }
 
-        Builder withJcrNamespaces(@NotNull final List<JcrNs> jcrNamespaces) {
+        Builder withJcrNamespaces(final @NotNull List<JcrNs> jcrNamespaces) {
             this.jcrNamespaces.addAll(jcrNamespaces);
             return this;
         }
 
-        Builder withJcrNodetypes(@NotNull final List<QNodeTypeDefinition> jcrNodetypes) {
+        Builder withJcrNodetypes(final @NotNull List<QNodeTypeDefinition> jcrNodetypes) {
             this.jcrNodetypes.addAll(jcrNodetypes);
             return this;
         }
 
-        Builder withJcrPrivileges(@NotNull final List<String> jcrPrivileges) {
+        Builder withJcrPrivileges(final @NotNull List<String> jcrPrivileges) {
             this.jcrPrivileges.addAll(jcrPrivileges);
             return this;
         }
 
-        Builder withForcedRoots(@NotNull final List<ForcedRoot> forcedRoots) {
+        Builder withForcedRoots(final @NotNull List<ForcedRoot> forcedRoots) {
             this.forcedRoots.addAll(forcedRoots);
             return this;
         }
 
-        Builder withChecks(@NotNull final List<CheckSpec> checks) {
+        Builder withChecks(final @NotNull List<CheckSpec> checks) {
             this.checks.addAll(checks.stream()
                     .filter(this::isValidCheckspec)
                     .collect(Collectors.toList()));
             return this;
         }
 
-        boolean isValidCheckspec(@NotNull final CheckSpec check) {
+        boolean isValidCheckspec(final @NotNull CheckSpec check) {
             return !check.isAbstract()
                     && check.getName() != null
                     && !check.getName().isEmpty()
@@ -226,7 +226,7 @@ public final class Checklist implements JavaxJson.ObjectConvertible {
                     .orElse(modulePrefix);
         }
 
-        private void insertPrefix(@NotNull final CheckSpec checkSpec, final String prefix) {
+        private void insertPrefix(final @NotNull CheckSpec checkSpec, final String prefix) {
             checkSpec.setName(prefix + checkSpec.getName());
         }
 
@@ -234,7 +234,7 @@ public final class Checklist implements JavaxJson.ObjectConvertible {
             return build(null);
         }
 
-        Checklist build(@Nullable final JsonObject originalJson) {
+        Checklist build(final @Nullable JsonObject originalJson) {
             final String prefix = getCheckPrefix();
             checks.forEach(checkSpec -> insertPrefix(checkSpec, prefix));
             return new Checklist(originalJson, moduleName,
@@ -287,9 +287,9 @@ public final class Checklist implements JavaxJson.ObjectConvertible {
      * @param json        check list blob
      * @return the new package checklist
      */
-    public static Checklist fromJson(@NotNull final String moduleName,
-                                     @Nullable final URL manifestUrl,
-                                     @NotNull final JsonObject json) {
+    public static Checklist fromJson(final @NotNull String moduleName,
+                                     final @Nullable URL manifestUrl,
+                                     final @NotNull JsonObject json) {
         LOGGER.trace("[fromJson] module: {}, manifestUrl: {}, json: {}", moduleName, manifestUrl, json);
         Builder builder = new Builder(moduleName);
         if (hasNonNull(json, KEY_NAME)) {

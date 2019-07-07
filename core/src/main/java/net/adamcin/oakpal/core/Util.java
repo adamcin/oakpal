@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Enumeration;
@@ -37,14 +38,13 @@ import java.util.jar.JarFile;
 import java.util.jar.Manifest;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 import javax.jcr.Session;
 
+import aQute.bnd.header.Attrs;
 import aQute.bnd.header.Parameters;
 import aQute.bnd.osgi.Domain;
 import net.adamcin.oakpal.core.jcrfacade.SessionFacade;
-import org.json.JSONArray;
-import org.json.JSONObject;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -86,6 +86,16 @@ public final class Util {
         Domain domain = Domain.domain(manifest);
         Parameters params = domain.getParameters(headerName);
         return new ArrayList<>(params.keySet());
+    }
+
+    public static String escapeManifestHeaderValue(final @NotNull String... values) {
+        return escapeManifestHeaderValues(Arrays.asList(values));
+    }
+
+    public static String escapeManifestHeaderValues(final @NotNull List<String> values) {
+        Parameters parameters = new Parameters();
+        values.stream().forEachOrdered(value -> parameters.put(value, new Attrs()));
+        return parameters.toString();
     }
 
     public static List<URL> resolveManifestResources(final URL manifestUrl, final List<String> resources) {
@@ -186,59 +196,6 @@ public final class Util {
             logger.trace(format, item);
             return true;
         };
-    }
-
-    /**
-     * @param jsonArray the array to read objects and map to the specified type
-     * @param mapper    the mapper function
-     * @param <T>       the target type
-     * @return the mapped list
-     * @deprecated 1.2.0 org.json has been replaced with javax.json.
-     */
-    @Deprecated
-    public static <T> List<T> fromJSONArray(final JSONArray jsonArray, final Function<JSONObject, T> mapper) {
-        List<T> results = new ArrayList<>();
-        List<JSONObject> onlyObjects = stream(jsonArray)
-                .filter(json -> json instanceof JSONObject)
-                .map(JSONObject.class::cast)
-                .collect(Collectors.toList());
-
-        for (JSONObject json : onlyObjects) {
-            results.add(mapper.apply(json));
-        }
-
-        return Collections.unmodifiableList(results);
-    }
-
-    /**
-     * @param jsonArray the array to read objects and map to the specified type
-     * @return the mapped list
-     * @deprecated 1.2.0 org.json has been replaced with javax.json.
-     */
-    @Deprecated
-    public static List<String> fromJSONArrayAsStrings(final JSONArray jsonArray) {
-        return stream(jsonArray)
-                .map(String::valueOf)
-                .collect(Collectors.toList());
-    }
-
-    @Deprecated
-    public static <T> List<T> fromJSONArrayParsed(final JSONArray jsonArray,
-                                                  final TryFunction<String, T> parser,
-                                                  final BiConsumer<String, Exception> errorConsumer) {
-        return stream(jsonArray)
-                .map(String::valueOf)
-                .flatMap(composeTry(Stream::of, Stream::empty, parser, errorConsumer))
-                .collect(Collectors.toList());
-    }
-
-    @Deprecated
-    public static Stream<Object> stream(final JSONArray jsonArray) {
-        if (jsonArray != null) {
-            return StreamSupport.stream(jsonArray.spliterator(), false);
-        } else {
-            return Stream.empty();
-        }
     }
 
     /**
