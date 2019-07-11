@@ -80,9 +80,9 @@ public class AbortedScanException extends Exception {
 
     public String getFailedPackageMessage() {
         return Stream.of(
-                Optional.ofNullable(this.currentPackageNode).map(uncheck1(Node::getPath)),
-                Optional.ofNullable(this.currentPackageFile).map(File::getAbsolutePath),
-                Optional.ofNullable(this.currentPackageUrl).map(URL::toString))
+                getCurrentPackageNode().map(uncheck1(Node::getPath)),
+                getCurrentPackageFile().map(File::getAbsolutePath),
+                getCurrentPackageUrl().map(URL::toString))
                 .filter(Optional::isPresent)
                 .findFirst()
                 .map(location -> "(Failed package: " + location + ") ").orElse("");

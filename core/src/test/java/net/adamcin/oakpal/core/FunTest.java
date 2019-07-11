@@ -25,17 +25,18 @@ import static net.adamcin.oakpal.core.Fun.composeTry;
 import static net.adamcin.oakpal.core.Fun.composeTry0;
 import static net.adamcin.oakpal.core.Fun.composeTry2;
 import static net.adamcin.oakpal.core.Fun.entriesToMap;
+import static net.adamcin.oakpal.core.Fun.entriesToMapOfType;
 import static net.adamcin.oakpal.core.Fun.entryTee;
 import static net.adamcin.oakpal.core.Fun.inSet;
 import static net.adamcin.oakpal.core.Fun.infer0;
 import static net.adamcin.oakpal.core.Fun.infer1;
 import static net.adamcin.oakpal.core.Fun.infer2;
-import static net.adamcin.oakpal.core.Fun.inferNothing1;
-import static net.adamcin.oakpal.core.Fun.inferNothing2;
 import static net.adamcin.oakpal.core.Fun.inferTest1;
 import static net.adamcin.oakpal.core.Fun.inferTest2;
 import static net.adamcin.oakpal.core.Fun.isKeyIn;
 import static net.adamcin.oakpal.core.Fun.isValueIn;
+import static net.adamcin.oakpal.core.Fun.keepFirstMerger;
+import static net.adamcin.oakpal.core.Fun.keepLastMerger;
 import static net.adamcin.oakpal.core.Fun.mapEntry;
 import static net.adamcin.oakpal.core.Fun.mapKey;
 import static net.adamcin.oakpal.core.Fun.mapValue;
@@ -52,6 +53,9 @@ import static net.adamcin.oakpal.core.Fun.testKey;
 import static net.adamcin.oakpal.core.Fun.testOrDefault1;
 import static net.adamcin.oakpal.core.Fun.testOrDefault2;
 import static net.adamcin.oakpal.core.Fun.testValue;
+import static net.adamcin.oakpal.core.Fun.throwingMerger;
+import static net.adamcin.oakpal.core.Fun.throwingVoidToNothing1;
+import static net.adamcin.oakpal.core.Fun.throwingVoidToNothing2;
 import static net.adamcin.oakpal.core.Fun.toEntry;
 import static net.adamcin.oakpal.core.Fun.toVoid1;
 import static net.adamcin.oakpal.core.Fun.toVoid2;
@@ -88,6 +92,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -261,7 +266,7 @@ public class FunTest {
     }
 
     @Test
-    public void testInferNothing1() throws Exception {
+    public void testThrowingVoidToNothing1() throws Exception {
         final AtomicInteger latch = new AtomicInteger(0);
         final Fun.ThrowingConsumer<Integer> consumer = value -> {
             if (value % 3 == 0) {
@@ -270,11 +275,12 @@ public class FunTest {
             latch.addAndGet(value);
         };
         assertSame("should be the same nothing",
-                Nothing.instance, inferNothing1(consumer).tryApply(2));
+                Nothing.instance, throwingVoidToNothing1(consumer).tryApply(2));
+        assertEquals("latch value should be 2", 2, latch.get());
     }
 
     @Test
-    public void testInferNothing2() throws Exception {
+    public void testThrowingVoidToNothing2() throws Exception {
         final AtomicInteger latch = new AtomicInteger(0);
         final Fun.ThrowingBiConsumer<String, Integer> consumer = (key, newValue) -> {
             if (newValue % 3 == 0) {
@@ -284,7 +290,8 @@ public class FunTest {
         };
 
         assertSame("should be the same nothing",
-                Nothing.instance, inferNothing2(consumer).tryApply("", 2));
+                Nothing.instance, throwingVoidToNothing2(consumer).tryApply("", 2));
+        assertEquals("latch value should be 2", 2, latch.get());
     }
 
     @Test
@@ -335,15 +342,76 @@ public class FunTest {
         final Map<String, Integer> collected = Stream.of(toEntry("one", 1), toEntry("two", 2), toEntry("three", 3))
                 .collect(entriesToMap());
         assertEquals("entriesToMap should match with puts", parallelConstruction, collected);
+        assertTrue("collected map should be a LinkedHashMap", collected instanceof LinkedHashMap);
     }
 
-    @Test(expected = IllegalStateException.class)
-    public void testEntriesToMapThrows() {
+    @Test
+    public void testEntriesToMapOfType() {
         final Map<String, Integer> collected = Stream.of(
                 toEntry("one", 1),
                 toEntry("one", 2),
                 toEntry("three", 3))
-                .collect(entriesToMap());
+                .collect(entriesToMapOfType(HashMap::new));
+        assertEquals("value of 'one' should be 2", Integer.valueOf(2), collected.get("one"));
+        assertTrue("collected map should be a HashMap", collected instanceof HashMap);
+        assertFalse("collected map should not be a LinkedHashMap", collected instanceof LinkedHashMap);
+    }
+
+    @Test
+    public void testEntriesToMapOfTypeWithMerger() {
+        final Map<String, Integer> collected = Stream.of(
+                toEntry("one", 1),
+                toEntry("one", 2),
+                toEntry("three", 3))
+                .collect(entriesToMapOfType(HashMap::new, keepLastMerger()));
+        assertEquals("value of 'one' should be 2", Integer.valueOf(2), collected.get("one"));
+        assertTrue("collected map should be a HashMap", collected instanceof HashMap);
+        assertFalse("collected map should not be a LinkedHashMap", collected instanceof LinkedHashMap);
+        final Map<String, Integer> collectedFirst = Stream.of(
+                toEntry("one", 1),
+                toEntry("one", 2),
+                toEntry("three", 3))
+                .collect(entriesToMapOfType(TreeMap::new, keepFirstMerger()));
+        assertEquals("value of 'one' should be 1", Integer.valueOf(1), collectedFirst.get("one"));
+        assertTrue("collected map should be a TreeMap", collectedFirst instanceof TreeMap);
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void testEntriesToMapOfTypeAndThrows() {
+        final Map<String, Integer> collected = Stream.of(
+                toEntry("one", 1),
+                toEntry("one", 2),
+                toEntry("three", 3))
+                .collect(entriesToMapOfType(TreeMap::new, throwingMerger()));
+    }
+
+    @Test
+    public void testKeepFirstMerger() {
+        final Map<String, Integer> collected = Stream.of(
+                toEntry("one", 1),
+                toEntry("one", 2),
+                toEntry("three", 3))
+                .collect(entriesToMap(keepFirstMerger()));
+        assertEquals("value of 'one' should be 1", Integer.valueOf(1), collected.get("one"));
+    }
+
+    @Test
+    public void testKeepLastMerger() {
+        final Map<String, Integer> collected = Stream.of(
+                toEntry("one", 1),
+                toEntry("one", 2),
+                toEntry("three", 3))
+                .collect(entriesToMap(keepLastMerger()));
+        assertEquals("value of 'one' should be 2", Integer.valueOf(2), collected.get("one"));
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void testThrowingMerger() {
+        final Map<String, Integer> collected = Stream.of(
+                toEntry("one", 1),
+                toEntry("one", 2),
+                toEntry("three", 3))
+                .collect(entriesToMap(throwingMerger()));
     }
 
     @Test
@@ -1088,7 +1156,7 @@ public class FunTest {
 
         Stream.generate(new AtomicInteger(0)::incrementAndGet).limit(10)
                 .forEach(tryOrVoid1(consumer));
-        assertEquals("latch value should be", 1+2+4+5+7+8+10, latch.get());
+        assertEquals("latch value should be", 1 + 2 + 4 + 5 + 7 + 8 + 10, latch.get());
     }
 
     @Test
@@ -1104,6 +1172,6 @@ public class FunTest {
         Stream.generate(new AtomicInteger(0)::incrementAndGet).limit(10)
                 .map(zipValuesWithKeyFunc(String::valueOf))
                 .forEach(onEntry(tryOrVoid2(consumer)));
-        assertEquals("latch value should be", 1+2+4+5+7+8+10, latch.get());
+        assertEquals("latch value should be", 1 + 2 + 4 + 5 + 7 + 8 + 10, latch.get());
     }
 }
