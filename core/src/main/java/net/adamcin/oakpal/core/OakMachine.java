@@ -317,6 +317,8 @@ public final class OakMachine {
         }
 
         /**
+         * Provide a classloader to
+         * {@link org.apache.jackrabbit.vault.fs.io.ImportOptions#setHookClassLoader(ClassLoader)}.
          *
          * @param classLoader the classloader to use for loading hooks
          * @return my builder self
@@ -338,12 +340,13 @@ public final class OakMachine {
         }
 
         /**
+         * Specify an InstallHookPolicy for the scan.
          *
-         * @param scanInstallHookPolicy
-         * @return
+         * @param installHookPolicy the InstallHookPolicy to enforce
+         * @return my builder self
          */
-        public Builder withInstallHookPolicy(final InstallHookPolicy scanInstallHookPolicy) {
-            this.scanInstallHookPolicy = scanInstallHookPolicy;
+        public Builder withInstallHookPolicy(final InstallHookPolicy installHookPolicy) {
+            this.scanInstallHookPolicy = installHookPolicy;
             return this;
         }
 

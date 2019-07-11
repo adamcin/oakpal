@@ -67,6 +67,10 @@ public abstract class Result<V> implements Serializable {
         return getError().isPresent();
     }
 
+    public final Optional<V> toOptional() {
+        return stream().findFirst();
+    }
+
     /**
      * All Failures will be created with a top-level RuntimeException. This method returns it if this result is a
      * failure. Otherwise, Optional.empty() is returned for a success.
@@ -74,6 +78,29 @@ public abstract class Result<V> implements Serializable {
      * @return the top level runtime exception or empty if success
      */
     public abstract Optional<RuntimeException> getError();
+
+    /**
+     * Filters the exception stack as a stream using the provided Throwable predicate.
+     *
+     * @param predicate the Throwable filter
+     * @return some matching throwable or empty
+     */
+    public final Optional<Throwable> findCause(final @NotNull Predicate<Throwable> predicate) {
+        return getError().map(Result::causing).orElse(Stream.empty()).filter(predicate).findFirst();
+    }
+
+    /**
+     * Filters the exception stack as a stream, matching causes against the provided error type. Since the top-level
+     * exception may be an internal RuntimeException, you can use this method to determine if a particular Throwable
+     * type was thrown.
+     *
+     * @param errorType the class providing teh particular Exception type parameter
+     * @param <E> the particular Throwable type parameter
+     * @return an Optional error
+     */
+    public final <E extends Throwable> Optional<E> findCause(final @NotNull Class<E> errorType) {
+        return findCause(errorType::isInstance).map(errorType::cast);
+    }
 
     /**
      * Feeling down because of too much functional wrapping? This method has you covered. Rethrow the highest result
@@ -84,21 +111,10 @@ public abstract class Result<V> implements Serializable {
      * @throws E if any cause in the chain is an instance of the provided errorType, that cause is rethrown
      */
     public final <E extends Exception> void throwCause(final @NotNull Class<E> errorType) throws E {
-        Optional<E> cause = findCause(errorType::isInstance).map(errorType::cast);
+        Optional<E> cause = findCause(errorType);
         if (cause.isPresent()) {
             throw cause.get();
         }
-    }
-
-    /**
-     * Filters the exception stack as a stream using the provided Throwable predicate. Since the top-level exception may
-     * be an internal RuntimeException, you can use this method to determine if a particular Throwable type was thrown.
-     *
-     * @param predicate the Throwable filter
-     * @return some matching throwable or empty
-     */
-    public final Optional<Throwable> findCause(final @NotNull Predicate<Throwable> predicate) {
-        return getError().map(Result::causing).orElse(Stream.empty()).filter(predicate).findFirst();
     }
 
     /**
@@ -174,6 +190,7 @@ public abstract class Result<V> implements Serializable {
 
         @Override
         public Stream<V> stream() {
+            logSupression();
             return Stream.empty();
         }
 
@@ -322,7 +339,7 @@ public abstract class Result<V> implements Serializable {
      * Create a collector that accumulates a stream of Results into a single Result containing either:
      * 1. the collected values of the streamed results according using supplied collector
      * 2. the first encountered failure
-     *
+     * <p>
      * This method is indented to invert the relationship between the Result monoid and the Stream/Collector type,
      * such that this transformation becomes easier: {@code List<Result<A>> -> Result<List<A>>}
      *
