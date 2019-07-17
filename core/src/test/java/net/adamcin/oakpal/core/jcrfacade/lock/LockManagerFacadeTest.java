@@ -16,13 +16,17 @@
 
 package net.adamcin.oakpal.core.jcrfacade.lock;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import javax.jcr.Session;
+import javax.jcr.lock.Lock;
 import javax.jcr.lock.LockManager;
 
 import net.adamcin.oakpal.core.ListenerReadOnlyException;
+import net.adamcin.oakpal.core.jcrfacade.FacadeGetterMapping;
 import net.adamcin.oakpal.core.jcrfacade.JcrSessionFacade;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
@@ -31,6 +35,39 @@ public class LockManagerFacadeTest {
 
     LockManagerFacade<Session> getFacade(final @NotNull LockManager mockLockManager) {
         return new LockManagerFacade<>(mockLockManager, new JcrSessionFacade(mock(Session.class), false));
+    }
+
+    @Test
+    public void testGetLock() throws Exception {
+        new FacadeGetterMapping.Tester<>(LockManager.class, this::getFacade)
+                .testFacadeGetter(Lock.class, LockFacade.class, delegate -> delegate.getLock(""));
+    }
+
+    @Test
+    public void testGetLockTokens() throws Exception {
+        LockManager delegate = mock(LockManager.class);
+        LockManagerFacade<Session> facade = getFacade(delegate);
+        final String[] value = new String[0];
+        when(delegate.getLockTokens()).thenReturn(value);
+        assertSame("is same value", value, facade.getLockTokens());
+    }
+
+    @Test
+    public void testHoldsLock() throws Exception {
+        LockManager delegate = mock(LockManager.class);
+        LockManagerFacade<Session> facade = getFacade(delegate);
+        final String path = "/correct/path";
+        when(delegate.holdsLock(path)).thenReturn(true);
+        assertTrue("is true", facade.holdsLock(path));
+    }
+
+    @Test
+    public void testIsLocked() throws Exception {
+        LockManager delegate = mock(LockManager.class);
+        LockManagerFacade<Session> facade = getFacade(delegate);
+        final String path = "/correct/path";
+        when(delegate.isLocked(path)).thenReturn(true);
+        assertTrue("is true", facade.isLocked(path));
     }
 
     @Test(expected = ListenerReadOnlyException.class)
