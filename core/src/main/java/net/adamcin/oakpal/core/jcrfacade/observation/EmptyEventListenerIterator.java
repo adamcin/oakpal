@@ -54,6 +54,6 @@ public final class EmptyEventListenerIterator implements EventListenerIterator {
 
     @Override
     public Object next() {
-        return nextEventListener();
+        throw new NoSuchElementException();
     }
 }
