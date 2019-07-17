@@ -25,15 +25,19 @@ import javax.jcr.query.QueryResult;
 
 import net.adamcin.oakpal.core.ListenerReadOnlyException;
 import net.adamcin.oakpal.core.jcrfacade.SessionFacade;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Wraps {@link Query} to ensure returned objects are wrapped with appropriate facades.
+ *
+ * @param <Q> the query type, which may be either {@link Query} or {@link javax.jcr.query.qom.QueryObjectModel}
+ * @param <S> the session type, which may be either {@link Session} or {@link org.apache.jackrabbit.api.JackrabbitSession}
  */
-public class QueryFacade<S extends Session> implements Query {
-    private final Query delegate;
-    private final SessionFacade<S> session;
+public class QueryFacade<Q extends Query, S extends Session> implements Query {
+    protected final @NotNull Q delegate;
+    private final @NotNull SessionFacade<S> session;
 
-    public QueryFacade(Query delegate, SessionFacade<S> session) {
+    public QueryFacade(final @NotNull Q delegate, final @NotNull SessionFacade<S> session) {
         this.delegate = delegate;
         this.session = session;
     }
@@ -70,11 +74,6 @@ public class QueryFacade<S extends Session> implements Query {
     }
 
     @Override
-    public Node storeAsNode(String absPath) throws RepositoryException {
-        throw new ListenerReadOnlyException();
-    }
-
-    @Override
     public void bindValue(String varName, Value value) throws IllegalArgumentException, RepositoryException {
         delegate.bindValue(varName, value);
     }
@@ -82,5 +81,10 @@ public class QueryFacade<S extends Session> implements Query {
     @Override
     public String[] getBindVariableNames() throws RepositoryException {
         return delegate.getBindVariableNames();
+    }
+
+    @Override
+    public final Node storeAsNode(String absPath) throws RepositoryException {
+        throw new ListenerReadOnlyException();
     }
 }

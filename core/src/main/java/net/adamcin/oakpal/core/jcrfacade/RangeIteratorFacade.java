@@ -16,37 +16,56 @@
 
 package net.adamcin.oakpal.core.jcrfacade;
 
+import java.util.Iterator;
+import javax.jcr.NodeIterator;
+import javax.jcr.PropertyIterator;
 import javax.jcr.RangeIterator;
+
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Base class for wrapping subtypes of {@link RangeIterator}.
  */
-public abstract class RangeIteratorFacade<R extends RangeIterator> implements RangeIterator {
+public class RangeIteratorFacade<R extends RangeIterator> implements RangeIterator {
 
-    protected final R delegate;
+    protected final @NotNull R delegate;
 
-    public RangeIteratorFacade(R delegate) {
+    public RangeIteratorFacade(final @NotNull R delegate) {
         this.delegate = delegate;
     }
 
     @Override
-    public void skip(long skipNum) {
+    public final void skip(long skipNum) {
         delegate.skip(skipNum);
     }
 
     @Override
-    public long getSize() {
+    public final long getSize() {
         return delegate.getSize();
     }
 
     @Override
-    public long getPosition() {
+    public final long getPosition() {
         return delegate.getPosition();
     }
 
     @Override
-    public boolean hasNext() {
+    public final boolean hasNext() {
         return delegate.hasNext();
     }
 
+    /**
+     * This base implementation throws an error when called, because extending classes must override it with logic that
+     * wraps each element with an appropriate facade class. And since this is a non-parameterized implementation of
+     * {@link Iterator#next()}, it is more likely to be cleaner to simply delegate to the unique parallel {@code nextType}
+     * method defined for each {@link RangeIterator} subinterface, such as {@link PropertyIterator#nextProperty()} or
+     * {@link NodeIterator#nextNode()}, instead of the reverse.
+     *
+     * @return a theoretical next element
+     * @throws UnsupportedOperationException, always.
+     */
+    @Override
+    public Object next() {
+        throw new UnsupportedOperationException("override this method to ensure delegate elements are wrapped appropriately with facades.");
+    }
 }

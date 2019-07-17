@@ -20,25 +20,17 @@ import javax.jcr.NamespaceRegistry;
 import javax.jcr.RepositoryException;
 
 import net.adamcin.oakpal.core.ListenerReadOnlyException;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Wraps {@link NamespaceRegistry} to block namespace changes.
  */
-public class NamespaceRegistryFacade implements NamespaceRegistry {
-    private final NamespaceRegistry delegate;
+public final class NamespaceRegistryFacade implements NamespaceRegistry {
+    private final @NotNull NamespaceRegistry delegate;
 
-    public NamespaceRegistryFacade(NamespaceRegistry delegate) {
+    @SuppressWarnings("WeakerAccess")
+    public NamespaceRegistryFacade(@NotNull NamespaceRegistry delegate) {
         this.delegate = delegate;
-    }
-
-    @Override
-    public void registerNamespace(String prefix, String uri) throws RepositoryException {
-        throw new ListenerReadOnlyException();
-    }
-
-    @Override
-    public void unregisterNamespace(String prefix) throws RepositoryException {
-        throw new ListenerReadOnlyException();
     }
 
     @Override
@@ -59,5 +51,15 @@ public class NamespaceRegistryFacade implements NamespaceRegistry {
     @Override
     public String getPrefix(String uri) throws RepositoryException {
         return delegate.getPrefix(uri);
+    }
+
+    @Override
+    public void registerNamespace(String prefix, String uri) throws RepositoryException {
+        throw new ListenerReadOnlyException();
+    }
+
+    @Override
+    public void unregisterNamespace(String prefix) throws RepositoryException {
+        throw new ListenerReadOnlyException();
     }
 }

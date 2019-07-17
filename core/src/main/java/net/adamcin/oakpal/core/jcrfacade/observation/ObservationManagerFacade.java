@@ -23,18 +23,41 @@ import javax.jcr.observation.EventListenerIterator;
 import javax.jcr.observation.ObservationManager;
 
 import net.adamcin.oakpal.core.ListenerReadOnlyException;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Wraps the {@link ObservationManager} to prevent changes and calls between listeners.
  */
-public class ObservationManagerFacade implements ObservationManager {
+public final class ObservationManagerFacade implements ObservationManager {
     private static final EventListenerIterator EMPTY_LISTENER_ITERATOR =
             new EmptyEventListenerIterator();
 
-    private final ObservationManager delegate;
+    private final @NotNull ObservationManager delegate;
 
-    public ObservationManagerFacade(ObservationManager delegate) {
+    public ObservationManagerFacade(final @NotNull ObservationManager delegate) {
         this.delegate = delegate;
+    }
+
+    @Override
+    public EventListenerIterator getRegisteredEventListeners() throws RepositoryException {
+        return EMPTY_LISTENER_ITERATOR;
+    }
+
+    @Override
+    public EventJournal getEventJournal() throws RepositoryException {
+        return delegate.getEventJournal();
+    }
+
+    @Override
+    public EventJournal getEventJournal(int eventTypes, String absPath, boolean isDeep,
+                                        String[] uuid, String[] nodeTypeName)
+            throws RepositoryException {
+        return delegate.getEventJournal(eventTypes, absPath, isDeep, uuid, nodeTypeName);
+    }
+
+    @Override
+    public void setUserData(String userData) throws RepositoryException {
+        throw new ListenerReadOnlyException();
     }
 
     @Override
@@ -48,26 +71,5 @@ public class ObservationManagerFacade implements ObservationManager {
     @Override
     public void removeEventListener(EventListener listener) throws RepositoryException {
         throw new ListenerReadOnlyException();
-    }
-
-    @Override
-    public EventListenerIterator getRegisteredEventListeners() throws RepositoryException {
-        return EMPTY_LISTENER_ITERATOR;
-    }
-
-    @Override
-    public void setUserData(String userData) throws RepositoryException {
-    }
-
-    @Override
-    public EventJournal getEventJournal() throws RepositoryException {
-        return delegate.getEventJournal();
-    }
-
-    @Override
-    public EventJournal getEventJournal(int eventTypes, String absPath, boolean isDeep,
-                                        String[] uuid, String[] nodeTypeName)
-            throws RepositoryException {
-        return delegate.getEventJournal(eventTypes, absPath, isDeep, uuid, nodeTypeName);
     }
 }

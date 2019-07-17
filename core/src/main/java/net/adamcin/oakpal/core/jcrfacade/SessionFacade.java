@@ -36,30 +36,27 @@ import net.adamcin.oakpal.core.ListenerReadOnlyException;
 import net.adamcin.oakpal.core.jcrfacade.retention.RetentionManagerFacade;
 import net.adamcin.oakpal.core.jcrfacade.security.AccessControlManagerFacade;
 import org.apache.jackrabbit.api.JackrabbitSession;
-import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.xml.sax.ContentHandler;
 import org.xml.sax.SAXException;
 
 /**
- * Base class for wrapping a {@link Session} to guards against writes by listeners.
+ * Base class for wrapping a {@link Session} to guard against writes by listeners.
  *
  * @param <S> type parameter for session
  */
-public abstract class SessionFacade<S extends Session> implements Session {
+public class SessionFacade<S extends Session> implements Session {
 
-    protected final S delegate;
-    private final Workspace workspace;
-    private final RepositoryFacade repository;
-    private boolean notProtected;
+    protected final @NotNull S delegate;
+    private final boolean notProtected;
 
-    protected SessionFacade(S delegate, boolean notProtected) {
+    public SessionFacade(final @NotNull S delegate, final boolean notProtected) {
         this.delegate = delegate;
-        this.workspace = WorkspaceFacade.findBestWrapper(delegate.getWorkspace(), this);
-        this.repository = new RepositoryFacade(delegate.getRepository());
         this.notProtected = notProtected;
     }
 
-    public static Session findBestWrapper(final Session session, final boolean notProtected) {
+    public static @Nullable Session findBestWrapper(final @Nullable Session session, final boolean notProtected) {
         if (session instanceof JackrabbitSession) {
             return new JackrabbitSessionFacade((JackrabbitSession) session, notProtected);
         } else if (session != null) {
@@ -69,234 +66,222 @@ public abstract class SessionFacade<S extends Session> implements Session {
         }
     }
 
-    @SuppressWarnings("uncheckVoid")
-    public static <T extends Session> SessionFacade<T> wrap(final T session, final Class<T> sessionType,
-                                                            final boolean notProtected) {
-        if (sessionType.isAssignableFrom(JackrabbitSessionFacade.class)) {
-            return (SessionFacade<T>) new JackrabbitSessionFacade((JackrabbitSession) session, notProtected);
-        } else if (sessionType.isAssignableFrom(JcrSessionFacade.class)) {
-            return (SessionFacade<T>) new JcrSessionFacade(session, notProtected);
-        } else {
-            throw new IllegalArgumentException("Invalid Session type: " + sessionType.getName());
-        }
+    @Override
+    public final Repository getRepository() {
+        Repository internal = delegate.getRepository();
+        return new RepositoryFacade(internal);
     }
 
     @Override
-    public Repository getRepository() {
-        return repository;
+    public final AccessControlManager getAccessControlManager() throws RepositoryException {
+        AccessControlManager internal = delegate.getAccessControlManager();
+        return AccessControlManagerFacade.findBestWrapper(internal);
     }
 
     @Override
-    public String getUserID() {
+    public final RetentionManager getRetentionManager() throws RepositoryException {
+        RetentionManager internal = delegate.getRetentionManager();
+        return new RetentionManagerFacade(internal);
+    }
+
+    @Override
+    public final Workspace getWorkspace() {
+        Workspace internal = delegate.getWorkspace();
+        return WorkspaceFacade.findBestWrapper(internal, this);
+    }
+
+    @Override
+    public final String getUserID() {
         return delegate.getUserID();
     }
 
     @Override
-    public String[] getAttributeNames() {
+    public final String[] getAttributeNames() {
         return delegate.getAttributeNames();
     }
 
     @Override
-    public Object getAttribute(String name) {
+    public final Object getAttribute(final String name) {
         return delegate.getAttribute(name);
     }
 
     @Override
-    public Workspace getWorkspace() {
-        return workspace;
-    }
-
-    @Override
-    public Node getRootNode() throws RepositoryException {
+    public final Node getRootNode() throws RepositoryException {
         return NodeFacade.wrap(delegate.getRootNode(), this);
     }
 
     @Override
-    public Session impersonate(Credentials credentials) throws RepositoryException {
+    public final Session impersonate(Credentials credentials) throws RepositoryException {
         Session impersonateDelegate = delegate.impersonate(credentials);
         return SessionFacade.findBestWrapper(impersonateDelegate, true);
     }
 
+    @SuppressWarnings("deprecation")
     @Override
-    public Node getNodeByUUID(String uuid) throws RepositoryException {
+    public final Node getNodeByUUID(String uuid) throws RepositoryException {
         return NodeFacade.wrap(delegate.getNodeByUUID(uuid), this);
     }
 
     @Override
-    public Node getNodeByIdentifier(String id) throws RepositoryException {
+    public final Node getNodeByIdentifier(String id) throws RepositoryException {
         return NodeFacade.wrap(delegate.getNodeByIdentifier(id), this);
     }
 
     @Override
-    public Item getItem(String absPath) throws RepositoryException {
+    public final Item getItem(String absPath) throws RepositoryException {
         return ItemFacade.ensureBestWrapper(delegate.getItem(absPath), this);
     }
 
     @Override
-    public Node getNode(String absPath) throws RepositoryException {
+    public final Node getNode(String absPath) throws RepositoryException {
         return NodeFacade.wrap(delegate.getNode(absPath), this);
     }
 
     @Override
-    public Property getProperty(String absPath) throws RepositoryException {
+    public final Property getProperty(String absPath) throws RepositoryException {
         Property internal = delegate.getProperty(absPath);
         return new PropertyFacade<>(internal, this);
     }
 
     @Override
-    public boolean itemExists(String absPath) throws RepositoryException {
+    public final boolean itemExists(String absPath) throws RepositoryException {
         return delegate.itemExists(absPath);
     }
 
     @Override
-    public boolean nodeExists(String absPath) throws RepositoryException {
+    public final boolean nodeExists(String absPath) throws RepositoryException {
         return delegate.nodeExists(absPath);
     }
 
     @Override
-    public boolean propertyExists(String absPath) throws RepositoryException {
+    public final boolean propertyExists(String absPath) throws RepositoryException {
         return delegate.propertyExists(absPath);
     }
 
     @Override
-    public void move(String srcAbsPath, String destAbsPath) throws RepositoryException {
-        throw new ListenerReadOnlyException();
-    }
-
-    @Override
-    public void removeItem(String absPath) throws RepositoryException {
-        throw new ListenerReadOnlyException();
-    }
-
-    @Override
-    public void save() throws RepositoryException {
-        throw new ListenerReadOnlyException();
-    }
-
-    @Override
-    public void refresh(boolean keepChanges) throws RepositoryException {
+    public final void refresh(boolean keepChanges) throws RepositoryException {
         if (notProtected) {
             delegate.refresh(keepChanges);
         }
     }
 
     @Override
-    public boolean hasPendingChanges() throws RepositoryException {
-        return delegate.hasPendingChanges();
-    }
-
-    @Override
-    public ValueFactory getValueFactory() throws RepositoryException {
-        return delegate.getValueFactory();
-    }
-
-    @Override
-    public boolean hasPermission(String absPath, String actions) throws RepositoryException {
-        return delegate.hasPermission(absPath, actions);
-    }
-
-    @Override
-    public void checkPermission(String absPath, String actions) throws AccessControlException, RepositoryException {
-        delegate.checkPermission(absPath, actions);
-    }
-
-    @Override
-    public boolean hasCapability(String methodName, Object target, Object[] arguments) throws RepositoryException {
-        return delegate.hasCapability(methodName, target, arguments);
-    }
-
-    @Override
-    public ContentHandler getImportContentHandler(String parentAbsPath, int uuidBehavior) throws RepositoryException {
-        throw new ListenerReadOnlyException();
-    }
-
-    @Override
-    public void importXML(String parentAbsPath, InputStream in, int uuidBehavior) throws RepositoryException {
-        throw new ListenerReadOnlyException();
-    }
-
-    @Override
-    public void exportSystemView(String absPath, ContentHandler contentHandler, boolean skipBinary, boolean noRecurse)
-            throws SAXException, RepositoryException {
-        delegate.exportSystemView(absPath, contentHandler, skipBinary, noRecurse);
-    }
-
-    @Override
-    public void exportSystemView(String absPath, OutputStream out, boolean skipBinary, boolean noRecurse) throws IOException, RepositoryException {
-        delegate.exportSystemView(absPath, out, skipBinary, noRecurse);
-    }
-
-    @Override
-    public void exportDocumentView(String absPath, ContentHandler contentHandler, boolean skipBinary, boolean noRecurse)
-            throws SAXException, RepositoryException {
-        delegate.exportDocumentView(absPath, contentHandler, skipBinary, noRecurse);
-
-    }
-
-    @Override
-    public void exportDocumentView(String absPath, OutputStream out, boolean skipBinary, boolean noRecurse) throws IOException, RepositoryException {
-        delegate.exportDocumentView(absPath, out, skipBinary, noRecurse);
-    }
-
-    @Override
-    public void setNamespacePrefix(String prefix, String uri) throws RepositoryException {
-        throw new ListenerReadOnlyException();
-    }
-
-    @Override
-    public String[] getNamespacePrefixes() throws RepositoryException {
-        return delegate.getNamespacePrefixes();
-    }
-
-    @Override
-    public String getNamespaceURI(String prefix) throws RepositoryException {
-        return delegate.getNamespaceURI(prefix);
-    }
-
-    @Override
-    public String getNamespacePrefix(String uri) throws RepositoryException {
-        return delegate.getNamespacePrefix(uri);
-    }
-
-    @Override
-    public void logout() {
+    public final void logout() {
         if (notProtected) {
             delegate.logout();
         }
     }
 
     @Override
-    public boolean isLive() {
+    public final boolean isLive() {
         return delegate.isLive();
     }
 
     @Override
-    public void addLockToken(String lt) {
-        // do nothing, since this signature doesn't throw RepositoryException
+    public final boolean hasPendingChanges() throws RepositoryException {
+        return delegate.hasPendingChanges();
     }
 
     @Override
-    public String[] getLockTokens() {
+    public final ValueFactory getValueFactory() throws RepositoryException {
+        return delegate.getValueFactory();
+    }
+
+    @Override
+    public final boolean hasPermission(String absPath, String actions) throws RepositoryException {
+        return delegate.hasPermission(absPath, actions);
+    }
+
+    @Override
+    public final void checkPermission(String absPath, String actions) throws AccessControlException, RepositoryException {
+        delegate.checkPermission(absPath, actions);
+    }
+
+    @Override
+    public final boolean hasCapability(String methodName, Object target, Object[] arguments) throws RepositoryException {
+        return delegate.hasCapability(methodName, target, arguments);
+    }
+
+    @Override
+    public final void exportSystemView(String absPath, ContentHandler contentHandler, boolean skipBinary, boolean noRecurse)
+            throws SAXException, RepositoryException {
+        delegate.exportSystemView(absPath, contentHandler, skipBinary, noRecurse);
+    }
+
+    @Override
+    public final void exportSystemView(String absPath, OutputStream out, boolean skipBinary, boolean noRecurse) throws IOException, RepositoryException {
+        delegate.exportSystemView(absPath, out, skipBinary, noRecurse);
+    }
+
+    @Override
+    public final void exportDocumentView(String absPath, ContentHandler contentHandler, boolean skipBinary, boolean noRecurse)
+            throws SAXException, RepositoryException {
+        delegate.exportDocumentView(absPath, contentHandler, skipBinary, noRecurse);
+    }
+
+    @Override
+    public final void exportDocumentView(String absPath, OutputStream out, boolean skipBinary, boolean noRecurse) throws IOException, RepositoryException {
+        delegate.exportDocumentView(absPath, out, skipBinary, noRecurse);
+    }
+
+    @Override
+    public final String[] getNamespacePrefixes() throws RepositoryException {
+        return delegate.getNamespacePrefixes();
+    }
+
+    @Override
+    public final String getNamespaceURI(String prefix) throws RepositoryException {
+        return delegate.getNamespaceURI(prefix);
+    }
+
+    @Override
+    public final String getNamespacePrefix(String uri) throws RepositoryException {
+        return delegate.getNamespacePrefix(uri);
+    }
+
+    @Override
+    public final void addLockToken(String lt) {
+        // do nothing, since this signature doesn't throw RepositoryException
+    }
+
+    @SuppressWarnings("deprecation")
+    @Override
+    public final String[] getLockTokens() {
         return delegate.getLockTokens();
     }
 
     @Override
-    public void removeLockToken(String lt) {
+    public final void removeLockToken(String lt) {
         // do nothing, since this signature doesn't throw RepositoryException
     }
 
     @Override
-    public AccessControlManager getAccessControlManager() throws RepositoryException {
-        AccessControlManager internal = delegate.getAccessControlManager();
-        if (internal instanceof JackrabbitAccessControlManager) {
-            return new AccessControlManagerFacade((JackrabbitAccessControlManager) internal);
-        }
-        return null;
+    public final void move(String srcAbsPath, String destAbsPath) throws RepositoryException {
+        throw new ListenerReadOnlyException();
     }
 
     @Override
-    public RetentionManager getRetentionManager() throws RepositoryException {
-        RetentionManager internal = delegate.getRetentionManager();
-        return new RetentionManagerFacade(internal);
+    public final void removeItem(String absPath) throws RepositoryException {
+        throw new ListenerReadOnlyException();
+    }
+
+    @Override
+    public final void save() throws RepositoryException {
+        throw new ListenerReadOnlyException();
+    }
+
+    @Override
+    public final ContentHandler getImportContentHandler(String parentAbsPath, int uuidBehavior) throws RepositoryException {
+        throw new ListenerReadOnlyException();
+    }
+
+    @Override
+    public final void importXML(String parentAbsPath, InputStream in, int uuidBehavior) throws RepositoryException {
+        throw new ListenerReadOnlyException();
+    }
+
+    @Override
+    public final void setNamespacePrefix(String prefix, String uri) throws RepositoryException {
+        throw new ListenerReadOnlyException();
     }
 }

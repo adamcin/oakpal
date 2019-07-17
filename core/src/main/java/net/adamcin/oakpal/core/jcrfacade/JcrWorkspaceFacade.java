@@ -19,14 +19,17 @@ package net.adamcin.oakpal.core.jcrfacade;
 import javax.jcr.Session;
 import javax.jcr.Workspace;
 
+import org.jetbrains.annotations.NotNull;
+
 /**
  * Wraps a {@link javax.jcr.Workspace} to guards against writes by listeners.
  *
  * @param <S> Session type, likely to be {@link Session}.
  */
-class JcrWorkspaceFacade<S extends Session> extends WorkspaceFacade<S, Workspace> implements Workspace {
+@SuppressWarnings("WeakerAccess")
+public final class JcrWorkspaceFacade<S extends Session> extends WorkspaceFacade<Workspace, S> implements Workspace {
 
-    JcrWorkspaceFacade(final Workspace delegate, final SessionFacade<S> session) {
+    public JcrWorkspaceFacade(final @NotNull Workspace delegate, final @NotNull SessionFacade<S> session) {
         super(delegate, session);
     }
 }

@@ -24,15 +24,17 @@ import javax.jcr.query.RowIterator;
 
 import net.adamcin.oakpal.core.jcrfacade.SessionFacade;
 import net.adamcin.oakpal.core.jcrfacade.NodeIteratorFacade;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Wraps {@link QueryResult} to ensure returned objects are wrapped appropriately.
  */
-public class QueryResultFacade<S extends Session> implements QueryResult {
-    private final QueryResult delegate;
-    private final SessionFacade<S> session;
+public final class QueryResultFacade<S extends Session> implements QueryResult {
+    private final @NotNull QueryResult delegate;
+    private final @NotNull SessionFacade<S> session;
 
-    public QueryResultFacade(QueryResult delegate, SessionFacade<S> session) {
+    @SuppressWarnings("WeakerAccess")
+    public QueryResultFacade(final @NotNull QueryResult delegate, final @NotNull SessionFacade<S> session) {
         this.delegate = delegate;
         this.session = session;
     }
@@ -45,13 +47,13 @@ public class QueryResultFacade<S extends Session> implements QueryResult {
     @Override
     public RowIterator getRows() throws RepositoryException {
         RowIterator internal = delegate.getRows();
-        return new RowIteratorFacade(internal, session);
+        return new RowIteratorFacade<>(internal, session);
     }
 
     @Override
     public NodeIterator getNodes() throws RepositoryException {
         NodeIterator internal = delegate.getNodes();
-        return new NodeIteratorFacade(internal, session);
+        return new NodeIteratorFacade<>(internal, session);
     }
 
     @Override

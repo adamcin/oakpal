@@ -23,17 +23,24 @@ import javax.security.auth.Subject;
 import net.adamcin.oakpal.core.ListenerReadOnlyException;
 import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
 import org.apache.jackrabbit.api.security.user.Impersonation;
+import org.jetbrains.annotations.NotNull;
 
-public class ImpersonationFacade implements Impersonation {
-    private final Impersonation delegate;
+public final class ImpersonationFacade implements Impersonation {
+    private final @NotNull Impersonation delegate;
 
-    public ImpersonationFacade(final Impersonation delegate) {
+    @SuppressWarnings("WeakerAccess")
+    public ImpersonationFacade(final @NotNull Impersonation delegate) {
         this.delegate = delegate;
     }
 
     @Override
     public PrincipalIterator getImpersonators() throws RepositoryException {
         return delegate.getImpersonators();
+    }
+
+    @Override
+    public boolean allows(final Subject subject) throws RepositoryException {
+        return delegate.allows(subject);
     }
 
     @Override
@@ -44,10 +51,5 @@ public class ImpersonationFacade implements Impersonation {
     @Override
     public boolean revokeImpersonation(final Principal principal) throws RepositoryException {
         throw new ListenerReadOnlyException();
-    }
-
-    @Override
-    public boolean allows(final Subject subject) throws RepositoryException {
-        return delegate.allows(subject);
     }
 }

@@ -78,6 +78,7 @@ import org.jetbrains.annotations.Nullable;
  * {@link #resultNothing1(ThrowingConsumer)} and {@link #resultNothing2(ThrowingBiConsumer)} will transform the consumers
  * to equivalent functions that return a Result wrapping the {@link Nothing} sentinel type.
  */
+@SuppressWarnings("WeakerAccess")
 public final class Fun {
     private Fun() {
         // no construct
@@ -118,7 +119,7 @@ public final class Fun {
      * @return a tee function
      */
     public static <T> @NotNull Function<T, T>
-    tee(final @NotNull Consumer<T> consumer) {
+    tee(final @NotNull Consumer<? super T> consumer) {
         return input -> {
             consumer.accept(input);
             return input;
@@ -134,7 +135,7 @@ public final class Fun {
      * @return a constant Function
      */
     public static <T, R> @NotNull Function<T, R>
-    constantly1(final @NotNull Supplier<R> supplier) {
+    constantly1(final @NotNull Supplier<? extends R> supplier) {
         return input -> supplier.get();
     }
 
@@ -142,13 +143,13 @@ public final class Fun {
      * Fits a supplier into a pipeline as a constant {@link BiFunction}.
      *
      * @param supplier the supplier
-     * @param <K>      the (ignored) left input type
-     * @param <V>      the (ignored) right input type
+     * @param <K>      the (ignored) input entry key type
+     * @param <V>      the (ignored) input entry value type
      * @param <R>      the supplied output type
      * @return a constant BiFunction
      */
     public static <K, V, R> @NotNull BiFunction<K, V, R>
-    constantly2(final @NotNull Supplier<R> supplier) {
+    constantly2(final @NotNull Supplier<? extends R> supplier) {
         return (input0, input1) -> supplier.get();
     }
 
@@ -164,7 +165,7 @@ public final class Fun {
      * @return a composed Function
      */
     public static <T, I, R> Function<T, R>
-    compose(final @NotNull Function<T, I> before, final @NotNull Function<I, R> after) {
+    compose(final @NotNull Function<T, ? extends I> before, final @NotNull Function<? super I, ? extends R> after) {
         return before.andThen(after);
     }
 
@@ -178,7 +179,7 @@ public final class Fun {
      * @return a composed Supplier
      */
     public static <R, S> Supplier<S>
-    compose0(final @NotNull Supplier<R> before, final @NotNull Function<R, S> after) {
+    compose0(final @NotNull Supplier<? extends R> before, final @NotNull Function<? super R, ? extends S> after) {
         final Function<Nothing, S> composed = compose(constantly1(before), after);
         return () -> composed.apply(Nothing.instance);
     }
@@ -196,7 +197,7 @@ public final class Fun {
      * @return a composed BiFunction
      */
     public static <K, V, I, R> BiFunction<K, V, R>
-    compose2(final @NotNull BiFunction<K, V, I> before, final @NotNull Function<I, R> after) {
+    compose2(final @NotNull BiFunction<K, V, ? extends I> before, final @NotNull Function<? super I, ? extends R> after) {
         return before.andThen(after);
     }
 
@@ -211,8 +212,8 @@ public final class Fun {
      * @return a composed Predicate
      */
     public static <T, P> Predicate<T>
-    composeTest(final @NotNull Function<T, P> inputFunction,
-                final @NotNull Predicate<P> testResult) {
+    composeTest(final @NotNull Function<? super T, ? extends P> inputFunction,
+                final @NotNull Predicate<? super P> testResult) {
         return input -> testResult.test(inputFunction.apply(input));
     }
 
@@ -230,9 +231,9 @@ public final class Fun {
      * @return a composed BiPredicate
      */
     public static <K, V, P, Q> BiPredicate<K, V>
-    composeTest2(final @NotNull Function<K, P> inputTFunction,
-                 final @NotNull Function<V, Q> inputUFunction,
-                 final @NotNull BiPredicate<P, Q> testResult) {
+    composeTest2(final @NotNull Function<? super K, ? extends P> inputTFunction,
+                 final @NotNull Function<? super V, ? extends Q> inputUFunction,
+                 final @NotNull BiPredicate<? super P, ? super Q> testResult) {
         return (inputK, inputV) -> testResult.test(inputTFunction.apply(inputK), inputUFunction.apply(inputV));
     }
 
@@ -248,8 +249,8 @@ public final class Fun {
      * @return a composed BiPredicate
      */
     public static <K, V, P> BiPredicate<K, V>
-    composeTest2(final @NotNull BiFunction<K, V, P> inputFunction,
-                 final @NotNull Predicate<P> testResult) {
+    composeTest2(final @NotNull BiFunction<? super K, ? super V, ? extends P> inputFunction,
+                 final @NotNull Predicate<? super P> testResult) {
         return (inputK, inputV) -> testResult.test(inputFunction.apply(inputK, inputV));
     }
 
@@ -258,11 +259,10 @@ public final class Fun {
      *
      * @param inputFunction the Function to use as a Consumer
      * @param <T>           the consumed input type
-     * @param <R>           the ignored output type
      * @return a Consumer
      */
-    public static <T, R> Consumer<T>
-    toVoid1(final @NotNull Function<T, R> inputFunction) {
+    public static <T> Consumer<T>
+    toVoid1(final @NotNull Function<? super T, ?> inputFunction) {
         return inputFunction::apply;
     }
 
@@ -272,11 +272,10 @@ public final class Fun {
      * @param inputFunction the BiFunction to use as a BiConsumer
      * @param <K>           the consumed stream entry key type
      * @param <V>           the consumed stream entry value type
-     * @param <R>           the ignored output type
      * @return a composed BiConsumer
      */
-    public static <K, V, R> BiConsumer<K, V>
-    toVoid2(final @NotNull BiFunction<K, V, R> inputFunction) {
+    public static <K, V> BiConsumer<K, V>
+    toVoid2(final @NotNull BiFunction<? super K, ? super V, ?> inputFunction) {
         return inputFunction::apply;
     }
 
@@ -289,8 +288,8 @@ public final class Fun {
      * @return an inferred Function
      */
     public static <T, R> Function<T, R>
-    infer1(final @NotNull Function<T, R> methodRef) {
-        return methodRef;
+    infer1(final @NotNull Function<? super T, ? extends R> methodRef) {
+        return methodRef::apply;
     }
 
     /**
@@ -303,36 +302,36 @@ public final class Fun {
      * @return an inferred BiFunction
      */
     public static <K, V, R> BiFunction<K, V, R>
-    infer2(final @NotNull BiFunction<K, V, R> methodRef) {
-        return methodRef;
+    infer2(final @NotNull BiFunction<? super K, ? super V, ? extends R> methodRef) {
+        return methodRef::apply;
     }
 
     /**
-     * Infers a static method ref to a Supplier.
+     * Infers a method ref to a Supplier.
      *
      * @param methodRef the method ref
      * @param <T>       the supplied type
      * @return an inferred Supplier
      */
     public static <T> Supplier<T>
-    infer0(final @NotNull Supplier<T> methodRef) {
-        return methodRef;
+    infer0(final @NotNull Supplier<? extends T> methodRef) {
+        return methodRef::get;
     }
 
     /**
-     * Infers a static method ref to a Predicate.
+     * Infers a method ref to a Predicate.
      *
      * @param methodRef the method ref
      * @param <T>       the input type
      * @return an inferred Predicate
      */
     public static <T> Predicate<T>
-    inferTest1(final @NotNull Predicate<T> methodRef) {
-        return methodRef;
+    inferTest1(final @NotNull Predicate<? super T> methodRef) {
+        return methodRef::test;
     }
 
     /**
-     * Infers a static method ref to a BiPredicate.
+     * Infers a method ref to a BiPredicate.
      *
      * @param methodRef the method ref
      * @param <K>       the input key type
@@ -340,8 +339,8 @@ public final class Fun {
      * @return an inferred BiPredicate
      */
     public static <K, V> BiPredicate<K, V>
-    inferTest2(final @NotNull BiPredicate<K, V> methodRef) {
-        return methodRef;
+    inferTest2(final @NotNull BiPredicate<? super K, ? super V> methodRef) {
+        return methodRef::test;
     }
 
     /**
@@ -353,7 +352,7 @@ public final class Fun {
      * @return a {@link ThrowingFunction} that returns {@link Nothing}
      */
     public static <T> ThrowingFunction<T, Nothing>
-    throwingVoidToNothing1(final @NotNull ThrowingConsumer<T> mayThrowOnAccept) {
+    throwingVoidToNothing1(final @NotNull ThrowingConsumer<? super T> mayThrowOnAccept) {
         return input -> {
             mayThrowOnAccept.tryAccept(input);
             return Nothing.instance;
@@ -370,7 +369,7 @@ public final class Fun {
      * @return a {@link ThrowingBiFunction} that returns {@link Nothing}
      */
     public static <K, V> ThrowingBiFunction<K, V, Nothing>
-    throwingVoidToNothing2(final @NotNull ThrowingBiConsumer<K, V> mayThrowOnAccept) {
+    throwingVoidToNothing2(final @NotNull ThrowingBiConsumer<? super K, ? super V> mayThrowOnAccept) {
         return (inputK, inputV) -> {
             mayThrowOnAccept.tryAccept(inputK, inputV);
             return Nothing.instance;
@@ -388,7 +387,7 @@ public final class Fun {
      * @return a tee function for Map.Entry streams
      */
     public static <K, V> Function<Map.Entry<K, V>, Map.Entry<K, V>>
-    entryTee(final @NotNull BiConsumer<K, V> consumer) {
+    entryTee(final @NotNull BiConsumer<? super K, ? super V> consumer) {
         return entry -> {
             consumer.accept(entry.getKey(), entry.getValue());
             return entry;
@@ -405,7 +404,7 @@ public final class Fun {
      * @return a function to map a stream element type to an entry with the same type for the key
      */
     public static <K, V> Function<K, Map.Entry<K, V>>
-    zipKeysWithValueFunc(final @NotNull Function<K, V> valueFunc) {
+    zipKeysWithValueFunc(final @NotNull Function<? super K, ? extends V> valueFunc) {
         return key -> toEntry(key, valueFunc.apply(key));
     }
 
@@ -419,7 +418,7 @@ public final class Fun {
      * @return a function to map a stream element type to an entry with the same type for the value
      */
     public static <K, V> Function<V, Map.Entry<K, V>>
-    zipValuesWithKeyFunc(final @NotNull Function<V, K> keyFunction) {
+    zipValuesWithKeyFunc(final @NotNull Function<? super V, ? extends K> keyFunction) {
         return value -> toEntry(keyFunction.apply(value), value);
     }
 
@@ -546,7 +545,7 @@ public final class Fun {
      * @return a Function mapping over {@link Map.Entry} elements
      */
     public static <K, V, R> Function<Map.Entry<K, V>, R>
-    mapEntry(final @NotNull BiFunction<K, V, R> biMapFunction) {
+    mapEntry(final @NotNull BiFunction<? super K, ? super V, ? extends R> biMapFunction) {
         return entry -> biMapFunction.apply(entry.getKey(), entry.getValue());
     }
 
@@ -562,7 +561,7 @@ public final class Fun {
      * @return a Function mapping over {@link Map.Entry} elements
      */
     public static <K, V, W> Function<Map.Entry<K, V>, Map.Entry<K, W>>
-    mapValue(final @NotNull BiFunction<K, V, W> valueBiFunction) {
+    mapValue(final @NotNull BiFunction<? super K, ? super V, ? extends W> valueBiFunction) {
         return entry -> toEntry(entry.getKey(), valueBiFunction.apply(entry.getKey(), entry.getValue()));
     }
 
@@ -578,7 +577,7 @@ public final class Fun {
      * @return a Function mapping over {@link Map.Entry} elements
      */
     public static <K, V, W> Function<Map.Entry<K, V>, Map.Entry<K, W>>
-    mapValue(final @NotNull Function<V, W> valueFunction) {
+    mapValue(final @NotNull Function<? super V, ? extends W> valueFunction) {
         return mapValue((key, value) -> valueFunction.apply(value));
     }
 
@@ -594,7 +593,7 @@ public final class Fun {
      * @return a Function mapping over {@link Map.Entry} elements
      */
     public static <K, V, L> Function<Map.Entry<K, V>, Map.Entry<L, V>>
-    mapKey(final @NotNull BiFunction<K, V, L> keyBiFunction) {
+    mapKey(final @NotNull BiFunction<? super K, ? super V, ? extends L> keyBiFunction) {
         return entry -> toEntry(keyBiFunction.apply(entry.getKey(), entry.getValue()), entry.getValue());
     }
 
@@ -610,7 +609,7 @@ public final class Fun {
      * @return a Function mapping over {@link Map.Entry} elements
      */
     public static <K, V, L> Function<Map.Entry<K, V>, Map.Entry<L, V>>
-    mapKey(final @NotNull Function<K, L> keyFunction) {
+    mapKey(final @NotNull Function<? super K, ? extends L> keyFunction) {
         return mapKey((key, value) -> keyFunction.apply(key));
     }
 
@@ -624,7 +623,7 @@ public final class Fun {
      * @return a {@link Consumer} of {@link Map.Entry}
      */
     public static <K, V> Consumer<Map.Entry<K, V>>
-    onEntry(final @NotNull BiConsumer<K, V> biConsumer) {
+    onEntry(final @NotNull BiConsumer<? super K, ? super V> biConsumer) {
         return entry -> biConsumer.accept(entry.getKey(), entry.getValue());
     }
 
@@ -638,7 +637,7 @@ public final class Fun {
      * @return a {@link Consumer} of {@link Map.Entry} stream elements
      */
     public static <K, V> Consumer<Map.Entry<K, V>>
-    onKey(final @NotNull Consumer<K> consumer) {
+    onKey(final @NotNull Consumer<? super K> consumer) {
         return entry -> consumer.accept(entry.getKey());
     }
 
@@ -652,7 +651,7 @@ public final class Fun {
      * @return a {@link Consumer} of {@link Map.Entry} stream elements
      */
     public static <K, V> Consumer<Map.Entry<K, V>>
-    onValue(final @NotNull Consumer<V> consumer) {
+    onValue(final @NotNull Consumer<? super V> consumer) {
         return entry -> consumer.accept(entry.getValue());
     }
 
@@ -666,7 +665,7 @@ public final class Fun {
      * @return a {@link Predicate} filtering {@link Map.Entry} stream elements
      */
     public static <K, V> Predicate<? super Map.Entry<K, V>>
-    testEntry(final @NotNull BiPredicate<K, V> biPredicate) {
+    testEntry(final @NotNull BiPredicate<? super K, ? super V> biPredicate) {
         return entry -> biPredicate.test(entry.getKey(), entry.getValue());
     }
 
@@ -680,7 +679,7 @@ public final class Fun {
      * @return a {@link Predicate} filtering {@link Map.Entry} stream elements
      */
     public static <K, V> Predicate<? super Map.Entry<K, V>>
-    testValue(final @NotNull Predicate<V> valuePredicate) {
+    testValue(final @NotNull Predicate<? super V> valuePredicate) {
         return testEntry((key, value) -> valuePredicate.test(value));
     }
 
@@ -694,7 +693,7 @@ public final class Fun {
      * @return a {@link Predicate} filtering {@link Map.Entry} stream elements
      */
     public static <K, V> Predicate<? super Map.Entry<K, V>>
-    testKey(final @NotNull Predicate<K> keyPredicate) {
+    testKey(final @NotNull Predicate<? super K> keyPredicate) {
         return testEntry((key, value) -> keyPredicate.test(key));
     }
 
@@ -850,11 +849,11 @@ public final class Fun {
      * @return a function that never throws an exception.
      */
     public static <M, T, R> Function<T, M>
-    composeTry(final @NotNull Function<R, M> monadUnit,
-               final @NotNull Supplier<M> monadZero,
-               final @NotNull ThrowingFunction<T, R> mayThrowOnApply,
-               final @Nullable BiConsumer<T, Exception> onError) {
-        final BiConsumer<T, Exception> consumeError = onError != null
+    composeTry(final @NotNull Function<? super R, ? extends M> monadUnit,
+               final @NotNull Supplier<? extends M> monadZero,
+               final @NotNull ThrowingFunction<? super T, ? extends R> mayThrowOnApply,
+               final @Nullable BiConsumer<? super T, ? super Exception> onError) {
+        final BiConsumer<? super T, ? super Exception> consumeError = onError != null
                 ? onError
                 : (e, t) -> {
         };
@@ -886,9 +885,9 @@ public final class Fun {
      * @return a function that returns a union type distinguishable between a result type and an error type
      */
     public static <M, T, R> Function<T, M>
-    composeTry(final @NotNull Function<R, M> monoidSuccess,
-               final @NotNull Function<Exception, M> monoidError,
-               final @NotNull ThrowingFunction<T, R> mayThrowOnApply) {
+    composeTry(final @NotNull Function<? super R, ? extends M> monoidSuccess,
+               final @NotNull Function<? super Exception, ? extends M> monoidError,
+               final @NotNull ThrowingFunction<? super T, ? extends R> mayThrowOnApply) {
         return element -> {
             try {
                 return monoidSuccess.apply(mayThrowOnApply.tryApply(element));
@@ -917,11 +916,11 @@ public final class Fun {
      * @return a supplier that never throws an exception.
      */
     public static <M, R> Supplier<M>
-    composeTry0(final @NotNull Function<R, M> monadUnit,
-                final @NotNull Supplier<M> monadZero,
-                final @NotNull ThrowingSupplier<R> mayThrowOnGet,
-                final @Nullable Consumer<Exception> onError) {
-        final Consumer<Exception> consumeError = onError != null
+    composeTry0(final @NotNull Function<? super R, ? extends M> monadUnit,
+                final @NotNull Supplier<? extends M> monadZero,
+                final @NotNull ThrowingSupplier<? extends R> mayThrowOnGet,
+                final @Nullable Consumer<? super Exception> onError) {
+        final Consumer<? super Exception> consumeError = onError != null
                 ? onError
                 : t -> {
         };
@@ -952,9 +951,9 @@ public final class Fun {
      * @return a supplier that returns a union type distinguishable between a result type and an error type
      */
     public static <M, R> Supplier<M>
-    composeTry0(final @NotNull Function<R, M> monoidSuccess,
-                final @NotNull Function<Exception, M> monoidError,
-                final @NotNull ThrowingSupplier<R> mayThrowOnGet) {
+    composeTry0(final @NotNull Function<? super R, ? extends M> monoidSuccess,
+                final @NotNull Function<? super Exception, ? extends M> monoidError,
+                final @NotNull ThrowingSupplier<? extends R> mayThrowOnGet) {
         return () -> {
             try {
                 return monoidSuccess.apply(mayThrowOnGet.tryGet());
@@ -985,10 +984,10 @@ public final class Fun {
      * @return a BiFunction that never throws an exception.
      */
     public static <M, K, V, R> BiFunction<K, V, M>
-    composeTry2(final @NotNull Function<R, M> monadUnit,
-                final @NotNull Supplier<M> monadZero,
-                final @NotNull ThrowingBiFunction<K, V, R> mayThrowOnApply,
-                final @Nullable BiConsumer<Map.Entry<K, V>, Exception> onError) {
+    composeTry2(final @NotNull Function<? super R, ? extends M> monadUnit,
+                final @NotNull Supplier<? extends M> monadZero,
+                final @NotNull ThrowingBiFunction<? super K, ? super V, ? extends R> mayThrowOnApply,
+                final @Nullable BiConsumer<? super Map.Entry<? super K, ? super V>, ? super Exception> onError) {
 
         return (elementK, elementV) -> {
             try {
@@ -1020,9 +1019,9 @@ public final class Fun {
      * @return a function that returns a union type distinguishable between a result type and an error type
      */
     public static <M, K, V, R> BiFunction<K, V, M>
-    composeTry2(final @NotNull Function<R, M> monoidSuccess,
-                final @NotNull Function<Exception, M> monoidError,
-                final @NotNull ThrowingBiFunction<K, V, R> mayThrowOnApply) {
+    composeTry2(final @NotNull Function<? super R, ? extends M> monoidSuccess,
+                final @NotNull Function<? super Exception, ? extends M> monoidError,
+                final @NotNull ThrowingBiFunction<? super K, ? super V, ? extends R> mayThrowOnApply) {
         return (elementK, elementV) -> {
             try {
                 return monoidSuccess.apply(mayThrowOnApply.tryApply(elementK, elementV));
@@ -1041,7 +1040,7 @@ public final class Fun {
      * @return an unchecked {@link Supplier}
      */
     public static <R> Supplier<R>
-    uncheck0(final @NotNull ThrowingSupplier<R> mayThrowOnGet) {
+    uncheck0(final @NotNull ThrowingSupplier<? extends R> mayThrowOnGet) {
         return () -> {
             try {
                 return mayThrowOnGet.tryGet();
@@ -1060,7 +1059,7 @@ public final class Fun {
      * @return a {@link Supplier} of {@link Result}s of type {@code R}
      */
     public static <R> Supplier<Result<R>>
-    result0(final @NotNull ThrowingSupplier<R> mayThrowOnGet) {
+    result0(final @NotNull ThrowingSupplier<? extends R> mayThrowOnGet) {
         return composeTry0(Result::success, Result::failure, mayThrowOnGet);
     }
 
@@ -1074,7 +1073,7 @@ public final class Fun {
      * @return an unchecked {@link Function}
      */
     public static <T, R> Function<T, R>
-    uncheck1(final @NotNull ThrowingFunction<T, R> mayThrowOnApply) {
+    uncheck1(final @NotNull ThrowingFunction<? super T, ? extends R> mayThrowOnApply) {
         return input -> {
             try {
                 return mayThrowOnApply.tryApply(input);
@@ -1094,7 +1093,7 @@ public final class Fun {
      * @return a {@link Function} over the same input returning a {@link Result} of type {@code R}
      */
     public static <T, R> Function<T, Result<R>>
-    result1(final @NotNull ThrowingFunction<T, R> mayThrowOnApply) {
+    result1(final @NotNull ThrowingFunction<? super T, ? extends R> mayThrowOnApply) {
         return composeTry(Result::success, Result::failure, mayThrowOnApply);
     }
 
@@ -1109,7 +1108,7 @@ public final class Fun {
      * @return an unchecked {@link BiFunction}
      */
     public static <K, V, R> BiFunction<K, V, R>
-    uncheck2(final @NotNull ThrowingBiFunction<K, V, R> mayThrowOnApply) {
+    uncheck2(final @NotNull ThrowingBiFunction<? super K, ? super V, ? extends R> mayThrowOnApply) {
         return (inputK, inputV) -> {
             try {
                 return mayThrowOnApply.tryApply(inputK, inputV);
@@ -1130,7 +1129,7 @@ public final class Fun {
      * @return a {@link BiFunction} over the same inputs returning a {@link Result} of type {@code R}
      */
     public static <K, V, R> BiFunction<K, V, Result<R>>
-    result2(final @NotNull ThrowingBiFunction<K, V, R> mayThrowOnApply) {
+    result2(final @NotNull ThrowingBiFunction<? super K, ? super V, ? extends R> mayThrowOnApply) {
         return composeTry2(Result::success, Result::failure, mayThrowOnApply);
     }
 
@@ -1143,7 +1142,7 @@ public final class Fun {
      * @return an unchecked {@link Predicate}
      */
     public static <T> Predicate<T>
-    uncheckTest1(final @NotNull ThrowingPredicate<T> mayThrowOnTest) {
+    uncheckTest1(final @NotNull ThrowingPredicate<? super T> mayThrowOnTest) {
         return input -> {
             try {
                 return mayThrowOnTest.tryTest(input);
@@ -1163,7 +1162,7 @@ public final class Fun {
      * @return an unchecked {@link BiPredicate}
      */
     public static <K, V> BiPredicate<K, V>
-    uncheckTest2(final @NotNull ThrowingBiPredicate<K, V> mayThrowOnTest) {
+    uncheckTest2(final @NotNull ThrowingBiPredicate<? super K, ? super V> mayThrowOnTest) {
         return (inputK, inputV) -> {
             try {
                 return mayThrowOnTest.tryTest(inputK, inputV);
@@ -1182,7 +1181,7 @@ public final class Fun {
      * @return an unchecked {@link Consumer}
      */
     public static <T> Consumer<T>
-    uncheckVoid1(final @NotNull ThrowingConsumer<T> mayThrowOnAccept) {
+    uncheckVoid1(final @NotNull ThrowingConsumer<? super T> mayThrowOnAccept) {
         return input -> {
             try {
                 mayThrowOnAccept.tryAccept(input);
@@ -1201,7 +1200,7 @@ public final class Fun {
      * @return a {@link Function} returning a {@link Result} of type {@link Nothing}
      */
     public static <T> Function<T, Result<Nothing>>
-    resultNothing1(final @NotNull ThrowingConsumer<T> mayThrowOnAccept) {
+    resultNothing1(final @NotNull ThrowingConsumer<? super T> mayThrowOnAccept) {
         return result1(throwingVoidToNothing1(mayThrowOnAccept));
     }
 
@@ -1215,7 +1214,7 @@ public final class Fun {
      * @return an unchecked {@link BiConsumer}
      */
     public static <K, V> BiConsumer<K, V>
-    uncheckVoid2(final @NotNull ThrowingBiConsumer<K, V> mayThrowOnAccept) {
+    uncheckVoid2(final @NotNull ThrowingBiConsumer<? super K, ? super V> mayThrowOnAccept) {
         return (inputK, inputV) -> {
             try {
                 mayThrowOnAccept.tryAccept(inputK, inputV);
@@ -1235,7 +1234,7 @@ public final class Fun {
      * @return a {@link BiFunction} returning a {@link Result} of type {@link Nothing}
      */
     public static <K, V> BiFunction<K, V, Result<Nothing>>
-    resultNothing2(final @NotNull ThrowingBiConsumer<K, V> mayThrowOnAccept) {
+    resultNothing2(final @NotNull ThrowingBiConsumer<? super K, ? super V> mayThrowOnAccept) {
         return result2(throwingVoidToNothing2(mayThrowOnAccept));
     }
 
@@ -1249,8 +1248,8 @@ public final class Fun {
      * @return a {@link Predicate} that returns a default value when an exception is thrown
      */
     public static <T> Predicate<T>
-    testOrDefault1(final @NotNull ThrowingPredicate<T> mayThrowOnTest, boolean defaultValue) {
-        return compose(result1(mayThrowOnTest::tryTest), result -> result.getOrElse(defaultValue))::apply;
+    testOrDefault1(final @NotNull ThrowingPredicate<? super T> mayThrowOnTest, boolean defaultValue) {
+        return compose(result1(mayThrowOnTest::tryTest), result -> result.getOrDefault(defaultValue))::apply;
     }
 
     /**
@@ -1264,8 +1263,8 @@ public final class Fun {
      * @return a {@link BiPredicate} that returns a default value when an exception is thrown
      */
     public static <K, V> BiPredicate<K, V>
-    testOrDefault2(final @NotNull ThrowingBiPredicate<K, V> mayThrowOnTest, boolean defaultValue) {
-        return compose2(result2(mayThrowOnTest::tryTest), result -> result.getOrElse(defaultValue))::apply;
+    testOrDefault2(final @NotNull ThrowingBiPredicate<? super K, ? super V> mayThrowOnTest, boolean defaultValue) {
+        return compose2(result2(mayThrowOnTest::tryTest), result -> result.getOrDefault(defaultValue))::apply;
     }
 
     /**
@@ -1279,7 +1278,7 @@ public final class Fun {
      */
     public static <R> Supplier<R>
     tryOrDefault0(final @NotNull ThrowingSupplier<R> mayThrowOnGet, @Nullable R defaultValue) {
-        return compose0(result0(mayThrowOnGet), result -> result.getOrElse(defaultValue));
+        return compose0(result0(mayThrowOnGet), result -> result.getOrDefault(defaultValue));
     }
 
     /**
@@ -1293,8 +1292,8 @@ public final class Fun {
      * @return a {@link Function} that returns a default value when an exception is thrown
      */
     public static <T, R> Function<T, R>
-    tryOrDefault1(final @NotNull ThrowingFunction<T, R> mayThrowOnApply, @Nullable R defaultValue) {
-        return compose(result1(mayThrowOnApply), result -> result.getOrElse(defaultValue));
+    tryOrDefault1(final @NotNull ThrowingFunction<? super T, R> mayThrowOnApply, @Nullable R defaultValue) {
+        return compose(result1(mayThrowOnApply), result -> result.getOrDefault(defaultValue));
     }
 
     /**
@@ -1309,8 +1308,8 @@ public final class Fun {
      * @return a {@link BiFunction} that returns a default value when an exception is thrown
      */
     public static <K, V, R> BiFunction<K, V, R>
-    tryOrDefault2(final @NotNull ThrowingBiFunction<K, V, R> mayThrowOnApply, @Nullable R defaultValue) {
-        return compose2(result2(mayThrowOnApply), result -> result.getOrElse(defaultValue));
+    tryOrDefault2(final @NotNull ThrowingBiFunction<? super K, ? super V, R> mayThrowOnApply, @Nullable R defaultValue) {
+        return compose2(result2(mayThrowOnApply), result -> result.getOrDefault(defaultValue));
     }
 
     /**
@@ -1336,7 +1335,7 @@ public final class Fun {
      * @return a {@link Function} that returns an optional value that is empty if an exception is thrown
      */
     public static <T, R> Function<T, Optional<R>>
-    tryOrOptional1(final @NotNull ThrowingFunction<T, R> mayThrowOnApply) {
+    tryOrOptional1(final @NotNull ThrowingFunction<? super T, R> mayThrowOnApply) {
         return compose(result1(mayThrowOnApply), Result::toOptional);
     }
 
@@ -1351,7 +1350,7 @@ public final class Fun {
      * @return a {@link BiFunction} that returns an optional value that is empty if an exception is thrown
      */
     public static <K, V, R> BiFunction<K, V, Optional<R>>
-    tryOrOptional2(final @NotNull ThrowingBiFunction<K, V, R> mayThrowOnApply) {
+    tryOrOptional2(final @NotNull ThrowingBiFunction<? super K, ? super V, R> mayThrowOnApply) {
         return compose2(result2(mayThrowOnApply), Result::toOptional);
     }
 
@@ -1364,7 +1363,7 @@ public final class Fun {
      * @return a {@link Consumer} that suppresses any exceptions if thrown
      */
     public static <T> Consumer<T>
-    tryOrVoid1(final @NotNull ThrowingConsumer<T> mayThrowOnAccept) {
+    tryOrVoid1(final @NotNull ThrowingConsumer<? super T> mayThrowOnAccept) {
         return compose(resultNothing1(mayThrowOnAccept), Result::teeLogError)::apply;
     }
 
@@ -1378,7 +1377,7 @@ public final class Fun {
      * @return a {@link Consumer} that suppresses any exceptions if thrown
      */
     public static <K, V> BiConsumer<K, V>
-    tryOrVoid2(final @NotNull ThrowingBiConsumer<K, V> mayThrowOnAccept) {
+    tryOrVoid2(final @NotNull ThrowingBiConsumer<? super K, ? super V> mayThrowOnAccept) {
         return compose2(resultNothing2(mayThrowOnAccept), Result::teeLogError)::apply;
     }
 }

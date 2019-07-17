@@ -48,7 +48,7 @@ final class Command {
                     .add(printHelp(console::printLineErr))
                     .add(IO.unit(EXIT_GENERAL_ERROR));
         } else {
-            final Options opts = optsResult.getOrElse(Options.DEFAULT_OPTIONS);
+            final Options opts = optsResult.getOrDefault(Options.DEFAULT_OPTIONS);
 
             if (opts.isJustHelp()) {
                 return printHelp(console::printLine).add(IO.unit(0));
@@ -67,7 +67,7 @@ final class Command {
                 return console.printLineErr(scanResult.teeLogError().getError().get().getMessage())
                         .add(IO.unit(EXIT_ABORTED_SCAN));
             } else {
-                final List<CheckReport> reports = scanResult.getOrElse(Collections.emptyList());
+                final List<CheckReport> reports = scanResult.getOrDefault(Collections.emptyList());
                 final Optional<Integer> highestSeverity = reports.stream()
                         .flatMap(compose(CheckReport::getViolations, Collection::stream))
                         .map(Violation::getSeverity)

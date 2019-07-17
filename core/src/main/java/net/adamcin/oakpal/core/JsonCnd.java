@@ -20,7 +20,6 @@ import static java.util.Optional.ofNullable;
 import static net.adamcin.oakpal.core.Fun.compose;
 import static net.adamcin.oakpal.core.Fun.composeTest;
 import static net.adamcin.oakpal.core.Fun.inSet;
-import static net.adamcin.oakpal.core.Fun.infer1;
 import static net.adamcin.oakpal.core.Fun.inferTest1;
 import static net.adamcin.oakpal.core.Fun.mapKey;
 import static net.adamcin.oakpal.core.Fun.mapValue;
@@ -114,6 +113,7 @@ import org.slf4j.LoggerFactory;
  */
 public final class JsonCnd {
     private static final Logger LOGGER = LoggerFactory.getLogger(JsonCnd.class);
+
     private JsonCnd() {
         // no instantiation
     }
@@ -132,6 +132,7 @@ public final class JsonCnd {
      * @param mapping the mapping to use to resolve JCR namespaces from prefixes, see {@link #toNamespaceMapping(List)}
      * @return a list of qualified node type definitions
      */
+    @SuppressWarnings("WeakerAccess")
     public static List<QNodeTypeDefinition>
     getQTypesFromJson(final @NotNull JsonObject json,
                       final @NotNull NamespaceMapping mapping) {
@@ -151,7 +152,7 @@ public final class JsonCnd {
         return ntDefs.stream()
                 .map(def -> toEntry(def, NodeTypeDefinitionKey.writeAllJson(def, resolver)))
                 .filter(testValue(JavaxJson::nonEmptyValue))
-                .map(mapKey(uncheck1(jcrNameOrResidual(resolver)).compose(QNodeTypeDefinition::getName)))
+                .map(mapKey(compose(QNodeTypeDefinition::getName, uncheck1(jcrNameOrResidual(resolver)))))
                 .sorted(Map.Entry.comparingByKey())
                 .collect(JsonCollectors.toJsonObject());
     }
@@ -209,12 +210,14 @@ public final class JsonCnd {
      * name. NamePathResolvers don't like it. We have to handle it as a special case in our JSON CND serialization and
      * parsing logic to avoid parse exceptions.
      */
+    @SuppressWarnings("WeakerAccess")
     static final String TOKEN_RESIDUAL = "*";
 
     /**
      * The Jackrabbit SPI CND reader resolves the residual token as a "*" in the default namespace. We follow this
      * convention as well.
      */
+    @SuppressWarnings("WeakerAccess")
     static final Name QNAME_RESIDUAL = NameFactoryImpl.getInstance().create(Name.NS_DEFAULT_URI, TOKEN_RESIDUAL);
 
     /**
@@ -224,6 +227,7 @@ public final class JsonCnd {
      * @param resolver the NamePathResolver that provides JCR name resolution
      * @return the Name to String mapping function
      */
+    @SuppressWarnings("WeakerAccess")
     static Fun.ThrowingFunction<Name, String> jcrNameOrResidual(final @NotNull NamePathResolver resolver) {
         return qName -> {
             if (QNAME_RESIDUAL.equals(qName)) {
@@ -241,6 +245,7 @@ public final class JsonCnd {
      * @param resolver the NamePathResolver that provides QName resolution
      * @return the String to Name mapping function
      */
+    @SuppressWarnings("WeakerAccess")
     static Fun.ThrowingFunction<String, Name> qNameOrResidual(final @NotNull NamePathResolver resolver) {
         return jcrName -> {
             if (TOKEN_RESIDUAL.equals(jcrName)) {
@@ -275,6 +280,7 @@ public final class JsonCnd {
      * @param resolver a NamePathResolver, such as a DefaultNamePathResolver built around a NamespaceMapping
      * @return a throwing bi-function mapping a JSON key and object value to a constructed node type definition
      */
+    @SuppressWarnings("WeakerAccess")
     static Fun.ThrowingBiFunction<String, JsonObject, QNodeTypeDefinition>
     nodeTypeDefinitionMapper(final @NotNull NamePathResolver resolver) {
         return (key, json) -> {
@@ -292,6 +298,7 @@ public final class JsonCnd {
      * @param mapping an aggregated NamespaceMapping
      * @return a throwing bi-function mapping a JSON key and object value to a constructed {@link QNodeTypeDefinition}
      */
+    @SuppressWarnings("WeakerAccess")
     static Fun.ThrowingBiFunction<String, JsonObject, QNodeTypeDefinition>
     qDefinitionMapper(final @NotNull NamespaceMapping mapping) {
         return nodeTypeDefinitionMapper(new DefaultNamePathResolver(mapping));
@@ -305,8 +312,9 @@ public final class JsonCnd {
      * @return the serializable string
      * @throws RepositoryException when {@link NamePathResolver} throws.
      */
+    @SuppressWarnings("WeakerAccess")
     static String qValueString(final @NotNull QValue qValue,
-                               @NotNull NamePathResolver resolver) throws RepositoryException {
+                               final @NotNull NamePathResolver resolver) throws RepositoryException {
         switch (qValue.getType()) {
             case PropertyType.NAME:
                 return resolver.getJCRName(qValue.getName());
@@ -530,7 +538,8 @@ public final class JsonCnd {
      * This is needed to easily map untyped {@link javax.json.JsonString} instances to {@link String}, since we don't use
      * the {@link JsonObject#getString(String)} methods.
      */
-    static final Function<JsonValue, String> JSON_VALUE_STRING = infer1(Object::toString).compose(JavaxJson::unwrap);
+    @SuppressWarnings("WeakerAccess")
+    static final Function<JsonValue, String> JSON_VALUE_STRING = compose(JavaxJson::unwrap, Object::toString);
 
     /**
      * The DefinitionToken enum representing a serialized {@link NodeTypeDefinition}'s properties that are associated with
@@ -567,7 +576,7 @@ public final class JsonCnd {
         PRIMARYITEM(Lexer.PRIMARYITEM[0],
                 // write json
                 (def, resolver) -> ofNullable(def.getPrimaryItemName())
-                        .map(infer1(JavaxJson::wrap).compose(uncheck1(jcrNameOrResidual(resolver))))
+                        .map(compose(uncheck1(jcrNameOrResidual(resolver)), JavaxJson::wrap))
                         .orElse(null),
                 // read definition
                 resolver -> uncheckVoid2((def, value) ->
@@ -741,7 +750,7 @@ public final class JsonCnd {
             if (attributesValue.getValueType() == JsonValue.ValueType.ARRAY) {
                 JsonArray attributes = attributesValue.asJsonArray();
                 attributes.stream()
-                        .map(infer1(TypeDefinitionAttribute::forToken).compose(JSON_VALUE_STRING))
+                        .map(compose(JSON_VALUE_STRING, TypeDefinitionAttribute::forToken))
                         .forEachOrdered(attr -> attr.readTo(builder));
             }
         }
@@ -942,7 +951,7 @@ public final class JsonCnd {
          */
         private static void readAttributes(final @NotNull QItemDefinitionBuilder builder,
                                            final @NotNull JsonArray attributes) {
-            attributes.stream().map(infer1(ItemDefinitionAttribute::forToken).compose(JSON_VALUE_STRING))
+            attributes.stream().map(compose(JSON_VALUE_STRING, ItemDefinitionAttribute::forToken))
                     .filter(DefinitionToken::nonUnknown).forEachOrdered(attr -> attr.readTo(builder));
         }
 
@@ -1300,7 +1309,7 @@ public final class JsonCnd {
         REQUIREDTYPES("types",
                 // write json
                 (def, resolver) -> ofNullable(def.getRequiredPrimaryTypes()).map(Stream::of).orElse(Stream.empty())
-                        .map(infer1(JavaxJson::wrap).compose(uncheck1(jcrNameOrResidual(resolver))))
+                        .map(compose(uncheck1(jcrNameOrResidual(resolver)), JavaxJson::wrap))
                         .sorted(Comparator.comparing(JSON_VALUE_STRING))
                         .collect(JsonCollectors.toJsonArray()),
                 // read definition

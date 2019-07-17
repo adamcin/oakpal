@@ -22,10 +22,12 @@ import javax.jcr.RepositoryException;
 import net.adamcin.oakpal.core.ListenerReadOnlyException;
 import org.apache.jackrabbit.api.security.user.Impersonation;
 import org.apache.jackrabbit.api.security.user.User;
+import org.jetbrains.annotations.NotNull;
 
-public class UserFacade extends AuthorizableFacade<User> implements User {
+public final class UserFacade extends AuthorizableFacade<User> implements User {
 
-    public UserFacade(final User delegate) {
+    @SuppressWarnings("WeakerAccess")
+    public UserFacade(final @NotNull User delegate) {
         super(delegate);
     }
 
@@ -51,6 +53,21 @@ public class UserFacade extends AuthorizableFacade<User> implements User {
     }
 
     @Override
+    public boolean isDisabled() throws RepositoryException {
+        return delegate.isDisabled();
+    }
+
+    @Override
+    public String getDisabledReason() throws RepositoryException {
+        return delegate.getDisabledReason();
+    }
+
+    @Override
+    public void disable(final String reason) throws RepositoryException {
+        throw new ListenerReadOnlyException();
+    }
+
+    @Override
     public void changePassword(final String password) throws RepositoryException {
         throw new ListenerReadOnlyException();
     }
@@ -60,18 +77,4 @@ public class UserFacade extends AuthorizableFacade<User> implements User {
         throw new ListenerReadOnlyException();
     }
 
-    @Override
-    public void disable(final String reason) throws RepositoryException {
-        throw new ListenerReadOnlyException();
-    }
-
-    @Override
-    public boolean isDisabled() throws RepositoryException {
-        return delegate.isDisabled();
-    }
-
-    @Override
-    public String getDisabledReason() throws RepositoryException {
-        return delegate.getDisabledReason();
-    }
 }

@@ -22,14 +22,18 @@ import javax.jcr.Property;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
+import org.jetbrains.annotations.NotNull;
+
 /**
  * Wraps an {@link ItemVisitor} to wrap {@link Node} and {@link Property} instances.
  */
-public class ItemWrappingVisitor<S extends Session> implements ItemVisitor {
-    private final ItemVisitor delegate;
-    private final SessionFacade<S> session;
+public final class ItemWrappingVisitor<S extends Session> implements ItemVisitor {
+    private final @NotNull ItemVisitor delegate;
+    private final @NotNull SessionFacade<S> session;
 
-    public ItemWrappingVisitor(ItemVisitor delegate, SessionFacade<S> session) {
+    @SuppressWarnings("WeakerAccess")
+    public ItemWrappingVisitor(final @NotNull ItemVisitor delegate,
+                               final @NotNull SessionFacade<S> session) {
         this.delegate = delegate;
         this.session = session;
     }
@@ -41,6 +45,6 @@ public class ItemWrappingVisitor<S extends Session> implements ItemVisitor {
 
     @Override
     public void visit(Node node) throws RepositoryException {
-        delegate.visit(new NodeFacade<>(node, session));
+        delegate.visit(NodeFacade.wrap(node, session));
     }
 }

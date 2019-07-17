@@ -24,10 +24,12 @@ import net.adamcin.oakpal.core.ListenerReadOnlyException;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.spi.commons.iterator.Iterators;
+import org.jetbrains.annotations.NotNull;
 
-public class GroupFacade extends AuthorizableFacade<Group> implements Group {
+public final class GroupFacade extends AuthorizableFacade<Group> implements Group {
 
-    public GroupFacade(final Group delegate) {
+    @SuppressWarnings("WeakerAccess")
+    public GroupFacade(final @NotNull Group delegate) {
         super(delegate);
     }
 
@@ -59,7 +61,7 @@ public class GroupFacade extends AuthorizableFacade<Group> implements Group {
     }
 
     @Override
-    public Set<String> addMembers(final String... memberIds) throws RepositoryException {
+    public Set<String> addMembers(final @NotNull String... memberIds) throws RepositoryException {
         throw new ListenerReadOnlyException();
     }
 
@@ -69,7 +71,7 @@ public class GroupFacade extends AuthorizableFacade<Group> implements Group {
     }
 
     @Override
-    public Set<String> removeMembers(final String... memberIds) throws RepositoryException {
+    public Set<String> removeMembers(final @NotNull String... memberIds) throws RepositoryException {
         throw new ListenerReadOnlyException();
     }
 }

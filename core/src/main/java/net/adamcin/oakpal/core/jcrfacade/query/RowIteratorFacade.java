@@ -22,14 +22,16 @@ import javax.jcr.query.RowIterator;
 
 import net.adamcin.oakpal.core.jcrfacade.SessionFacade;
 import net.adamcin.oakpal.core.jcrfacade.RangeIteratorFacade;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Wraps {@link RowIterator} to ensure returned objects are wrapped appropriately.
  */
-public class RowIteratorFacade<S extends Session> extends RangeIteratorFacade<RowIterator> implements RowIterator {
-    private final SessionFacade<S> session;
+public final class RowIteratorFacade<S extends Session> extends RangeIteratorFacade<RowIterator> implements RowIterator {
+    private final @NotNull SessionFacade<S> session;
 
-    public RowIteratorFacade(RowIterator delegate, SessionFacade<S> session) {
+    @SuppressWarnings("WeakerAccess")
+    public RowIteratorFacade(final @NotNull RowIterator delegate, final @NotNull SessionFacade<S> session) {
         super(delegate);
         this.session = session;
     }

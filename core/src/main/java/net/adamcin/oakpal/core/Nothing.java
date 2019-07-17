@@ -21,20 +21,25 @@ public final class Nothing {
         /* prevent instantiation */
     }
 
-    public static <T> Function<T, Nothing> voidToNothing1(final @NotNull Consumer<T> consumer) {
+    @SuppressWarnings("WeakerAccess")
+    public static <T> Function<T, Nothing>
+    voidToNothing1(final @NotNull Consumer<? super T> consumer) {
         return input -> {
             consumer.accept(input);
             return Nothing.instance;
         };
     }
 
-    public static <T, U> BiFunction<T, U, Nothing> voidToNothing2(final @NotNull BiConsumer<T, U> consumer) {
+    @SuppressWarnings("WeakerAccess")
+    public static <T, U> BiFunction<T, U, Nothing>
+    voidToNothing2(final @NotNull BiConsumer<? super T, ? super U> consumer) {
         return (inputT, inputU) -> {
             consumer.accept(inputT, inputU);
             return Nothing.instance;
         };
     }
 
+    @SuppressWarnings("WeakerAccess")
     public Nothing combine(final @Nullable Nothing nothing) {
         return this;
     }

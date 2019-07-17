@@ -412,6 +412,23 @@ public final class OakMachine {
     }
 
     /**
+     * Run arbitrary read-only session logic against a post-InitStage OakPAL session.
+     *
+     * @param inspectBody arbitrary logic to run against a Session
+     * @param <E>         an error type thrown by the inspectBody
+     * @throws RepositoryException for repository errors
+     * @throws E                   for any number of other reasons
+     */
+    @SuppressWarnings("WeakerAccess")
+    public <E extends Throwable> void initAndInspect(final InspectBody<E> inspectBody)
+            throws RepositoryException, E {
+        adminInitAndInspect(admin -> {
+            final Session inspectSession = Util.wrapSessionReadOnly(admin);
+            inspectBody.tryAccept(inspectSession);
+        });
+    }
+
+    /**
      * Run arbitrary admin session logic against a post-InitStage OakPAL session.
      *
      * @param inspectBody arbitrary logic to run against a Session
@@ -419,23 +436,20 @@ public final class OakMachine {
      * @throws RepositoryException for repository errors
      * @throws E                   for any number of other reasons
      */
-    public <E extends Throwable> void initAndInspect(final InspectBody<E> inspectBody) throws RepositoryException, E {
+    public <E extends Throwable> void adminInitAndInspect(final InspectBody<E> inspectBody)
+            throws RepositoryException, E {
         Session admin = null;
         Repository scanRepo = null;
         try {
             scanRepo = initRepository();
-
             admin = loginAdmin(scanRepo);
-
             addOakpalTypes(admin);
 
             for (InitStage initStage : this.initStages) {
                 initStage.initSession(admin, getErrorListener());
             }
 
-            final Session inspectSession = Util.wrapSessionReadOnly(admin);
-
-            inspectBody.tryAccept(inspectSession);
+            inspectBody.tryAccept(admin);
         } finally {
             if (admin != null) {
                 admin.logout();

@@ -25,18 +25,21 @@ import net.adamcin.oakpal.core.jcrfacade.security.user.UserManagerFacade;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.UserManager;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Wraps a {@link JackrabbitSession} to guards against writes by listeners.
  */
-class JackrabbitSessionFacade extends SessionFacade<JackrabbitSession> implements JackrabbitSession {
+public final class JackrabbitSessionFacade extends SessionFacade<JackrabbitSession> implements JackrabbitSession {
 
-    JackrabbitSessionFacade(JackrabbitSession delegate, boolean notProtected) {
+    @SuppressWarnings("WeakerAccess")
+    public JackrabbitSessionFacade(final @NotNull JackrabbitSession delegate, final boolean notProtected) {
         super(delegate, notProtected);
     }
 
     @Override
-    public boolean hasPermission(final String absPath, final String... actions) throws RepositoryException {
+    public boolean hasPermission(final @NotNull String absPath, final @NotNull String... actions)
+            throws RepositoryException {
         return delegate.hasPermission(absPath, actions);
     }
 
@@ -72,6 +75,9 @@ class JackrabbitSessionFacade extends SessionFacade<JackrabbitSession> implement
     @Override
     public Node getNodeOrNull(final String absPath) throws RepositoryException {
         Node internal = delegate.getNodeOrNull(absPath);
-        return NodeFacade.wrap(internal, this);
+        if (internal != null) {
+            return NodeFacade.wrap(internal, this);
+        }
+        return null;
     }
 }

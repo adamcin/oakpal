@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Mark Adamcin
+ * Copyright 2019 Mark Adamcin
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,95 +16,84 @@
 
 package net.adamcin.oakpal.core.jcrfacade.security;
 
-import java.security.Principal;
-import java.util.Set;
 import javax.jcr.RepositoryException;
+import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.AccessControlPolicyIterator;
 import javax.jcr.security.Privilege;
 
 import net.adamcin.oakpal.core.ListenerReadOnlyException;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
-import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
- * Wraps {@link JackrabbitAccessControlManager} to prevent writes by handlers.
+ * Wraps {@link AccessControlManager} to prevent writes by handlers.
+ *
+ * @param <M> the AccessControlManager type, likely {@link JackrabbitAccessControlManager}
  */
-public class AccessControlManagerFacade implements JackrabbitAccessControlManager {
+public class AccessControlManagerFacade<M extends AccessControlManager> implements AccessControlManager {
 
-    private final JackrabbitAccessControlManager delegate;
+    protected final @NotNull M delegate;
 
-    public AccessControlManagerFacade(JackrabbitAccessControlManager delegate) {
+    @SuppressWarnings("WeakerAccess")
+    public AccessControlManagerFacade(final @NotNull M delegate) {
         this.delegate = delegate;
     }
 
-    @Override
-    public JackrabbitAccessControlPolicy[] getApplicablePolicies(Principal principal) throws RepositoryException {
-        return delegate.getApplicablePolicies(principal);
+    public static @Nullable AccessControlManager
+    findBestWrapper(final @Nullable AccessControlManager manager) {
+        if (manager instanceof JackrabbitAccessControlManager) {
+            return new JackrabbitAccessControlManagerFacade((JackrabbitAccessControlManager) manager);
+        } else if (manager != null) {
+            return new AccessControlManagerFacade<>(manager);
+        } else {
+            return null;
+        }
     }
 
     @Override
-    public JackrabbitAccessControlPolicy[] getPolicies(Principal principal) throws RepositoryException {
-        return delegate.getApplicablePolicies(principal);
-    }
-
-    @Override
-    public AccessControlPolicy[] getEffectivePolicies(Set<Principal> principals) throws RepositoryException {
-        return delegate.getEffectivePolicies(principals);
-    }
-
-    @Override
-    public boolean hasPrivileges(String absPath, Set<Principal> principals, Privilege[] privileges) throws RepositoryException {
-        return delegate.hasPrivileges(absPath, principals, privileges);
-    }
-
-    @Override
-    public Privilege[] getPrivileges(String absPath, Set<Principal> principals) throws RepositoryException {
-        return delegate.getPrivileges(absPath, principals);
-    }
-
-    @Override
-    public Privilege[] getSupportedPrivileges(String absPath) throws RepositoryException {
+    public final Privilege[] getSupportedPrivileges(String absPath) throws RepositoryException {
         return delegate.getSupportedPrivileges(absPath);
     }
 
     @Override
-    public Privilege privilegeFromName(String privilegeName) throws RepositoryException {
+    public final Privilege privilegeFromName(String privilegeName) throws RepositoryException {
         return delegate.privilegeFromName(privilegeName);
     }
 
     @Override
-    public boolean hasPrivileges(String absPath, Privilege[] privileges) throws RepositoryException {
+    public final boolean hasPrivileges(String absPath, Privilege[] privileges) throws RepositoryException {
         return delegate.hasPrivileges(absPath, privileges);
     }
 
     @Override
-    public Privilege[] getPrivileges(String absPath) throws RepositoryException {
+    public final Privilege[] getPrivileges(String absPath) throws RepositoryException {
         return delegate.getPrivileges(absPath);
     }
 
     @Override
-    public AccessControlPolicy[] getPolicies(String absPath) throws RepositoryException {
+    public final AccessControlPolicy[] getPolicies(String absPath) throws RepositoryException {
         return delegate.getPolicies(absPath);
     }
 
     @Override
-    public AccessControlPolicy[] getEffectivePolicies(String absPath) throws RepositoryException {
+    public final AccessControlPolicy[] getEffectivePolicies(String absPath) throws RepositoryException {
         return delegate.getEffectivePolicies(absPath);
     }
 
     @Override
-    public AccessControlPolicyIterator getApplicablePolicies(String absPath) throws RepositoryException {
+    public final AccessControlPolicyIterator getApplicablePolicies(String absPath) throws RepositoryException {
         return delegate.getApplicablePolicies(absPath);
     }
 
     @Override
-    public void setPolicy(String absPath, AccessControlPolicy policy) throws RepositoryException {
+    public final void setPolicy(String absPath, AccessControlPolicy policy) throws RepositoryException {
         throw new ListenerReadOnlyException();
     }
 
     @Override
-    public void removePolicy(String absPath, AccessControlPolicy policy) throws RepositoryException {
+    public final void removePolicy(String absPath, AccessControlPolicy policy) throws RepositoryException {
         throw new ListenerReadOnlyException();
     }
 }

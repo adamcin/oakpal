@@ -34,24 +34,29 @@ import net.adamcin.oakpal.core.jcrfacade.nodetype.NodeTypeManagerFacade;
 import net.adamcin.oakpal.core.jcrfacade.observation.ObservationManagerFacade;
 import net.adamcin.oakpal.core.jcrfacade.query.QueryManagerFacade;
 import net.adamcin.oakpal.core.jcrfacade.version.VersionManagerFacade;
-import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.JackrabbitWorkspace;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.xml.sax.ContentHandler;
 
 /**
  * Base class for wrapping a {@link Workspace} to guards against writes by listeners.
  */
-public class WorkspaceFacade<S extends Session, W extends Workspace> implements Workspace {
+public class WorkspaceFacade<W extends Workspace, S extends Session> implements Workspace {
 
-    private final SessionFacade<S> session;
-    protected final W delegate;
+    private final @NotNull SessionFacade<S> session;
+    protected final @NotNull W delegate;
 
-    public WorkspaceFacade(W delegate, SessionFacade<S> session) {
+    @SuppressWarnings("WeakerAccess")
+    public WorkspaceFacade(final @NotNull W delegate, final @NotNull SessionFacade<S> session) {
         this.delegate = delegate;
         this.session = session;
     }
 
-    public static <S extends Session> Workspace findBestWrapper(final Workspace workspace, final SessionFacade<S> sessionFacade) {
+    @SuppressWarnings("WeakerAccess")
+    public static <S extends Session> @Nullable Workspace
+    findBestWrapper(final @Nullable Workspace workspace,
+                    final @NotNull SessionFacade<S> sessionFacade) {
         if (workspace instanceof JackrabbitWorkspace) {
             return new JackrabbitWorkspaceFacade<>((JackrabbitWorkspace) workspace, sessionFacade);
         } else if (workspace != null) {
@@ -62,103 +67,103 @@ public class WorkspaceFacade<S extends Session, W extends Workspace> implements 
     }
 
     @Override
-    public Session getSession() {
+    public final Session getSession() {
         return this.session;
     }
 
     @Override
-    public String getName() {
+    public final String getName() {
         return delegate.getName();
     }
 
     @Override
-    public void copy(String srcAbsPath, String destAbsPath) throws RepositoryException {
-        throw new ListenerReadOnlyException();
+    public final String[] getAccessibleWorkspaceNames() throws RepositoryException {
+        return delegate.getAccessibleWorkspaceNames();
     }
 
     @Override
-    public void copy(String srcWorkspace, String srcAbsPath, String destAbsPath) throws RepositoryException {
-        throw new ListenerReadOnlyException();
-    }
-
-    @Override
-    public void clone(String srcWorkspace, String srcAbsPath, String destAbsPath, boolean removeExisting) throws RepositoryException {
-        throw new ListenerReadOnlyException();
-    }
-
-    @Override
-    public void move(String srcAbsPath, String destAbsPath) throws RepositoryException {
-        throw new ListenerReadOnlyException();
-    }
-
-    @Override
-    public void restore(Version[] versions, boolean removeExisting) throws RepositoryException {
-        throw new ListenerReadOnlyException();
-    }
-
-    @Override
-    public LockManager getLockManager() throws RepositoryException {
+    public final LockManager getLockManager() throws RepositoryException {
         LockManager internal = delegate.getLockManager();
         return new LockManagerFacade<>(internal, session);
     }
 
     @Override
-    public QueryManager getQueryManager() throws RepositoryException {
+    public final QueryManager getQueryManager() throws RepositoryException {
         QueryManager internal = delegate.getQueryManager();
         return new QueryManagerFacade<>(internal, session);
     }
 
     @Override
-    public NamespaceRegistry getNamespaceRegistry() throws RepositoryException {
+    public final NamespaceRegistry getNamespaceRegistry() throws RepositoryException {
         NamespaceRegistry internal = delegate.getNamespaceRegistry();
         return new NamespaceRegistryFacade(internal);
     }
 
     @Override
-    public NodeTypeManager getNodeTypeManager() throws RepositoryException {
+    public final NodeTypeManager getNodeTypeManager() throws RepositoryException {
         NodeTypeManager internal = delegate.getNodeTypeManager();
         return new NodeTypeManagerFacade(internal);
     }
 
     @Override
-    public ObservationManager getObservationManager() throws RepositoryException {
+    public final ObservationManager getObservationManager() throws RepositoryException {
         ObservationManager internal = delegate.getObservationManager();
         return new ObservationManagerFacade(internal);
     }
 
     @Override
-    public VersionManager getVersionManager() throws RepositoryException {
+    public final VersionManager getVersionManager() throws RepositoryException {
         VersionManager internal = delegate.getVersionManager();
         return new VersionManagerFacade<>(internal, session);
     }
 
     @Override
-    public String[] getAccessibleWorkspaceNames() throws RepositoryException {
-        return delegate.getAccessibleWorkspaceNames();
-    }
-
-    @Override
-    public ContentHandler getImportContentHandler(String parentAbsPath, int uuidBehavior) throws RepositoryException {
+    public final void copy(String srcAbsPath, String destAbsPath) throws RepositoryException {
         throw new ListenerReadOnlyException();
     }
 
     @Override
-    public void importXML(String parentAbsPath, InputStream in, int uuidBehavior) throws RepositoryException {
+    public final void copy(String srcWorkspace, String srcAbsPath, String destAbsPath) throws RepositoryException {
         throw new ListenerReadOnlyException();
     }
 
     @Override
-    public void createWorkspace(String name) throws RepositoryException {
+    public final void clone(String srcWorkspace, String srcAbsPath, String destAbsPath, boolean removeExisting) throws RepositoryException {
         throw new ListenerReadOnlyException();
     }
 
     @Override
-    public void createWorkspace(String name, String srcWorkspace) throws RepositoryException {
+    public final void move(String srcAbsPath, String destAbsPath) throws RepositoryException {
         throw new ListenerReadOnlyException();
     }
 
     @Override
-    public void deleteWorkspace(String name) throws RepositoryException {
+    public final void restore(Version[] versions, boolean removeExisting) throws RepositoryException {
+        throw new ListenerReadOnlyException();
+    }
+
+    @Override
+    public final ContentHandler getImportContentHandler(String parentAbsPath, int uuidBehavior) throws RepositoryException {
+        throw new ListenerReadOnlyException();
+    }
+
+    @Override
+    public final void importXML(String parentAbsPath, InputStream in, int uuidBehavior) throws RepositoryException {
+        throw new ListenerReadOnlyException();
+    }
+
+    @Override
+    public final void createWorkspace(String name) throws RepositoryException {
+        throw new ListenerReadOnlyException();
+    }
+
+    @Override
+    public final void createWorkspace(String name, String srcWorkspace) throws RepositoryException {
+        throw new ListenerReadOnlyException();
+    }
+
+    @Override
+    public final void deleteWorkspace(String name) throws RepositoryException {
         throw new ListenerReadOnlyException();
     }
 }

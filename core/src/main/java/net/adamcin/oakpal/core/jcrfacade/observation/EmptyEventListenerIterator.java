@@ -23,7 +23,7 @@ import javax.jcr.observation.EventListenerIterator;
 /**
  * Just an empty implementation.
  */
-public class EmptyEventListenerIterator implements EventListenerIterator {
+public final class EmptyEventListenerIterator implements EventListenerIterator {
 
     @Override
     public EventListener nextEventListener() {

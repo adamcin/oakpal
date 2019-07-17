@@ -16,7 +16,6 @@
 
 package net.adamcin.oakpal.core.jcrfacade;
 
-import javax.jcr.AccessDeniedException;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
@@ -24,6 +23,7 @@ import net.adamcin.oakpal.core.ListenerReadOnlyException;
 import net.adamcin.oakpal.core.jcrfacade.security.authorization.PrivilegeManagerFacade;
 import org.apache.jackrabbit.api.JackrabbitWorkspace;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
+import org.jetbrains.annotations.NotNull;
 import org.xml.sax.InputSource;
 
 /**
@@ -31,19 +31,24 @@ import org.xml.sax.InputSource;
  *
  * @param <S> Session type, likely to be {@link org.apache.jackrabbit.api.JackrabbitSession}.
  */
-class JackrabbitWorkspaceFacade<S extends Session> extends WorkspaceFacade<S, JackrabbitWorkspace> implements JackrabbitWorkspace {
+public final class JackrabbitWorkspaceFacade<S extends Session>
+        extends WorkspaceFacade<JackrabbitWorkspace, S> implements JackrabbitWorkspace {
 
-    JackrabbitWorkspaceFacade(final JackrabbitWorkspace delegate, final SessionFacade<S> session) {
+    @SuppressWarnings("WeakerAccess")
+    public JackrabbitWorkspaceFacade(final @NotNull JackrabbitWorkspace delegate,
+                                     final @NotNull SessionFacade<S> session) {
         super(delegate, session);
-    }
-
-    @Override
-    public void createWorkspace(final String workspaceName, final InputSource workspaceTemplate) throws AccessDeniedException, RepositoryException {
-        throw new ListenerReadOnlyException();
     }
 
     @Override
     public PrivilegeManager getPrivilegeManager() throws RepositoryException {
         return new PrivilegeManagerFacade(delegate.getPrivilegeManager());
     }
+
+    @Override
+    public final void createWorkspace(final String workspaceName, final InputSource workspaceTemplate)
+            throws RepositoryException {
+        throw new ListenerReadOnlyException();
+    }
+
 }

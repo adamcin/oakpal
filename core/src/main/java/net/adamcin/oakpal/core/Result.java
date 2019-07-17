@@ -38,7 +38,7 @@ public abstract class Result<V> implements Serializable {
      * @param <W> the result type.
      * @return a mapped result
      */
-    public abstract <W> @NotNull Result<W> map(final @NotNull Function<V, W> f);
+    public abstract <W> @NotNull Result<W> map(final @NotNull Function<? super V, W> f);
 
     /**
      * Flat-map it.
@@ -47,11 +47,11 @@ public abstract class Result<V> implements Serializable {
      * @param <W> the result type
      * @return the flat mapped result
      */
-    public abstract <W> @NotNull Result<W> flatMap(final @NotNull Function<V, Result<W>> f);
+    public abstract <W> @NotNull Result<W> flatMap(final @NotNull Function<? super V, Result<W>> f);
 
-    public abstract V getOrElse(final V defaultValue);
+    public abstract V getOrDefault(final V defaultValue);
 
-    public abstract V getOrElse(final @NotNull Supplier<V> defaultValue);
+    public abstract V getOrElse(final @NotNull Supplier<? extends V> defaultValue);
 
     public abstract Result<V> orElse(final @NotNull Supplier<Result<V>> defaultValue);
 
@@ -67,6 +67,7 @@ public abstract class Result<V> implements Serializable {
         return getError().isPresent();
     }
 
+    @SuppressWarnings("WeakerAccess")
     public final Optional<V> toOptional() {
         return stream().findFirst();
     }
@@ -85,7 +86,8 @@ public abstract class Result<V> implements Serializable {
      * @param predicate the Throwable filter
      * @return some matching throwable or empty
      */
-    public final Optional<Throwable> findCause(final @NotNull Predicate<Throwable> predicate) {
+    @SuppressWarnings("WeakerAccess")
+    public final Optional<Throwable> findCause(final @NotNull Predicate<? super Throwable> predicate) {
         return getError().map(Result::causing).orElse(Stream.empty()).filter(predicate).findFirst();
     }
 
@@ -98,6 +100,7 @@ public abstract class Result<V> implements Serializable {
      * @param <E> the particular Throwable type parameter
      * @return an Optional error
      */
+    @SuppressWarnings("WeakerAccess")
     public final <E extends Throwable> Optional<E> findCause(final @NotNull Class<E> errorType) {
         return findCause(errorType::isInstance).map(errorType::cast);
     }
@@ -123,6 +126,7 @@ public abstract class Result<V> implements Serializable {
      * @param caused the top-level exception
      * @return a stream of throwable causes
      */
+    @SuppressWarnings("WeakerAccess")
     static Stream<Throwable> causing(final @NotNull Throwable caused) {
         return Stream.concat(Optional.of(caused).map(Stream::of).orElse(Stream.empty()),
                 Optional.ofNullable(caused.getCause()).map(Result::causing).orElse(Stream.empty()));
@@ -133,7 +137,7 @@ public abstract class Result<V> implements Serializable {
      *
      * @param consumer the consumer
      */
-    public abstract void forEach(final @NotNull Consumer<V> consumer);
+    public abstract void forEach(final @NotNull Consumer<? super V> consumer);
 
     private static final class Failure<V> extends Result<V> {
         private final RuntimeException exception;
@@ -156,23 +160,23 @@ public abstract class Result<V> implements Serializable {
         }
 
         @Override
-        public @NotNull <W> Result<W> map(final @NotNull Function<V, W> f) {
+        public @NotNull <W> Result<W> map(final @NotNull Function<? super V, W> f) {
             return new Failure<>(this.exception);
         }
 
         @Override
-        public @NotNull <W> Result<W> flatMap(final @NotNull Function<V, Result<W>> f) {
+        public @NotNull <W> Result<W> flatMap(final @NotNull Function<? super V, Result<W>> f) {
             return new Failure<>(this.exception);
         }
 
         @Override
-        public V getOrElse(final V defaultValue) {
+        public V getOrDefault(final V defaultValue) {
             logSupression();
             return defaultValue;
         }
 
         @Override
-        public V getOrElse(final @NotNull Supplier<V> defaultValue) {
+        public V getOrElse(final @NotNull Supplier<? extends V> defaultValue) {
             logSupression();
             return defaultValue.get();
         }
@@ -184,7 +188,7 @@ public abstract class Result<V> implements Serializable {
         }
 
         @Override
-        public void forEach(final @NotNull Consumer<V> consumer) {
+        public void forEach(final @NotNull Consumer<? super V> consumer) {
             logSupression();
         }
 
@@ -231,22 +235,22 @@ public abstract class Result<V> implements Serializable {
         }
 
         @Override
-        public @NotNull <W> Result<W> map(final @NotNull Function<V, W> f) {
+        public @NotNull <W> Result<W> map(final @NotNull Function<? super V, W> f) {
             return new Success<>(f.apply(value));
         }
 
         @Override
-        public @NotNull <W> Result<W> flatMap(final @NotNull Function<V, Result<W>> f) {
+        public @NotNull <W> Result<W> flatMap(final @NotNull Function<? super V, Result<W>> f) {
             return f.apply(value);
         }
 
         @Override
-        public V getOrElse(final V defaultValue) {
+        public V getOrDefault(final V defaultValue) {
             return value;
         }
 
         @Override
-        public V getOrElse(final @NotNull Supplier<V> defaultValue) {
+        public V getOrElse(final @NotNull Supplier<? extends V> defaultValue) {
             return value;
         }
 
@@ -256,7 +260,7 @@ public abstract class Result<V> implements Serializable {
         }
 
         @Override
-        public void forEach(final @NotNull Consumer<V> consumer) {
+        public void forEach(final @NotNull Consumer<? super V> consumer) {
             consumer.accept(value);
         }
 

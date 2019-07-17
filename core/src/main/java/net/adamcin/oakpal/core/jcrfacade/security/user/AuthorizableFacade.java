@@ -26,13 +26,31 @@ import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.spi.commons.iterator.Iterators;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class AuthorizableFacade<A extends Authorizable> implements Authorizable {
 
-    protected final A delegate;
+    protected final @NotNull A delegate;
 
-    public AuthorizableFacade(final A delegate) {
+    @SuppressWarnings("WeakerAccess")
+    public AuthorizableFacade(final @NotNull A delegate) {
         this.delegate = delegate;
+    }
+
+    @SuppressWarnings("WeakerAccess")
+    public static @Nullable Authorizable ensureBestWrapper(final @Nullable Authorizable authorizable) {
+        if (authorizable == null) {
+            return null;
+        } else if (authorizable instanceof AuthorizableFacade) {
+            return authorizable;
+        } else if (authorizable instanceof User) {
+            return new UserFacade((User) authorizable);
+        } else if (authorizable instanceof Group) {
+            return new GroupFacade((Group) authorizable);
+        } else {
+            return new AuthorizableFacade<>(authorizable);
+        }
     }
 
     @Override
@@ -51,23 +69,6 @@ public class AuthorizableFacade<A extends Authorizable> implements Authorizable 
     }
 
     @Override
-    public Iterator<Group> declaredMemberOf() throws RepositoryException {
-        Iterator<Group> internal = delegate.declaredMemberOf();
-        return Iterators.transformIterator(internal, GroupFacade::new);
-    }
-
-    @Override
-    public Iterator<Group> memberOf() throws RepositoryException {
-        Iterator<Group> internal = delegate.memberOf();
-        return Iterators.transformIterator(internal, GroupFacade::new);
-    }
-
-    @Override
-    public void remove() throws RepositoryException {
-        throw new ListenerReadOnlyException();
-    }
-
-    @Override
     public Iterator<String> getPropertyNames() throws RepositoryException {
         return delegate.getPropertyNames();
     }
@@ -83,23 +84,8 @@ public class AuthorizableFacade<A extends Authorizable> implements Authorizable 
     }
 
     @Override
-    public void setProperty(final String relPath, final Value value) throws RepositoryException {
-        throw new ListenerReadOnlyException();
-    }
-
-    @Override
-    public void setProperty(final String relPath, final Value[] value) throws RepositoryException {
-        throw new ListenerReadOnlyException();
-    }
-
-    @Override
     public Value[] getProperty(final String relPath) throws RepositoryException {
         return delegate.getProperty(relPath);
-    }
-
-    @Override
-    public boolean removeProperty(final String relPath) throws RepositoryException {
-        throw new ListenerReadOnlyException();
     }
 
     @Override
@@ -107,17 +93,37 @@ public class AuthorizableFacade<A extends Authorizable> implements Authorizable 
         return delegate.getPath();
     }
 
-    public static Authorizable ensureBestWrapper(final Authorizable authorizable) {
-        if (authorizable == null) {
-            return null;
-        } else if (authorizable instanceof AuthorizableFacade) {
-            return authorizable;
-        } else if (authorizable instanceof User) {
-            return new UserFacade((User) authorizable);
-        } else if (authorizable instanceof Group) {
-            return new GroupFacade((Group) authorizable);
-        } else {
-            return new AuthorizableFacade<>(authorizable);
-        }
+    @Override
+    public Iterator<Group> declaredMemberOf() throws RepositoryException {
+        Iterator<Group> internal = delegate.declaredMemberOf();
+        return Iterators.transformIterator(internal, GroupFacade::new);
     }
+
+    @Override
+    public Iterator<Group> memberOf() throws RepositoryException {
+        Iterator<Group> internal = delegate.memberOf();
+        return Iterators.transformIterator(internal, GroupFacade::new);
+    }
+
+
+    @Override
+    public final void setProperty(final String relPath, final Value value) throws RepositoryException {
+        throw new ListenerReadOnlyException();
+    }
+
+    @Override
+    public final void setProperty(final String relPath, final Value[] value) throws RepositoryException {
+        throw new ListenerReadOnlyException();
+    }
+
+    @Override
+    public final void remove() throws RepositoryException {
+        throw new ListenerReadOnlyException();
+    }
+
+    @Override
+    public final boolean removeProperty(final String relPath) throws RepositoryException {
+        throw new ListenerReadOnlyException();
+    }
+
 }

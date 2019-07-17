@@ -24,91 +24,26 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
 import net.adamcin.oakpal.core.ListenerReadOnlyException;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Base facade for {@link Item} and its subtypes.
  */
 public class ItemFacade<J extends Item, S extends Session> implements Item {
 
-    protected final J delegate;
-    protected final SessionFacade<S> session;
+    protected final @NotNull J delegate;
+    protected final @NotNull SessionFacade<S> session;
 
-    public ItemFacade(J delegate, SessionFacade<S> session) {
+    @SuppressWarnings("WeakerAccess")
+    public ItemFacade(final @NotNull J delegate, final @NotNull SessionFacade<S> session) {
         this.delegate = delegate;
         this.session = session;
     }
 
-    @Override
-    public String getPath() throws RepositoryException {
-        return delegate.getPath();
-    }
-
-    @Override
-    public String getName() throws RepositoryException {
-        return delegate.getName();
-    }
-
-    @Override
-    public Item getAncestor(int depth) throws RepositoryException {
-        return ItemFacade.ensureBestWrapper(delegate.getAncestor(depth), session);
-    }
-
-    @Override
-    public Node getParent() throws RepositoryException {
-        return NodeFacade.wrap(delegate.getParent(), session);
-    }
-
-    @Override
-    public int getDepth() throws RepositoryException {
-        return delegate.getDepth();
-    }
-
-    @Override
-    public Session getSession() throws RepositoryException {
-        return session;
-    }
-
-    @Override
-    public boolean isNode() {
-        return delegate.isNode();
-    }
-
-    @Override
-    public boolean isNew() {
-        return delegate.isNew();
-    }
-
-    @Override
-    public boolean isModified() {
-        return delegate.isModified();
-    }
-
-    @Override
-    public boolean isSame(Item otherItem) throws RepositoryException {
-        return delegate.isSame(unwrap(otherItem));
-    }
-
-    @Override
-    public void accept(ItemVisitor visitor) throws RepositoryException {
-        delegate.accept(new ItemWrappingVisitor<>(visitor, session));
-    }
-
-    @Override
-    public void save() throws RepositoryException {
-        throw new ListenerReadOnlyException();
-    }
-
-    @Override
-    public void refresh(boolean keepChanges) throws RepositoryException {
-        session.refresh(keepChanges);
-    }
-
-    @Override
-    public void remove() throws RepositoryException {
-        throw new ListenerReadOnlyException();
-    }
-
-    public static Item ensureBestWrapper(Item primaryItem, SessionFacade<?> session) {
+    @SuppressWarnings("WeakerAccess")
+    public static @NotNull Item
+    ensureBestWrapper(final @NotNull Item primaryItem, final @NotNull SessionFacade<?> session) {
         if (primaryItem instanceof ItemFacade) {
             return primaryItem;
         } else if (primaryItem instanceof Node) {
@@ -120,12 +55,82 @@ public class ItemFacade<J extends Item, S extends Session> implements Item {
         }
     }
 
-    public static Item unwrap(Item item) {
+    static @Nullable Item unwrap(final @Nullable Item item) {
         if (item instanceof ItemFacade) {
             return ((ItemFacade) item).delegate;
         } else {
             return item;
         }
+    }
+
+    @Override
+    public final String getPath() throws RepositoryException {
+        return delegate.getPath();
+    }
+
+    @Override
+    public final String getName() throws RepositoryException {
+        return delegate.getName();
+    }
+
+    @Override
+    public final Item getAncestor(int depth) throws RepositoryException {
+        return ItemFacade.ensureBestWrapper(delegate.getAncestor(depth), session);
+    }
+
+    @Override
+    public final Node getParent() throws RepositoryException {
+        return NodeFacade.wrap(delegate.getParent(), session);
+    }
+
+    @Override
+    public final int getDepth() throws RepositoryException {
+        return delegate.getDepth();
+    }
+
+    @Override
+    public final Session getSession() {
+        return session;
+    }
+
+    @Override
+    public final boolean isNode() {
+        return delegate.isNode();
+    }
+
+    @Override
+    public final boolean isNew() {
+        return delegate.isNew();
+    }
+
+    @Override
+    public final boolean isModified() {
+        return delegate.isModified();
+    }
+
+    @Override
+    public final boolean isSame(Item otherItem) throws RepositoryException {
+        return delegate.isSame(unwrap(otherItem));
+    }
+
+    @Override
+    public final void accept(ItemVisitor visitor) throws RepositoryException {
+        delegate.accept(new ItemWrappingVisitor<>(visitor, session));
+    }
+
+    @Override
+    public final void refresh(boolean keepChanges) throws RepositoryException {
+        session.refresh(keepChanges);
+    }
+
+    @Override
+    public final void save() throws RepositoryException {
+        throw new ListenerReadOnlyException();
+    }
+
+    @Override
+    public final void remove() throws RepositoryException {
+        throw new ListenerReadOnlyException();
     }
 }
 

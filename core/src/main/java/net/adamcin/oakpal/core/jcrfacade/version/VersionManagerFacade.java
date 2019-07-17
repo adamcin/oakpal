@@ -25,35 +25,21 @@ import javax.jcr.version.VersionHistory;
 import javax.jcr.version.VersionManager;
 
 import net.adamcin.oakpal.core.ListenerReadOnlyException;
-import net.adamcin.oakpal.core.jcrfacade.SessionFacade;
 import net.adamcin.oakpal.core.jcrfacade.NodeFacade;
+import net.adamcin.oakpal.core.jcrfacade.SessionFacade;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Wraps {@link VersionManager} to prevent version history modification and to wrap retrieved {@link Version} and
  * {@link VersionHistory} instances.
  */
-public class VersionManagerFacade<S extends Session> implements VersionManager {
-    private final VersionManager delegate;
-    private final SessionFacade<S> session;
+public final class VersionManagerFacade<S extends Session> implements VersionManager {
+    private final @NotNull VersionManager delegate;
+    private final @NotNull SessionFacade<S> session;
 
-    public VersionManagerFacade(VersionManager delegate, SessionFacade<S> session) {
+    public VersionManagerFacade(final @NotNull VersionManager delegate, final @NotNull SessionFacade<S> session) {
         this.delegate = delegate;
         this.session = session;
-    }
-
-    @Override
-    public Version checkin(String absPath) throws RepositoryException {
-        throw new ListenerReadOnlyException();
-    }
-
-    @Override
-    public void checkout(String absPath) throws RepositoryException {
-        throw new ListenerReadOnlyException();
-    }
-
-    @Override
-    public Version checkpoint(String absPath) throws RepositoryException {
-        throw new ListenerReadOnlyException();
     }
 
     @Override
@@ -71,6 +57,26 @@ public class VersionManagerFacade<S extends Session> implements VersionManager {
     public Version getBaseVersion(String absPath) throws RepositoryException {
         Version internal = delegate.getBaseVersion(absPath);
         return new VersionFacade<>(internal, session);
+    }
+
+    @Override
+    public Node getActivity() throws RepositoryException {
+        return NodeFacade.wrap(delegate.getActivity(), session);
+    }
+
+    @Override
+    public Version checkin(String absPath) throws RepositoryException {
+        throw new ListenerReadOnlyException();
+    }
+
+    @Override
+    public void checkout(String absPath) throws RepositoryException {
+        throw new ListenerReadOnlyException();
+    }
+
+    @Override
+    public Version checkpoint(String absPath) throws RepositoryException {
+        throw new ListenerReadOnlyException();
     }
 
     @Override
@@ -109,6 +115,11 @@ public class VersionManagerFacade<S extends Session> implements VersionManager {
     }
 
     @Override
+    public NodeIterator merge(Node activityNode) throws RepositoryException {
+        throw new ListenerReadOnlyException();
+    }
+
+    @Override
     public void doneMerge(String absPath, Version version) throws RepositoryException {
         throw new ListenerReadOnlyException();
     }
@@ -129,11 +140,6 @@ public class VersionManagerFacade<S extends Session> implements VersionManager {
     }
 
     @Override
-    public Node getActivity() throws RepositoryException {
-        return NodeFacade.wrap(delegate.getActivity(), session);
-    }
-
-    @Override
     public Node createActivity(String title) throws RepositoryException {
         throw new ListenerReadOnlyException();
     }
@@ -143,8 +149,4 @@ public class VersionManagerFacade<S extends Session> implements VersionManager {
         throw new ListenerReadOnlyException();
     }
 
-    @Override
-    public NodeIterator merge(Node activityNode) throws RepositoryException {
-        throw new ListenerReadOnlyException();
-    }
 }

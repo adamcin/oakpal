@@ -23,23 +23,19 @@ import javax.jcr.lock.LockManager;
 
 import net.adamcin.oakpal.core.ListenerReadOnlyException;
 import net.adamcin.oakpal.core.jcrfacade.SessionFacade;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Wraps a {@link LockManager} to prevent lock modifications and to wrap
  * retrieved {@link Lock} instances.
  */
-public class LockManagerFacade<S extends Session> implements LockManager {
-    private final LockManager delegate;
-    private final SessionFacade<S> session;
+public final class LockManagerFacade<S extends Session> implements LockManager {
+    private final @NotNull LockManager delegate;
+    private final @NotNull SessionFacade<S> session;
 
-    public LockManagerFacade(LockManager delegate, SessionFacade<S> session) {
+    public LockManagerFacade(final @NotNull LockManager delegate, final @NotNull SessionFacade<S> session) {
         this.delegate = delegate;
         this.session = session;
-    }
-
-    @Override
-    public void addLockToken(String lockToken) throws RepositoryException {
-        throw new ListenerReadOnlyException();
     }
 
     @Override
@@ -59,13 +55,18 @@ public class LockManagerFacade<S extends Session> implements LockManager {
     }
 
     @Override
-    public Lock lock(String absPath, boolean isDeep, boolean isSessionScoped, long timeoutHint, String ownerInfo) throws RepositoryException {
+    public boolean isLocked(String absPath) throws RepositoryException {
+        return delegate.isLocked(absPath);
+    }
+
+    @Override
+    public void addLockToken(String lockToken) throws RepositoryException {
         throw new ListenerReadOnlyException();
     }
 
     @Override
-    public boolean isLocked(String absPath) throws RepositoryException {
-        return delegate.isLocked(absPath);
+    public Lock lock(String absPath, boolean isDeep, boolean isSessionScoped, long timeoutHint, String ownerInfo) throws RepositoryException {
+        throw new ListenerReadOnlyException();
     }
 
     @Override

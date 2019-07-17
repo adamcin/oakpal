@@ -28,74 +28,17 @@ import javax.jcr.Value;
 import javax.jcr.nodetype.PropertyDefinition;
 
 import net.adamcin.oakpal.core.ListenerReadOnlyException;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Wraps {@link Property} to prevent writes.
  */
-public class PropertyFacade<P extends Property, S extends Session> extends ItemFacade<P, S> implements Property {
+public final class PropertyFacade<S extends Session> extends ItemFacade<Property, S> implements Property {
 
-    public PropertyFacade(P delegate, SessionFacade<S> session) {
+    @SuppressWarnings("WeakerAccess")
+    public PropertyFacade(final @NotNull Property delegate,
+                          final @NotNull SessionFacade<S> session) {
         super(delegate, session);
-    }
-
-    @Override
-    public void setValue(Value value) throws RepositoryException {
-        throw new ListenerReadOnlyException();
-    }
-
-    @Override
-    public void setValue(Value[] values) throws RepositoryException {
-        throw new ListenerReadOnlyException();
-    }
-
-    @Override
-    public void setValue(String value) throws RepositoryException {
-        throw new ListenerReadOnlyException();
-    }
-
-    @Override
-    public void setValue(String[] values) throws RepositoryException {
-        throw new ListenerReadOnlyException();
-    }
-
-    @Override
-    public void setValue(InputStream value) throws RepositoryException {
-        throw new ListenerReadOnlyException();
-    }
-
-    @Override
-    public void setValue(Binary value) throws RepositoryException {
-        throw new ListenerReadOnlyException();
-    }
-
-    @Override
-    public void setValue(long value) throws RepositoryException {
-        throw new ListenerReadOnlyException();
-    }
-
-    @Override
-    public void setValue(double value) throws RepositoryException {
-        throw new ListenerReadOnlyException();
-    }
-
-    @Override
-    public void setValue(BigDecimal value) throws RepositoryException {
-        throw new ListenerReadOnlyException();
-    }
-
-    @Override
-    public void setValue(Calendar value) throws RepositoryException {
-        throw new ListenerReadOnlyException();
-    }
-
-    @Override
-    public void setValue(boolean value) throws RepositoryException {
-        throw new ListenerReadOnlyException();
-    }
-
-    @Override
-    public void setValue(Node value) throws RepositoryException {
-        throw new ListenerReadOnlyException();
     }
 
     @Override
@@ -113,6 +56,7 @@ public class PropertyFacade<P extends Property, S extends Session> extends ItemF
         return delegate.getString();
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public InputStream getStream() throws RepositoryException {
         return delegate.getStream();
@@ -184,5 +128,66 @@ public class PropertyFacade<P extends Property, S extends Session> extends ItemF
     public boolean isMultiple() throws RepositoryException {
         return delegate.isMultiple();
     }
+
+    @Override
+    public void setValue(Value value) throws RepositoryException {
+        throw new ListenerReadOnlyException();
+    }
+
+    @Override
+    public void setValue(Value[] values) throws RepositoryException {
+        throw new ListenerReadOnlyException();
+    }
+
+    @Override
+    public void setValue(String value) throws RepositoryException {
+        throw new ListenerReadOnlyException();
+    }
+
+    @Override
+    public void setValue(String[] values) throws RepositoryException {
+        throw new ListenerReadOnlyException();
+    }
+
+    @Override
+    public void setValue(InputStream value) throws RepositoryException {
+        throw new ListenerReadOnlyException();
+    }
+
+    @Override
+    public void setValue(Binary value) throws RepositoryException {
+        throw new ListenerReadOnlyException();
+    }
+
+    @Override
+    public void setValue(long value) throws RepositoryException {
+        throw new ListenerReadOnlyException();
+    }
+
+    @Override
+    public void setValue(double value) throws RepositoryException {
+        throw new ListenerReadOnlyException();
+    }
+
+    @Override
+    public void setValue(BigDecimal value) throws RepositoryException {
+        throw new ListenerReadOnlyException();
+    }
+
+    @Override
+    public void setValue(Calendar value) throws RepositoryException {
+        throw new ListenerReadOnlyException();
+    }
+
+    @Override
+    public void setValue(boolean value) throws RepositoryException {
+        throw new ListenerReadOnlyException();
+    }
+
+    @Override
+    public void setValue(Node value) throws RepositoryException {
+        throw new ListenerReadOnlyException();
+    }
+
 
 }

@@ -22,20 +22,26 @@ import javax.jcr.retention.RetentionManager;
 import javax.jcr.retention.RetentionPolicy;
 
 import net.adamcin.oakpal.core.ListenerReadOnlyException;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Wraps {@link RetentionManager} to prevent writes by handlers.
  */
-public class RetentionManagerFacade implements RetentionManager {
+public final class RetentionManagerFacade implements RetentionManager {
     private final RetentionManager delegate;
 
-    public RetentionManagerFacade(RetentionManager delegate) {
+    public RetentionManagerFacade(final @NotNull RetentionManager delegate) {
         this.delegate = delegate;
     }
 
     @Override
     public Hold[] getHolds(String absPath) throws RepositoryException {
         return delegate.getHolds(absPath);
+    }
+
+    @Override
+    public RetentionPolicy getRetentionPolicy(String absPath) throws RepositoryException {
+        return delegate.getRetentionPolicy(absPath);
     }
 
     @Override
@@ -46,11 +52,6 @@ public class RetentionManagerFacade implements RetentionManager {
     @Override
     public void removeHold(String absPath, Hold hold) throws RepositoryException {
         throw new ListenerReadOnlyException();
-    }
-
-    @Override
-    public RetentionPolicy getRetentionPolicy(String absPath) throws RepositoryException {
-        return delegate.getRetentionPolicy(absPath);
     }
 
     @Override

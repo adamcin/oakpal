@@ -24,15 +24,17 @@ import javax.jcr.query.Row;
 
 import net.adamcin.oakpal.core.jcrfacade.SessionFacade;
 import net.adamcin.oakpal.core.jcrfacade.NodeFacade;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Wraps {@link Row} to ensure returned nodes are wrapped appropriately.
  */
-public class RowFacade<S extends Session> implements Row {
-    private final Row delegate;
-    private final SessionFacade<S> session;
+public final class RowFacade<S extends Session> implements Row {
+    private final @NotNull Row delegate;
+    private final @NotNull SessionFacade<S> session;
 
-    public RowFacade(Row delegate, SessionFacade<S> session) {
+    @SuppressWarnings("WeakerAccess")
+    public RowFacade(final @NotNull Row delegate, final @NotNull SessionFacade<S> session) {
         this.delegate = delegate;
         this.session = session;
     }

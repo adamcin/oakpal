@@ -107,7 +107,7 @@ final class Main implements Console {
     public DisposablePrinter openPrinter(final @NotNull File outFile) {
         DisposablePrinter printer = result1((File file) -> new PrintWriter(file, StandardCharsets.UTF_8.name())).apply(outFile)
                 .map(writer -> (DisposablePrinter) new DisposablePrinterImpl(writer))
-                .getOrElse(SILENT_PRINTER);
+                .getOrDefault(SILENT_PRINTER);
         printers.put(outFile, printer);
         return printer;
     }

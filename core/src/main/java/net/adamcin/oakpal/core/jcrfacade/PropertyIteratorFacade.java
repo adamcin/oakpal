@@ -20,13 +20,17 @@ import javax.jcr.Property;
 import javax.jcr.PropertyIterator;
 import javax.jcr.Session;
 
+import org.jetbrains.annotations.NotNull;
+
 /**
  * Wraps {@link PropertyIterator} to wrap iterated {@link Property} with {@link PropertyFacade}.
  */
-public class PropertyIteratorFacade<S extends Session> extends RangeIteratorFacade<PropertyIterator> implements PropertyIterator {
-    private final SessionFacade<S> session;
+public final class PropertyIteratorFacade<S extends Session>
+        extends RangeIteratorFacade<PropertyIterator> implements PropertyIterator {
+    private final @NotNull SessionFacade<S> session;
 
-    public PropertyIteratorFacade(PropertyIterator delegate, SessionFacade<S> session) {
+    @SuppressWarnings("WeakerAccess")
+    public PropertyIteratorFacade(final @NotNull PropertyIterator delegate, final @NotNull SessionFacade<S> session) {
         super(delegate);
         this.session = session;
     }

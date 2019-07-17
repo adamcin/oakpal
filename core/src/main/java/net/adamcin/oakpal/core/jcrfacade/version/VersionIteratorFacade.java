@@ -20,18 +20,21 @@ import javax.jcr.Session;
 import javax.jcr.version.Version;
 import javax.jcr.version.VersionIterator;
 
-import net.adamcin.oakpal.core.jcrfacade.SessionFacade;
 import net.adamcin.oakpal.core.jcrfacade.RangeIteratorFacade;
+import net.adamcin.oakpal.core.jcrfacade.SessionFacade;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Wraps {@link VersionIterator} to return {@link VersionFacade}-wrapped versions.
  */
-public class VersionIteratorFacade<S extends Session> extends RangeIteratorFacade<VersionIterator>
+public final class VersionIteratorFacade<S extends Session> extends RangeIteratorFacade<VersionIterator>
         implements VersionIterator {
 
-    private final SessionFacade<S> session;
+    private final @NotNull SessionFacade<S> session;
 
-    public VersionIteratorFacade(VersionIterator delegate, SessionFacade<S> session) {
+    @SuppressWarnings("WeakerAccess")
+    public VersionIteratorFacade(final @NotNull VersionIterator delegate,
+                                 final @NotNull SessionFacade<S> session) {
         super(delegate);
         this.session = session;
     }

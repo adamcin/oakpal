@@ -168,7 +168,7 @@ public class OpearPackageMojo extends AbstractCommonMojo {
         conf.addManifestEntry(Opear.MF_BUNDLE_SYMBOLICNAME, getBundleSymbolicName());
         conf.addManifestEntry(Opear.MF_OAKPAL_VERSION, getOakpalCoreVersion());
         conf.addManifestEntry(Opear.MF_OAKPAL_PLAN,
-                Util.escapeManifestHeaderValues(planNames.getOrElse(Collections.emptyList())));
+                Util.escapeManifestHeaderValues(planNames.getOrDefault(Collections.emptyList())));
 
         OpearArchiver opear = new OpearArchiver();
         opear.addFileSet(DefaultFileSet.fileSet(planPrep));

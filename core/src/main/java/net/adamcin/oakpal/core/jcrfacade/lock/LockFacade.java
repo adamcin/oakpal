@@ -24,16 +24,17 @@ import javax.jcr.lock.Lock;
 import net.adamcin.oakpal.core.ListenerReadOnlyException;
 import net.adamcin.oakpal.core.jcrfacade.SessionFacade;
 import net.adamcin.oakpal.core.jcrfacade.NodeFacade;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Wraps a {@link Lock} to block the associated {@link Node}.
  */
-public class LockFacade<S extends Session> implements Lock {
+public final class LockFacade<S extends Session> implements Lock {
 
-    private final Lock delegate;
-    private final SessionFacade<S> session;
+    private final @NotNull Lock delegate;
+    private final @NotNull SessionFacade<S> session;
 
-    public LockFacade(Lock delegate, SessionFacade<S> session) {
+    public LockFacade(final @NotNull Lock delegate, final @NotNull SessionFacade<S> session) {
         this.delegate = delegate;
         this.session = session;
     }

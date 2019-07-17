@@ -24,11 +24,9 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.jar.JarFile;
 
-import net.adamcin.oakpal.core.Fun;
 import net.adamcin.oakpal.core.OakpalPlan;
 import net.adamcin.oakpal.core.OpearFile;
 import net.adamcin.oakpal.core.Result;
-import org.apache.jackrabbit.oak.Oak;
 import org.apache.maven.plugin.testing.MojoRule;
 import org.apache.maven.shared.utils.io.FileUtils;
 import org.apache.maven.shared.utils.io.IOUtil;
@@ -125,10 +123,10 @@ public class OpearPackageMojoTest extends OakpalMojoTestCaseBase {
         plan.throwCause(Exception.class);
 
         assertTrue("opear plan should be empty", plan.map(OakpalPlan::getChecklists)
-                .getOrElse(Arrays.asList("not a checklist")).isEmpty());
+                .getOrDefault(Arrays.asList("not a checklist")).isEmpty());
 
         assertFalse("opear nodetypes should not be empty",
-                plan.map(OakpalPlan::getJcrNodetypes).getOrElse(Collections.emptyList()).isEmpty());
+                plan.map(OakpalPlan::getJcrNodetypes).getOrDefault(Collections.emptyList()).isEmpty());
 
 
         Result<String> echoCheckSource = opearResult.flatMap(result1(opear -> {
@@ -142,7 +140,7 @@ public class OpearPackageMojoTest extends OakpalMojoTestCaseBase {
         }));
 
         assertTrue("echoCheckSource should contain 'function getCheckName'",
-                echoCheckSource.getOrElse("").contains("function getCheckName"));
+                echoCheckSource.getOrDefault("").contains("function getCheckName"));
     }
 
 }

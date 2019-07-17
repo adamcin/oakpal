@@ -25,15 +25,17 @@ import javax.jcr.query.qom.QueryObjectModelFactory;
 
 import net.adamcin.oakpal.core.jcrfacade.SessionFacade;
 import net.adamcin.oakpal.core.jcrfacade.NodeFacade;
+import net.adamcin.oakpal.core.jcrfacade.query.qom.QueryObjectModelFactoryFacade;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Wraps {@link QueryManager} to ensure returned items are wrapped with appropriate facades.
  */
-public class QueryManagerFacade<S extends Session> implements QueryManager {
-    private final QueryManager delegate;
-    private final SessionFacade<S> session;
+public final class QueryManagerFacade<S extends Session> implements QueryManager {
+    private final @NotNull QueryManager delegate;
+    private final @NotNull SessionFacade<S> session;
 
-    public QueryManagerFacade(QueryManager delegate, SessionFacade<S> session) {
+    public QueryManagerFacade(final @NotNull QueryManager delegate, final @NotNull SessionFacade<S> session) {
         this.delegate = delegate;
         this.session = session;
     }
@@ -46,13 +48,14 @@ public class QueryManagerFacade<S extends Session> implements QueryManager {
 
     @Override
     public QueryObjectModelFactory getQOMFactory() {
-        return delegate.getQOMFactory();
+        QueryObjectModelFactory internal = delegate.getQOMFactory();
+        return new QueryObjectModelFactoryFacade<>(internal, session);
     }
 
     @Override
     public Query getQuery(Node node) throws RepositoryException {
         Query internal = delegate.getQuery(NodeFacade.unwrap(node));
-        return new QueryFacade(internal, session);
+        return new QueryFacade<>(internal, session);
     }
 
     @Override

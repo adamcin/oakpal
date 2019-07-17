@@ -39,7 +39,7 @@ public class OpearFileTest {
         Result<OakpalPlan> planResult = urlResult.flatMap(OakpalPlan::fromJson);
         assertFalse("plan should load successfully", planResult.isFailure());
 
-        List<String> checklists = planResult.map(OakpalPlan::getChecklists).getOrElse(Collections.emptyList());
+        List<String> checklists = planResult.map(OakpalPlan::getChecklists).getOrDefault(Collections.emptyList());
         assertEquals("checklists should contain test/bar checklist",
                 Collections.singletonList("test/bar"), checklists);
 
@@ -51,7 +51,7 @@ public class OpearFileTest {
         Result<OakpalPlan> notAPlanPlanResult = notAPlanUrlResult.flatMap(OakpalPlan::fromJson);
         assertFalse("notAPlanPlan should load successfully", notAPlanPlanResult.isFailure());
 
-        List<String> notAPlanChecklists = notAPlanPlanResult.map(OakpalPlan::getChecklists).getOrElse(Collections.emptyList());
+        List<String> notAPlanChecklists = notAPlanPlanResult.map(OakpalPlan::getChecklists).getOrDefault(Collections.emptyList());
         assertEquals("notAPlanChecklists should contain no checklists",
                 Collections.singletonList("net.adamcin.oakpal.core/basic"), notAPlanChecklists);
 
@@ -65,7 +65,7 @@ public class OpearFileTest {
         Result<URL> fooUrlResult = opearResult.flatMap(opear -> opear.getSpecificPlan("other-plan.json"));
         assertEquals("foo plan url should be correct",
                 new URL(fooDir.toURI().toURL(), "other-plan.json"),
-                fooUrlResult.getOrElse(OakpalPlan.BASIC_PLAN_URL));
+                fooUrlResult.getOrDefault(OakpalPlan.BASIC_PLAN_URL));
 
         Result<URL> foo2UrlResult = opearResult.flatMap(opear -> opear.getSpecificPlan("no-plan.json"));
         assertTrue("foo2 plan url should be failure", foo2UrlResult.isFailure());
@@ -102,6 +102,6 @@ public class OpearFileTest {
         plan.throwCause(Exception.class);
 
         assertTrue("opear plan should be empty",
-                plan.map(OakpalPlan::getChecklists).getOrElse(Arrays.asList("not a checklist")).isEmpty());
+                plan.map(OakpalPlan::getChecklists).getOrDefault(Arrays.asList("not a checklist")).isEmpty());
     }
 }

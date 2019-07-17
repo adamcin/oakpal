@@ -18,12 +18,14 @@ package net.adamcin.oakpal.core.jcrfacade;
 
 import javax.jcr.Session;
 
+import org.jetbrains.annotations.NotNull;
+
 /**
  * Wraps a {@link javax.jcr.Session} to guards against writes by listeners.
  */
-class JcrSessionFacade extends SessionFacade<Session> implements Session {
+public final class JcrSessionFacade extends SessionFacade<Session> implements Session {
 
-    JcrSessionFacade(Session delegate, boolean notProtected) {
+    public JcrSessionFacade(final @NotNull Session delegate, final boolean notProtected) {
         super(delegate, notProtected);
     }
 }

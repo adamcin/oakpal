@@ -24,64 +24,67 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.Value;
 
+import org.jetbrains.annotations.Nullable;
+
 /**
  * Wraps a {@link Repository} to prevent login.
  */
-public class RepositoryFacade implements Repository {
+public final class RepositoryFacade implements Repository {
 
-    private final Repository delegate;
+    private final @Nullable Repository delegate;
 
-    public RepositoryFacade(Repository delegate) {
+    @SuppressWarnings("WeakerAccess")
+    public RepositoryFacade(final @Nullable Repository delegate) {
         this.delegate = delegate;
     }
 
     @Override
     public String[] getDescriptorKeys() {
-        return delegate.getDescriptorKeys();
+        return delegate != null ? delegate.getDescriptorKeys() : new String[0];
     }
 
     @Override
     public boolean isStandardDescriptor(String key) {
-        return delegate.isStandardDescriptor(key);
+        return delegate != null && delegate.isStandardDescriptor(key);
     }
 
     @Override
     public boolean isSingleValueDescriptor(String key) {
-        return delegate.isSingleValueDescriptor(key);
+        return delegate != null && delegate.isSingleValueDescriptor(key);
     }
 
     @Override
     public Value getDescriptorValue(String key) {
-        return delegate.getDescriptorValue(key);
+        return delegate != null ? delegate.getDescriptorValue(key) : null;
     }
 
     @Override
     public Value[] getDescriptorValues(String key) {
-        return delegate.getDescriptorValues(key);
+        return delegate != null ? delegate.getDescriptorValues(key) : null;
     }
 
     @Override
     public String getDescriptor(String key) {
-        return delegate.getDescriptor(key);
+        return delegate != null ? delegate.getDescriptor(key) : null;
     }
 
     @Override
-    public Session login(Credentials credentials, String workspaceName) throws LoginException, NoSuchWorkspaceException, RepositoryException {
+    public Session login(Credentials credentials, String workspaceName) throws LoginException {
         throw new LoginException("Login not allowed through facade.");
     }
 
     @Override
-    public Session login(Credentials credentials) throws LoginException, RepositoryException {
+    public Session login(Credentials credentials) throws LoginException {
         throw new LoginException("Login not allowed through facade.");
     }
 
     @Override
-    public Session login(String workspaceName) throws LoginException, NoSuchWorkspaceException, RepositoryException {
+    public Session login(String workspaceName) throws LoginException {
         throw new LoginException("Login not allowed through facade.");
     }
 
     @Override
-    public Session login() throws LoginException, RepositoryException {
+    public Session login() throws LoginException {
         throw new LoginException("Login not allowed through facade.");
     }
 }

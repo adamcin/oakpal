@@ -24,20 +24,22 @@ import javax.jcr.version.VersionHistory;
 import javax.jcr.version.VersionIterator;
 
 import net.adamcin.oakpal.core.ListenerReadOnlyException;
-import net.adamcin.oakpal.core.jcrfacade.SessionFacade;
 import net.adamcin.oakpal.core.jcrfacade.NodeFacade;
 import net.adamcin.oakpal.core.jcrfacade.NodeIteratorFacade;
+import net.adamcin.oakpal.core.jcrfacade.SessionFacade;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Wraps {@link VersionHistory} to prevent writes and to ensure only facades are returned.
  */
-public class VersionHistoryFacade<H extends VersionHistory, S extends Session> extends NodeFacade<H, S>
+public final class VersionHistoryFacade<S extends Session> extends NodeFacade<VersionHistory, S>
         implements VersionHistory {
 
-    public VersionHistoryFacade(H delegate, SessionFacade<S> session) {
+    public VersionHistoryFacade(final @NotNull VersionHistory delegate, final @NotNull SessionFacade<S> session) {
         super(delegate, session);
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public String getVersionableUUID() throws RepositoryException {
         return delegate.getVersionableUUID();
@@ -49,6 +51,26 @@ public class VersionHistoryFacade<H extends VersionHistory, S extends Session> e
     }
 
     @Override
+    public boolean hasVersionLabel(String label) throws RepositoryException {
+        return delegate.hasVersionLabel(label);
+    }
+
+    @Override
+    public boolean hasVersionLabel(Version version, String label) throws RepositoryException {
+        return delegate.hasVersionLabel(version, label);
+    }
+
+    @Override
+    public String[] getVersionLabels() throws RepositoryException {
+        return delegate.getVersionLabels();
+    }
+
+    @Override
+    public String[] getVersionLabels(Version version) throws RepositoryException {
+        return delegate.getVersionLabels(version);
+    }
+
+    @Override
     public Version getRootVersion() throws RepositoryException {
         Version internal = delegate.getRootVersion();
         return new VersionFacade<>(internal, session);
@@ -57,25 +79,25 @@ public class VersionHistoryFacade<H extends VersionHistory, S extends Session> e
     @Override
     public VersionIterator getAllLinearVersions() throws RepositoryException {
         VersionIterator internal = delegate.getAllLinearVersions();
-        return new VersionIteratorFacade(internal, session);
+        return new VersionIteratorFacade<>(internal, session);
     }
 
     @Override
     public VersionIterator getAllVersions() throws RepositoryException {
         VersionIterator internal = delegate.getAllVersions();
-        return new VersionIteratorFacade(internal, session);
+        return new VersionIteratorFacade<>(internal, session);
     }
 
     @Override
     public NodeIterator getAllLinearFrozenNodes() throws RepositoryException {
         NodeIterator internal = delegate.getAllLinearFrozenNodes();
-        return new NodeIteratorFacade(internal, session);
+        return new NodeIteratorFacade<>(internal, session);
     }
 
     @Override
     public NodeIterator getAllFrozenNodes() throws RepositoryException {
         NodeIterator internal = delegate.getAllFrozenNodes();
-        return new NodeIteratorFacade(internal, session);
+        return new NodeIteratorFacade<>(internal, session);
     }
 
     @Override
@@ -98,26 +120,6 @@ public class VersionHistoryFacade<H extends VersionHistory, S extends Session> e
     @Override
     public void removeVersionLabel(String label) throws RepositoryException {
         throw new ListenerReadOnlyException();
-    }
-
-    @Override
-    public boolean hasVersionLabel(String label) throws RepositoryException {
-        return delegate.hasVersionLabel(label);
-    }
-
-    @Override
-    public boolean hasVersionLabel(Version version, String label) throws RepositoryException {
-        return delegate.hasVersionLabel(version, label);
-    }
-
-    @Override
-    public String[] getVersionLabels() throws RepositoryException {
-        return delegate.getVersionLabels();
-    }
-
-    @Override
-    public String[] getVersionLabels(Version version) throws RepositoryException {
-        return delegate.getVersionLabels(version);
     }
 
     @Override

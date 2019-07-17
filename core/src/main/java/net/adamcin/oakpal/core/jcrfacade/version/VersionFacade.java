@@ -23,15 +23,17 @@ import javax.jcr.Session;
 import javax.jcr.version.Version;
 import javax.jcr.version.VersionHistory;
 
-import net.adamcin.oakpal.core.jcrfacade.SessionFacade;
 import net.adamcin.oakpal.core.jcrfacade.NodeFacade;
+import net.adamcin.oakpal.core.jcrfacade.SessionFacade;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Wraps {@link Version} to prevent writes.
  */
-public class VersionFacade<V extends Version, S extends Session> extends NodeFacade<V, S> implements Version {
+public final class VersionFacade<S extends Session> extends NodeFacade<Version, S> implements Version {
 
-    public VersionFacade(V delegate, SessionFacade<S> session) {
+    public VersionFacade(final @NotNull Version delegate, final @NotNull SessionFacade<S> session) {
         super(delegate, session);
     }
 
@@ -53,38 +55,37 @@ public class VersionFacade<V extends Version, S extends Session> extends NodeFac
     }
 
     @Override
-    public Version[] getSuccessors() throws RepositoryException {
-        Version[] internalVersions = delegate.getSuccessors();
-        if (internalVersions == null) {
-            return null;
-        }
-        for (int i = 0; i < internalVersions.length; i++) {
-            internalVersions[i] = new VersionFacade<>(internalVersions[i], session);
-        }
-        return internalVersions;
-    }
-
-    @Override
     public Version getLinearPredecessor() throws RepositoryException {
         Version internalVersion = delegate.getLinearPredecessor();
         return new VersionFacade<>(internalVersion, session);
     }
 
-    @Override
-    public Version[] getPredecessors() throws RepositoryException {
-        Version[] internalVersions = delegate.getPredecessors();
+    private Version[] wrapVersions(final @Nullable Version[] internalVersions) {
         if (internalVersions == null) {
             return null;
         }
         for (int i = 0; i < internalVersions.length; i++) {
-            internalVersions[i] = new VersionFacade<>(internalVersions[i], session);
+            final Version delegate = internalVersions[i];
+            if (delegate != null) {
+                internalVersions[i] = new VersionFacade<>(delegate, session);
+            }
         }
         return internalVersions;
     }
 
     @Override
+    public Version[] getSuccessors() throws RepositoryException {
+        return wrapVersions(delegate.getSuccessors());
+    }
+
+    @Override
+    public Version[] getPredecessors() throws RepositoryException {
+        return wrapVersions(delegate.getPredecessors());
+    }
+
+    @Override
     public Node getFrozenNode() throws RepositoryException {
         Node internalNode = delegate.getFrozenNode();
-        return new NodeFacade<>(internalNode, session);
+        return NodeFacade.wrap(internalNode, session);
     }
 }

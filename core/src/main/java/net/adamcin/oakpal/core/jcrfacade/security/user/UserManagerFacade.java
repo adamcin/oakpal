@@ -29,16 +29,23 @@ import org.apache.jackrabbit.api.security.user.Query;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.spi.commons.iterator.Iterators;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Wraps {@link UserManager} to prevent authorizable modifications and to wrap retrieved {@link Authorizable},
  * {@link User}, and {@link Group} instances.
  */
-public class UserManagerFacade implements UserManager {
-    private final UserManager delegate;
+public final class UserManagerFacade implements UserManager {
+    private final @NotNull UserManager delegate;
 
-    public UserManagerFacade(final UserManager delegate) {
+    public UserManagerFacade(final @NotNull UserManager delegate) {
         this.delegate = delegate;
+    }
+
+    @Override
+    public boolean isAutoSave() {
+        return false;
     }
 
     @Override
@@ -125,11 +132,6 @@ public class UserManagerFacade implements UserManager {
     @Override
     public Group createGroup(final String groupID, final Principal principal, final String intermediatePath) throws RepositoryException {
         throw new ListenerReadOnlyException();
-    }
-
-    @Override
-    public boolean isAutoSave() {
-        return false;
     }
 
     @Override

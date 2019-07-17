@@ -20,14 +20,18 @@ import javax.jcr.Node;
 import javax.jcr.NodeIterator;
 import javax.jcr.Session;
 
+import org.jetbrains.annotations.NotNull;
+
 /**
  * Wraps {@link NodeIterator} to return {@link NodeFacade}-wrapped nodes.
  */
-public class NodeIteratorFacade<S extends Session> extends RangeIteratorFacade<NodeIterator> implements NodeIterator {
+public final class NodeIteratorFacade<S extends Session>
+        extends RangeIteratorFacade<NodeIterator> implements NodeIterator {
 
-    private final SessionFacade<S> session;
+    private final @NotNull SessionFacade<S> session;
 
-    public NodeIteratorFacade(NodeIterator delegate, SessionFacade<S> session) {
+    public NodeIteratorFacade(final @NotNull NodeIterator delegate,
+                              final @NotNull SessionFacade<S> session) {
         super(delegate);
         this.session = session;
     }
@@ -35,7 +39,7 @@ public class NodeIteratorFacade<S extends Session> extends RangeIteratorFacade<N
     @Override
     public Node nextNode() {
         Node internalNode = delegate.nextNode();
-        return new NodeFacade<>(internalNode, session);
+        return NodeFacade.wrap(internalNode, session);
     }
 
     @Override

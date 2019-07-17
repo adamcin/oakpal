@@ -26,14 +26,15 @@ import javax.jcr.nodetype.NodeTypeTemplate;
 import javax.jcr.nodetype.PropertyDefinitionTemplate;
 
 import net.adamcin.oakpal.core.ListenerReadOnlyException;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Wraps {@link NodeTypeManager} to block node type registration.
  */
-public class NodeTypeManagerFacade implements NodeTypeManager {
-    private final NodeTypeManager delegate;
+public final class NodeTypeManagerFacade implements NodeTypeManager {
+    private final @NotNull NodeTypeManager delegate;
 
-    public NodeTypeManagerFacade(NodeTypeManager delegate) {
+    public NodeTypeManagerFacade(final @NotNull NodeTypeManager delegate) {
         this.delegate = delegate;
     }
 
