@@ -466,12 +466,14 @@ public class SessionFacadeTest {
         facade.refresh(false);
     }
 
-    @Test(expected = RepositoryException.class)
+    @Test
     public void testRefreshThrows() throws RepositoryException {
         Session session = mock(Session.class);
-        doThrow(new RepositoryException("should not be thrown when protected")).when(session).refresh(anyBoolean());
+        CompletableFuture<String> latch = new CompletableFuture<>();
+        doAnswer(invoked -> latch.complete("refreshed")).when(session).refresh(anyBoolean());
         JcrSessionFacade facade = new JcrSessionFacade(session, true);
         facade.refresh(true);
+        assertEquals("latch value should be", "refreshed", latch.getNow(""));
     }
 
     @Test
@@ -482,12 +484,14 @@ public class SessionFacadeTest {
         facade.logout();
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void testLogoutThrows() {
         Session session = mock(Session.class);
-        doThrow(new IllegalStateException("should not be thrown when protected")).when(session).logout();
+        CompletableFuture<String> latch = new CompletableFuture<>();
+        doAnswer(invoked -> latch.complete("loggedout")).when(session).logout();
         JcrSessionFacade facade = new JcrSessionFacade(session, true);
         facade.logout();
+        assertEquals("latch value should be", "loggedout", latch.getNow(""));
     }
 
 
