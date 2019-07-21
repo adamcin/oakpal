@@ -61,6 +61,7 @@ public class AbortedScanException extends Exception {
         this.currentPackageUrl = null;
     }
 
+    @SuppressWarnings("WeakerAccess")
     public Optional<URL> getCurrentPackageUrl() {
         return Optional.ofNullable(currentPackageUrl);
     }
@@ -69,6 +70,7 @@ public class AbortedScanException extends Exception {
         return Optional.ofNullable(currentPackageFile);
     }
 
+    @SuppressWarnings("WeakerAccess")
     public Optional<Node> getCurrentPackageNode() {
         return Optional.ofNullable(currentPackageNode);
     }
@@ -78,6 +80,7 @@ public class AbortedScanException extends Exception {
         return getFailedPackageMessage() + super.getMessage();
     }
 
+    @SuppressWarnings({"WeakerAccess", "OptionalGetWithoutIsPresent"})
     public String getFailedPackageMessage() {
         return Stream.of(
                 getCurrentPackageNode().map(uncheck1(Node::getPath)),
@@ -85,6 +88,6 @@ public class AbortedScanException extends Exception {
                 getCurrentPackageUrl().map(URL::toString))
                 .filter(Optional::isPresent)
                 .findFirst()
-                .map(location -> "(Failed package: " + location + ") ").orElse("");
+                .map(location -> "(Failed package: " + location.get() + ") ").orElse("");
     }
 }

@@ -1,11 +1,23 @@
 {
   "name": "simpleChecklist",
   "cndNames": [
-    "parent/fake.cnd"
+    "a.cnd",
+    "b.cnd"
   ],
+  "cndUrls": [
+    "notValid:/foo.cnd"
+  ],
+  "jcrNodetypes": {
+    "lapkao:primaryType": {
+      "<": "nt:hierarchyNode"
+    },
+    "lapkao:mixinType": {
+      "@": ["mixin"]
+    }
+  },
   "jcrNamespaces": [
     {
-      "prefix": "oakpal",
+      "prefix": "lapkao",
       "uri": "simpleNS"
     }
   ],
@@ -15,14 +27,14 @@
   "forcedRoots": [
     {
       "path": "/home/oakpal",
-      "primaryType": "sling:Folder",
-      "mixinTypes": "oakpal:Mixin"
+      "primaryType": "lapkao:primaryType",
+      "mixinTypes": ["oakpal:Mixin", "lapkao:mixinType"]
     }
   ],
   "checks": [
     {
-      "name": "simpleHandler",
-      "impl": "simpleHandler.js"
+      "name": "emptyHandler",
+      "impl": "emptyHandler.js"
     }
   ]
 }

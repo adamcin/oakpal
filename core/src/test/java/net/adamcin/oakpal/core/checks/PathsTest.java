@@ -93,6 +93,12 @@ public class PathsTest extends ProgressCheckTestBase {
         allDeletesCheck.deletedPath(null, "/foo", null);
         assertFalse("reported violations should not be empty after deletedPath",
                 allDeletesCheck.getReportedViolations().isEmpty());
+        Paths.Check allDeletesCheckByConfig = (Paths.Check) new Paths().newInstance(key(Paths.CONFIG_DENY_ALL_DELETES, true).get());
+        assertTrue("reported violations should be empty before deletedPath",
+                allDeletesCheckByConfig.getReportedViolations().isEmpty());
+        allDeletesCheckByConfig.deletedPath(null, "/foo", null);
+        assertFalse("reported violations should not be empty after deletedPath",
+                allDeletesCheckByConfig.getReportedViolations().isEmpty());
 
         Paths.Check deletesByRuleCheck = new Paths.Check(
                 singletonList(new Rule(Rule.RuleType.ALLOW, Pattern.compile("/foo"))),
@@ -112,7 +118,5 @@ public class PathsTest extends ProgressCheckTestBase {
 
         assertFalse("reported violations should not be empty after deletedPath for /bar",
                 deletesByRuleCheck.getReportedViolations().isEmpty());
-
-
     }
 }

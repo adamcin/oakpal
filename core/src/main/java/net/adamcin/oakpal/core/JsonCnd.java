@@ -18,7 +18,6 @@ package net.adamcin.oakpal.core;
 
 import static java.util.Optional.ofNullable;
 import static net.adamcin.oakpal.core.Fun.compose;
-import static net.adamcin.oakpal.core.Fun.composeTest;
 import static net.adamcin.oakpal.core.Fun.inSet;
 import static net.adamcin.oakpal.core.Fun.inferTest1;
 import static net.adamcin.oakpal.core.Fun.mapKey;
@@ -421,6 +420,13 @@ public final class JsonCnd {
         String getToken();
 
         /**
+         * Get the allowed token strings for use when parsing.
+         *
+         * @return the allowed token strings
+         */
+        String[] getLexTokens();
+
+        /**
          * Each token enum may define an UNKNOWN("?") element, which is the default representation of an unidentified token
          * in a particular token context. This method is used to filter each enum's values() stream to exclude this
          * element from execution, since it is basically a noop placeholder.
@@ -504,11 +510,50 @@ public final class JsonCnd {
         if (parentValue.getValueType() == JsonValue.ValueType.OBJECT) {
             JsonObject json = parentValue.asJsonObject();
             Stream.of(tokens)
-                    .filter(composeTest(DefinitionToken::getToken, json::containsKey).and(DefinitionToken::nonUnknown))
-                    .map(key -> toEntry(key, json.get(key.getToken())))
+                    .filter(inferTest1(K::nonUnknown).and(internalJsonContainsAnyLexToken(json)))
+                    .map(key -> toEntry(key, internalJsonLookupByAnyLexToken(key, json)))
                     .filter(testValue(JavaxJson::nonEmptyValue))
                     .forEachOrdered(onEntry((key, keyValue) -> key.readTo(resolver, builder, keyValue)));
         }
+    }
+
+    /**
+     * Get a predicate for filtering a stream of {@link KeyDefinitionToken}s to find one that
+     * matches a JSON key.
+     *
+     * @param json the json object to read from
+     * @param <B>  arbitrary builder type parameter
+     * @param <D>  arbitrary definition type parameter
+     * @param <K>  the {@link KeyDefinitionToken} enum type, appropriately parameterized to {@link B} and {@link D}
+     * @return a {@link KeyDefinitionToken} predicate
+     */
+    private static <B, D, K extends KeyDefinitionToken<B, D>> Predicate<K>
+    internalJsonContainsAnyLexToken(final @NotNull JsonObject json) {
+        final Predicate<String> lookupTest = token -> json.keySet().stream().anyMatch(token::equalsIgnoreCase);
+        return token -> Stream.of(token.getLexTokens())
+                .map(lookupTest::test)
+                .reduce(Boolean::logicalOr)
+                .orElse(false);
+    }
+
+    /**
+     * Perform a key-case-insensitive value lookup in the provided json object using the provided key.
+     *
+     * @param key  the {@link KeyDefinitionToken} to lookup in the json
+     * @param json the json object to read from
+     * @param <B>  arbitrary builder type parameter
+     * @param <D>  arbitrary definition type parameter
+     * @param <K>  the {@link KeyDefinitionToken} enum type, appropriately parameterized to {@link B} and {@link D}
+     * @return the JsonValue read for the key (may be JsonObject.NULL)
+     */
+    private static <B, D, K extends KeyDefinitionToken<B, D>> JsonValue
+    internalJsonLookupByAnyLexToken(final @NotNull K key, final @NotNull JsonObject json) {
+        final Predicate<String> keyTest = Stream.of(key.getLexTokens()).map(token ->
+                inferTest1(token::equalsIgnoreCase)).reduce(Predicate::or).orElse(ignored -> false);
+        return json.entrySet().stream()
+                .filter(testKey(keyTest))
+                .map(Map.Entry::getValue)
+                .findFirst().orElse(JsonObject.NULL);
     }
 
     /**
@@ -549,7 +594,7 @@ public final class JsonCnd {
         /**
          * Supertypes.
          */
-        EXTENDS("" + Lexer.EXTENDS,
+        EXTENDS(new String[]{"" + Lexer.EXTENDS, "extends"},
                 // write json
                 (def, resolver) -> ofNullable(def.getSupertypes()).map(Stream::of).orElse(Stream.empty())
                         .map(uncheck1(jcrNameOrResidual(resolver)))
@@ -565,7 +610,7 @@ public final class JsonCnd {
          * @see TypeDefinitionAttribute#readAttributes(QNodeTypeDefinitionBuilder, JsonValue)
          * @see TypeDefinitionAttribute#getAttributeTokens(QNodeTypeDefinition)
          */
-        ATTRIBUTES("@",
+        ATTRIBUTES(new String[]{"@", "attributes"},
                 // write json
                 (def, resolver) -> wrap(TypeDefinitionAttribute.getAttributeTokens(def)),
                 // read definition
@@ -573,7 +618,7 @@ public final class JsonCnd {
         /**
          * Primary Item Name, i.e. nt:file's "jcr:content".
          */
-        PRIMARYITEM(Lexer.PRIMARYITEM[0],
+        PRIMARYITEM(Lexer.PRIMARYITEM,
                 // write json
                 (def, resolver) -> ofNullable(def.getPrimaryItemName())
                         .map(compose(uncheck1(jcrNameOrResidual(resolver)), JavaxJson::wrap))
@@ -587,7 +632,7 @@ public final class JsonCnd {
          *
          * @see PropertyDefinitionKey
          */
-        PROPERTY_DEFINITION("" + Lexer.PROPERTY_DEFINITION,
+        PROPERTY_DEFINITION(new String[]{"" + Lexer.PROPERTY_DEFINITION, "properties"},
                 // write json
                 (def, resolver) -> ofNullable(def.getPropertyDefs()).map(Stream::of).orElse(Stream.empty())
                         .map(pDef -> toEntry(pDef, PropertyDefinitionKey.writeAllJson(pDef, resolver)))
@@ -611,7 +656,7 @@ public final class JsonCnd {
          *
          * @see ChildNodeDefinitionKey
          */
-        CHILD_NODE_DEFINITION("" + Lexer.CHILD_NODE_DEFINITION,
+        CHILD_NODE_DEFINITION(new String[]{"" + Lexer.CHILD_NODE_DEFINITION, "childNodes"},
                 // write json
                 (def, resolver) -> ofNullable(def.getChildNodeDefs()).map(Stream::of).orElse(Stream.empty())
                         .map(nDef -> toEntry(nDef, ChildNodeDefinitionKey.writeAllJson(nDef, resolver)))
@@ -658,14 +703,14 @@ public final class JsonCnd {
             return internalWriteAllJson(def, resolver, values());
         }
 
-        final String token;
+        final String[] lexTokens;
         final BiFunction<QNodeTypeDefinition, NamePathResolver, JsonValue> writeJsonValue;
         final Function<NamePathResolver, BiConsumer<QNodeTypeDefinitionBuilder, JsonValue>> readToBuilder;
 
-        NodeTypeDefinitionKey(final String token,
+        NodeTypeDefinitionKey(final String[] lexTokens,
                               final BiFunction<QNodeTypeDefinition, NamePathResolver, JsonValue> writeJsonValue,
                               final Function<NamePathResolver, BiConsumer<QNodeTypeDefinitionBuilder, JsonValue>> readToBuilder) {
-            this.token = token;
+            this.lexTokens = lexTokens;
             this.writeJsonValue = writeJsonValue;
             this.readToBuilder = readToBuilder;
         }
@@ -684,9 +729,16 @@ public final class JsonCnd {
 
         @Override
         public String getToken() {
-            return token;
+            return lexTokens[0];
+        }
+
+        @Override
+        public String[] getLexTokens() {
+            return Arrays.copyOf(this.lexTokens, this.lexTokens.length);
         }
     }
+
+    private static final String[] UNKNOWN_TOKENS = {"?"};
 
     /**
      * The DefinitionToken enum representing a serialized {@link NodeTypeDefinition}'s attributes, which are associated
@@ -699,7 +751,7 @@ public final class JsonCnd {
         /**
          * isAbstract(true)
          */
-        ABSTRACT(Lexer.ABSTRACT[0],
+        ABSTRACT(Lexer.ABSTRACT,
                 // write json
                 QNodeTypeDefinition::isAbstract,
                 // read definition
@@ -707,7 +759,7 @@ public final class JsonCnd {
         /**
          * isMixin(true)
          */
-        MIXIN(Lexer.MIXIN[0],
+        MIXIN(Lexer.MIXIN,
                 // write json
                 QNodeTypeDefinition::isMixin,
                 // read definition
@@ -715,7 +767,7 @@ public final class JsonCnd {
         /**
          * hasOrderableChildNodes(true)
          */
-        ORDERABLE(Lexer.ORDERABLE[0],
+        ORDERABLE(Lexer.ORDERABLE,
                 // write json
                 QNodeTypeDefinition::hasOrderableChildNodes,
                 // read definition
@@ -723,7 +775,7 @@ public final class JsonCnd {
         /**
          * isQueryable(false)
          */
-        NOQUERY(Lexer.NOQUERY[0],
+        NOQUERY(Lexer.NOQUERY,
                 // write json
                 inferTest1(QNodeTypeDefinition::isQueryable).negate(),
                 // read definition
@@ -731,7 +783,7 @@ public final class JsonCnd {
         /**
          * @see DefinitionToken#nonUnknown()
          */
-        UNKNOWN("?",
+        UNKNOWN(UNKNOWN_TOKENS,
                 // write json
                 def -> false,
                 // read definition
@@ -776,28 +828,35 @@ public final class JsonCnd {
          */
         static TypeDefinitionAttribute forToken(final @NotNull String token) {
             for (TypeDefinitionAttribute value : values()) {
-                if (value.token.equalsIgnoreCase(token)) {
-                    return value;
+                for (String lexToken : value.lexTokens) {
+                    if (lexToken.equalsIgnoreCase(token)) {
+                        return value;
+                    }
                 }
             }
             return UNKNOWN;
         }
 
-        final String token;
+        final String[] lexTokens;
         final Predicate<QNodeTypeDefinition> checkWritable;
         final Consumer<QNodeTypeDefinitionBuilder> readToBuilder;
 
-        TypeDefinitionAttribute(final String token,
+        TypeDefinitionAttribute(final String[] lexTokens,
                                 final Predicate<QNodeTypeDefinition> checkWritable,
                                 final Consumer<QNodeTypeDefinitionBuilder> readToBuilder) {
-            this.token = token;
+            this.lexTokens = lexTokens;
             this.checkWritable = checkWritable;
             this.readToBuilder = readToBuilder;
         }
 
         @Override
         public String getToken() {
-            return token;
+            return lexTokens[0];
+        }
+
+        @Override
+        public String[] getLexTokens() {
+            return Arrays.copyOf(this.lexTokens, this.lexTokens.length);
         }
 
         @Override
@@ -823,7 +882,7 @@ public final class JsonCnd {
         /**
          * {@link QItemDefinition#isMandatory()}
          */
-        MANDATORY(Lexer.MANDATORY[0],
+        MANDATORY(Lexer.MANDATORY,
                 // write json
                 QItemDefinition::isMandatory,
                 // read definition
@@ -831,7 +890,7 @@ public final class JsonCnd {
         /**
          * {@link QItemDefinition#isAutoCreated()}
          */
-        AUTOCREATED(Lexer.AUTOCREATED[0],
+        AUTOCREATED(Lexer.AUTOCREATED,
                 // write json
                 QItemDefinition::isAutoCreated,
                 // read definition
@@ -839,7 +898,7 @@ public final class JsonCnd {
         /**
          * {@link QItemDefinition#isProtected()}
          */
-        PROTECTED(Lexer.PROTECTED[0],
+        PROTECTED(Lexer.PROTECTED,
                 // write json
                 QItemDefinition::isProtected,
                 // read definition
@@ -849,7 +908,7 @@ public final class JsonCnd {
          *
          * @see QItemDefinition#getOnParentVersion()
          */
-        COPY(Lexer.COPY[0].toLowerCase(),
+        COPY(new String[]{Lexer.COPY[0].toLowerCase()},
                 // write json (don't write the default value)
                 def -> false,
                 // read definition
@@ -859,7 +918,7 @@ public final class JsonCnd {
          *
          * @see QItemDefinition#getOnParentVersion()
          */
-        VERSION(Lexer.VERSION[0].toLowerCase(),
+        VERSION(new String[]{Lexer.VERSION[0].toLowerCase()},
                 // write json
                 def -> def.getOnParentVersion() == OnParentVersionAction.VERSION,
                 // read definition
@@ -869,7 +928,7 @@ public final class JsonCnd {
          *
          * @see QItemDefinition#getOnParentVersion()
          */
-        INITIALIZE(Lexer.INITIALIZE[0].toLowerCase(),
+        INITIALIZE(new String[]{Lexer.INITIALIZE[0].toLowerCase()},
                 // write json
                 def -> def.getOnParentVersion() == OnParentVersionAction.INITIALIZE,
                 // read definition
@@ -879,7 +938,7 @@ public final class JsonCnd {
          *
          * @see QItemDefinition#getOnParentVersion()
          */
-        COMPUTE(Lexer.COMPUTE[0].toLowerCase(),
+        COMPUTE(new String[]{Lexer.COMPUTE[0].toLowerCase()},
                 // write json
                 def -> def.getOnParentVersion() == OnParentVersionAction.COMPUTE,
                 // read definition
@@ -889,7 +948,7 @@ public final class JsonCnd {
          *
          * @see QItemDefinition#getOnParentVersion()
          */
-        IGNORE(Lexer.IGNORE[0].toLowerCase(),
+        IGNORE(new String[]{Lexer.IGNORE[0].toLowerCase()},
                 // write json
                 def -> def.getOnParentVersion() == OnParentVersionAction.IGNORE,
                 // read definition
@@ -899,12 +958,15 @@ public final class JsonCnd {
          *
          * @see QItemDefinition#getOnParentVersion()
          */
-        ABORT(Lexer.ABORT[0].toLowerCase(),
+        ABORT(new String[]{Lexer.ABORT[0].toLowerCase()},
                 // write json
                 def -> def.getOnParentVersion() == OnParentVersionAction.ABORT,
                 // read definition
                 uncheckVoid1(def -> def.setOnParentVersion(OnParentVersionAction.ABORT))),
-        UNKNOWN("?",
+        /**
+         * @see AttributeDefinitionToken#nonUnknown()
+         */
+        UNKNOWN(UNKNOWN_TOKENS,
                 // write json
                 def -> false,
                 // read definition
@@ -986,21 +1048,23 @@ public final class JsonCnd {
          */
         static ItemDefinitionAttribute forToken(final @NotNull String token) {
             for (ItemDefinitionAttribute value : values()) {
-                if (value.token.equalsIgnoreCase(token)) {
-                    return value;
+                for (String lexToken : value.lexTokens) {
+                    if (lexToken.equalsIgnoreCase(token)) {
+                        return value;
+                    }
                 }
             }
             return UNKNOWN;
         }
 
-        final String token;
+        final String[] lexTokens;
         final Predicate<QItemDefinition> checkWritable;
         final Consumer<QItemDefinitionBuilder> readToBuilder;
 
-        ItemDefinitionAttribute(final String token,
+        ItemDefinitionAttribute(final String[] lexTokens,
                                 final Predicate<QItemDefinition> checkWritable,
                                 final Consumer<QItemDefinitionBuilder> readToBuilder) {
-            this.token = token;
+            this.lexTokens = lexTokens;
             this.checkWritable = checkWritable;
             this.readToBuilder = readToBuilder;
         }
@@ -1012,7 +1076,12 @@ public final class JsonCnd {
 
         @Override
         public String getToken() {
-            return token;
+            return lexTokens[0];
+        }
+
+        @Override
+        public String[] getLexTokens() {
+            return Arrays.copyOf(this.lexTokens, this.lexTokens.length);
         }
 
         @Override
@@ -1033,7 +1102,7 @@ public final class JsonCnd {
          *
          * @see ItemDefinition#getName()
          */
-        NAME("name",
+        NAME(new String[]{"name"},
                 // write json
                 (def, resolver) -> wrap(uncheck1(jcrNameOrResidual(resolver)).apply(def.getName())),
                 // read definition
@@ -1044,7 +1113,7 @@ public final class JsonCnd {
          *
          * @see PropertyType
          */
-        REQUIREDTYPE("type",
+        REQUIREDTYPE(new String[]{"type"},
                 // write json
                 (def, resolver) -> wrap(PropertyType.nameFromValue(def.getRequiredType())),
                 // read definition
@@ -1055,7 +1124,7 @@ public final class JsonCnd {
          *
          * @see PropertyDefinitionAttribute
          */
-        ATTRIBUTES("@",
+        ATTRIBUTES(new String[]{"@", "attributes"},
                 // write json
                 (def, resolver) -> JavaxJson.wrap(PropertyDefinitionAttribute.getAttributeTokens(def)),
                 // read definition
@@ -1065,7 +1134,7 @@ public final class JsonCnd {
          *
          * @see Operator#getAllQueryOperators()
          */
-        QUERYOPS(Lexer.QUERYOPS[0],
+        QUERYOPS(Lexer.QUERYOPS,
                 // write json
                 (def, resolver) -> ofNullable(def.getAvailableQueryOperators())
                         .filter(ops -> ops.length != Operator.getAllQueryOperators().length).map(JavaxJson::wrap)
@@ -1078,7 +1147,7 @@ public final class JsonCnd {
          *
          * @see PropertyDefinition#getDefaultValues()
          */
-        DEFAULT("" + Lexer.DEFAULT,
+        DEFAULT(new String[]{"" + Lexer.DEFAULT, "default"},
                 // write json
                 (def, resolver) -> ofNullable(def.getDefaultValues()).map(Stream::of).orElse(Stream.empty())
                         .map(uncheck1((value) -> qValueString(value, resolver)))
@@ -1093,7 +1162,7 @@ public final class JsonCnd {
          *
          * @see PropertyDefinition#getValueConstraints()
          */
-        CONSTRAINTS("" + Lexer.CONSTRAINT,
+        CONSTRAINTS(new String[]{"" + Lexer.CONSTRAINT, "constraints"},
                 // write json
                 (def, resolver) ->
                         ofNullable(def.getValueConstraints()).map(Stream::of).orElse(Stream.empty())
@@ -1133,22 +1202,28 @@ public final class JsonCnd {
             return internalWriteAllJson(def, resolver, values());
         }
 
-        final String token;
+        final String[] lexTokens;
         final BiFunction<QPropertyDefinition, NamePathResolver, JsonValue> writeJsonValue;
         final Function<NamePathResolver, BiConsumer<QPropertyDefinitionBuilder, JsonValue>> readToBuilder;
 
-        PropertyDefinitionKey(final @NotNull String token,
+        PropertyDefinitionKey(final @NotNull String[] lexTokens,
                               final @NotNull BiFunction<QPropertyDefinition, NamePathResolver, JsonValue> writeJsonValue,
                               final @NotNull Function<NamePathResolver, BiConsumer<QPropertyDefinitionBuilder, JsonValue>> readToBuilder) {
-            this.token = token;
+            this.lexTokens = lexTokens;
             this.writeJsonValue = writeJsonValue;
             this.readToBuilder = readToBuilder;
         }
 
         @Override
         public String getToken() {
-            return token;
+            return lexTokens[0];
         }
+
+        @Override
+        public String[] getLexTokens() {
+            return Arrays.copyOf(this.lexTokens, this.lexTokens.length);
+        }
+
 
         @Override
         public void readTo(final @NotNull NamePathResolver resolver,
@@ -1179,7 +1254,7 @@ public final class JsonCnd {
          *
          * @see PropertyDefinition#isMultiple()
          */
-        MULTIPLE(Lexer.MULTIPLE[0],
+        MULTIPLE(Lexer.MULTIPLE,
                 // write json
                 QPropertyDefinition::isMultiple,
                 // read definition
@@ -1189,7 +1264,7 @@ public final class JsonCnd {
          *
          * @see PropertyDefinition#isFullTextSearchable()
          */
-        NOFULLTEXT(Lexer.NOFULLTEXT[0],
+        NOFULLTEXT(Lexer.NOFULLTEXT,
                 // write json
                 inferTest1(QPropertyDefinition::isFullTextSearchable).negate(),
                 // read definition
@@ -1199,7 +1274,7 @@ public final class JsonCnd {
          *
          * @see PropertyDefinition#isQueryOrderable()
          */
-        NOQUERYORDER(Lexer.NOQUERYORDER[0],
+        NOQUERYORDER(Lexer.NOQUERYORDER,
                 // write json
                 inferTest1(QPropertyDefinition::isQueryOrderable).negate(),
                 // read definition
@@ -1209,7 +1284,7 @@ public final class JsonCnd {
          *
          * @see DefinitionToken#nonUnknown()
          */
-        UNKNOWN("?",
+        UNKNOWN(UNKNOWN_TOKENS,
                 // write json
                 def -> false,
                 // read definition
@@ -1247,21 +1322,23 @@ public final class JsonCnd {
          */
         static PropertyDefinitionAttribute forToken(final @NotNull String token) {
             for (PropertyDefinitionAttribute value : values()) {
-                if (value.token.equalsIgnoreCase(token)) {
-                    return value;
+                for (String lexToken : value.lexTokens) {
+                    if (lexToken.equalsIgnoreCase(token)) {
+                        return value;
+                    }
                 }
             }
             return UNKNOWN;
         }
 
-        final String token;
+        final String[] lexTokens;
         final Predicate<QPropertyDefinition> checkWritable;
         final Consumer<QPropertyDefinitionBuilder> readToBuilder;
 
-        PropertyDefinitionAttribute(final String token,
+        PropertyDefinitionAttribute(final String[] lexTokens,
                                     final Predicate<QPropertyDefinition> checkWritable,
                                     final Consumer<QPropertyDefinitionBuilder> readToBuilder) {
-            this.token = token;
+            this.lexTokens = lexTokens;
             this.checkWritable = checkWritable;
             this.readToBuilder = readToBuilder;
         }
@@ -1278,7 +1355,12 @@ public final class JsonCnd {
 
         @Override
         public String getToken() {
-            return token;
+            return lexTokens[0];
+        }
+
+        @Override
+        public String[] getLexTokens() {
+            return Arrays.copyOf(this.lexTokens, this.lexTokens.length);
         }
     }
 
@@ -1295,7 +1377,7 @@ public final class JsonCnd {
          *
          * @see ItemDefinition#getName()
          */
-        NAME("name",
+        NAME(new String[]{"name"},
                 // write json
                 (def, resolver) -> wrap(uncheck1(jcrNameOrResidual(resolver)).apply(def.getName())),
                 // read definition
@@ -1306,7 +1388,7 @@ public final class JsonCnd {
          *
          * @see NodeDefinition#getRequiredPrimaryTypeNames()
          */
-        REQUIREDTYPES("types",
+        REQUIREDTYPES(new String[]{"types"},
                 // write json
                 (def, resolver) -> ofNullable(def.getRequiredPrimaryTypes()).map(Stream::of).orElse(Stream.empty())
                         .map(compose(uncheck1(jcrNameOrResidual(resolver)), JavaxJson::wrap))
@@ -1320,7 +1402,7 @@ public final class JsonCnd {
          *
          * @see NodeDefinition#getDefaultPrimaryTypeName()
          */
-        DEFAULTTYPE("" + Lexer.DEFAULT,
+        DEFAULTTYPE(new String[]{"" + Lexer.DEFAULT, "defaultType"},
                 // write json
                 (def, resolver) -> ofNullable(def.getDefaultPrimaryType())
                         .map(name -> wrap(uncheck1(jcrNameOrResidual(resolver)).apply(name))).orElse(null),
@@ -1332,7 +1414,7 @@ public final class JsonCnd {
          *
          * @see ChildNodeDefinitionAttribute
          */
-        ATTRIBUTES("@",
+        ATTRIBUTES(new String[]{"@", "attributes"},
                 // write json
                 (def, resolver) -> wrap(ChildNodeDefinitionAttribute.getAttributeTokens(def)),
                 // read definition
@@ -1365,14 +1447,14 @@ public final class JsonCnd {
             return internalWriteAllJson(def, resolver, values());
         }
 
-        final String token;
+        final String[] lexTokens;
         final BiFunction<QNodeDefinition, NamePathResolver, JsonValue> writeJsonValue;
         final Function<NamePathResolver, BiConsumer<QNodeDefinitionBuilder, JsonValue>> readToBuilder;
 
-        ChildNodeDefinitionKey(final String token,
+        ChildNodeDefinitionKey(final String[] lexTokens,
                                final BiFunction<QNodeDefinition, NamePathResolver, JsonValue> writeJsonValue,
                                final Function<NamePathResolver, BiConsumer<QNodeDefinitionBuilder, JsonValue>> readToBuilder) {
-            this.token = token;
+            this.lexTokens = lexTokens;
             this.writeJsonValue = writeJsonValue;
             this.readToBuilder = readToBuilder;
         }
@@ -1391,7 +1473,12 @@ public final class JsonCnd {
 
         @Override
         public String getToken() {
-            return token;
+            return lexTokens[0];
+        }
+
+        @Override
+        public String[] getLexTokens() {
+            return Arrays.copyOf(this.lexTokens, this.lexTokens.length);
         }
     }
 
@@ -1410,7 +1497,7 @@ public final class JsonCnd {
          *
          * @see NodeDefinition#allowsSameNameSiblings()
          */
-        SNS(Lexer.SNS[0],
+        SNS(Lexer.SNS,
                 // write json
                 QNodeDefinition::allowsSameNameSiblings,
                 // read definition
@@ -1420,7 +1507,7 @@ public final class JsonCnd {
          *
          * @see DefinitionToken#nonUnknown()
          */
-        UNKNOWN("?",
+        UNKNOWN(UNKNOWN_TOKENS,
                 // write json
                 def -> false,
                 // read definition
@@ -1458,21 +1545,23 @@ public final class JsonCnd {
          */
         static ChildNodeDefinitionAttribute forToken(@NotNull final String token) {
             for (ChildNodeDefinitionAttribute value : values()) {
-                if (value.token.equalsIgnoreCase(token)) {
-                    return value;
+                for (String lexToken : value.lexTokens) {
+                    if (lexToken.equalsIgnoreCase(token)) {
+                        return value;
+                    }
                 }
             }
             return UNKNOWN;
         }
 
-        final String token;
+        final String[] lexTokens;
         final Predicate<QNodeDefinition> checkWritable;
         final Consumer<QNodeDefinitionBuilder> readToBuilder;
 
-        ChildNodeDefinitionAttribute(final String token,
+        ChildNodeDefinitionAttribute(final String[] lexTokens,
                                      final Predicate<QNodeDefinition> checkWritable,
                                      final Consumer<QNodeDefinitionBuilder> readToBuilder) {
-            this.token = token;
+            this.lexTokens = lexTokens;
             this.checkWritable = checkWritable;
             this.readToBuilder = readToBuilder;
         }
@@ -1489,7 +1578,12 @@ public final class JsonCnd {
 
         @Override
         public String getToken() {
-            return token;
+            return lexTokens[0];
+        }
+
+        @Override
+        public String[] getLexTokens() {
+            return Arrays.copyOf(this.lexTokens, this.lexTokens.length);
         }
     }
 

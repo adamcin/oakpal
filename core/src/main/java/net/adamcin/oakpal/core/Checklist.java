@@ -56,9 +56,9 @@ public final class Checklist implements JavaxJson.ObjectConvertible {
     public static final String KEY_JCR_NAMESPACES = "jcrNamespaces";
     public static final String KEY_JCR_PRIVILEGES = "jcrPrivileges";
     public static final String KEY_FORCED_ROOTS = "forcedRoots";
-    public static final String KEY_CHECKS = "checks";
+    static final String KEY_CHECKS = "checks";
 
-    private static final List<String> KEY_ORDER = Arrays.asList(
+    static final List<String> KEY_ORDER = Arrays.asList(
             Checklist.KEY_NAME,
             Checklist.KEY_CHECKS,
             Checklist.KEY_FORCED_ROOTS,
@@ -68,7 +68,7 @@ public final class Checklist implements JavaxJson.ObjectConvertible {
             Checklist.KEY_JCR_PRIVILEGES,
             Checklist.KEY_JCR_NAMESPACES);
 
-    private static final Comparator<String> checklistKeyComparator = (s1, s2) -> {
+    static final Comparator<String> checklistKeyComparator = (s1, s2) -> {
         if (KEY_ORDER.contains(s1) && KEY_ORDER.contains(s2)) {
             return Integer.compare(KEY_ORDER.indexOf(s1), KEY_ORDER.indexOf(s2));
         } else if (KEY_ORDER.contains(s1)) {
@@ -92,7 +92,7 @@ public final class Checklist implements JavaxJson.ObjectConvertible {
     private final List<QNodeTypeDefinition> jcrNodetypes;
     private final List<String> jcrPrivileges;
     private final List<ForcedRoot> forcedRoots;
-    private final List<CheckSpec> checks;
+    private final List<CheckSpec.ImmutableSpec> checks;
 
     Checklist(final @Nullable JsonObject originalJson,
               final @Nullable String moduleName,
@@ -102,7 +102,7 @@ public final class Checklist implements JavaxJson.ObjectConvertible {
               final @NotNull List<QNodeTypeDefinition> jcrNodetypes,
               final @NotNull List<String> jcrPrivileges,
               final @NotNull List<ForcedRoot> forcedRoots,
-              final @NotNull List<CheckSpec> checks) {
+              final @NotNull List<CheckSpec.ImmutableSpec> checks) {
         this.originalJson = originalJson;
         this.moduleName = moduleName;
         this.name = name;
@@ -143,7 +143,10 @@ public final class Checklist implements JavaxJson.ObjectConvertible {
     }
 
     public List<CheckSpec> getChecks() {
-        return checks;
+        final String prefix = getCheckPrefix(this.moduleName, this.name);
+        return checks.stream()
+                .map(spec -> insertPrefix(spec, prefix))
+                .collect(Collectors.toList());
     }
 
     public InitStage asInitStage() {
@@ -215,28 +218,12 @@ public final class Checklist implements JavaxJson.ObjectConvertible {
                     && !check.getName().contains("/");
         }
 
-        private String getCheckPrefix() {
-            final String modulePrefix = ofNullable(this.moduleName)
-                    .filter(name -> !name.isEmpty())
-                    .map(name -> name + "/")
-                    .orElse("");
-            return ofNullable(this.name)
-                    .filter(name -> !name.isEmpty() && !name.equals(moduleName))
-                    .map(name -> modulePrefix + name + "/")
-                    .orElse(modulePrefix);
-        }
-
-        private void insertPrefix(final @NotNull CheckSpec checkSpec, final String prefix) {
-            checkSpec.setName(prefix + checkSpec.getName());
-        }
 
         public Checklist build() {
             return build(null);
         }
 
         Checklist build(final @Nullable JsonObject originalJson) {
-            final String prefix = getCheckPrefix();
-            checks.forEach(checkSpec -> insertPrefix(checkSpec, prefix));
             return new Checklist(originalJson, moduleName,
                     name != null ? name : moduleName,
                     Collections.unmodifiableList(cndUrls),
@@ -244,8 +231,28 @@ public final class Checklist implements JavaxJson.ObjectConvertible {
                     Collections.unmodifiableList(jcrNodetypes),
                     Collections.unmodifiableList(jcrPrivileges),
                     Collections.unmodifiableList(forcedRoots),
-                    Collections.unmodifiableList(checks));
+                    Collections.unmodifiableList(checks.stream()
+                            .map(CheckSpec::immutableCopyOf)
+                            .collect(Collectors.toList())));
         }
+    }
+
+    private CheckSpec insertPrefix(final @NotNull CheckSpec checkSpec, final String prefix) {
+        final CheckSpec copy = CheckSpec.copyOf(checkSpec);
+        copy.setName(prefix + checkSpec.getName());
+        return copy;
+    }
+
+    static String getCheckPrefix(final @Nullable String moduleName,
+                                 final @Nullable String checklistName) {
+        final String modulePrefix = ofNullable(moduleName)
+                .filter(name -> !name.isEmpty())
+                .map(name -> name + "/")
+                .orElse("");
+        return ofNullable(checklistName)
+                .filter(name -> !name.isEmpty() && !name.equals(moduleName))
+                .map(name -> modulePrefix + name + "/")
+                .orElse(modulePrefix);
     }
 
     @Override
@@ -254,6 +261,7 @@ public final class Checklist implements JavaxJson.ObjectConvertible {
                 "moduleName='" + moduleName + '\'' +
                 ", json='" + toJson().toString() + "'}";
     }
+
 
     /**
      * Serialize the Checklist to a JsonObject for writing.
@@ -267,7 +275,8 @@ public final class Checklist implements JavaxJson.ObjectConvertible {
         } else {
             return obj()
                     .key(KEY_NAME).opt(getName())
-                    .key(KEY_CHECKS).opt(getChecks())
+
+                    .key(KEY_CHECKS).opt(checks)
                     .key(KEY_FORCED_ROOTS).opt(getForcedRoots())
                     .key(KEY_CND_URLS).opt(getCndUrls())
                     .key(KEY_JCR_NODETYPES).opt(JsonCnd
@@ -308,7 +317,7 @@ public final class Checklist implements JavaxJson.ObjectConvertible {
 
         builder.withCndUrls(parseFromArray(
                 optArray(json, KEY_CND_URLS).orElse(JsonValue.EMPTY_JSON_ARRAY), URL::new,
-                (element, error) -> LOGGER.debug("[fromJson#cndUrls] ignoring error", error)));
+                (element, error) -> LOGGER.debug("[fromJson#cndUrls] (URL ERROR) {}", error.getMessage())));
 
         final List<JcrNs> jcrNsList = new ArrayList<>();
         optArray(json, KEY_JCR_NAMESPACES).ifPresent(jsonArray -> {

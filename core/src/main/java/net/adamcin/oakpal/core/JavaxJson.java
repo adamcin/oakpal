@@ -16,7 +16,6 @@
 
 package net.adamcin.oakpal.core;
 
-import static net.adamcin.oakpal.core.Util.composeTry;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -786,6 +785,16 @@ public final class JavaxJson {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Filters and maps the provided {@link JsonObject} into a {@code Map<String, JsonObject>}, then applies the provided
+     * mapBiFunction to each result pair to return a typed list.
+     *
+     * @param jsonObject    the input object
+     * @param mapBiFunction the bifunction mapping (String, JsonObject) pairs to R
+     * @param discardNulls  true to filter out null results returned by the mapFunction (default false).
+     * @param <R>           the mapBiFunction result type
+     * @return a list of the same type as the mapBiFunction result type
+     */
     public static <R> List<R> mapObjectValues(final JsonObject jsonObject,
                                               final BiFunction<String, JsonObject, R> mapBiFunction,
                                               final boolean discardNulls) {
@@ -805,14 +814,15 @@ public final class JavaxJson {
      * @param errorConsumer an optional error handler
      * @param <R>           the mapFunction result type
      * @return a list of parser results
-     * @see Util#composeTry(Function, Supplier, Util.TryFunction, BiConsumer)
+     * @see Fun#composeTry(Function, Supplier, Fun.ThrowingFunction, BiConsumer)
      */
+    @SuppressWarnings("WeakerAccess")
     public static <R> List<R> parseFromArray(final JsonArray jsonArray,
-                                             final Util.TryFunction<String, R> parser,
+                                             final Fun.ThrowingFunction<String, R> parser,
                                              final BiConsumer<String, Exception> errorConsumer) {
         return jsonArray.stream()
                 .map(String::valueOf)
-                .flatMap(composeTry(Stream::of, Stream::empty, parser, errorConsumer))
+                .flatMap(Fun.composeTry(Stream::of, Stream::empty, parser, errorConsumer))
                 .collect(Collectors.toList());
     }
 

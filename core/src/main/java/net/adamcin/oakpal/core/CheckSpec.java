@@ -22,9 +22,13 @@ import static net.adamcin.oakpal.core.JavaxJson.key;
 import static net.adamcin.oakpal.core.JavaxJson.obj;
 import static net.adamcin.oakpal.core.Util.isEmpty;
 
+import java.util.Objects;
 import javax.json.Json;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
+
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * DTO for full-featured check spec.
@@ -46,7 +50,7 @@ public class CheckSpec implements JavaxJson.ObjectConvertible {
     private boolean skip;
     private JsonObject config;
 
-    /**
+   /**
      * The direct classpath lookup name for a particular check. If not provided, indicates that a check should be
      * looked up by name from a catalog on the classpath.
      *
@@ -238,6 +242,7 @@ public class CheckSpec implements JavaxJson.ObjectConvertible {
      *
      * @param builder the json object builder that should be edited by subclasses
      */
+    @SuppressWarnings("WeakerAccess")
     protected void editJson(final JsonObjectBuilder builder) {
         // for overriding classes.
     }
@@ -264,5 +269,106 @@ public class CheckSpec implements JavaxJson.ObjectConvertible {
     @Override
     public String toString() {
         return toJson().toString();
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+        if (this == o) return true;
+        if (!(o instanceof CheckSpec)) return false;
+        CheckSpec checkSpec = (CheckSpec) o;
+        return isSkip() == checkSpec.isSkip() &&
+                Objects.equals(getImpl(), checkSpec.getImpl()) &&
+                Objects.equals(getInlineScript(), checkSpec.getInlineScript()) &&
+                Objects.equals(getInlineEngine(), checkSpec.getInlineEngine()) &&
+                Objects.equals(getName(), checkSpec.getName()) &&
+                Objects.equals(getTemplate(), checkSpec.getTemplate()) &&
+                Objects.equals(getConfig(), checkSpec.getConfig());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(getImpl(), getInlineScript(), getInlineEngine(), getName(), getTemplate(), isSkip(), getConfig());
+    }
+
+    public static CheckSpec copyOf(final @NotNull CheckSpec original) {
+        final CheckSpec copy = new CheckSpec();
+        copy.setName(original.getName());
+        copy.setImpl(original.getImpl());
+        copy.setTemplate(original.getTemplate());
+        copy.setSkip(original.isSkip());
+        copy.setInlineScript(original.getInlineScript());
+        copy.setInlineEngine(original.getInlineEngine());
+        copy.setConfig(original.getConfig());
+        return copy;
+    }
+
+    public static ImmutableSpec immutableCopyOf(final @NotNull CheckSpec original) {
+        return new ImmutableSpec(
+                original.getName(),
+                original.getImpl(),
+                original.getTemplate(),
+                original.getInlineScript(),
+                original.getInlineEngine(),
+                original.getConfig(),
+                original.isSkip());
+    }
+
+    /**
+     * This is an Immutable variant of {@link CheckSpec} for composition in {@link Checklist}.
+     */
+    public static final class ImmutableSpec extends CheckSpec {
+        private ImmutableSpec(
+                final @Nullable String name,
+                final @Nullable String impl,
+                final @Nullable String template,
+                final @Nullable String inlineScript,
+                final @Nullable String inlineEngine,
+                final @Nullable JsonObject config,
+                final boolean skip) {
+            super();
+            super.setName(name);
+            super.setImpl(impl);
+            super.setTemplate(template);
+            super.setInlineScript(inlineScript);
+            super.setInlineEngine(inlineEngine);
+            super.setConfig(config);
+            super.setSkip(skip);
+        }
+
+        @Override
+        public void setImpl(final String impl) {
+            throw new UnsupportedOperationException("this CheckSpec is immutable.");
+        }
+
+        @Override
+        public void setInlineScript(final String inlineScript) {
+            throw new UnsupportedOperationException("this CheckSpec is immutable.");
+        }
+
+        @Override
+        public void setInlineEngine(final String inlineEngine) {
+            throw new UnsupportedOperationException("this CheckSpec is immutable.");
+        }
+
+        @Override
+        public void setName(final String name) {
+            throw new UnsupportedOperationException("this CheckSpec is immutable.");
+        }
+
+        @Override
+        public void setTemplate(final String template) {
+            throw new UnsupportedOperationException("this CheckSpec is immutable.");
+        }
+
+        @Override
+        public void setSkip(final boolean skip) {
+            throw new UnsupportedOperationException("this CheckSpec is immutable.");
+        }
+
+        @Override
+        public void setConfig(final JsonObject config) {
+            throw new UnsupportedOperationException("this CheckSpec is immutable.");
+        }
+
     }
 }
