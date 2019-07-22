@@ -30,7 +30,6 @@ import static net.adamcin.oakpal.core.JavaxJson.obj;
 import static net.adamcin.oakpal.core.JavaxJson.objectOrEmpty;
 import static net.adamcin.oakpal.core.JavaxJson.optArray;
 import static net.adamcin.oakpal.core.JavaxJson.optObject;
-import static net.adamcin.oakpal.core.JavaxJson.parseFromArray;
 import static net.adamcin.oakpal.core.JavaxJson.unwrap;
 import static net.adamcin.oakpal.core.JavaxJson.val;
 import static net.adamcin.oakpal.core.JavaxJson.wrap;
@@ -44,7 +43,6 @@ import static org.junit.Assert.assertTrue;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Calendar;
@@ -61,7 +59,6 @@ import javax.json.JsonObject;
 import javax.json.JsonString;
 import javax.json.JsonValue;
 
-import com.sun.xml.internal.ws.util.CompletedFuture;
 import org.apache.jackrabbit.util.ISO8601;
 import org.junit.Test;
 
@@ -521,7 +518,7 @@ public class JavaxJsonTest {
                 toEntry("three", "eerht"));
         assertEquals("should create list of entries", expected,
                 mapArrayOfObjects(jsonInputs, jsonObject -> jsonObject.entrySet().stream()
-                            .map(compose(mapValue(JsonString.class::cast), mapValue(JsonString::getString)))
+                        .map(compose(mapValue(JsonString.class::cast), mapValue(JsonString::getString)))
                         .findFirst().orElse(null)));
 
         final JsonArray jsonInputsWithNonObjects = arr()
