@@ -17,6 +17,8 @@
 package net.adamcin.oakpal.core;
 
 
+import static net.adamcin.oakpal.core.Fun.compose;
+
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -135,6 +137,8 @@ public final class JavaxJson {
             return JsonValue.NULL;
         } else if (object instanceof JsonValue) {
             return (JsonValue) object;
+        } else if (object instanceof HasValue) {
+            return ((HasValue) object).toValue().get();
         } else if (object instanceof ObjectConvertible) {
             return ((ObjectConvertible) object).toJson();
         } else if (object instanceof ArrayConvertible) {
@@ -157,6 +161,8 @@ public final class JavaxJson {
             } else if (object instanceof BigDecimal) {
                 return Json.createArrayBuilder().add((BigDecimal) object).build().get(0);
             } else {
+                // interesting... javax.json doesn't provide support for floats alongside doubles,
+                // but it does support both ints and longs.
                 return Json.createArrayBuilder().add(new BigDecimal(object.toString())).build().get(0);
             }
         } else if (object instanceof Object[]) {
@@ -172,11 +178,24 @@ public final class JavaxJson {
             } else if (object instanceof char[]) {
                 return wrap(String.valueOf((char[]) object));
             } else if (object instanceof byte[]) {
-                return wrap(Base64.getUrlEncoder().encode((byte[]) object));
+                return wrap(Base64.getUrlEncoder().encodeToString((byte[]) object));
             } else if (object instanceof float[]) {
-                return Stream.of((float[]) object).map(JavaxJson::wrap).collect(JsonCollectors.toJsonArray());
+                // interesting... there is an IntStream and a LongStream,
+                // and there is a DoubleStream, but there is no FloatStream
+                final float[] floats = (float[]) object;
+                final double[] doubles = new double[floats.length];
+                for (int i = 0; i < floats.length; i++) {
+                    doubles[i] = floats[i];
+                }
+                return wrap(doubles);
             } else if (object instanceof boolean[]) {
-                return Stream.of((boolean[]) object).map(JavaxJson::wrap).collect(JsonCollectors.toJsonArray());
+                // zero support anywhere for boolean arrays. just box and throw over
+                final boolean[] booleans = (boolean[]) object;
+                final Boolean[] boxed = new Boolean[booleans.length];
+                for (int i = 0; i < booleans.length; i++) {
+                    boxed[i] = booleans[i];
+                }
+                return wrap(boxed);
             }
         } else if (object instanceof Map) {
             return ((Map<?, ?>) object).entrySet().stream()
@@ -205,6 +224,7 @@ public final class JavaxJson {
      * @param jsonValue the wrapped JsonValue
      * @return the associated Java value
      */
+    @SuppressWarnings("WeakerAccess")
     public static Object unwrap(final JsonValue jsonValue) {
         if (jsonValue == null) {
             return null;
@@ -227,11 +247,19 @@ public final class JavaxJson {
     }
 
     /**
+     * This is needed to easily map untyped {@link JsonString} instances to {@link String}, since we don't use
+     * the {@link JsonObject#getString(String)} methods.
+     */
+    @SuppressWarnings("WeakerAccess")
+    public static final Function<JsonValue, String> JSON_VALUE_STRING = compose(JavaxJson::unwrap, Object::toString);
+
+    /**
      * Supports {@link #unwrap(JsonValue)} for typed unwrapping of JsonObject to {@code Map<String, Object>}.
      *
      * @param jsonObject the json object to unwrap
      * @return the equivalent map
      */
+    @SuppressWarnings("WeakerAccess")
     public static Map<String, Object> unwrapObject(final JsonObject jsonObject) {
         return jsonObject.entrySet().stream()
                 .collect(Collectors.toMap(Map.Entry::getKey, entry -> JavaxJson.unwrap(entry.getValue())));
@@ -243,6 +271,7 @@ public final class JavaxJson {
      * @param jsonArray the json array to unwrap
      * @return the equivalent list
      */
+    @SuppressWarnings("WeakerAccess")
     public static List<Object> unwrapArray(final JsonArray jsonArray) {
         return jsonArray.getValuesAs(JavaxJson::unwrap);
     }
@@ -250,6 +279,7 @@ public final class JavaxJson {
     /**
      * Discrete value wrapper. Delegates to {@link #wrap(Object)} for null-handling, etc.
      */
+    @SuppressWarnings("WeakerAccess")
     public static final class Value implements HasValue, As<JsonValue> {
         private final JsonValue value;
 
@@ -292,10 +322,6 @@ public final class JavaxJson {
     public static Value val(Object value) {
         if (value instanceof Cursor) {
             throw new IllegalArgumentException("dangling cursor for key: " + ((Cursor) value).getKey());
-        } else if (value instanceof ObjectConvertible) {
-            return val(((ObjectConvertible) value).toJson());
-        } else if (value instanceof ArrayConvertible) {
-            return val(((ArrayConvertible) value).toJson());
         } else if (value instanceof HasValue) {
             return ((HasValue) value).toValue();
         } else {
@@ -377,6 +403,7 @@ public final class JavaxJson {
      * Cursor type originating from a call to {@link JavaxJson#key(String)}, and which therefore returns a lone
      * {@link Key} for {@link KeyCursor#val(Object)}.
      */
+    @SuppressWarnings("WeakerAccess")
     public static final class KeyCursor implements Cursor {
         private final String key;
 
@@ -400,6 +427,16 @@ public final class JavaxJson {
             }
         }
 
+        public Obj opt(final Object value, final @NotNull Object ifNotValue) {
+            JsonValue wrapped = wrap(value);
+            JsonValue wrappedDefault = wrap(ifNotValue);
+            if (nonDefaultValue(wrapped, wrappedDefault)) {
+                return obj().key(this.key, wrapped);
+            } else {
+                return obj();
+            }
+        }
+
         @Override
         public String getKey() {
             return this.key;
@@ -410,6 +447,7 @@ public final class JavaxJson {
      * Cursor type originating from a call to {@link Key#key(String)} or {@link Obj#key(String)}, and which therefore
      * returns a new {@link Obj} with the newly-finished key appended internally.
      */
+    @SuppressWarnings("WeakerAccess")
     public static final class ObjCursor implements Cursor {
         private final Obj obj;
         private final String key;
@@ -435,9 +473,9 @@ public final class JavaxJson {
             }
         }
 
-        public Obj opt(final Object value, final Object defaultValue) {
+        public Obj opt(final Object value, final @NotNull Object ifNotValue) {
             JsonValue wrapped = wrap(value);
-            JsonValue wrappedDefault = wrap(defaultValue);
+            JsonValue wrappedDefault = wrap(ifNotValue);
             if (nonDefaultValue(wrapped, wrappedDefault)) {
                 return obj.key(this.key, wrapped);
             } else {
@@ -501,6 +539,7 @@ public final class JavaxJson {
     /**
      * Constructs an object by iterating over a list of {@link Key} instances.
      */
+    @SuppressWarnings("WeakerAccess")
     public static final class Obj implements HasValue, As<JsonObject> {
         final List<Key> entries = new ArrayList<>();
 
@@ -606,6 +645,7 @@ public final class JavaxJson {
     /**
      * Constructs an array by iterating over a list of {@link Value} instances.
      */
+    @SuppressWarnings("WeakerAccess")
     public static final class Arr implements HasValue, As<JsonArray> {
         final List<Value> values = new ArrayList<>();
 
@@ -639,9 +679,9 @@ public final class JavaxJson {
             return this;
         }
 
-        public Arr opt(final Object value, final Object defaultValue) {
+        public Arr opt(final Object value, final @NotNull Object ifNotValue) {
             JsonValue wrapped = wrap(value);
-            JsonValue wrappedDefault = wrap(defaultValue);
+            JsonValue wrappedDefault = wrap(ifNotValue);
             if (nonDefaultValue(wrapped, wrappedDefault)) {
                 this.values.add(JavaxJson.val(wrapped));
             }
@@ -669,6 +709,7 @@ public final class JavaxJson {
      * @param key  the array's key
      * @return an optional array
      */
+    @SuppressWarnings("WeakerAccess")
     public static Optional<JsonObject> optObject(final JsonObject json, final String key) {
         return Optional.ofNullable(json.get(key)).filter(JsonObject.class::isInstance).map(JsonObject.class::cast);
     }
@@ -680,6 +721,7 @@ public final class JavaxJson {
      * @param key  the key to retrieve
      * @return a JsonObject, always
      */
+    @SuppressWarnings("WeakerAccess")
     public static JsonObject objectOrEmpty(final JsonObject json, final String key) {
         return optObject(json, key).orElse(JsonValue.EMPTY_JSON_OBJECT);
     }
@@ -691,6 +733,7 @@ public final class JavaxJson {
      * @param key  the array's key
      * @return an optional array
      */
+    @SuppressWarnings("WeakerAccess")
     public static Optional<JsonArray> optArray(final JsonObject json, final String key) {
         return Optional.ofNullable(json.get(key)).filter(JsonArray.class::isInstance).map(JsonArray.class::cast);
     }
@@ -817,11 +860,11 @@ public final class JavaxJson {
      * @see Fun#composeTry(Function, Supplier, Fun.ThrowingFunction, BiConsumer)
      */
     @SuppressWarnings("WeakerAccess")
-    public static <R> List<R> parseFromArray(final JsonArray jsonArray,
-                                             final Fun.ThrowingFunction<String, R> parser,
-                                             final BiConsumer<String, Exception> errorConsumer) {
+    public static <R> List<R> parseFromArray(final @NotNull JsonArray jsonArray,
+                                             final @NotNull Fun.ThrowingFunction<String, R> parser,
+                                             final @Nullable BiConsumer<String, Exception> errorConsumer) {
         return jsonArray.stream()
-                .map(String::valueOf)
+                .map(JSON_VALUE_STRING)
                 .flatMap(Fun.composeTry(Stream::of, Stream::empty, parser, errorConsumer))
                 .collect(Collectors.toList());
     }
@@ -833,7 +876,7 @@ public final class JavaxJson {
      * @param key  the key to check for presence and non-nullness.
      * @return true if key is present and mapped to non-null value.
      */
-    public static boolean hasNonNull(final JsonObject json, final String key) {
+    public static boolean hasNonNull(final @NotNull JsonObject json, final String key) {
         return json.containsKey(key) && !json.isNull(key);
     }
 }

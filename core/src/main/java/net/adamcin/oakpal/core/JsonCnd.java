@@ -580,13 +580,6 @@ public final class JsonCnd {
     }
 
     /**
-     * This is needed to easily map untyped {@link javax.json.JsonString} instances to {@link String}, since we don't use
-     * the {@link JsonObject#getString(String)} methods.
-     */
-    @SuppressWarnings("WeakerAccess")
-    static final Function<JsonValue, String> JSON_VALUE_STRING = compose(JavaxJson::unwrap, Object::toString);
-
-    /**
      * The DefinitionToken enum representing a serialized {@link NodeTypeDefinition}'s properties that are associated with
      * values. Boolean properties of the definition are represented by {@link TypeDefinitionAttribute} values.
      */
@@ -599,7 +592,7 @@ public final class JsonCnd {
                 (def, resolver) -> ofNullable(def.getSupertypes()).map(Stream::of).orElse(Stream.empty())
                         .map(uncheck1(jcrNameOrResidual(resolver)))
                         .map(JavaxJson::wrap)
-                        .sorted(Comparator.comparing(JSON_VALUE_STRING))
+                        .sorted(Comparator.comparing(JavaxJson.JSON_VALUE_STRING))
                         .collect(JsonCollectors.toJsonArray()),
                 // read definition
                 resolver -> (def, value) -> def.setSupertypes(mapArrayOfStrings(value.asJsonArray()).stream()
@@ -802,7 +795,7 @@ public final class JsonCnd {
             if (attributesValue.getValueType() == JsonValue.ValueType.ARRAY) {
                 JsonArray attributes = attributesValue.asJsonArray();
                 attributes.stream()
-                        .map(compose(JSON_VALUE_STRING, TypeDefinitionAttribute::forToken))
+                        .map(compose(JavaxJson.JSON_VALUE_STRING, TypeDefinitionAttribute::forToken))
                         .forEachOrdered(attr -> attr.readTo(builder));
             }
         }
@@ -1013,7 +1006,7 @@ public final class JsonCnd {
          */
         private static void readAttributes(final @NotNull QItemDefinitionBuilder builder,
                                            final @NotNull JsonArray attributes) {
-            attributes.stream().map(compose(JSON_VALUE_STRING, ItemDefinitionAttribute::forToken))
+            attributes.stream().map(compose(JavaxJson.JSON_VALUE_STRING, ItemDefinitionAttribute::forToken))
                     .filter(DefinitionToken::nonUnknown).forEachOrdered(attr -> attr.readTo(builder));
         }
 
@@ -1035,7 +1028,7 @@ public final class JsonCnd {
             if (attributesValue.getValueType() == JsonValue.ValueType.ARRAY) {
                 JsonArray attributes = attributesValue.asJsonArray();
                 ItemDefinitionAttribute.readAttributes(builder, attributes);
-                attributes.stream().map(tokenMapper.compose(JSON_VALUE_STRING))
+                attributes.stream().map(tokenMapper.compose(JavaxJson.JSON_VALUE_STRING))
                         .filter(DefinitionToken::nonUnknown).forEachOrdered(attr -> attr.readTo(builder));
             }
         }
@@ -1107,7 +1100,7 @@ public final class JsonCnd {
                 (def, resolver) -> wrap(uncheck1(jcrNameOrResidual(resolver)).apply(def.getName())),
                 // read definition
                 resolver -> (def, value) -> def.setName(uncheck1(qNameOrResidual(resolver))
-                        .compose(JSON_VALUE_STRING).apply(value))),
+                        .compose(JavaxJson.JSON_VALUE_STRING).apply(value))),
         /**
          * Required Property Type.
          *
@@ -1118,7 +1111,7 @@ public final class JsonCnd {
                 (def, resolver) -> wrap(PropertyType.nameFromValue(def.getRequiredType())),
                 // read definition
                 resolver -> uncheckVoid2((def, value) ->
-                        def.setRequiredType(PropertyType.valueFromName(JSON_VALUE_STRING.apply(value))))),
+                        def.setRequiredType(PropertyType.valueFromName(JavaxJson.JSON_VALUE_STRING.apply(value))))),
         /**
          * Property Definition Attributes.
          *
@@ -1141,7 +1134,7 @@ public final class JsonCnd {
                         .orElse(null),
                 // read definition
                 resolver -> uncheckVoid2((def, value) -> def.setAvailableQueryOperators(value.asJsonArray().stream()
-                        .map(JSON_VALUE_STRING).toArray(String[]::new)))),
+                        .map(JavaxJson.JSON_VALUE_STRING).toArray(String[]::new)))),
         /**
          * Property Default Values.
          *
@@ -1154,7 +1147,7 @@ public final class JsonCnd {
                         .map(JavaxJson::wrap).collect(JsonCollectors.toJsonArray()),
                 // read definition
                 resolver -> (def, value) -> def.setDefaultValues(value.asJsonArray().stream()
-                        .map(JSON_VALUE_STRING).map(uncheck1(jcrValue -> ValueFormat
+                        .map(JavaxJson.JSON_VALUE_STRING).map(uncheck1(jcrValue -> ValueFormat
                                 .getQValue(jcrValue, def.getRequiredType(), resolver, QValueFactoryImpl.getInstance())))
                         .toArray(QValue[]::new))),
         /**
@@ -1171,7 +1164,7 @@ public final class JsonCnd {
                                 .collect(JsonCollectors.toJsonArray()),
                 // read definition
                 resolver -> (def, value) -> def.setValueConstraints(value.asJsonArray().stream()
-                        .map(JSON_VALUE_STRING).map(uncheck1(jcrValue -> ValueConstraint
+                        .map(JavaxJson.JSON_VALUE_STRING).map(uncheck1(jcrValue -> ValueConstraint
                                 .create(def.getRequiredType(), jcrValue, resolver)))
                         .toArray(QValueConstraint[]::new)));
 
@@ -1382,7 +1375,7 @@ public final class JsonCnd {
                 (def, resolver) -> wrap(uncheck1(jcrNameOrResidual(resolver)).apply(def.getName())),
                 // read definition
                 resolver -> (def, value) -> def.setName(uncheck1(qNameOrResidual(resolver))
-                        .compose(JSON_VALUE_STRING).apply(value))),
+                        .compose(JavaxJson.JSON_VALUE_STRING).apply(value))),
         /**
          * Required Primary Types.
          *
@@ -1392,7 +1385,7 @@ public final class JsonCnd {
                 // write json
                 (def, resolver) -> ofNullable(def.getRequiredPrimaryTypes()).map(Stream::of).orElse(Stream.empty())
                         .map(compose(uncheck1(jcrNameOrResidual(resolver)), JavaxJson::wrap))
-                        .sorted(Comparator.comparing(JSON_VALUE_STRING))
+                        .sorted(Comparator.comparing(JavaxJson.JSON_VALUE_STRING))
                         .collect(JsonCollectors.toJsonArray()),
                 // read definition
                 resolver -> (def, value) -> mapArrayOfStrings(value.asJsonArray(), uncheck1(qNameOrResidual(resolver)))
