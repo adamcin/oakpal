@@ -1,0 +1,4 @@
+Manifest-Version: 1.0
+Oakpal-ModuleName: oakpal.moduleName
+Bundle-SymbolicName: bundle.symbolicName
+Automatic-Module-Name: auto.module.name

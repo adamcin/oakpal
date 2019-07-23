@@ -30,6 +30,8 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import javax.json.JsonObject;
 
+import org.jetbrains.annotations.NotNull;
+
 /**
  * Simple POJO implementing a {@link CheckReport}, used for deserialization.
  */
@@ -50,7 +52,7 @@ public final class SimpleReport implements CheckReport {
     }
 
     @Override
-    public Collection<Violation> getViolations() {
+    public @NotNull Collection<Violation> getViolations() {
         return violations;
     }
 

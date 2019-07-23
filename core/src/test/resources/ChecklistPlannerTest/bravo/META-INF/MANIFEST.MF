@@ -1,0 +1,3 @@
+Manifest-Version: 1.0
+Bundle-SymbolicName: bravo
+Oakpal-Checklist: bravo-1.json,bravo-2.json

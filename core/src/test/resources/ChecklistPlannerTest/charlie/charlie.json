@@ -1,0 +1,26 @@
+{
+  "checks": [
+    {
+      "name": "pathy",
+      "inlineScript": "function importedPath(path) { println(path); }"
+    }
+  ],
+  "jcrNamespaces": [
+    {
+      "prefix": "charlie",
+      "uri": "http://charlie.com"
+    }
+  ],
+  "jcrNodetypes": {
+    "charlie:primaryType": {
+      "extends": ["nt:base"]
+    }
+  },
+  "forcedRoots": [
+    {
+      "path": "/ChecklistPlannerTest/charlie",
+      "primaryType": "charlie:primaryType"
+    }
+  ]
+}
+

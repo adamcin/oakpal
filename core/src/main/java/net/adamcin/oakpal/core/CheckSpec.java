@@ -120,8 +120,17 @@ public class CheckSpec implements JavaxJson.ObjectConvertible {
      *
      * @return true if this check spec fails to specify {@link #getImpl()} or {@link #getInlineScript()}
      */
-    public boolean isAbstract() {
+    public final boolean isAbstract() {
         return isEmpty(this.impl) && this.inlineScript == null;
+    }
+
+    /**
+     * Inverse of {@link #isAbstract()}. Filter for selecting specs that DO have impl or inline attributes.
+     *
+     * @return true if has implementation
+     */
+    public final boolean notAbstract() {
+        return !isAbstract();
     }
 
     /**

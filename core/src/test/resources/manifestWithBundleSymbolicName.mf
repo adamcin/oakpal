@@ -1,0 +1,3 @@
+Manifest-Version: 1.0
+Bundle-SymbolicName: bundle.symbolicName
+Automatic-Module-Name: auto.module.name

@@ -1,0 +1,26 @@
+{
+  "name": "alpha",
+  "checks": [
+    {
+      "name": "pathy",
+      "inlineScript": "function importedPath(path) { println(path); }"
+    }
+  ],
+  "jcrNamespaces": [
+    {
+      "prefix": "alpha",
+      "uri": "http://alpha.com"
+    }
+  ],
+  "jcrNodetypes": {
+    "alpha:primaryType": {
+      "extends": ["nt:base"]
+    }
+  },
+  "forcedRoots": [
+    {
+      "path": "/ChecklistPlannerTest/alpha",
+      "primaryType": "alpha:primaryType"
+    }
+  ]
+}

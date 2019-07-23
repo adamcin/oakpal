@@ -1,0 +1,26 @@
+{
+  "name": "bravo-1",
+  "checks": [
+    {
+      "name": "pathy",
+      "inlineScript": "function importedPath(path) { println(path); }"
+    }
+  ],
+  "jcrNamespaces": [
+    {
+      "prefix": "bravo",
+      "uri": "http://bravo.com"
+    }
+  ],
+  "jcrNodetypes": {
+    "bravo:primaryType": {
+      "extends": ["nt:base"]
+    }
+  },
+  "forcedRoots": [
+    {
+      "path": "/ChecklistPlannerTest/bravo-1",
+      "primaryType": "bravo:primaryType"
+    }
+  ]
+}

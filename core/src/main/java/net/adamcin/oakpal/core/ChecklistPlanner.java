@@ -101,16 +101,36 @@ public final class ChecklistPlanner {
         return getSelectedChecklists().map(Checklist::asInitStage).collect(Collectors.toList());
     }
 
-    private Stream<Checklist> getSelectedChecklists() {
+    Stream<Checklist> getSelectedChecklists() {
         return checklists.stream();
     }
 
-    private Stream<Checklist> getAllChecklists() {
+    Stream<Checklist> getAllChecklists() {
         List<Checklist> allChecklists = new ArrayList<>(checklists);
         allChecklists.addAll(inactiveChecklists);
         return allChecklists.stream();
     }
 
+    /**
+     * Compute the checklist plan for progress checks, given a list of override specs to apply.
+     *
+     * Intended Algorithm:
+     * from selected checklists, stream specs
+     *   -> apply overrides
+     *   -> drop skipped specs
+     *   -> collect overlaid
+     * from overrides, stream as remaining specs
+     *   -> drop skipped specs
+     *   -> drop if already applied as overlay
+     *   -> apply as overlay to inactive checklist specs if possible
+     *   -> apply inheritance from any checklist spec if necessary
+     *   -> add result if not abstract
+     *
+     * @param checkOverrides the list of check overrides
+     * @return a final list of {@link CheckSpec}s to use for a scan
+     * @see Locator#loadFromCheckSpecs(List)
+     * @see OakMachine.Builder#withProgressChecks(List)
+     */
     public List<CheckSpec> getEffectiveCheckSpecs(final List<CheckSpec> checkOverrides) {
         Map<String, CheckSpec> overlaid = new LinkedHashMap<>();
         List<CheckSpec> overrides = new ArrayList<>();
@@ -128,7 +148,7 @@ public final class ChecklistPlanner {
                 // Stream<Checklist> -> Stream<CheckSpec>
                 .flatMap(checklist -> checklist.getChecks().stream())
                 // apply overrides to each base spec
-                .map(base -> this.applyOverrides(overrides, base))
+                .map(base -> applyOverrides(overrides, base))
                 // evaluate skip after override
                 .filter(CheckSpec::notSkipped)
                 // only accum once
@@ -167,12 +187,12 @@ public final class ChecklistPlanner {
                                 .filter(merged::inherits)
                                 .findFirst().map(merged::inherit).orElse(merged);
                         // if extended spec has impl, add it
-                        if (extended.getImpl() != null) {
+                        if (extended.notAbstract()) {
                             toReturn.add(extended);
                         }
                     } else {
                         // if merged spec has impl, add it
-                        if (merged.getImpl() != null) {
+                        if (merged.notAbstract()) {
                             toReturn.add(merged);
                         }
                     }
@@ -182,7 +202,7 @@ public final class ChecklistPlanner {
         return toReturn;
     }
 
-    private CheckSpec applyOverrides(final List<CheckSpec> checkOverrides, final CheckSpec base) {
+    static CheckSpec applyOverrides(final List<CheckSpec> checkOverrides, final CheckSpec base) {
         CheckSpec merged = base;
         LOGGER.trace("[applyOverrides] base: {}", base);
         List<CheckSpec> applicable = checkOverrides.stream().filter(base::isOverriddenBy)
@@ -219,25 +239,17 @@ public final class ChecklistPlanner {
         return parseChecklists(manifestLookup);
     }
 
-    private static Map<URL, List<JsonObject>> parseChecklists(final Map<URL, List<URL>> manifestLookup)
+    static Map<URL, List<JsonObject>> parseChecklists(final Map<URL, List<URL>> manifestLookup)
             throws Exception {
         Map<URL, List<JsonObject>> parsed = new LinkedHashMap<>();
         for (Map.Entry<URL, List<URL>> manifestEntry : manifestLookup.entrySet()) {
             final URL manifestUrl = manifestEntry.getKey();
             final List<URL> checklistUrls = manifestEntry.getValue();
-            final List<JsonObject> allParsedForModule;
-
-            if (parsed.containsKey(manifestUrl)) {
-                allParsedForModule = parsed.get(manifestUrl);
-            } else {
-                allParsedForModule = new ArrayList<>();
-                parsed.put(manifestUrl, allParsedForModule);
-            }
-
+            final List<JsonObject> allParsedForModule = new ArrayList<>();
+            parsed.put(manifestUrl, allParsedForModule);
             for (URL checklistUrl : checklistUrls) {
                 try (InputStream is = checklistUrl.openStream();
                      JsonReader reader = Json.createReader(is)) {
-
                     allParsedForModule.add(reader.readObject());
                 }
             }
@@ -245,7 +257,7 @@ public final class ChecklistPlanner {
         return parsed;
     }
 
-    private static String bestModuleName(final URL manifestUrl) throws Exception {
+    static String bestModuleName(final URL manifestUrl) throws Exception {
         try (InputStream is = manifestUrl.openStream()) {
             final Manifest manifest = new Manifest(is);
             List<String> omns = Util.getManifestHeaderValues(manifest, OAKPAL_MODULENAME);

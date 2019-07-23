@@ -26,6 +26,8 @@ import java.util.stream.Collectors;
 import javax.json.JsonObject;
 import javax.json.stream.JsonCollectors;
 
+import org.jetbrains.annotations.NotNull;
+
 /**
  * Type for collected {@link Violation}s from a particlular {@link ProgressCheck}.
  */
@@ -43,7 +45,7 @@ public interface CheckReport extends JavaxJson.ObjectConvertible {
      *
      * @return the reported violations
      */
-    Collection<Violation> getViolations();
+    @NotNull Collection<Violation> getViolations();
 
     /**
      * The list of violations filtered to ignore severities less than {@code atLeastAsSevere}.
@@ -72,7 +74,7 @@ public interface CheckReport extends JavaxJson.ObjectConvertible {
         if (!isEmpty(this.getCheckName())) {
             jsonReport.key(KEY_CHECK_NAME, this.getCheckName());
         }
-        if (this.getViolations() != null) {
+        if (!this.getViolations().isEmpty()) {
             jsonReport.key(KEY_VIOLATIONS, this.getViolations().stream()
                     .map(ReportMapper::violationToJson)
                     .collect(JsonCollectors.toJsonArray()));

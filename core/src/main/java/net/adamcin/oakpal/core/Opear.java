@@ -1,6 +1,5 @@
 package net.adamcin.oakpal.core;
 
-import java.io.File;
 import java.net.URL;
 
 import org.jetbrains.annotations.NotNull;
