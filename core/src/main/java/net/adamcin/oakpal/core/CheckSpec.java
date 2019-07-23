@@ -18,7 +18,6 @@ package net.adamcin.oakpal.core;
 
 import static java.util.Optional.ofNullable;
 import static net.adamcin.oakpal.core.JavaxJson.hasNonNull;
-import static net.adamcin.oakpal.core.JavaxJson.key;
 import static net.adamcin.oakpal.core.JavaxJson.obj;
 import static net.adamcin.oakpal.core.Util.isEmpty;
 
@@ -33,6 +32,7 @@ import org.jetbrains.annotations.Nullable;
 /**
  * DTO for full-featured check spec.
  */
+@SuppressWarnings("WeakerAccess")
 public class CheckSpec implements JavaxJson.ObjectConvertible {
     static final String KEY_IMPL = "impl";
     static final String KEY_INLINE_SCRIPT = "inlineScript";
@@ -50,7 +50,7 @@ public class CheckSpec implements JavaxJson.ObjectConvertible {
     private boolean skip;
     private JsonObject config;
 
-   /**
+    /**
      * The direct classpath lookup name for a particular check. If not provided, indicates that a check should be
      * looked up by name from a catalog on the classpath.
      *
@@ -60,39 +60,79 @@ public class CheckSpec implements JavaxJson.ObjectConvertible {
         return impl;
     }
 
+    /**
+     * Set a new impl value. This is considered unspecified if the value is null or empty.
+     *
+     * @param impl the new value
+     */
     public void setImpl(final String impl) {
         this.impl = impl;
     }
 
+    /**
+     * As an alternative to {@link #getImpl()}, a CheckSpec may specify script check source code inline, i.e., as a
+     * javascript string. This pattern can make checklists more portable, at the expense of readability.
+     * This overrides {@link #getImpl()} if this returns non-null.
+     *
+     * @return a string, invokable as a script, or null, if this field is unspecified.
+     * @see #getInlineEngine()
+     */
     public String getInlineScript() {
         return inlineScript;
     }
 
+    /**
+     * Set a new invokable script check source value. If this is not invokable using the "javascript" engine, be sure to
+     * specify the engine name using {@link #setInlineEngine(String)}.
+     *
+     * @param inlineScript the new value, or null if unspecified
+     * @see #getInlineEngine()
+     */
     public void setInlineScript(final String inlineScript) {
         this.inlineScript = inlineScript;
     }
 
+    /**
+     * Specifies a ScriptEngineFactory name, or null to use the default of "javascript", in conjunction with a non-null
+     * value for {@link #getInlineScript()}.
+     *
+     * @return a specific {@link javax.script.ScriptEngineFactory} name or null to use "javascript"
+     * @see #getInlineScript()
+     */
     public String getInlineEngine() {
         return inlineEngine;
     }
 
+    /**
+     * Set a new {@link javax.script.ScriptEngineFactory} name, or null for the default.
+     *
+     * @param inlineEngine the new value
+     * @see #setInlineScript(String)
+     */
     public void setInlineEngine(final String inlineEngine) {
         this.inlineEngine = inlineEngine;
     }
 
+    /**
+     * An abstract check spec has neither a non-empty {@link #getImpl()} nor a non-null {@link #getInlineScript()}, and
+     * is therefore not invokable on its own. It must overlay another check spec specified in a checklist by matching its
+     * name exactly, or matching this name as a suffix of the other the name.
+     *
+     * @return true if this check spec fails to specify {@link #getImpl()} or {@link #getInlineScript()}
+     */
     public boolean isAbstract() {
         return isEmpty(this.impl) && this.inlineScript == null;
     }
 
     /**
      * The display name for the check. If "impl" is provided, and represents a script package check or a class that
-     * implements {@link ProgressCheckFactory} this is treated as an alias for the check during
+     * implements {@link ProgressCheck} or {@link ProgressCheckFactory} this is treated as an alias for the check during
      * this execution.
      * <p>
-     * If "impl" is not provided, this is used to lookup a catalog check.
+     * If "impl" is not provided, this is used to lookup a checklist check to overlay.
      * </p>
      * <p>
-     * If "impl" is not a {@link ProgressCheckFactory}, this value is ignored.
+     * If "impl" is not resolved to a progress check of some kind, this value is otherwise ignored.
      * </p>
      *
      * @return the checkName
@@ -101,12 +141,18 @@ public class CheckSpec implements JavaxJson.ObjectConvertible {
         return name;
     }
 
+    /**
+     * Set a new display name for the check.
+     *
+     * @param name the new value
+     */
     public void setName(final String name) {
         this.name = name;
     }
 
     /**
-     * If specified, inherit the impl and config of another {@link CheckSpec}, following the same rules of {@code name}
+     * If specified, inherit the {@link #getConfig()} and either the {@link #getImpl()} or {@link #getInlineScript()}
+     * and {@link #getInlineEngine()} of another {@link CheckSpec}, following the same rules of {@code name}
      * matching that apply to {@link #getName()}.
      *
      * @return the checkName to inherit from
@@ -115,11 +161,22 @@ public class CheckSpec implements JavaxJson.ObjectConvertible {
         return template;
     }
 
+    /**
+     * Set a new template value.
+     *
+     * @param template the new value
+     */
     public void setTemplate(final String template) {
         this.template = template;
     }
 
-    public boolean mustInherit() {
+    /**
+     * A CheckSpec with a non-empty template MUST inherit from another non-abstract CheckSpec, and therefore, cannot
+     * OVERRIDE another CheckSpec.
+     *
+     * @return true if template is specified
+     */
+    final boolean mustInherit() {
         return this.getTemplate() != null && !this.getTemplate().trim().isEmpty();
     }
 
@@ -133,70 +190,165 @@ public class CheckSpec implements JavaxJson.ObjectConvertible {
         return skip;
     }
 
+    /**
+     * Set to true to skip the check.
+     *
+     * @param skip the new value
+     */
     public void setSkip(final boolean skip) {
         this.skip = skip;
     }
 
-    public boolean notSkipped() {
+    /**
+     * The inverse of {@link #isSkip()}.
+     *
+     * @return true if not skipped
+     */
+    public final boolean notSkipped() {
         return !isSkip();
     }
 
     /**
      * If {@code impl} references a script check or a {@link ProgressCheckFactory},
-     * or if the check loaded from a catalog by {@code name} is a script check or a
+     * or if the check loaded from a checklist by {@code name} is a script check or a
      * {@link ProgressCheckFactory}, this is used to configure the check.
      *
-     * @return the JSONObject configuration for the package check
+     * @return the JsonObject configuration for the package check
      */
     public JsonObject getConfig() {
         return config;
     }
 
+    /**
+     * Set a new config object value.
+     *
+     * @param config the new value
+     */
     public void setConfig(final JsonObject config) {
         this.config = config;
     }
 
-    public boolean overrides(final CheckSpec other) {
-        return !this.mustInherit() && !other.mustInherit()
-                && (String.valueOf(other.getName()).equals(String.valueOf(this.getName()))
-                || (this.isAbstract()
-                && String.valueOf(other.getName()).endsWith("/" + String.valueOf(this.getName()))));
+    /**
+     * Returns true if this overrides that.
+     * <p>
+     * 1. Neither this spec nor that spec have a template specified (use {@link #inherit(CheckSpec)} in that case)
+     * 2. Neither this spec nor that spec are unnamed (unnamed specs cannot be overridden).
+     * 3a. This name matches that name exactly (explicit override allowing different impl), OR
+     * 3b. This is abstract and that name ENDS with "/" + this name (implicit override for skipping or merging config)
+     *
+     * @param that the other spec
+     * @return true if this overrides that
+     */
+    public final boolean overrides(final @NotNull CheckSpec that) {
+        return this.notUnnamed() && that.notUnnamed()
+                && !this.mustInherit() && !that.mustInherit()
+                && (that.getName().equals(this.getName())
+                || (this.isAbstract() && that.getName().endsWith("/" + this.getName())));
     }
 
-    public boolean isOverriddenBy(final CheckSpec other) {
-        return other.overrides(this);
+    /**
+     * Returns true if this spec has a non-blank name.
+     *
+     * @return true if named
+     */
+    final boolean notUnnamed() {
+        return this.getName() != null && !this.getName().trim().isEmpty();
     }
 
-    public CheckSpec overlay(final CheckSpec other) {
-        final CheckSpec composite = new CheckSpec();
-        composite.setName(other.getName());
-        composite.setSkip(this.isSkip() || other.isSkip());
-        composite.setImpl(ofNullable(this.getImpl()).orElse(other.getImpl()));
-        composite.setConfig(merge(other.getConfig(), this.getConfig()));
+    /**
+     * The inverse of {@link #overrides(CheckSpec)}.
+     *
+     * @param that the other spec
+     * @return true if this is overridden by that
+     */
+    public final boolean isOverriddenBy(final @NotNull CheckSpec that) {
+        return that.overrides(this);
+    }
+
+    /**
+     * Implements the common composition logic for {@link #overlay(CheckSpec)} and {@link #inherit(CheckSpec)}.
+     *
+     * @param that the other spec
+     * @return a mutable composite CheckSpec
+     */
+    final CheckSpec baseCompositeOver(final @NotNull CheckSpec that) {
+        final CheckSpec composite = copyOf(that);
+        // only leave impl OR inlineScript+inlineEngine set in the composite. Be sure to unset the
+        // alternative in the composite to reduce confusion about which takes precedence downstream.
+        if (this.getInlineScript() != null) {
+            composite.setInlineScript(this.getInlineScript());
+            composite.setInlineEngine(this.getInlineEngine());
+            composite.setImpl(null);
+        } else if (!isEmpty(this.getImpl())) {
+            composite.setInlineScript(null);
+            composite.setInlineEngine(null);
+            composite.setImpl(this.getImpl());
+        }
+        composite.setConfig(merge(that.getConfig(), this.getConfig()));
         return composite;
     }
 
-    public boolean inherits(final CheckSpec other) {
-        return this.mustInherit() && !other.mustInherit() && !this.overrides(other)
+    /**
+     * Apply this spec's attributes as an overlay to that spec's attributes. Recommend checking
+     * for a true from {@link #overrides(CheckSpec)}. If either this spec or that spec specify
+     * "skip=true", the composite spec will be skipped.
+     *
+     * @param that the other spec to override
+     * @return a new composite spec
+     * @see #overrides(CheckSpec)
+     */
+    public final CheckSpec overlay(final @NotNull CheckSpec that) {
+        final CheckSpec composite = baseCompositeOver(that);
+        composite.setSkip(this.isSkip() || that.isSkip());
+        return composite;
+    }
+
+    /**
+     * Return true if this spec identifies that spec by name in this spec's template attribute.
+     *
+     * @param that the other spec
+     * @return true if this inherits from that
+     */
+    public final boolean inherits(final @NotNull CheckSpec that) {
+        return this.mustInherit() && !that.mustInherit()
                 && !this.getTemplate().equals(this.getName())
-                && other.getName() != null && !other.getName().isEmpty()
-                && (String.valueOf(other.getName()).equals(String.valueOf(this.getTemplate()))
-                || String.valueOf(other.getName()).endsWith("/" + String.valueOf(this.getTemplate())));
+                && that.notUnnamed()
+                && (that.getName().equals(this.getTemplate())
+                || that.getName().endsWith("/" + this.getTemplate()));
     }
 
-    public boolean isInheritedBy(final CheckSpec other) {
-        return other.inherits(this);
+    /**
+     * The inverse of {@link #inherits(CheckSpec)}.
+     *
+     * @param that the other check spec
+     * @return true if this is inherited by that
+     */
+    public final boolean isInheritedBy(final @NotNull CheckSpec that) {
+        return that.inherits(this);
     }
 
-    public CheckSpec inherit(final CheckSpec other) {
-        final CheckSpec composite = new CheckSpec();
-        composite.setImpl(ofNullable(this.getImpl()).orElse(other.getImpl()));
-        composite.setName(ofNullable(this.getName()).orElse(other.getName()));
+    /**
+     * Apply this spec's attributes to that as an overlay to that spec's attributes. Recommend checking for a true from
+     * {@link #inherits(CheckSpec)}. This spec's name and skip attributes takes precedence over that's.
+     *
+     * @param that the other spec to inherit from
+     * @return the composite check spec
+     */
+    public final CheckSpec inherit(final @NotNull CheckSpec that) {
+        final CheckSpec composite = baseCompositeOver(that);
+        composite.setName(ofNullable(this.getName()).orElse(that.getName()));
         composite.setSkip(this.isSkip());
-        composite.setConfig(merge(other.getConfig(), this.getConfig()));
         return composite;
     }
 
+    /**
+     * Merge an overlay json object's entries into a base json object, replacing values
+     * for duplicate keys.
+     *
+     * @param base    the base json object
+     * @param overlay the overlay json object
+     * @return a merged json object
+     */
     static JsonObject merge(final JsonObject base, final JsonObject overlay) {
         JsonObjectBuilder init = Json.createObjectBuilder();
         ofNullable(base).ifPresent(json -> json.forEach(init::add));
@@ -242,7 +394,7 @@ public class CheckSpec implements JavaxJson.ObjectConvertible {
      *
      * @param builder the json object builder that should be edited by subclasses
      */
-    @SuppressWarnings("WeakerAccess")
+    @SuppressWarnings("UnusedParameter")
     protected void editJson(final JsonObjectBuilder builder) {
         // for overriding classes.
     }
@@ -258,7 +410,7 @@ public class CheckSpec implements JavaxJson.ObjectConvertible {
                 .key(KEY_CONFIG).opt(getConfig())
                 .key(KEY_TEMPLATE).opt(getTemplate());
         if (isSkip()) {
-            obj().key(KEY_SKIP, true);
+            obj.key(KEY_SKIP, true);
         }
         final JsonObject base = obj.get();
         base.forEach(builder::add);
@@ -369,6 +521,5 @@ public class CheckSpec implements JavaxJson.ObjectConvertible {
         public void setConfig(final JsonObject config) {
             throw new UnsupportedOperationException("this CheckSpec is immutable.");
         }
-
     }
 }

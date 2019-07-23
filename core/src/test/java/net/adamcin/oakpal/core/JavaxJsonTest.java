@@ -408,7 +408,7 @@ public class JavaxJsonTest {
     }
 
     @Test
-    public void testKey() throws Exception {
+    public void testKey() {
         boolean keyNull = false;
         try {
             key(null, "val");
