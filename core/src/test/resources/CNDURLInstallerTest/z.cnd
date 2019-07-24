@@ -1,0 +1,7 @@
+<'nt'='http://www.jcp.org/jcr/nt/1.0'>
+<'z'='http://z.com/1.0'>
+
+[z:primaryType] > nt:base
+
+[z:mixinType]
+  mixin

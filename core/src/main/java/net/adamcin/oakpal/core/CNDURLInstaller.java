@@ -32,6 +32,8 @@ import javax.jcr.Workspace;
 import javax.jcr.nodetype.NodeTypeManager;
 
 import org.apache.jackrabbit.commons.cnd.CndImporter;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Utility class for installation of CNDs by {@link URL}. Inspired by sling mocks.
@@ -51,9 +53,9 @@ final class CNDURLInstaller {
      *
      * @throws IOException if the classloader can't scan.
      */
-    CNDURLInstaller(final ErrorListener errorListener,
-                    final List<URL> unorderedCnds,
-                    final List<URL> postInstallCnds) {
+    CNDURLInstaller(final @Nullable ErrorListener errorListener,
+                    final @NotNull List<URL> unorderedCnds,
+                    final @Nullable List<URL> postInstallCnds) {
         this.errorListener = errorListener != null ? errorListener : new DefaultErrorListener();
         this.unorderedCnds = new ArrayList<>(unorderedCnds);
         this.postInstallCnds = postInstallCnds != null ? new ArrayList<>(postInstallCnds) : Collections.emptyList();
