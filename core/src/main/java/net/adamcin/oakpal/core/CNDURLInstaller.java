@@ -148,9 +148,9 @@ final class CNDURLInstaller {
      * Register node types found in classpath in JCR repository, and remove those that succeeded to register from the list.
      *
      * @param nodeTypeResources List of nodetype classpath resources
-     * @param nodeTypeManager
-     * @param namespaceRegistry
-     * @param valueFactory
+     * @param nodeTypeManager   the node type manager
+     * @param namespaceRegistry the namespace registry
+     * @param valueFactory      the value factory
      */
     private void tryRegisterNodeTypes(final List<URL> nodeTypeResources,
                                       final NodeTypeManager nodeTypeManager,
@@ -171,6 +171,15 @@ final class CNDURLInstaller {
         }
     }
 
+    /**
+     * Do the registration of a particular cnd URL.
+     *
+     * @param namedResource     the CND URL
+     * @param nodeTypeManager   the node type manager
+     * @param namespaceRegistry the namespace registry
+     * @param valueFactory      the value factory
+     * @throws Throwable if an error occurs
+     */
     private void registerNodeTypesFromUrl(final URL namedResource,
                                           final NodeTypeManager nodeTypeManager,
                                           final NamespaceRegistry namespaceRegistry,

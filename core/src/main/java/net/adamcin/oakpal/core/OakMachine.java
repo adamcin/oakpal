@@ -490,22 +490,22 @@ public final class OakMachine {
 
             admin = loginAdmin(scanRepo);
 
-            final JcrPackageManager manager = packagingService.getPackageManager(admin);
-
             addOakpalTypes(admin);
 
-            for (InitStage initStage : this.initStages) {
+            final JcrPackageManager manager = packagingService.getPackageManager(admin);
+
+            for (final InitStage initStage : this.initStages) {
                 initStage.initSession(admin, getErrorListener());
             }
 
-            for (URL url : preInstallUrls) {
+            for (final URL url : preInstallUrls) {
                 processPackageUrl(admin, manager, true, url);
             }
 
             progressChecks.forEach(ProgressCheck::startedScan);
 
             if (files != null) {
-                for (File file : files) {
+                for (final File file : files) {
                     processPackageFile(admin, manager, false, file);
                 }
             }
@@ -537,6 +537,7 @@ public final class OakMachine {
     }
 
     private void addOakpalTypes(final Session admin) throws RepositoryException {
+        this.installVltNodetypes(admin);
         admin.getWorkspace().getNamespaceRegistry().registerNamespace(NS_PREFIX_OAKPAL, NS_URI_OAKPAL);
         admin.setNamespacePrefix(NS_PREFIX_OAKPAL, NS_URI_OAKPAL);
         TemplateBuilderFactory builderFactory = new TemplateBuilderFactory(admin);
@@ -778,6 +779,14 @@ public final class OakMachine {
         } finally {
             thread.setContextClassLoader(loader);
         }
+    }
+
+    private void installVltNodetypes(final Session admin) throws RepositoryException {
+        new CNDURLInstaller(getErrorListener(),
+                Collections.emptyList(),
+                Collections.singletonList(JcrPackageManager.class.getResource(
+                        "impl/nodetypes.cnd")))
+                .register(admin);
     }
 
     private class ImporterListenerAdapter implements ProgressTrackerListener {

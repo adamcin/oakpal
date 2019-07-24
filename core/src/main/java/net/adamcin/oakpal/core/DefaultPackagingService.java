@@ -38,11 +38,12 @@ public final class DefaultPackagingService implements Packaging {
     private static final Logger LOGGER = LoggerFactory.getLogger(DefaultPackagingService.class);
     private static final String JCR_PACK_MAN_IMPL_CLASS = "org.apache.jackrabbit.vault.packaging.impl.JcrPackageManagerImpl";
 
-    private Class<? extends JcrPackageManager> jcrPackageManagerClazz;
+    Class<? extends JcrPackageManager> jcrPackageManagerClazz;
 
     /**
      * Load the JcrPackageManagerImpl class from the oakpal classloader.
      */
+    @SuppressWarnings("WeakerAccess")
     public DefaultPackagingService() {
         this(DefaultPackagingService.class.getClassLoader());
     }
