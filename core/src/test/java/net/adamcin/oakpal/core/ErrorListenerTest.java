@@ -41,6 +41,8 @@ public class ErrorListenerTest {
         mock.onListenerPathException(null, null, null, null);
         mock.onNodeTypeRegistrationError(null, null);
         mock.onSubpackageException(null, null);
+        mock.onInstallHookError(null, null);
+        mock.onProhibitedInstallHookRegistration(null);
         mock.finishedScan();
     }
 }

@@ -31,6 +31,7 @@ import java.util.stream.Stream;
 import javax.json.JsonObject;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Encapsulation of details necessary to force creation of a particular root path.
@@ -40,54 +41,68 @@ public final class ForcedRoot implements JavaxJson.ObjectConvertible, Comparable
     static final String KEY_PRIMARY_TYPE = "primaryType";
     static final String KEY_MIXIN_TYPES = "mixinTypes";
 
+    @Nullable
     private String path;
 
+    @Nullable
     private String primaryType;
 
     @NotNull
     private List<String> mixinTypes = Collections.emptyList();
 
-    public String getPath() {
+    public @Nullable String getPath() {
         return path;
     }
 
-    public void setPath(String path) {
+    public void setPath(final @Nullable String path) {
         this.path = path;
     }
 
-    public String getPrimaryType() {
+    public @Nullable String getPrimaryType() {
         return primaryType;
     }
 
-    public void setPrimaryType(String primaryType) {
+    public void setPrimaryType(final @Nullable String primaryType) {
         this.primaryType = primaryType;
     }
 
-    public List<String> getMixinTypes() {
+    public @NotNull List<String> getMixinTypes() {
         return mixinTypes;
     }
 
-    public void setMixinTypes(List<String> mixinTypes) {
-        this.mixinTypes = mixinTypes;
+    public void setMixinTypes(final @Nullable List<String> mixinTypes) {
+        if (mixinTypes != null) {
+            this.mixinTypes = mixinTypes;
+        } else {
+            this.mixinTypes = Collections.emptyList();
+        }
     }
 
-    public ForcedRoot withPath(final String path) {
+    @SuppressWarnings("WeakerAccess")
+    public ForcedRoot withPath(final @Nullable String path) {
         this.path = path;
         return this;
     }
 
-    public ForcedRoot withPrimaryType(final String primaryType) {
+    @SuppressWarnings("WeakerAccess")
+    public ForcedRoot withPrimaryType(final @Nullable String primaryType) {
         this.primaryType = primaryType;
         return this;
     }
 
-    public ForcedRoot withMixinTypes(final String... mixinTypes) {
-        if (mixinTypes != null) {
-            this.mixinTypes = Arrays.asList(mixinTypes);
-        } else {
-            this.mixinTypes = Collections.emptyList();
-        }
+    @SuppressWarnings("WeakerAccess")
+    public ForcedRoot withMixinTypes(final @NotNull String... mixinTypes) {
+        this.mixinTypes = Arrays.asList(mixinTypes);
         return this;
+    }
+
+    /**
+     * Return true if path is not null.
+     *
+     * @return true if path is not null
+     */
+    public final boolean hasPath() {
+        return path != null;
     }
 
     /**
@@ -96,7 +111,7 @@ public final class ForcedRoot implements JavaxJson.ObjectConvertible, Comparable
      * @param json JSON object
      * @return a new forced root
      */
-    public static ForcedRoot fromJson(final JsonObject json) {
+    public static @NotNull ForcedRoot fromJson(final @NotNull JsonObject json) {
         final ForcedRoot forcedRoot = new ForcedRoot();
         if (json.containsKey(KEY_PATH)) {
             forcedRoot.setPath(json.getString(KEY_PATH));
@@ -115,7 +130,7 @@ public final class ForcedRoot implements JavaxJson.ObjectConvertible, Comparable
      *
      * @return an array of namespace prefixes
      */
-    public String[] getNamespacePrefixes() {
+    public @NotNull String[] getNamespacePrefixes() {
         return Stream.concat(
                 streamIt(path).flatMap(path ->
                         Stream.of(path.split("/"))
@@ -129,7 +144,7 @@ public final class ForcedRoot implements JavaxJson.ObjectConvertible, Comparable
 
     @Override
     public JsonObject toJson() {
-        return obj().key(KEY_PATH, this.path)
+        return obj().key(KEY_PATH).opt(this.path)
                 .key(KEY_PRIMARY_TYPE).opt(this.primaryType)
                 .key(KEY_MIXIN_TYPES).opt(this.mixinTypes)
                 .get();

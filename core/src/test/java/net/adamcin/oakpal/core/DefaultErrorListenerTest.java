@@ -16,13 +16,22 @@
 
 package net.adamcin.oakpal.core;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 
 public class DefaultErrorListenerTest {
 
     final Exception simpleCause = new IllegalStateException(new IllegalArgumentException());
+
+    @Test
+    public void testGetReportedViolations() {
+        final DefaultErrorListener errorListener = new DefaultErrorListener();
+        errorListener.reportViolation(new SimpleViolation(Violation.Severity.MINOR, "minor"));
+        errorListener.reportViolation(new SimpleViolation(Violation.Severity.MAJOR, "major"));
+        errorListener.reportViolation(new SimpleViolation(Violation.Severity.SEVERE, "severe"));
+        assertEquals("should have reported", 3, errorListener.getReportedViolations().size());
+    }
 
     @Test
     public void testOnNodeTypeRegistrationError() {

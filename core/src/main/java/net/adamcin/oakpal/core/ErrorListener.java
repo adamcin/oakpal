@@ -18,7 +18,6 @@ package net.adamcin.oakpal.core;
 
 import java.net.URL;
 
-import org.apache.jackrabbit.vault.packaging.PackageException;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 
 /**
@@ -107,10 +106,22 @@ public interface ErrorListener extends ScanListener, ViolationReporter {
 
     }
 
+    /**
+     * Called when an exception is thrown when attempting to register install hooks for a particular package.
+     *
+     * @param e         the error thrown
+     * @param packageId the package attempting to register install hooks
+     */
     default void onInstallHookError(final Throwable e, final PackageId packageId) {
 
     }
 
+    /**
+     * Called after any install hooks have been registered for a particular package during a scan
+     * which has specified {@link OakpalPlan#getScanInstallHookPolicy()} value of {@link InstallHookPolicy#PROHIBIT}.
+     *
+     * @param packageId the package which registered one or more install hooks
+     */
     default void onProhibitedInstallHookRegistration(final PackageId packageId) {
 
     }

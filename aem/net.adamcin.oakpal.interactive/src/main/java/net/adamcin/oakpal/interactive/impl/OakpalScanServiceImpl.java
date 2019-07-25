@@ -112,7 +112,7 @@ class OakpalScanServiceImpl implements OakpalScanService {
              PlatformCndExport cndExport = new PlatformCndExport(resolver)) {
 
             if (input.isInstallPlatformNodetypes()) {
-                builder.withInitStage(new InitStage.Builder().withOrderedCndUrls(cndExport.open()).build());
+                builder.withInitStage(new InitStage.Builder().withOrderedCndUrl(cndExport.open()).build());
             }
 
             final OakMachine machine = builder.withPreInstallPackages(preInstallSpace.open()).build();

@@ -16,6 +16,8 @@
 
 package net.adamcin.oakpal.core;
 
+import static net.adamcin.oakpal.core.Fun.onEntry;
+import static net.adamcin.oakpal.core.Fun.uncheckVoid1;
 import static net.adamcin.oakpal.core.OakMachine.NT_UNDECLARED;
 
 import java.net.URL;
@@ -31,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import javax.jcr.NamespaceException;
+import javax.jcr.NamespaceRegistry;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -41,6 +44,8 @@ import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.spi.QNodeTypeDefinition;
 import org.apache.jackrabbit.spi.commons.nodetype.NodeTypeDefinitionFactory;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Encapsulation of JCR initialization parameters for multistage inits.
@@ -76,6 +81,7 @@ public final class InitStage {
     /**
      * Use the builder to construct the {@link InitStage}.
      */
+    @SuppressWarnings("WeakerAccess")
     public static class Builder {
         private Map<String, String> namespaces = new LinkedHashMap<>();
 
@@ -107,7 +113,7 @@ public final class InitStage {
          * @param mappings list of mappings
          * @return my builder self
          */
-        public Builder withNs(final List<JcrNs> mappings) {
+        public Builder withNs(final @NotNull List<JcrNs> mappings) {
             mappings.forEach(jcrNs -> withNs(jcrNs.getPrefix(), jcrNs.getUri()));
             return this;
         }
@@ -119,10 +125,8 @@ public final class InitStage {
          * @param privilege the name of the privilege
          * @return my builder self
          */
-        public Builder withPrivilege(String... privilege) {
-            if (privilege != null) {
-                this.privileges.addAll(Arrays.asList(privilege));
-            }
+        public Builder withPrivilege(final @NotNull String... privilege) {
+            this.privileges.addAll(Arrays.asList(privilege));
             return this;
         }
 
@@ -133,7 +137,7 @@ public final class InitStage {
          * @param privileges the names of the privileges
          * @return my builder self
          */
-        public Builder withPrivileges(Collection<String> privileges) {
+        public Builder withPrivileges(final @Nullable Collection<String> privileges) {
             if (privileges != null) {
                 this.privileges = new HashSet<>(privileges);
             } else {
@@ -150,15 +154,13 @@ public final class InitStage {
          *                  to be the primary type, with subsequent elements treated as mixin types.
          * @return my builder self
          */
-        public Builder withForcedRoot(String path, String... nodeTypes) {
+        public Builder withForcedRoot(final @Nullable String path, final @NotNull String... nodeTypes) {
             String primaryType = null;
             List<String> mixinTypes = Collections.emptyList();
-            if (nodeTypes != null) {
-                if (nodeTypes.length > 0) {
-                    primaryType = nodeTypes[0];
-                    if (nodeTypes.length > 1) {
-                        mixinTypes = Arrays.asList(Arrays.copyOfRange(nodeTypes, 1, nodeTypes.length));
-                    }
+            if (nodeTypes.length > 0) {
+                primaryType = nodeTypes[0];
+                if (nodeTypes.length > 1) {
+                    mixinTypes = Arrays.asList(Arrays.copyOfRange(nodeTypes, 1, nodeTypes.length));
                 }
             }
             ForcedRoot forcedRoot = new ForcedRoot();
@@ -174,7 +176,7 @@ public final class InitStage {
          * @param forcedRoot the described root path
          * @return my builder self
          */
-        public Builder withForcedRoot(ForcedRoot forcedRoot) {
+        public Builder withForcedRoot(final @NotNull ForcedRoot forcedRoot) {
             this.forcedRoots.put(forcedRoot.getPath(), forcedRoot);
             return this;
         }
@@ -185,7 +187,7 @@ public final class InitStage {
          * @param forcedRoots the described root path
          * @return my builder self
          */
-        public Builder withForcedRoots(List<ForcedRoot> forcedRoots) {
+        public Builder withForcedRoots(final @Nullable List<ForcedRoot> forcedRoots) {
             if (forcedRoots != null) {
                 forcedRoots.forEach(root -> this.forcedRoots.put(root.getPath(), root));
             }
@@ -198,7 +200,7 @@ public final class InitStage {
          * @param unorderedCndUrls the list of cnd resources
          * @return my builder self
          */
-        public Builder withUnorderedCndUrls(List<URL> unorderedCndUrls) {
+        public Builder withUnorderedCndUrls(final @Nullable List<URL> unorderedCndUrls) {
             if (unorderedCndUrls != null) {
                 this.unorderedCndUrls.addAll(unorderedCndUrls);
             }
@@ -211,11 +213,8 @@ public final class InitStage {
          * @param unorderedCndUrl the list of cnd resource names
          * @return my builder self
          */
-        public Builder withUnorderedCndUrls(URL... unorderedCndUrl) {
-            if (unorderedCndUrl != null) {
-                return this.withUnorderedCndUrls(Arrays.asList(unorderedCndUrl));
-            }
-            return this;
+        public Builder withUnorderedCndUrl(final @NotNull URL... unorderedCndUrl) {
+            return this.withUnorderedCndUrls(Arrays.asList(unorderedCndUrl));
         }
 
         /**
@@ -224,7 +223,7 @@ public final class InitStage {
          * @param orderedCndUrls the list of cnd resource URLs.
          * @return my builder self
          */
-        public Builder withOrderedCndUrls(List<URL> orderedCndUrls) {
+        public Builder withOrderedCndUrls(final @Nullable List<URL> orderedCndUrls) {
             if (orderedCndUrls != null) {
                 this.orderedCndUrls.addAll(orderedCndUrls);
             }
@@ -237,11 +236,8 @@ public final class InitStage {
          * @param orderedCndUrl the list of cnd resource URLs
          * @return my builder self
          */
-        public Builder withOrderedCndUrls(URL... orderedCndUrl) {
-            if (orderedCndUrl != null) {
-                return this.withOrderedCndUrls(Arrays.asList(orderedCndUrl));
-            }
-            return this;
+        public Builder withOrderedCndUrl(final @NotNull URL... orderedCndUrl) {
+            return this.withOrderedCndUrls(Arrays.asList(orderedCndUrl));
         }
 
         /**
@@ -250,7 +246,7 @@ public final class InitStage {
          * @param qNodeTypes qualified node types
          * @return my builder self
          */
-        public Builder withQNodeTypes(final List<QNodeTypeDefinition> qNodeTypes) {
+        public Builder withQNodeTypes(final @Nullable List<QNodeTypeDefinition> qNodeTypes) {
             if (qNodeTypes != null) {
                 this.qNodeTypes.addAll(qNodeTypes);
             }
@@ -273,24 +269,20 @@ public final class InitStage {
 
         cndInstaller.register(admin);
 
+        final NamespaceRegistry registry = admin.getWorkspace().getNamespaceRegistry();
+
         // uri to prefix !!
-        if (!namespaces.isEmpty()) {
-            for (Map.Entry<String, String> nsEntry : namespaces.entrySet()) {
-                final String uri = nsEntry.getKey();
-                final String prefix = nsEntry.getValue();
-                try {
-                    try {
-                        if (!prefix.equals(admin.getNamespacePrefix(uri))) {
-                            admin.setNamespacePrefix(prefix, uri);
-                        }
-                    } catch (NamespaceException ex) {
-                        admin.getWorkspace().getNamespaceRegistry().registerNamespace(prefix, uri);
-                    }
-                } catch (final Exception e) {
-                    errorListener.onJcrNamespaceRegistrationError(e, prefix, uri);
+        namespaces.entrySet().stream().forEachOrdered(onEntry((uri, prefix) -> {
+            try {
+                if (Arrays.asList(registry.getURIs()).contains(uri)) {
+                    admin.setNamespacePrefix(prefix, uri);
+                } else {
+                    registry.registerNamespace(prefix, uri);
                 }
+            } catch (final Exception e) {
+                errorListener.onJcrNamespaceRegistrationError(e, prefix, uri);
             }
-        }
+        }));
 
         if (!qNodeTypes.isEmpty()) {
             try {
@@ -308,35 +300,33 @@ public final class InitStage {
         if (!privileges.isEmpty()) {
             if (admin.getWorkspace() instanceof JackrabbitWorkspace) {
                 PrivilegeManager pm = ((JackrabbitWorkspace) admin.getWorkspace()).getPrivilegeManager();
-                for (String privilege : privileges) {
+                privileges.forEach(privilege -> {
                     try {
                         pm.registerPrivilege(privilege, false, new String[0]);
                     } catch (final Exception e) {
                         errorListener.onJcrPrivilegeRegistrationError(e, privilege);
                     }
-                }
+                });
             }
         }
 
-        if (!forcedRoots.isEmpty()) {
-            List<ForcedRoot> roots = new ArrayList<>(forcedRoots.values());
-            roots.sort(Comparator.comparing(root -> root.getPath().length()));
-            for (ForcedRoot root : forcedRoots.values()) {
-                try {
-                    final String primaryType = root.getPrimaryType() != null
-                            ? root.getPrimaryType()
-                            : NT_UNDECLARED;
-                    final List<String> mixinTypes = root.getMixinTypes() != null ? root.getMixinTypes() : Collections.emptyList();
-                    Node rootNode = JcrUtils.getOrCreateByPath(root.getPath(), NT_UNDECLARED, primaryType, admin, false);
-                    for (String mixinType : mixinTypes) {
-                        rootNode.addMixin(mixinType);
+        forcedRoots.values().stream()
+                .filter(ForcedRoot::hasPath)
+                .sorted(Comparator.comparing(root -> root.getPath().length()))
+                .forEachOrdered(uncheckVoid1(root -> {
+                    try {
+                        final String primaryType = root.getPrimaryType() != null
+                                ? root.getPrimaryType()
+                                : NT_UNDECLARED;
+                        final List<String> mixinTypes = root.getMixinTypes();
+                        Node rootNode = JcrUtils.getOrCreateByPath(root.getPath(),
+                                NT_UNDECLARED, primaryType, admin, false);
+                        mixinTypes.forEach(uncheckVoid1(rootNode::addMixin));
+                        admin.save();
+                    } catch (final Exception e) {
+                        errorListener.onForcedRootCreationError(e, root);
+                        admin.refresh(false);
                     }
-                    admin.save();
-                } catch (final Exception e) {
-                    errorListener.onForcedRootCreationError(e, root);
-                    admin.refresh(false);
-                }
-            }
-        }
+                }));
     }
 }
