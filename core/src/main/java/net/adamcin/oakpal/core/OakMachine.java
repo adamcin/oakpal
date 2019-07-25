@@ -601,7 +601,7 @@ public final class OakMachine {
         final ProgressTrackerListener tracker =
                 new ImporterListenerAdapter(packageId, progressChecks, inspectSession, preInstall);
 
-        InternalImportOptions options = new InternalImportOptions(packageId);
+        InternalImportOptions options = new InternalImportOptions(packageId, Packaging.class.getClassLoader());
         options.setNonRecursive(true);
         options.setDependencyHandling(DependencyHandling.IGNORE);
         options.setListener(tracker);

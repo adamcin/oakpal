@@ -36,14 +36,14 @@ import org.apache.jackrabbit.vault.packaging.InstallHookProcessor;
 import org.apache.jackrabbit.vault.packaging.InstallHookProcessorFactory;
 import org.apache.jackrabbit.vault.packaging.PackageException;
 import org.apache.jackrabbit.vault.packaging.PackageId;
-import org.apache.jackrabbit.vault.packaging.Packaging;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@SuppressWarnings("WeakerAccess")
 final class InternalImportOptions extends ImportOptions implements InstallHookProcessorFactory {
-    private static final String INSTALL_HOOK_PROCESSOR_IMPL_CLASS =
+    static final String INSTALL_HOOK_PROCESSOR_IMPL_CLASS =
             "org.apache.jackrabbit.vault.packaging.impl.InstallHookProcessorImpl";
     private static final Logger LOGGER = LoggerFactory.getLogger(InternalImportOptions.class);
     static final InstallHookProcessor NOOP_INSTALL_HOOK_PROCESSOR = new InstallHookProcessor() {
@@ -74,23 +74,35 @@ final class InternalImportOptions extends ImportOptions implements InstallHookPr
     private InstallHookPolicy installHookPolicy;
     private ErrorListener violationReporter;
 
-    InternalImportOptions(final @NotNull PackageId packageId) {
+    /**
+     * This is the constructor for use in {@code net.adamcin.oakpal.core}.
+     *
+     * @param packageId       the package id
+     * @param implClassLoader the classloader to use for looking up {@link #INSTALL_HOOK_PROCESSOR_IMPL_CLASS}
+     */
+    InternalImportOptions(final @NotNull PackageId packageId, final @NotNull ClassLoader implClassLoader) {
         Class<? extends InstallHookProcessor> clazz = null;
         try {
-            clazz = Packaging.class.getClassLoader()
-                    .loadClass(INSTALL_HOOK_PROCESSOR_IMPL_CLASS).asSubclass(InstallHookProcessor.class);
-        } catch (ClassNotFoundException e) {
-            LOGGER.warn("Failed to load internal InstallHookProcessorImpl from Packaging classloader. Will default to " +
-                    "noop if an InstallHookProcessorFactory delegate is not provided.", e);
+            clazz = implClassLoader.loadClass(INSTALL_HOOK_PROCESSOR_IMPL_CLASS).asSubclass(InstallHookProcessor.class);
+        } catch (ClassNotFoundException | ClassCastException e) {
+            LOGGER.warn("Failed to load internal InstallHookProcessorImpl from Packaging impl classloader. " +
+                    "Will default to noop if an InstallHookProcessorFactory delegate is not provided.", e);
         }
         this.packageId = packageId;
         this.internalInstallHookProcessorClazz = clazz;
         this.optionsDelegate = new ImportOptions();
     }
 
-    private InternalImportOptions(final @NotNull PackageId packageId,
-                                  final @Nullable ImportOptions optionsDelegate,
-                                  final @Nullable Class<? extends InstallHookProcessor> internalInstallHookProcessorClazz) {
+    /**
+     * Backdoor constructor for testing. Consider this one to only have private access.
+     *
+     * @param packageId                         package id
+     * @param optionsDelegate                   the underlying {@link ImportOptions} instance
+     * @param internalInstallHookProcessorClazz the loaded {@link InstallHookProcessor} class
+     */
+    InternalImportOptions(final @NotNull PackageId packageId,
+                          final @Nullable ImportOptions optionsDelegate,
+                          final @Nullable Class<? extends InstallHookProcessor> internalInstallHookProcessorClazz) {
         this.packageId = packageId;
         this.optionsDelegate = optionsDelegate != null ? optionsDelegate : new ImportOptions();
         this.internalInstallHookProcessorClazz = internalInstallHookProcessorClazz;
@@ -114,7 +126,7 @@ final class InternalImportOptions extends ImportOptions implements InstallHookPr
         return NOOP_INSTALL_HOOK_PROCESSOR;
     }
 
-    private boolean isSkip() {
+    boolean isSkip() {
         return installHookPolicy == InstallHookPolicy.SKIP;
     }
 
@@ -156,7 +168,7 @@ final class InternalImportOptions extends ImportOptions implements InstallHookPr
         private final PackageId packageId;
         private final InstallHookPolicy policy;
         private final ErrorListener reporter;
-        private final InstallHookProcessor wrapped;
+        final InstallHookProcessor wrapped;
 
         InstallHookProcessorWrapper(final PackageId packageId,
                                     final InstallHookPolicy policy,
@@ -189,7 +201,8 @@ final class InternalImportOptions extends ImportOptions implements InstallHookPr
         }
 
         @Override
-        public void registerHook(final VaultInputSource input, final ClassLoader classLoader) throws IOException, PackageException {
+        public void registerHook(final @NotNull VaultInputSource input, final ClassLoader classLoader)
+                throws IOException, PackageException {
             final String systemId = input.getSystemId() != null ? input.getSystemId() : "";
             try {
                 this.wrapped.registerHook(input, classLoader);
