@@ -45,7 +45,7 @@ interface MojoWithPlanParams extends MojoWithCommonParams, MojoWithRepositoryPar
      * Construct an Oakpal Plan purely from the relevant mojo parameters.
      *
      * @return a complete init stage
-     * @throws MojoExecutionException if an error occurs
+     * @throws MojoFailureException if an error occurs
      */
     default OakpalPlan buildPlan() throws MojoFailureException {
         final PlanBuilderParams params = getPlanBuilderParams();

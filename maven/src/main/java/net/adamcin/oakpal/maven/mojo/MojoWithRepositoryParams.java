@@ -16,8 +16,6 @@ import org.apache.maven.artifact.repository.DefaultRepositoryRequest;
 import org.apache.maven.artifact.repository.RepositoryRequest;
 import org.apache.maven.artifact.resolver.ArtifactResolutionRequest;
 import org.apache.maven.artifact.resolver.ArtifactResolutionResult;
-import org.apache.maven.artifact.resolver.ResolutionListener;
-import org.apache.maven.artifact.versioning.VersionRange;
 import org.apache.maven.model.Dependency;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.repository.RepositorySystem;
@@ -32,7 +30,7 @@ public interface MojoWithRepositoryParams extends MojoWithCommonParams {
     /**
      * There are basically two use cases for the oakpal-maven-plugin:
      * 1) Adhoc testing of a content-package project artifact, in which case all oakpal classpath resources will be
-     * found in {@cod test} scope, or
+     * found in {@code test} scope, or
      * 2) Creation and testing of an oakpal module with checklists, and/or creation and testing of an opear archive,
      * in which case all oakpal classpath resources will be found in a non-{@code test} scope classpath. Mojos should
      * override this method to return {@code true}, to specify that a {@code test}-scope classloader is desired, as in
@@ -47,8 +45,9 @@ public interface MojoWithRepositoryParams extends MojoWithCommonParams {
 
     /**
      * Creates a classloader for execution of oakpal logic.
-     * @return
-     * @throws MojoFailureException
+     *
+     * @return a container classLoader
+     * @throws MojoFailureException if an error occurs
      */
     default ClassLoader createContainerClassLoader() throws MojoFailureException {
         final List<File> dependencyJars = new ArrayList<>();
