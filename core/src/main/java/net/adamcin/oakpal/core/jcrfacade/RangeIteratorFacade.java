@@ -62,7 +62,7 @@ public class RangeIteratorFacade<R extends RangeIterator> implements RangeIterat
      * {@link NodeIterator#nextNode()}, instead of the reverse.
      *
      * @return a theoretical next element
-     * @throws UnsupportedOperationException, always.
+     * @throws UnsupportedOperationException always.
      */
     @Override
     public Object next() {

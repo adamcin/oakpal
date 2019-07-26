@@ -43,6 +43,8 @@ public final class ScanTempSpace<R> implements AutoCloseable {
      * Create a temp file space for the provided list of package resources.
      *
      * @param fileResources list of file Resources, each adaptable to {@link InputStream}.
+     * @param opener opener function
+     * @param tmpDir temporary directory file to use
      */
     public ScanTempSpace(final @NotNull List<R> fileResources,
                          final @NotNull Fun.ThrowingFunction<R, InputStream> opener,
