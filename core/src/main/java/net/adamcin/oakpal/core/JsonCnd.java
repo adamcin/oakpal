@@ -258,7 +258,7 @@ public final class JsonCnd {
     /**
      * a String comparator with a check for residual tokens to push them to the end of a list.
      */
-    private static final transient Comparator<String> COMPARATOR_PUSH_RESIDUALS;
+    static final transient Comparator<String> COMPARATOR_PUSH_RESIDUALS;
 
     static {
         final Comparator<String> keyComparator = Comparator.comparing(String::toString);
@@ -335,6 +335,13 @@ public final class JsonCnd {
         return parts.length > 1 ? Stream.of(parts[0]) : Stream.empty();
     }
 
+    /**
+     * Read node types from a list of CND urls.
+     *
+     * @param mapping the parent namespace mapping
+     * @param cndUrls the urls to CND files
+     * @return a list of Result-wrapped nodetype sets
+     */
     public static List<Result<NodeTypeSet>> readNodeTypes(final @NotNull NamespaceMapping mapping,
                                                           final @NotNull List<URL> cndUrls) {
         final List<Result<NodeTypeSet>> results = new ArrayList<>();
@@ -350,6 +357,13 @@ public final class JsonCnd {
         return results;
     }
 
+    /**
+     * Aggregate a list of {@link NodeTypeSet}s into a single {@link NodeTypeSet}.
+     *
+     * @param mapping      the parent namespace mapping
+     * @param nodeTypeSets the list of sets read from CND urls
+     * @return a new aggregate {@link NodeTypeSet}
+     */
     public static NodeTypeSet aggregateNodeTypes(final @NotNull NamespaceMapping mapping,
                                                  final @NotNull List<NodeTypeSet> nodeTypeSets) {
 

@@ -18,9 +18,11 @@ package net.adamcin.oakpal.core;
 
 import static net.adamcin.oakpal.core.JavaxJson.key;
 
+import java.util.Objects;
 import javax.json.JsonObject;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Config DTO for JCR Namespace Prefix to URI Mappings.
@@ -64,7 +66,7 @@ public final class JcrNs implements JavaxJson.ObjectConvertible, Comparable<JcrN
      * @param json JSON object
      * @return a new JCR NS mapping
      */
-    public static JcrNs fromJson(final @NotNull JsonObject json) {
+    public static @Nullable JcrNs fromJson(final @NotNull JsonObject json) {
         if (!json.containsKey(KEY_PREFIX) || !json.containsKey(KEY_URI)) {
             return null;
         }
@@ -81,11 +83,25 @@ public final class JcrNs implements JavaxJson.ObjectConvertible, Comparable<JcrN
      * @param uri    the namespace uri
      * @return a new JCR namespace mapping
      */
-    public static JcrNs create(final @NotNull String prefix, final @NotNull String uri) {
+    public static @NotNull JcrNs create(final @NotNull String prefix, final @NotNull String uri) {
         final JcrNs ns = new JcrNs();
         ns.setPrefix(prefix);
         ns.setUri(uri);
         return ns;
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+        if (this == o) return true;
+        if (!(o instanceof JcrNs)) return false;
+        JcrNs jcrNs = (JcrNs) o;
+        return Objects.equals(getPrefix(), jcrNs.getPrefix()) &&
+                Objects.equals(getUri(), jcrNs.getUri());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(getPrefix(), getUri());
     }
 
     @Override

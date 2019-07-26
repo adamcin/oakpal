@@ -694,6 +694,12 @@ public final class OakMachine {
 
     private void processPackageUrl(final Session admin, final JcrPackageManager manager, final boolean preInstall, final URL url)
             throws AbortedScanException {
+        try {
+            admin.refresh(false);
+        } catch (final RepositoryException e) {
+            throw new AbortedScanException(e);
+        }
+
         try (InputStream input = url.openStream();
              JcrPackage jcrPackage = manager.upload(input, true, true)) {
             processUploadedPackage(admin, manager, preInstall, jcrPackage);
@@ -704,6 +710,11 @@ public final class OakMachine {
 
     private void processPackageFile(final Session admin, final JcrPackageManager manager, final boolean preInstall, final File file)
             throws AbortedScanException {
+        try {
+            admin.refresh(false);
+        } catch (final RepositoryException e) {
+            throw new AbortedScanException(e);
+        }
 
         try (JcrPackage jcrPackage = manager.upload(file, false, true, null, true)) {
             processUploadedPackage(admin, manager, preInstall, jcrPackage);

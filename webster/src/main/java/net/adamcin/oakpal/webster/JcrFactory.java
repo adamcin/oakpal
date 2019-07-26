@@ -16,6 +16,8 @@
 
 package net.adamcin.oakpal.webster;
 
+import static net.adamcin.oakpal.core.Fun.inSet;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -79,7 +81,7 @@ public final class JcrFactory {
             throws IOException, CommitFailedException {
 
         final List<String> globalRoots = Arrays.asList(":async", "jcr:system", "oak:index", "rep:security");
-        final Predicate<String> ownedRootFilter = ((Predicate<String>) globalRoots::contains).negate();
+        final Predicate<String> ownedRootFilter = inSet(globalRoots).negate();
 
         // only mount nodes that aren't owned by the global mount
         final String[] mountPaths = StreamSupport
