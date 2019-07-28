@@ -1,0 +1,6 @@
+<'nt'='http://www.jcp.org/jcr/nt/1.0'>
+
+[error:primaryType] > nt:base
+
+[error:mixinType]
+  mixin

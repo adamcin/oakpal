@@ -23,7 +23,9 @@ import static net.adamcin.oakpal.core.JavaxJson.key;
 import static net.adamcin.oakpal.core.JsonCnd.NodeTypeDefinitionKey.PRIMARYITEM;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -33,6 +35,7 @@ import java.net.URL;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -208,6 +211,37 @@ public class JsonCndTest {
 
         final List<Result<NodeTypeSet>> sets = JsonCnd.readNodeTypes(getMapping(), cnds);
         assertEquals("sets should have n sets", cnds.size(), sets.size());
+        assertTrue("all are successful", sets.stream().allMatch(Result::isSuccess));
+        assertTrue("all are successful", sets.stream()
+                .map(result -> result
+                        .map(compose(NodeTypeSet::getNodeTypes, Map::size))
+                        .getOrDefault(0))
+                .allMatch(size -> size == 2));
+
+        List<URL> cndsWithError = Stream.of("a", "b", "c", "error", "d", "e", "f")
+                .map(letter -> new File(baseDir, letter + ".cnd"))
+                .map(compose(File::toURI, uncheck1(URI::toURL)))
+                .collect(Collectors.toList());
+
+        final List<Result<NodeTypeSet>> setsWithError = JsonCnd.readNodeTypes(getMapping(), cndsWithError);
+        assertEquals("setsWithError should have n sets", cndsWithError.size(), setsWithError.size());
+        assertFalse("not all are successful", setsWithError.stream().allMatch(Result::isSuccess));
+        assertEquals("setsWithError should have n successful sets", cndsWithError.size() - 1,
+                setsWithError.stream().filter(Result::isSuccess).count());
+    }
+
+    @Test
+    public void testAggregateNodeTypes() {
+        final List<URL> cnds = Stream.of("a", "b", "bb", "c", "d", "e", "f")
+                .map(letter -> new File(baseDir, letter + ".cnd"))
+                .map(compose(File::toURI, uncheck1(URI::toURL)))
+                .collect(Collectors.toList());
+
+        final List<Result<NodeTypeSet>> setsWithError = JsonCnd.readNodeTypes(getMapping(), cnds);
+        final NodeTypeSet aggregate = JsonCnd.aggregateNodeTypes(getMapping(), setsWithError.stream()
+                .collect(Result.tryCollect(Collectors.toList()))
+                .getOrDefault(Collections.emptyList()));
+
     }
 
     @Test
