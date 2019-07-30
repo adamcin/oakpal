@@ -19,6 +19,7 @@ package net.adamcin.oakpal.core;
 import static net.adamcin.oakpal.core.JavaxJson.key;
 
 import java.util.Objects;
+import java.util.Optional;
 import javax.json.JsonObject;
 
 import org.jetbrains.annotations.NotNull;
@@ -116,6 +117,7 @@ public final class JcrNs implements JavaxJson.ObjectConvertible, Comparable<JcrN
 
     @Override
     public int compareTo(final @NotNull JcrNs o) {
-        return getPrefix().compareTo(o.getPrefix());
+        return Optional.of(getPrefix().compareTo(o.getPrefix()))
+                .filter(comp -> comp != 0).orElseGet(() -> getUri().compareTo(o.getUri()));
     }
 }

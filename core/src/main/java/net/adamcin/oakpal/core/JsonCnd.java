@@ -39,16 +39,7 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -60,10 +51,7 @@ import java.util.stream.StreamSupport;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-import javax.jcr.nodetype.ItemDefinition;
-import javax.jcr.nodetype.NodeDefinition;
-import javax.jcr.nodetype.NodeTypeDefinition;
-import javax.jcr.nodetype.PropertyDefinition;
+import javax.jcr.nodetype.*;
 import javax.jcr.version.OnParentVersionAction;
 import javax.json.JsonArray;
 import javax.json.JsonObject;
@@ -209,14 +197,12 @@ public final class JsonCnd {
      * name. NamePathResolvers don't like it. We have to handle it as a special case in our JSON CND serialization and
      * parsing logic to avoid parse exceptions.
      */
-    @SuppressWarnings("WeakerAccess")
     static final String TOKEN_RESIDUAL = "*";
 
     /**
      * The Jackrabbit SPI CND reader resolves the residual token as a "*" in the default namespace. We follow this
      * convention as well.
      */
-    @SuppressWarnings("WeakerAccess")
     static final Name QNAME_RESIDUAL = NameFactoryImpl.getInstance().create(Name.NS_DEFAULT_URI, TOKEN_RESIDUAL);
 
     /**
@@ -226,7 +212,6 @@ public final class JsonCnd {
      * @param resolver the NamePathResolver that provides JCR name resolution
      * @return the Name to String mapping function
      */
-    @SuppressWarnings("WeakerAccess")
     static Fun.ThrowingFunction<Name, String> jcrNameOrResidual(final @NotNull NamePathResolver resolver) {
         return qName -> {
             if (QNAME_RESIDUAL.equals(qName)) {
@@ -244,7 +229,6 @@ public final class JsonCnd {
      * @param resolver the NamePathResolver that provides QName resolution
      * @return the String to Name mapping function
      */
-    @SuppressWarnings("WeakerAccess")
     static Fun.ThrowingFunction<String, Name> qNameOrResidual(final @NotNull NamePathResolver resolver) {
         return jcrName -> {
             if (TOKEN_RESIDUAL.equals(jcrName)) {
@@ -311,7 +295,6 @@ public final class JsonCnd {
      * @return the serializable string
      * @throws RepositoryException when {@link NamePathResolver} throws.
      */
-    @SuppressWarnings("WeakerAccess")
     static String qValueString(final @NotNull QValue qValue,
                                final @NotNull NamePathResolver resolver) throws RepositoryException {
         switch (qValue.getType()) {
@@ -516,7 +499,7 @@ public final class JsonCnd {
      * @param <D>         arbitrary definition type parameter
      * @param <K>         the {@link KeyDefinitionToken} enum type, appropriately parameterized to {@link B} and {@link D}
      */
-    private static <B, D, K extends KeyDefinitionToken<B, D>> void
+    static <B, D, K extends KeyDefinitionToken<B, D>> void
     internalReadAllTo(final @NotNull NamePathResolver resolver,
                       final @NotNull B builder,
                       final @NotNull JsonValue parentValue,
@@ -582,7 +565,7 @@ public final class JsonCnd {
      *                 is ignored.
      * @return a JsonObject to write as an aggregrate of all the key tokens supported for this definition
      */
-    private static <D, K extends KeyDefinitionToken<?, D>> JsonValue
+    static <D, K extends KeyDefinitionToken<?, D>> JsonValue
     internalWriteAllJson(final @NotNull D def,
                          final @NotNull NamePathResolver resolver,
                          final @NotNull K[] tokens) {
@@ -911,16 +894,6 @@ public final class JsonCnd {
                 // read definition
                 uncheckVoid1(def -> def.setProtected(true))),
         /**
-         * {@link OnParentVersionAction#COPY}. this is the default value.
-         *
-         * @see QItemDefinition#getOnParentVersion()
-         */
-        COPY(new String[]{Lexer.COPY[0].toLowerCase()},
-                // write json (don't write the default value)
-                def -> false,
-                // read definition
-                uncheckVoid1(def -> def.setOnParentVersion(OnParentVersionAction.COPY))),
-        /**
          * {@link OnParentVersionAction#VERSION}.
          *
          * @see QItemDefinition#getOnParentVersion()
@@ -1097,6 +1070,20 @@ public final class JsonCnd {
         }
     }
 
+    private static final List<String> fullQueryOps = Arrays.asList(
+            Lexer.QUEROPS_EQUAL,
+            Lexer.QUEROPS_NOTEQUAL,
+            Lexer.QUEROPS_LESSTHAN,
+            Lexer.QUEROPS_LESSTHANOREQUAL,
+            Lexer.QUEROPS_GREATERTHAN,
+            Lexer.QUEROPS_GREATERTHANOREQUAL,
+            Lexer.QUEROPS_LIKE);
+
+    private static Stream<String> normalizeQueryOperators(final @NotNull String[] candidates) {
+        final List<String> candidateList = Arrays.asList(candidates);
+        return fullQueryOps.stream().filter(inSet(candidateList));
+    }
+
     /**
      * The DefinitionToken enum representing a serialized {@link PropertyDefinition}'s properties that are associated with
      * values. Boolean properties of the definition are represented by {@link PropertyDefinitionAttribute} values.
@@ -1144,11 +1131,17 @@ public final class JsonCnd {
         QUERYOPS(Lexer.QUERYOPS,
                 // write json
                 (def, resolver) -> ofNullable(def.getAvailableQueryOperators())
-                        .filter(ops -> ops.length != Operator.getAllQueryOperators().length).map(JavaxJson::wrap)
+                        .map(compose(JsonCnd::normalizeQueryOperators, stream -> stream.toArray(String[]::new)))
+                        .filter(inferTest1(fullQueryOps::equals).negate())
+                        .map(JavaxJson::wrap)
                         .orElse(null),
                 // read definition
-                resolver -> uncheckVoid2((def, value) -> def.setAvailableQueryOperators(value.asJsonArray().stream()
-                        .map(JavaxJson.JSON_VALUE_STRING).toArray(String[]::new)))),
+                resolver -> uncheckVoid2((def, value) -> def.setAvailableQueryOperators(
+                        normalizeQueryOperators(
+                                value.asJsonArray().stream()
+                                        .map(JavaxJson.JSON_VALUE_STRING)
+                                        .toArray(String[]::new))
+                                .toArray(String[]::new)))),
         /**
          * Property Default Values.
          *
@@ -1626,20 +1619,14 @@ public final class JsonCnd {
 
         @Override
         public Name getName() {
-            try {
-                return this.resolver.getQName(this.wrapped.getName());
-            } catch (RepositoryException e) {
-                throw new RuntimeException(e);
-            }
+            return uncheck1(this.resolver::getQName).apply(this.wrapped.getName());
         }
 
         @Override
         public Name[] getSupertypes() {
-            if (wrapped.getDeclaredSupertypeNames() != null) {
-                return Stream.of(wrapped.getDeclaredSupertypeNames())
-                        .map(uncheck1(qNameOrResidual(resolver))).toArray(Name[]::new);
-            }
-            return new Name[0];
+            return Optional.ofNullable(wrapped.getDeclaredSupertypeNames())
+                    .map(names -> Stream.of(names).map(uncheck1(qNameOrResidual(resolver))).toArray(Name[]::new))
+                    .orElse(new Name[0]);
         }
 
         @Override
@@ -1669,14 +1656,8 @@ public final class JsonCnd {
 
         @Override
         public Name getPrimaryItemName() {
-            if (wrapped.getPrimaryItemName() != null) {
-                try {
-                    return resolver.getQName(wrapped.getPrimaryItemName());
-                } catch (RepositoryException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-            return null;
+            return Optional.ofNullable(wrapped.getPrimaryItemName())
+                    .map(uncheck1(resolver::getQName)).orElse(null);
         }
 
         @Override
@@ -1699,7 +1680,7 @@ public final class JsonCnd {
         public Collection<Name> getDependencies() {
             if (dependencies == null) {
                 // supertypes
-                Collection<Name> deps = new HashSet<>(Arrays.asList(getSupertypes()));
+                Collection<Name> deps = new LinkedHashSet<>(Arrays.asList(getSupertypes()));
                 // child node definitions
                 for (QNodeDefinition childNodeDef : getChildNodeDefs()) {
                     // default primary type
@@ -1745,11 +1726,11 @@ public final class JsonCnd {
      * @see PropertyDefinitionQAdapter
      * @see NodeDefinitionQAdapter
      */
-    static abstract class ItemDefinitionQAdaptor<T extends ItemDefinition> implements QItemDefinition {
+    static class ItemDefinitionQAdapter<T extends ItemDefinition> implements QItemDefinition {
         protected final T wrapped;
         protected final NamePathResolver resolver;
 
-        ItemDefinitionQAdaptor(@NotNull final T wrapped,
+        ItemDefinitionQAdapter(@NotNull final T wrapped,
                                @NotNull final NamePathResolver resolver) {
             this.wrapped = wrapped;
             this.resolver = resolver;
@@ -1757,28 +1738,15 @@ public final class JsonCnd {
 
         @Override
         public Name getName() {
-            try {
-                final String jcrName = wrapped.getName();
-                if (TOKEN_RESIDUAL.equals(jcrName)) {
-                    return QNAME_RESIDUAL;
-                } else {
-                    return resolver.getQName(jcrName);
-                }
-            } catch (RepositoryException e) {
-                throw new RuntimeException(e);
-            }
+            return uncheck1(qNameOrResidual(resolver)).apply(wrapped.getName());
         }
 
         @Override
         public Name getDeclaringNodeType() {
-            if (wrapped.getDeclaringNodeType() != null) {
-                try {
-                    return resolver.getQName(wrapped.getDeclaringNodeType().getName());
-                } catch (RepositoryException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-            return null;
+            return Optional.ofNullable(wrapped.getDeclaringNodeType())
+                    .map(NodeType::getName)
+                    .map(uncheck1(resolver::getQName))
+                    .orElse(null);
         }
 
         @Override
@@ -1803,8 +1771,12 @@ public final class JsonCnd {
 
         @Override
         public boolean definesResidual() {
-            final Name name = getName();
-            return QNAME_RESIDUAL.equals(name);
+            return QNAME_RESIDUAL.equals(getName());
+        }
+
+        @Override
+        public boolean definesNode() {
+            return wrapped instanceof NodeDefinition;
         }
     }
 
@@ -1812,9 +1784,9 @@ public final class JsonCnd {
      * Adapts a {@link PropertyDefinition} as a {@link QPropertyDefinition}.
      *
      * @see NodeTypeDefinitionQAdapter#getPropertyDefs()
-     * @see ItemDefinitionQAdaptor
+     * @see ItemDefinitionQAdapter
      */
-    static class PropertyDefinitionQAdapter extends ItemDefinitionQAdaptor<PropertyDefinition> implements QPropertyDefinition {
+    static class PropertyDefinitionQAdapter extends ItemDefinitionQAdapter<PropertyDefinition> implements QPropertyDefinition {
         PropertyDefinitionQAdapter(final @NotNull PropertyDefinition wrapped,
                                    final @NotNull NamePathResolver resolver) {
             super(wrapped, resolver);
@@ -1827,26 +1799,18 @@ public final class JsonCnd {
 
         @Override
         public QValueConstraint[] getValueConstraints() {
-            if (wrapped.getValueConstraints() != null) {
-                try {
-                    ValueConstraint.create(getRequiredType(), wrapped.getValueConstraints(), resolver);
-                } catch (RepositoryException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-            return null;
+            return Optional.ofNullable(wrapped.getValueConstraints())
+                    .map(uncheck1(constraints ->
+                            ValueConstraint.create(getRequiredType(), wrapped.getValueConstraints(), resolver)))
+                    .orElse(null);
         }
 
         @Override
         public QValue[] getDefaultValues() {
-            if (wrapped.getDefaultValues() != null) {
-                try {
-                    return ValueFormat.getQValues(wrapped.getDefaultValues(), resolver, QValueFactoryImpl.getInstance());
-                } catch (RepositoryException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-            return null;
+            return Optional.ofNullable(wrapped.getDefaultValues())
+                    .map(uncheck1(values ->
+                            ValueFormat.getQValues(values, resolver, QValueFactoryImpl.getInstance())))
+                    .orElse(null);
         }
 
         @Override
@@ -1879,9 +1843,9 @@ public final class JsonCnd {
      * Adapts a {@link NodeDefinition} as a {@link QNodeDefinition}.
      *
      * @see NodeTypeDefinitionQAdapter#getChildNodeDefs()
-     * @see ItemDefinitionQAdaptor
+     * @see ItemDefinitionQAdapter
      */
-    static class NodeDefinitionQAdapter extends ItemDefinitionQAdaptor<NodeDefinition> implements QNodeDefinition {
+    static class NodeDefinitionQAdapter extends ItemDefinitionQAdapter<NodeDefinition> implements QNodeDefinition {
         NodeDefinitionQAdapter(final @NotNull NodeDefinition wrapped,
                                final @NotNull NamePathResolver resolver) {
             super(wrapped, resolver);
@@ -1889,24 +1853,15 @@ public final class JsonCnd {
 
         @Override
         public Name getDefaultPrimaryType() {
-            if (wrapped.getDefaultPrimaryTypeName() != null) {
-                try {
-                    return resolver.getQName(wrapped.getDefaultPrimaryTypeName());
-                } catch (RepositoryException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-            return null;
+            return Optional.ofNullable(wrapped.getDefaultPrimaryTypeName())
+                    .map(uncheck1(resolver::getQName)).orElse(null);
         }
 
         @Override
         public Name[] getRequiredPrimaryTypes() {
-            if (wrapped.getRequiredPrimaryTypeNames() != null) {
-                return Stream.of(wrapped.getRequiredPrimaryTypeNames())
-                        .map(uncheck1(qNameOrResidual(resolver)))
-                        .toArray(Name[]::new);
-            }
-            return null;
+            return Optional.ofNullable(wrapped.getRequiredPrimaryTypeNames())
+                    .map(names -> Stream.of(names).map(uncheck1(qNameOrResidual(resolver))).toArray(Name[]::new))
+                    .orElse(null);
         }
 
         @Override

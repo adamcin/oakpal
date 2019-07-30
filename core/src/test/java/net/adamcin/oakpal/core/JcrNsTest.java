@@ -65,9 +65,39 @@ public class JcrNsTest {
     }
 
     @Test
+    public void testHashCode() {
+        final JcrNs base = JcrNs.create(prefix, uri);
+        assertEquals("hash codes should be the same for same object", base.hashCode(), base.hashCode());
+        final JcrNs same = JcrNs.create(prefix, uri);
+        assertEquals("hash codes should be the same for same params", base.hashCode(), same.hashCode());
+        final JcrNs diffUri = JcrNs.create(prefix, "http://foo1.com");
+        assertNotEquals("hash codes should be diff for diff uri", base.hashCode(), diffUri.hashCode());
+        final JcrNs diffPrefix = JcrNs.create("foo1", uri);
+        assertNotEquals("hash codes should be diff for diff prefix", base.hashCode(), diffPrefix.hashCode());
+        final JcrNs diffBoth = JcrNs.create("foo1", "http://foo1.com");
+        assertNotEquals("hash codes should be diff for diff both", base.hashCode(), diffBoth.hashCode());
+    }
+
+    @Test
+    public void testEquals() {
+        final JcrNs base = JcrNs.create(prefix, uri);
+        assertEquals("should be the same for same", base, base);
+        final JcrNs same = JcrNs.create(prefix, uri);
+        assertEquals("should be the same for same params", base, same);
+        final JcrNs diffUri = JcrNs.create(prefix, "http://foo1.com");
+        assertNotEquals("should be diff for diff uri", base, diffUri);
+        final JcrNs diffPrefix = JcrNs.create("foo1", uri);
+        assertNotEquals("should be diff for diff prefix", base, diffPrefix);
+        final JcrNs diffBoth = JcrNs.create("foo1", "http://foo1.com");
+        assertNotEquals("should be diff for diff both", base, diffBoth);
+    }
+
+    @Test
     public void testCompareTo() {
         JcrNs foo = JcrNs.create(prefix, uri);
         JcrNs bar = JcrNs.create("bar", "http://bar.com");
         assertEquals("compare ns based on prefix", "foo".compareTo("bar"), foo.compareTo(bar));
+        JcrNs fooDiff = JcrNs.create(prefix, "http://bar.com");
+        assertNotEquals("compare diff based on prefix and diff uri", 0, foo.compareTo(fooDiff));
     }
 }
