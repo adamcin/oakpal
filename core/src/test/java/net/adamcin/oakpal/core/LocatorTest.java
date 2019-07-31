@@ -16,6 +16,7 @@
 
 package net.adamcin.oakpal.core;
 
+import static net.adamcin.oakpal.core.JavaxJson.key;
 import static net.adamcin.oakpal.core.JavaxJson.obj;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -25,10 +26,29 @@ import net.adamcin.oakpal.core.checks.Echo;
 import net.adamcin.oakpal.core.checks.Paths;
 import org.junit.Test;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+
 public class LocatorTest {
 
     public static class NotACheck {
 
+    }
+
+    public static final class ACheck implements ProgressCheck {
+        public ACheck() {
+        }
+
+        @Override
+        public Collection<Violation> getReportedViolations() {
+            return Collections.emptyList();
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            return obj instanceof ACheck;
+        }
     }
 
     @Test
@@ -86,4 +106,42 @@ public class LocatorTest {
         ProgressCheck echoAlias = Locator.wrapWithAlias(echo, "echoAlias");
         assertEquals("echo alias check name should be", "echoAlias", echoAlias.getCheckName());
     }
+
+    @Test
+    public void testLoadFromCheckSpecs_empty() throws Exception {
+        assertEquals("empty list to empty list", new ArrayList<ProgressCheck>(), Locator
+                .loadFromCheckSpecs(Collections.emptyList()));
+    }
+
+    @Test
+    public void testLoadFromCheckSpecs_singleImpl() throws Exception {
+        assertEquals("single impl check",
+                new ArrayList<ProgressCheck>(Collections.singletonList(new ACheck())),
+                Locator.loadFromCheckSpecs(Collections.singletonList(
+                        CheckSpec.fromJson(key("impl", ACheck.class.getName()).get()))));
+    }
+
+    @Test
+    public void testLoadFromCheckSpecs_singleInline() throws Exception {
+        assertEquals("single inline check is loaded", 1,
+                Locator.loadFromCheckSpecs(Collections.singletonList(
+                        CheckSpec.fromJson(key("inlineScript", "function getCheckName() { return \"simple inline\"; }").get()))).size());
+        assertEquals("simple inline check name is same", "simple inline",
+                Locator.loadFromCheckSpecs(Collections.singletonList(
+                        CheckSpec.fromJson(key("inlineScript", "function getCheckName() { return \"simple inline\"; }").get()))).get(0).getCheckName());
+        assertEquals("simple inline check name is alias", "alias for simple inline",
+                Locator.loadFromCheckSpecs(Collections.singletonList(
+                        CheckSpec.fromJson(key("name", "alias for simple inline").key("inlineScript", "function getCheckName() { return \"simple inline\"; }").get()))).get(0).getCheckName());
+    }
+
+    @Test(expected = Exception.class)
+    public void testLoadFromCheckSpecs_abstract() throws Exception {
+        Locator.loadFromCheckSpecs(Collections.singletonList(CheckSpec.fromJson(key("name", "i am abstract").get())));
+    }
+
+    @Test(expected = Exception.class)
+    public void testLoadFromCheckSpecs_unloadable() throws Exception {
+        Locator.loadFromCheckSpecs(Collections.singletonList(CheckSpec.fromJson(key("impl", NotACheck.class.getName()).get())));
+    }
+
 }

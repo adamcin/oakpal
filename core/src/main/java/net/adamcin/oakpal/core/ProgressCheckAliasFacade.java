@@ -19,6 +19,7 @@ package net.adamcin.oakpal.core;
 import java.io.File;
 import java.util.Collection;
 import java.util.List;
+import java.util.jar.Manifest;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -64,6 +65,11 @@ class ProgressCheckAliasFacade implements ProgressCheck {
     @Override
     public void identifyPackage(final PackageId packageId, final File file) {
         wrapped.identifyPackage(packageId, file);
+    }
+
+    @Override
+    public void readManifest(PackageId packageId, Manifest manifest) {
+        wrapped.readManifest(packageId, manifest);
     }
 
     @Override
