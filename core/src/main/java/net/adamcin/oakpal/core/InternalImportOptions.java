@@ -195,7 +195,7 @@ final class InternalImportOptions extends ImportOptions implements InstallHookPr
                     reporter.onInstallHookError(e, packageId);
                 }
             }
-            if (getPolicy() == InstallHookPolicy.PROHIBIT) {
+            if (getPolicy() == InstallHookPolicy.PROHIBIT && this.wrapped.hasHooks()) {
                 reporter.onProhibitedInstallHookRegistration(packageId);
             }
         }

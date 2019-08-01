@@ -151,6 +151,7 @@ public class InternalImportOptionsTest {
     @Test
     public void testWrapperRegisterHooksProhibited() throws Exception {
         final InstallHookProcessor wrapped = mock(InstallHookProcessor.class);
+        when(wrapped.hasHooks()).thenReturn(true);
         final ErrorListener errorListener = mock(ErrorListener.class);
         final InternalImportOptions.InstallHookProcessorWrapper wrapperProhibited =
                 new InternalImportOptions.InstallHookProcessorWrapper(pid, InstallHookPolicy.PROHIBIT,
@@ -204,6 +205,7 @@ public class InternalImportOptionsTest {
         final NoClassDefFoundError ncdf = new NoClassDefFoundError();
         doThrow(ncdf).when(wrapped)
                 .registerHooks(nullable(Archive.class), nullable(ClassLoader.class));
+        when(wrapped.hasHooks()).thenReturn(true);
         final ErrorListener errorListener = mock(ErrorListener.class);
         final InternalImportOptions.InstallHookProcessorWrapper wrapperProhibited =
                 new InternalImportOptions.InstallHookProcessorWrapper(pid, InstallHookPolicy.PROHIBIT,

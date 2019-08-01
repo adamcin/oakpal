@@ -16,32 +16,6 @@
 
 package net.adamcin.oakpal.core;
 
-import static net.adamcin.oakpal.core.Fun.uncheck1;
-import static net.adamcin.oakpal.core.Fun.uncheckVoid1;
-
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-import java.util.Properties;
-import java.util.jar.JarInputStream;
-import java.util.jar.Manifest;
-import java.util.stream.Collectors;
-import javax.jcr.Node;
-import javax.jcr.Property;
-import javax.jcr.PropertyType;
-import javax.jcr.Repository;
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-import javax.jcr.SimpleCredentials;
-import javax.jcr.nodetype.NodeTypeTemplate;
-import javax.jcr.version.OnParentVersionAction;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.commons.cnd.DefinitionBuilderFactory;
@@ -63,15 +37,23 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 import org.apache.jackrabbit.vault.fs.api.ProgressTrackerListener;
-import org.apache.jackrabbit.vault.packaging.DependencyHandling;
-import org.apache.jackrabbit.vault.packaging.InstallHookProcessorFactory;
-import org.apache.jackrabbit.vault.packaging.JcrPackage;
-import org.apache.jackrabbit.vault.packaging.JcrPackageManager;
-import org.apache.jackrabbit.vault.packaging.PackageException;
-import org.apache.jackrabbit.vault.packaging.PackageId;
-import org.apache.jackrabbit.vault.packaging.Packaging;
-import org.apache.jackrabbit.vault.packaging.VaultPackage;
+import org.apache.jackrabbit.vault.packaging.*;
 import org.jetbrains.annotations.NotNull;
+
+import javax.jcr.*;
+import javax.jcr.nodetype.NodeTypeTemplate;
+import javax.jcr.version.OnParentVersionAction;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
+import java.util.*;
+import java.util.jar.JarInputStream;
+import java.util.jar.Manifest;
+import java.util.stream.Collectors;
+
+import static net.adamcin.oakpal.core.Fun.uncheck1;
+import static net.adamcin.oakpal.core.Fun.uncheckVoid1;
 
 /**
  * Entry point for OakPAL Acceptance Library. See {@link ProgressCheck} for the event listener interface.
@@ -81,8 +63,6 @@ public final class OakMachine {
     public static final String NS_PREFIX_OAKPAL = "oakpaltmp";
     public static final String LN_UNDECLARED = "Undeclared";
     public static final String NT_UNDECLARED = "{" + NS_URI_OAKPAL + "}" + LN_UNDECLARED;
-
-    private static final ErrorListener DEFAULT_ERROR_LISTENER = new DefaultErrorListener();
 
     private final Packaging packagingService;
 
@@ -136,7 +116,7 @@ public final class OakMachine {
 
         private final List<ProgressCheck> progressChecks = new ArrayList<>();
 
-        private ErrorListener errorListener = DEFAULT_ERROR_LISTENER;
+        private ErrorListener errorListener = new DefaultErrorListener();
 
         private List<URL> preInstallUrls = Collections.emptyList();
 
@@ -223,7 +203,7 @@ public final class OakMachine {
          */
         public Builder withErrorListener(ErrorListener errorListener) {
             if (errorListener == null) {
-                this.errorListener = DEFAULT_ERROR_LISTENER;
+                this.errorListener = new DefaultErrorListener();
             } else {
                 this.errorListener = errorListener;
             }
@@ -391,16 +371,13 @@ public final class OakMachine {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Return the urls for preinstall packages.
+     *
+     * @return the urls for preinstall packages
+     */
     public List<URL> getPreInstallUrls() {
         return preInstallUrls;
-    }
-
-    public List<CheckReport> scanPackage(File... file) throws AbortedScanException {
-        if (file != null) {
-            return scanPackages(Arrays.asList(file));
-        } else {
-            return scanPackages(Collections.emptyList());
-        }
     }
 
     /**
@@ -416,12 +393,13 @@ public final class OakMachine {
      *
      * @param inspectBody arbitrary logic to run against a Session
      * @param <E>         an error type thrown by the inspectBody
-     * @throws RepositoryException for repository errors
-     * @throws E                   for any number of other reasons
+     * @throws AbortedScanException for preinstall errors
+     * @throws RepositoryException  for repository errors
+     * @throws E                    for any number of other reasons
      */
     @SuppressWarnings("WeakerAccess")
     public <E extends Throwable> void initAndInspect(final InspectBody<E> inspectBody)
-            throws RepositoryException, E {
+            throws AbortedScanException, RepositoryException, E {
         adminInitAndInspect(admin -> {
             final Session inspectSession = Util.wrapSessionReadOnly(admin);
             inspectBody.tryAccept(inspectSession);
@@ -433,11 +411,12 @@ public final class OakMachine {
      *
      * @param inspectBody arbitrary logic to run against a Session
      * @param <E>         an error type thrown by the inspectBody
-     * @throws RepositoryException for repository errors
-     * @throws E                   for any number of other reasons
+     * @throws AbortedScanException for preinstall errors
+     * @throws RepositoryException  for repository errors
+     * @throws E                    for any number of other reasons
      */
     public <E extends Throwable> void adminInitAndInspect(final InspectBody<E> inspectBody)
-            throws RepositoryException, E {
+            throws AbortedScanException, RepositoryException, E {
         Session admin = null;
         Repository scanRepo = null;
         try {
@@ -445,8 +424,14 @@ public final class OakMachine {
             admin = loginAdmin(scanRepo);
             addOakpalTypes(admin);
 
+            final JcrPackageManager manager = packagingService.getPackageManager(admin);
+
             for (InitStage initStage : this.initStages) {
                 initStage.initSession(admin, getErrorListener());
+            }
+
+            for (final URL url : preInstallUrls) {
+                processPackageUrl(admin, manager, true, url);
             }
 
             inspectBody.tryAccept(admin);
@@ -457,6 +442,18 @@ public final class OakMachine {
 
             shutdownRepository(scanRepo);
         }
+    }
+
+    /**
+     * Perform a scan of the provided package file or files.
+     *
+     * @param file the file or files to scan
+     * @return a list of check reports
+     * @throws AbortedScanException if the scan was aborted because of an unrecoverable exception
+     * @see #scanPackages(List) this is an alias for the plurally-named method
+     */
+    public List<CheckReport> scanPackage(final @NotNull File... file) throws AbortedScanException {
+        return scanPackages(Arrays.asList(file));
     }
 
     /**
@@ -657,7 +654,8 @@ public final class OakMachine {
         }
     }
 
-    private void processSubpackage(Session admin, JcrPackageManager manager, PackageId packageId, PackageId parentId, final boolean preInstall) {
+    private void processSubpackage(Session admin, JcrPackageManager manager, PackageId packageId, PackageId parentId, final boolean preInstall)
+            throws RepositoryException {
         try (JcrPackage jcrPackage = manager.open(packageId)) {
 
             if (!preInstall) {
@@ -668,6 +666,7 @@ public final class OakMachine {
 
         } catch (IOException | PackageException | RepositoryException e) {
             getErrorListener().onSubpackageException(e, packageId);
+            admin.refresh(false);
         }
     }
 

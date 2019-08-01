@@ -45,6 +45,7 @@ import javax.jcr.Workspace;
 import javax.jcr.retention.RetentionManager;
 import javax.jcr.security.AccessControlManager;
 
+import net.adamcin.oakpal.core.AbortedScanException;
 import net.adamcin.oakpal.core.ListenerReadOnlyException;
 import net.adamcin.oakpal.core.OakMachine;
 import net.adamcin.oakpal.core.jcrfacade.retention.RetentionManagerFacade;
@@ -67,7 +68,7 @@ public class SessionFacadeTest {
 
     <E extends Throwable> void
     inspectForTest(final @NotNull TestInspectBody<E> body)
-            throws RepositoryException, E {
+            throws AbortedScanException, RepositoryException, E {
         new OakMachine.Builder().build().adminInitAndInspect(session -> {
             Session facade = SessionFacade.findBestWrapper(session, true);
             body.tryAccept(session, facade);

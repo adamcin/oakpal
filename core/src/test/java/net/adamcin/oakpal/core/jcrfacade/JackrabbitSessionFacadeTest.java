@@ -25,6 +25,7 @@ import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
+import net.adamcin.oakpal.core.AbortedScanException;
 import net.adamcin.oakpal.core.Fun;
 import net.adamcin.oakpal.core.OakMachine;
 import net.adamcin.oakpal.core.jcrfacade.security.user.UserManagerFacade;
@@ -46,7 +47,7 @@ public class JackrabbitSessionFacadeTest {
 
     <E extends Throwable> void
     inspectForTest(final @NotNull JackrabbitInspectBody<E> body)
-            throws RepositoryException, E {
+            throws AbortedScanException, RepositoryException, E {
         new OakMachine.Builder().build().adminInitAndInspect(session -> {
             assertTrue("should be JackrabbitSession", session instanceof JackrabbitSession);
             body.tryAccept((JackrabbitSession) session);
