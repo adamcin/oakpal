@@ -175,6 +175,18 @@ public final class OakMachine {
          * @param progressCheck the progress checks
          * @return my builder self
          */
+        public Builder withProgressCheck(final @NotNull ProgressCheck... progressCheck) {
+            return this.withProgressChecks(Arrays.asList(progressCheck));
+        }
+
+        /**
+         * Set a single instance of {@link ProgressCheck} for the scan.
+         *
+         * @param progressCheck the progress checks
+         * @return my builder self
+         * @deprecated 1.4.0 use {@link #withProgressCheck(ProgressCheck...)} instead.
+         */
+        @Deprecated
         public Builder withProgressChecks(ProgressCheck... progressCheck) {
             if (progressCheck != null) {
                 return this.withProgressChecks(Arrays.asList(progressCheck));
@@ -628,7 +640,7 @@ public final class OakMachine {
                 try {
                     handler.beforeExtract(packageId, inspectSession,
                             vaultPackage.getProperties(), vaultPackage.getMetaInf(), subpacks);
-                } catch (final RepositoryException e) {
+                } catch (final Exception e) {
                     getErrorListener().onListenerException(e, handler, packageId);
                 }
             });
@@ -643,8 +655,8 @@ public final class OakMachine {
             progressChecks.forEach(handler -> {
                 try {
                     handler.afterExtract(packageId, inspectSession);
-                } catch (final RepositoryException e) {
-                    errorListener.onListenerException(e, handler, packageId);
+                } catch (final Exception e) {
+                    getErrorListener().onListenerException(e, handler, packageId);
                 }
             });
         }
@@ -654,12 +666,18 @@ public final class OakMachine {
         }
     }
 
-    private void processSubpackage(Session admin, JcrPackageManager manager, PackageId packageId, PackageId parentId, final boolean preInstall)
+    final void processSubpackage(Session admin, JcrPackageManager manager, PackageId packageId, PackageId parentId, final boolean preInstall)
             throws RepositoryException {
         try (JcrPackage jcrPackage = manager.open(packageId)) {
 
             if (!preInstall) {
-                progressChecks.forEach(handler -> handler.identifySubpackage(packageId, parentId));
+                progressChecks.forEach(handler -> {
+                    try {
+                        handler.identifySubpackage(packageId, parentId);
+                    } catch (final Exception e) {
+                        getErrorListener().onListenerException(e, handler, packageId);
+                    }
+                });
             }
 
             processPackage(admin, manager, jcrPackage, preInstall);
@@ -691,7 +709,10 @@ public final class OakMachine {
         processPackage(admin, manager, jcrPackage, preInstall);
     }
 
-    private void processPackageUrl(final Session admin, final JcrPackageManager manager, final boolean preInstall, final URL url)
+    final void processPackageUrl(final @NotNull Session admin,
+                                 final @NotNull JcrPackageManager manager,
+                                 final boolean preInstall,
+                                 final @NotNull URL url)
             throws AbortedScanException {
         try {
             admin.refresh(false);
@@ -707,7 +728,10 @@ public final class OakMachine {
         }
     }
 
-    private void processPackageFile(final Session admin, final JcrPackageManager manager, final boolean preInstall, final File file)
+    final void processPackageFile(final @NotNull Session admin,
+                                  final @NotNull JcrPackageManager manager,
+                                  final boolean preInstall,
+                                  final @NotNull File file)
             throws AbortedScanException {
         try {
             admin.refresh(false);
@@ -799,7 +823,7 @@ public final class OakMachine {
                 .register(admin);
     }
 
-    private class ImporterListenerAdapter implements ProgressTrackerListener {
+    final class ImporterListenerAdapter implements ProgressTrackerListener {
         private final PackageId packageId;
 
         private final List<ProgressCheck> handlers;
@@ -825,7 +849,7 @@ public final class OakMachine {
                     handlers.forEach(handler -> {
                         try {
                             handler.deletedPath(packageId, path, session);
-                        } catch (Exception e) {
+                        } catch (final Exception e) {
                             OakMachine.this.getErrorListener().onListenerPathException(e, handler, packageId, path);
                         }
                     });
@@ -835,7 +859,7 @@ public final class OakMachine {
                         handlers.forEach(handler -> {
                             try {
                                 handler.importedPath(packageId, path, node);
-                            } catch (Exception e) {
+                            } catch (final Exception e) {
                                 OakMachine.this.getErrorListener().onListenerPathException(e, handler, packageId, path);
                             }
                         });
