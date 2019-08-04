@@ -1,0 +1,56 @@
+{
+  "preInstallUrls": [
+    "http://foo.com/foo1.zip",
+    "http://foo.com/foo2.zip"
+  ],
+  "checklists": [
+    "checklist1",
+    "checklist2"
+  ],
+  "checks": [
+    {
+      "name": "check1",
+      "impl": "OakpalPlanTest/checkNothing.js"
+    },
+    {
+      "name": "check2",
+      "impl": "OakpalPlanTest/checkNothing.js"
+    }
+  ],
+  "forcedRoots": [
+    {
+      "path": "/root1"
+    },
+    {
+      "path": "/root2"
+    }
+  ],
+  "jcrNodetypes": {
+    "nt:foo1": {
+      "@": [
+        "mixin"
+      ]
+    },
+    "nt:foo2": {
+      "@": [
+        "mixin"
+      ]
+    }
+  },
+  "jcrPrivileges": [
+    "foo:priv1",
+    "foo:priv2"
+  ],
+  "jcrNamespaces": [
+    {
+      "prefix": "foo",
+      "uri": "http://foo.com"
+    },
+    {
+      "prefix": "bar",
+      "uri": "http://bar.com"
+    }
+  ],
+  "enablePreInstallHooks": true,
+  "installHookPolicy": "PROHIBIT"
+}

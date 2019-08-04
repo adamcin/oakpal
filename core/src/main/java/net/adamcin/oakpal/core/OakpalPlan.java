@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import javax.json.Json;
+import javax.json.JsonException;
 import javax.json.JsonObject;
 import javax.json.JsonReader;
 
@@ -75,7 +76,7 @@ public final class OakpalPlan implements JavaxJson.ObjectConvertible {
     private final List<ForcedRoot> forcedRoots;
     private final List<CheckSpec> checks;
     private final boolean enablePreInstallHooks;
-    private final InstallHookPolicy scanInstallHookPolicy;
+    private final InstallHookPolicy installHookPolicy;
 
     private OakpalPlan(final @Nullable URL base,
                        final @Nullable JsonObject originalJson,
@@ -88,7 +89,7 @@ public final class OakpalPlan implements JavaxJson.ObjectConvertible {
                        final @NotNull List<ForcedRoot> forcedRoots,
                        final @NotNull List<CheckSpec> checks,
                        final boolean enablePreInstallHooks,
-                       final @Nullable InstallHookPolicy scanInstallHookPolicy) {
+                       final @Nullable InstallHookPolicy installHookPolicy) {
         this.base = base;
         this.originalJson = originalJson;
         this.name = name;
@@ -100,7 +101,7 @@ public final class OakpalPlan implements JavaxJson.ObjectConvertible {
         this.forcedRoots = forcedRoots;
         this.checks = checks;
         this.enablePreInstallHooks = enablePreInstallHooks;
-        this.scanInstallHookPolicy = scanInstallHookPolicy;
+        this.installHookPolicy = installHookPolicy;
     }
 
     public URL getBase() {
@@ -147,8 +148,8 @@ public final class OakpalPlan implements JavaxJson.ObjectConvertible {
         return enablePreInstallHooks;
     }
 
-    public InstallHookPolicy getScanInstallHookPolicy() {
-        return scanInstallHookPolicy;
+    public InstallHookPolicy getInstallHookPolicy() {
+        return installHookPolicy;
     }
 
     static URI relativizeToBaseParent(final @NotNull URI baseUri, final @NotNull URI uri) throws URISyntaxException {
@@ -196,7 +197,7 @@ public final class OakpalPlan implements JavaxJson.ObjectConvertible {
                 .key(KEY_JCR_PRIVILEGES).opt(jcrPrivileges)
                 .key(KEY_JCR_NAMESPACES).opt(jcrNamespaces)
                 .key(KEY_ENABLE_PRE_INSTALL_HOOKS).opt(enablePreInstallHooks, false)
-                .key(KEY_INSTALL_HOOK_POLICY).opt(scanInstallHookPolicy)
+                .key(KEY_INSTALL_HOOK_POLICY).opt(installHookPolicy)
                 .get();
     }
 
@@ -221,7 +222,8 @@ public final class OakpalPlan implements JavaxJson.ObjectConvertible {
         return builder.build();
     }
 
-    public OakMachine.Builder toOakMachineBuilder(final ErrorListener errorListener, final ClassLoader classLoader) throws Exception {
+    public OakMachine.Builder toOakMachineBuilder(final @Nullable ErrorListener errorListener,
+                                                  final @NotNull ClassLoader classLoader) throws Exception {
         final ChecklistPlanner checklistPlanner = new ChecklistPlanner(checklists);
         checklistPlanner.discoverChecklists(classLoader);
 
@@ -239,7 +241,7 @@ public final class OakpalPlan implements JavaxJson.ObjectConvertible {
                 .withInitStages(checklistPlanner.getInitStages())
                 .withInitStage(toInitStage())
                 .withPreInstallUrls(preInstallUrls)
-                .withInstallHookPolicy(scanInstallHookPolicy)
+                .withInstallHookPolicy(installHookPolicy)
                 .withInstallHookClassLoader(classLoader)
                 .withEnablePreInstallHooks(enablePreInstallHooks);
     }
@@ -284,7 +286,7 @@ public final class OakpalPlan implements JavaxJson.ObjectConvertible {
                         json.getString(KEY_INSTALL_HOOK_POLICY)));
             }
             return Result.success(builder.build(json));
-        } catch (IOException e) {
+        } catch (Exception e) {
             return Result.failure(e);
         }
     }
@@ -306,9 +308,7 @@ public final class OakpalPlan implements JavaxJson.ObjectConvertible {
             this.base = base;
             this.name = Optional.ofNullable(name)
                     .orElseGet(() -> Optional.ofNullable(base)
-                            .map(compose(compose(URL::getPath, Text::getName),
-                                    // ensure that the plan name ends with a json extension.
-                                    baseName -> baseName.replaceAll("(\\.json)?$", ".json")))
+                            .map(compose(URL::getPath, Text::getName))
                             .orElse(DEFAULT_PLAN_NAME));
         }
 
@@ -320,7 +320,7 @@ public final class OakpalPlan implements JavaxJson.ObjectConvertible {
                     .withJcrNodetypes(plan.getJcrNodetypes())
                     .withJcrPrivileges(plan.getJcrPrivileges())
                     .withEnablePreInstallHooks(plan.isEnablePreInstallHooks())
-                    .withInstallHookPolicy(plan.getScanInstallHookPolicy())
+                    .withInstallHookPolicy(plan.getInstallHookPolicy())
                     .withPreInstallUrls(plan.getPreInstallUrls());
         }
 

@@ -118,7 +118,7 @@ public interface ErrorListener extends ScanListener, ViolationReporter {
 
     /**
      * Called after any install hooks have been registered for a particular package during a scan
-     * which has specified {@link OakpalPlan#getScanInstallHookPolicy()} value of {@link InstallHookPolicy#PROHIBIT}.
+     * which has specified {@link OakpalPlan#getInstallHookPolicy()} value of {@link InstallHookPolicy#PROHIBIT}.
      *
      * @param packageId the package which registered one or more install hooks
      */

@@ -22,10 +22,7 @@ import static net.adamcin.oakpal.core.JavaxJson.mapArrayOfStrings;
 import static net.adamcin.oakpal.core.JavaxJson.obj;
 import static net.adamcin.oakpal.core.JavaxJson.optArray;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Stream;
 import javax.json.JsonObject;
@@ -154,6 +151,21 @@ public final class ForcedRoot implements JavaxJson.ObjectConvertible, Comparable
     public int compareTo(final @NotNull ForcedRoot o) {
         return (Optional.ofNullable(this.getPath()).orElse("") + "/")
                 .compareTo(Optional.ofNullable(o.getPath()).orElse("") + "/");
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        ForcedRoot that = (ForcedRoot) o;
+        return Objects.equals(path, that.path) &&
+                Objects.equals(primaryType, that.primaryType) &&
+                mixinTypes.equals(that.mixinTypes);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(path, primaryType, mixinTypes);
     }
 
     @Override
