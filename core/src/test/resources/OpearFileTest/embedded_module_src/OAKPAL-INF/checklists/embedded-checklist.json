@@ -1,0 +1,13 @@
+{
+  "name": "embedded-checklist",
+  "checks": [
+    {
+      "name": "embedded-check",
+      "impl": "embeddedCheck.js"
+    }
+  ],
+  "cndNames": [
+    "a.cnd",
+    "b.cnd"
+  ]
+}

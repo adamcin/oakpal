@@ -1,0 +1,3 @@
+Manifest-Version: 1.0
+Oakpal-ModuleName: embedded_module
+Oakpal-Checklist: OAKPAL-INF/checklists/embedded-checklist.json

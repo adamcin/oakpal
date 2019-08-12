@@ -1,24 +1,27 @@
 package net.adamcin.oakpal.core;
 
 import static net.adamcin.oakpal.core.Fun.result1;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static net.adamcin.oakpal.core.OpearFile.NAME_CLASS_PATH;
+import static org.junit.Assert.*;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.InputStream;
+import java.io.*;
 import java.net.URL;
+import java.net.URLClassLoader;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.jar.JarOutputStream;
 import java.util.jar.Manifest;
+import java.util.zip.ZipEntry;
 
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.io.filefilter.IOFileFilter;
+import org.apache.commons.io.filefilter.TrueFileFilter;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -28,6 +31,7 @@ import org.slf4j.LoggerFactory;
 @RunWith(MockitoJUnitRunner.class)
 public class OpearFileTest {
     private static final Logger LOGGER = LoggerFactory.getLogger(OpearFileTest.class);
+
 
     @Test
     public void testFindDefaultPlanLocation() {
@@ -103,5 +107,190 @@ public class OpearFileTest {
 
         assertTrue("opear plan should be empty",
                 plan.map(OakpalPlan::getChecklists).getOrDefault(Arrays.asList("not a checklist")).isEmpty());
+    }
+
+    @Test
+    public void testGetPlanClassPath() {
+        Result<OpearFile> opearResult = OpearFile.fromDirectory(
+                new File("src/test/resources/OpearFileTest/folders_on_classpath"));
+
+        assertFalse("opearResult should not be a failure", opearResult.isFailure());
+        OpearFile opearFile = opearResult.getOrDefault(null);
+        assertNotNull("opearFile is not null", opearFile);
+
+        assertArrayEquals("classpath should be", new String[]{"classes", "test-classes"},
+                opearFile.metadata.getPlanClassPath());
+    }
+
+    @Test
+    public void testFromJar_mkdirsFail() throws Exception {
+        buildDeepTestJar();
+        final File cacheDir = new File("target/test-output/OpearFileTest/testFromJar_mkdirsFail/cache");
+        if (cacheDir.exists()) {
+            FileUtils.deleteDirectory(cacheDir);
+        }
+        FileUtils.touch(new File(cacheDir, "deep_test"));
+        assertTrue("fail with jar when nondirectory present at cache id",
+                OpearFile.fromJar(new JarFile(deepTestTarget), cacheDir).isFailure());
+    }
+
+    @Test
+    public void testCacheJar_fail() throws Exception {
+        buildDeepTestJar();
+        final File cacheDir = new File("target/test-output/OpearFileTest/testCacheJar_fail/cache");
+        if (cacheDir.exists()) {
+            FileUtils.deleteDirectory(cacheDir);
+        }
+        new File(cacheDir, "deep-plan.json").mkdirs();
+        assertTrue("fail to cache entry",
+                OpearFile.cacheJar(new JarFile(deepTestTarget), cacheDir).isFailure());
+
+        FileUtils.deleteDirectory(cacheDir);
+        FileUtils.touch(new File(cacheDir, "META-INF"));
+        assertTrue("fail to cache directory entry",
+                OpearFile.cacheJar(new JarFile(deepTestTarget), cacheDir).isFailure());
+    }
+
+    @Test
+    public void testReadNonExistingManifest() {
+        assertTrue("non-existing file can't be read",
+                OpearFile.readExpectedManifest(
+                        new File("src/test/resources/OpearFileTest/non-existing-file.mf"))
+                        .isFailure());
+    }
+
+    @Test
+    public void testValidateOpearManifest() throws Exception {
+        assertTrue("invalid manifest when null",
+                OpearFile.validateOpearManifest(null).isFailure());
+        assertTrue("invalid manifest when no bsn specified",
+                OpearFile.validateOpearManifest(
+                        new Manifest(new ByteArrayInputStream(new byte[0])))
+                        .isFailure());
+    }
+
+    @Test
+    public void testValidateUriHeaderValues() {
+        final Manifest manifest = new Manifest();
+        manifest.getMainAttributes().put(NAME_CLASS_PATH, "../somedir");
+        assertTrue(".. should fail",
+                OpearFile.validateUriHeaderValues(manifest, NAME_CLASS_PATH).isFailure());
+        manifest.getMainAttributes().put(NAME_CLASS_PATH, "/somedir");
+        assertTrue("/ should succeed",
+                OpearFile.validateUriHeaderValues(manifest, NAME_CLASS_PATH).isSuccess());
+        manifest.getMainAttributes().put(NAME_CLASS_PATH, "/somedir/../..");
+        assertTrue("/../.. should fail",
+                OpearFile.validateUriHeaderValues(manifest, NAME_CLASS_PATH).isFailure());
+    }
+
+    @Test
+    public void testGetPlanClassLoader_empty() throws Exception {
+        final File cacheDir = new File("target/test-output/OpearFileTest/testGetPlanClassLoader_empty/cache");
+        if (cacheDir.exists()) {
+            FileUtils.deleteDirectory(cacheDir);
+        }
+
+        OpearFile opearFile = new OpearFile(cacheDir,
+                new OpearFile.OpearMetadata("foo", new String[0], new String[0], true));
+
+        final ClassLoader parent = new URLClassLoader(new URL[0], null);
+        assertSame("same classloader with empty classpath", parent, opearFile.getPlanClassLoader(parent));
+    }
+
+    @Test
+    public void testGetPlanClassLoader() throws Exception {
+        final File cacheDir = new File("target/test-output/OpearFileTest/testGetPlanClassLoader/cache");
+        if (cacheDir.exists()) {
+            FileUtils.deleteDirectory(cacheDir);
+        }
+        buildDeepTestJar();
+        final Result<OpearFile> opearResult = OpearFile.fromJar(new JarFile(deepTestTarget), cacheDir);
+        assertTrue("is successful", opearResult.isSuccess());
+
+        OpearFile opearFile = opearResult.getOrDefault(null);
+        assertNotNull("not null", opearFile);
+        final String checklistName = "/OAKPAL-INF/checklists/embedded-checklist.json";
+        final ClassLoader controlCl = new URLClassLoader(new URL[]{embedModuleTarget.toURI().toURL()}, null);
+        assertNotNull("control checklist URL not null", controlCl.getResource(checklistName));
+        final ClassLoader classLoader = opearFile.getPlanClassLoader(new URLClassLoader(new URL[0], null));
+        final URL embeddedChecklistUrl = classLoader.getResource(checklistName);
+        assertNotNull("checklist URL not null: " + printClassLoader(classLoader), embeddedChecklistUrl);
+    }
+
+    private String printClassLoader(final ClassLoader classLoader) {
+        if (classLoader instanceof URLClassLoader) {
+            return Arrays.toString(((URLClassLoader) classLoader).getURLs());
+        } else {
+            return classLoader.toString();
+        }
+    }
+
+    final File baseDir = new File("src/test/resources/OpearFileTest");
+    final File testTarget = new File("target/test-output/OpearFileTest");
+    final File deepTestSrc = new File(baseDir, "deep_test_src");
+    final File deepTestTarget = new File(testTarget, "deep_test.jar");
+    final File embedModuleSrc = new File(baseDir, "embedded_module_src");
+    final File embedModuleTarget = new File(testTarget, "embedded_module.jar");
+
+
+    final IOFileFilter includedEntry = new IOFileFilter() {
+        @Override
+        public boolean accept(File file) {
+            return !("META-INF".equals(file.getParentFile().getName()) && "MANIFEST.MF".equals(file.getName()));
+        }
+
+        @Override
+        public boolean accept(File dir, String name) {
+            return !("META-INF".equals(dir.getName()) && "MANIFEST.MF".equals(name));
+        }
+    };
+
+    private void buildJarFromDir(final File srcDir, final File targetJar, final Map<String, File> additionalEntries) throws Exception {
+        if (!targetJar.exists()) {
+            try (InputStream manIn = new FileInputStream(new File(srcDir, JarFile.MANIFEST_NAME))) {
+                final Manifest man = new Manifest(manIn);
+                final File targetDir = targetJar.getParentFile();
+                if (!targetDir.isDirectory() && !targetDir.mkdirs()) {
+                    throw new IOException("failed to create parent target directory: " + targetDir.getAbsolutePath());
+                }
+                try (JarOutputStream jos = new JarOutputStream(new FileOutputStream(targetJar), man)) {
+                    final String absPath = srcDir.getAbsolutePath();
+                    for (File file : FileUtils.listFilesAndDirs(srcDir, includedEntry, TrueFileFilter.INSTANCE)) {
+                        final String filePath = file.getAbsolutePath();
+                        final String entryName = filePath.substring(absPath.length()).replace(File.separator, "/");
+                        if (file.isDirectory()) {
+                            jos.putNextEntry(new ZipEntry(entryName + "/"));
+                        } else {
+                            jos.putNextEntry(new ZipEntry(entryName));
+                            try (FileInputStream fileInput = new FileInputStream(file)) {
+                                IOUtils.copy(fileInput, jos);
+                            }
+                        }
+                        jos.closeEntry();
+                    }
+                    for (Map.Entry<String, File> add : additionalEntries.entrySet()) {
+                        final String entryName = add.getKey();
+                        if (add.getValue().isDirectory()) {
+                            jos.putNextEntry(new ZipEntry(entryName.replaceAll("/?$", "/")));
+                        } else {
+                            jos.putNextEntry(new ZipEntry(entryName));
+                            try (FileInputStream fileInput = new FileInputStream(add.getValue())) {
+                                IOUtils.copy(fileInput, jos);
+                            }
+                        }
+                        jos.closeEntry();
+                    }
+                }
+            }
+        }
+    }
+
+    private void buildEmbeddedModuleJar() throws Exception {
+        buildJarFromDir(embedModuleSrc, embedModuleTarget, Collections.emptyMap());
+    }
+
+    private void buildDeepTestJar() throws Exception {
+        buildEmbeddedModuleJar();
+        buildJarFromDir(deepTestSrc, deepTestTarget, Collections.singletonMap(embedModuleTarget.getName(), embedModuleTarget));
     }
 }

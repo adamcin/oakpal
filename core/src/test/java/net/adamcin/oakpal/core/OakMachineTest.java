@@ -16,6 +16,7 @@
 
 package net.adamcin.oakpal.core;
 
+import net.adamcin.oakpal.core.checks.Echo;
 import net.adamcin.oakpal.testing.TestPackageUtil;
 import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
@@ -667,6 +668,22 @@ public class OakMachineTest {
         assertSame("error is same", expectError, eLatch.getNow(null));
         assertEquals("package id is", expectId, idLatch.getNow(null));
         assertEquals("path is", expectPath, pathLatch.getNow(null));
+    }
+
+    @Test
+    public void testNewOakpalPackagingServiceNoArgs() throws Exception {
+        Packaging service = OakMachine.newOakpalPackagingService();
+        new OakMachine.Builder().build().adminInitAndInspect(session -> {
+            JcrPackageManager manager = service.getPackageManager(session);
+        });
+    }
+
+    @Test
+    public void testNewOakpalPackagingServiceWithClassLoader() throws Exception {
+        Packaging service = OakMachine.newOakpalPackagingService(Util.getDefaultClassLoader());
+        new OakMachine.Builder().build().adminInitAndInspect(session -> {
+            JcrPackageManager manager = service.getPackageManager(session);
+        });
     }
 }
 

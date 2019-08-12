@@ -26,6 +26,7 @@ import org.apache.jackrabbit.vault.packaging.JcrPackageManager;
 import org.apache.jackrabbit.vault.packaging.PackageManager;
 import org.apache.jackrabbit.vault.packaging.Packaging;
 import org.apache.jackrabbit.vault.packaging.PackagingService;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,7 +35,8 @@ import org.slf4j.LoggerFactory;
  * {@link PackagingService#getPackageManager(Session)} method to avoid the nasty stack trace.
  * See recommendation here: https://issues.apache.org/jira/browse/JCRVLT-285
  */
-public final class DefaultPackagingService implements Packaging {
+@SuppressWarnings("CQRules:CQBP-84--dependencies") // suppress warnings
+final class DefaultPackagingService implements Packaging {
     private static final Logger LOGGER = LoggerFactory.getLogger(DefaultPackagingService.class);
     private static final String JCR_PACK_MAN_IMPL_CLASS = "org.apache.jackrabbit.vault.packaging.impl.JcrPackageManagerImpl";
 
@@ -44,7 +46,7 @@ public final class DefaultPackagingService implements Packaging {
      * Load the JcrPackageManagerImpl class from the oakpal classloader.
      */
     @SuppressWarnings("WeakerAccess")
-    public DefaultPackagingService() {
+    DefaultPackagingService() {
         this(DefaultPackagingService.class.getClassLoader());
     }
 
@@ -53,7 +55,7 @@ public final class DefaultPackagingService implements Packaging {
      *
      * @param classLoader classloader to find the JcrPackageManagerImpl class
      */
-    public DefaultPackagingService(final ClassLoader classLoader) {
+    DefaultPackagingService(final @NotNull ClassLoader classLoader) {
         try {
             Class<?> clazz = classLoader.loadClass(JCR_PACK_MAN_IMPL_CLASS);
             if (JcrPackageManager.class.isAssignableFrom(clazz)) {

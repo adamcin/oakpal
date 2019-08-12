@@ -94,7 +94,7 @@ public final class OakMachine {
                        final ClassLoader installHookClassLoader,
                        final boolean enablePreInstallHooks,
                        final InstallHookPolicy scanInstallHookPolicy) {
-        this.packagingService = packagingService != null ? packagingService : new DefaultPackagingService();
+        this.packagingService = packagingService != null ? packagingService : newOakpalPackagingService();
         this.progressChecks = progressChecks;
         this.errorListener = errorListener;
         this.preInstallUrls = preInstallUrls;
@@ -844,7 +844,11 @@ public final class OakMachine {
             if (preInstall) {
                 return;
             }
+            // TODO extend handler to provide more detailed events matching the actions, -UREAD!
+            // NOP, MOD, REP, ERR, ADD, DEL, MIS
             if (path != null && path.startsWith("/")) {
+                // ! or MIS is actually only fired when a file is imported without a jcr:data property.
+                // Should this even be reported to progress checks? this is more of an error, I think.
                 if ("D".equals(action) || "!".equals(action)) {
                     handlers.forEach(handler -> {
                         try {
@@ -874,5 +878,13 @@ public final class OakMachine {
         public void onError(Mode mode, String path, Exception e) {
             OakMachine.this.getErrorListener().onImporterException(e, packageId, path);
         }
+    }
+
+    public static Packaging newOakpalPackagingService() {
+        return new DefaultPackagingService();
+    }
+
+    public static Packaging newOakpalPackagingService(final @NotNull ClassLoader classLoader) {
+        return new DefaultPackagingService(classLoader);
     }
 }

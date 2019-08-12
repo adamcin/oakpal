@@ -71,8 +71,8 @@ public final class OpearFile implements Opear {
     public static final Attributes.Name NAME_OAKPAL_VERSION = new Attributes.Name(MF_OAKPAL_VERSION);
     public static final Attributes.Name NAME_OAKPAL_PLAN = new Attributes.Name(MF_OAKPAL_PLAN);
 
-    private final File cacheDir;
-    private final OpearMetadata metadata;
+    final File cacheDir;
+    final OpearMetadata metadata;
 
     OpearFile(final File cacheDir, final OpearMetadata metadata) {
         this.cacheDir = cacheDir;
@@ -95,19 +95,12 @@ public final class OpearFile implements Opear {
         return Result.failure("Opear does not export a plan named " + planName);
     }
 
-    static URL toJarUrl(final @NotNull URL url) throws MalformedURLException {
-        return new URL("jar:" + url.toExternalForm() + "!/");
-    }
-
     @Override
     public ClassLoader getPlanClassLoader(final @NotNull ClassLoader parent) {
         final URL[] urls = Stream.of(metadata.getPlanClassPath())
                 .map(name -> new File(cacheDir, name)).flatMap(file -> {
-                    if (file.isDirectory()) {
+                    if (file.isDirectory() || file.getName().endsWith(".jar")) {
                         return compose(File::toURI, result1(URI::toURL)).apply(file).stream();
-                    } else if (file.getName().endsWith(".jar")) {
-                        return compose(File::toURI, result1(URI::toURL)).apply(file)
-                                .flatMap(result1(OpearFile::toJarUrl)).stream();
                     } else {
                         return Stream.empty();
                     }
@@ -136,31 +129,38 @@ public final class OpearFile implements Opear {
         return new OpearMetadata(directory.getName(), plans, new String[]{"."}, true);
     }
 
+    static Result<String[]> validateUriHeaderValuesWithDefaultForMissing(final @NotNull Manifest manifest,
+                                                                         final @NotNull Attributes.Name headerName,
+                                                                         final @NotNull String... defaultValue) {
+        if (!manifest.getMainAttributes().containsKey(headerName)) {
+            return Result.success(defaultValue);
+        } else {
+            return validateUriHeaderValues(manifest, headerName);
+        }
+    }
+
     static Result<String[]> validateUriHeaderValues(final @NotNull Manifest manifest,
                                                     final @NotNull Attributes.Name headerName) {
-        if (!manifest.getMainAttributes().containsKey(headerName)) {
-            return Result.success(new String[]{"."});
-        } else {
-            final List<Result<String>> cpResult = Util.getManifestHeaderValues(manifest, headerName.toString())
-                    .stream()
-                    .map(result1(URI::new))
-                    .map(uriResult -> uriResult.flatMap(uri -> {
-                        final String normal = uri.normalize().getPath().replaceFirst("^/", "");
-                        if ("..".equals(normal) || normal.startsWith("../")) {
-                            return Result.failure("Illegal parent path selector in " + normal);
-                        } else {
-                            return Result.success(normal);
-                        }
-                    }))
-                    .collect(Collectors.toList());
-            return cpResult.stream()
-                    .filter(Result::isFailure).findFirst()
-                    .map(failed ->
-                            failed.getError()
-                                    .map(Result::<String[]>failure)
-                                    .orElseGet(() -> Result.<String[]>failure(format("invalid %s header", headerName))))
-                    .orElseGet(() -> Result.success(cpResult.stream().flatMap(Result::stream).toArray(String[]::new)));
-        }
+
+        final List<Result<String>> cpResult = Util.getManifestHeaderValues(manifest, headerName.toString())
+                .stream()
+                .map(result1(URI::new))
+                .map(uriResult -> uriResult.flatMap(uri -> {
+                    final String normal = uri.normalize().getPath().replaceFirst("^/", "");
+                    if ("..".equals(normal) || normal.startsWith("../")) {
+                        return Result.failure("Illegal parent path selector in " + normal);
+                    } else {
+                        return Result.success(normal);
+                    }
+                }))
+                .collect(Collectors.toList());
+        return cpResult.stream()
+                .filter(Result::isFailure).findFirst()
+                .map(failed ->
+                        failed.getError()
+                                .map(Result::<String[]>failure)
+                                .orElseGet(() -> Result.<String[]>failure(format("invalid %s header", headerName))))
+                .orElseGet(() -> Result.success(cpResult.stream().flatMap(Result::stream).toArray(String[]::new)));
     }
 
     static Result<OpearMetadata> validateOpearManifest(final @Nullable Manifest manifest) {
@@ -175,11 +175,12 @@ public final class OpearFile implements Opear {
                                 .map(bsn -> ofNullable(man.getMainAttributes().getValue(NAME_BUNDLE_VERSION))
                                         .map(bvn -> bsn + "_" + bvn).orElse(bsn))
                                 .flatMap(bid ->
-                                        validateUriHeaderValues(man, NAME_CLASS_PATH).flatMap(planClassPath ->
-                                                validateUriHeaderValues(man, NAME_OAKPAL_PLAN).flatMap(plans ->
-                                                        Result.success(new OpearMetadata(bid, plans,
-                                                                planClassPath, false))
-                                                )))));
+                                        validateUriHeaderValuesWithDefaultForMissing(man, NAME_CLASS_PATH, ".")
+                                                .flatMap(planClassPath ->
+                                                        validateUriHeaderValues(man, NAME_OAKPAL_PLAN).flatMap(plans ->
+                                                                Result.success(new OpearMetadata(bid, plans,
+                                                                        planClassPath, false))
+                                                        )))));
     }
 
     public static Result<OpearFile> fromDirectory(final @NotNull File directory) {
@@ -202,7 +203,7 @@ public final class OpearFile implements Opear {
                 .flatMap(OpearFile::validateOpearManifest)
                 .flatMap(metadata -> {
                     final File cacheDir = new File(cacheBaseDir, metadata.getCacheId());
-                    if (cacheDir.exists()) {
+                    if (cacheDir.isDirectory()) {
                         return fromDirectory(cacheDir);
                     } else {
                         if (!cacheDir.mkdirs()) {

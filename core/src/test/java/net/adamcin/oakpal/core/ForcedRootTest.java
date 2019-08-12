@@ -18,11 +18,7 @@ package net.adamcin.oakpal.core;
 
 import static net.adamcin.oakpal.core.JavaxJson.key;
 import static net.adamcin.oakpal.core.JavaxJson.obj;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 import java.util.Collections;
 import java.util.List;
@@ -168,5 +164,23 @@ public class ForcedRootTest {
                 .key(ForcedRoot.KEY_MIXIN_TYPES, mixinTypes)
                 .get().toString();
         assertEquals("expect json string for toString", expectString, jsonString);
+    }
+
+    @Test
+    public void testHashCode() {
+        final ForcedRoot initial = new ForcedRoot().withPath("/some/path")
+                .withPrimaryType("nt:folder").withMixinTypes("mix:title");
+        assertEquals("same equals for same objects", initial, initial);
+        assertEquals("same hash for same objects", initial.hashCode(), initial.hashCode());
+        final ForcedRoot equalToInitial = new ForcedRoot().withPath("/some/path")
+                .withPrimaryType("nt:folder").withMixinTypes("mix:title");
+        assertEquals("same equals for equal objects", initial, equalToInitial);
+        assertEquals("same hash for equals objects", initial.hashCode(),
+                equalToInitial.hashCode());
+        final ForcedRoot notEqual = new ForcedRoot().withPath("/other/path")
+                .withPrimaryType("nt:folder").withMixinTypes("mix:title");
+        assertNotEquals("different equals for nonequal objects", initial, notEqual);
+        assertNotEquals("different hash for nonequal objects", initial.hashCode(),
+                notEqual.hashCode());
     }
 }

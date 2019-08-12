@@ -16,15 +16,9 @@
 
 package net.adamcin.oakpal.interactive.impl;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.List;
-
 import net.adamcin.oakpal.core.AbortedScanException;
 import net.adamcin.oakpal.core.CheckReport;
 import net.adamcin.oakpal.core.ChecklistPlanner;
-import net.adamcin.oakpal.core.DefaultPackagingService;
 import net.adamcin.oakpal.core.InitStage;
 import net.adamcin.oakpal.core.Locator;
 import net.adamcin.oakpal.core.OakMachine;
@@ -40,6 +34,11 @@ import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.commons.classloader.DynamicClassLoaderManager;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
 
 @Component
 class OakpalScanServiceImpl implements OakpalScanService {
@@ -103,7 +102,7 @@ class OakpalScanServiceImpl implements OakpalScanService {
         }
 
         final OakMachine.Builder builder = new OakMachine.Builder();
-        builder.withPackagingService(new DefaultPackagingService(packagingService.getClass().getClassLoader()));
+        builder.withPackagingService(OakMachine.newOakpalPackagingService(packagingService.getClass().getClassLoader()));
         builder.withInitStages(planner.getInitStages());
         builder.withProgressChecks(allChecks);
 

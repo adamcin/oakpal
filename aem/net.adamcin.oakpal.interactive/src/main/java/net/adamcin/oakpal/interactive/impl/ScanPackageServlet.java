@@ -16,20 +16,9 @@
 
 package net.adamcin.oakpal.interactive.impl;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-import javax.servlet.Servlet;
-import javax.servlet.ServletException;
-
 import net.adamcin.oakpal.core.AbortedScanException;
 import net.adamcin.oakpal.core.CheckReport;
 import net.adamcin.oakpal.core.ChecklistPlanner;
-import net.adamcin.oakpal.core.DefaultPackagingService;
 import net.adamcin.oakpal.core.Locator;
 import net.adamcin.oakpal.core.OakMachine;
 import net.adamcin.oakpal.core.ProgressCheck;
@@ -46,6 +35,16 @@ import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.servlet.Servlet;
+import javax.servlet.ServletException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
 
 /**
  * Simple POST servlet to scan a series of packages available in CRX Package Manager.
@@ -113,7 +112,7 @@ class ScanPackageServlet extends SlingAllMethodsServlet {
         // create an instance of our reflection-based Packaging service to wrap the legacy packaging service using
         // using the bound Packaging service's classloader in order to avoid the nasty no-no stack trace on the left, and
         // the package event dispatcher on the right.
-        builder.withPackagingService(new DefaultPackagingService(packagingService.getClass().getClassLoader()));
+        builder.withPackagingService(OakMachine.newOakpalPackagingService(packagingService.getClass().getClassLoader()));
 
         final OakMachine machine = builder.build();
 

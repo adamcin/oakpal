@@ -1,0 +1,4 @@
+Manifest-Version: 1.0
+Bundle-SymbolicName: folders_on_classpath
+Bundle-ClassPath: classes,test-classes
+Oakpal-Plan: plan.json

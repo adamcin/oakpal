@@ -1,0 +1,4 @@
+Manifest-Version: 1.0
+Bundle-SymbolicName: deep_test
+Bundle-ClassPath: classes,embedded_module.jar
+Oakpal-Plan: deep-plan.json
