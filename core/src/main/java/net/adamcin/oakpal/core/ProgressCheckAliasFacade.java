@@ -27,6 +27,8 @@ import javax.jcr.Session;
 import org.apache.jackrabbit.vault.fs.config.MetaInf;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.apache.jackrabbit.vault.packaging.PackageProperties;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Internal facade class which serves to:
@@ -38,7 +40,8 @@ class ProgressCheckAliasFacade implements ProgressCheck {
     private final ProgressCheck wrapped;
     private final String alias;
 
-    ProgressCheckAliasFacade(final ProgressCheck wrapped, final String alias) {
+    ProgressCheckAliasFacade(final @NotNull ProgressCheck wrapped,
+                             final @Nullable String alias) {
         this.wrapped = wrapped;
         this.alias = alias;
     }
@@ -68,7 +71,7 @@ class ProgressCheckAliasFacade implements ProgressCheck {
     }
 
     @Override
-    public void readManifest(PackageId packageId, Manifest manifest) {
+    public void readManifest(final PackageId packageId, final Manifest manifest) {
         wrapped.readManifest(packageId, manifest);
     }
 
