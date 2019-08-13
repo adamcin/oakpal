@@ -78,7 +78,7 @@ public final class SimpleReport implements CheckReport {
                 '}';
     }
 
-    public static SimpleReport generateReport(final ProgressCheck reporter) {
+    public static SimpleReport generateReport(final @NotNull ProgressCheck reporter) {
         return new SimpleReport(Optional.ofNullable(reporter.getCheckName())
                 .orElse(reporter.getClass().getSimpleName()),
                 reporter.getReportedViolations().stream()
@@ -86,14 +86,14 @@ public final class SimpleReport implements CheckReport {
                         .collect(Collectors.toList()));
     }
 
-    public static SimpleReport generateReport(final ErrorListener reporter) {
+    public static SimpleReport generateReport(final @NotNull ErrorListener reporter) {
         return new SimpleReport(reporter.getClass().getSimpleName(),
                 reporter.getReportedViolations().stream()
                         .map(SimpleViolation::fromReported)
                         .collect(Collectors.toList()));
     }
 
-    public static SimpleReport fromJson(final JsonObject jsonReport) {
+    public static SimpleReport fromJson(final @NotNull JsonObject jsonReport) {
         String vCheckName = jsonReport.getString(KEY_CHECK_NAME, "");
         List<Violation> violations = optArray(jsonReport, KEY_VIOLATIONS)
                 .map(array -> mapArrayOfObjects(array, ReportMapper::violationFromJson))

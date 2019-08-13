@@ -22,7 +22,7 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Simple logAndRestream of violations for use by {@link ProgressCheck} implementations.
+ * Simple collector of violations for use by {@link ProgressCheck} implementations.
  */
 public final class ReportCollector implements ViolationReporter {
     private final List<Violation> violations = new ArrayList<>();
@@ -31,6 +31,7 @@ public final class ReportCollector implements ViolationReporter {
         violations.add(violation);
     }
 
+    @SuppressWarnings("WeakerAccess")
     public void clearViolations() {
         this.violations.clear();
     }
