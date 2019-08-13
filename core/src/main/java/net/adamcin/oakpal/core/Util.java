@@ -55,19 +55,6 @@ public final class Util {
         // do nothing
     }
 
-    static final Logger ORG_JSON_LOGGER = LoggerFactory.getLogger(ProgressCheckFactory.class);
-
-    /**
-     * Package-private sentinel type for determining when the deprecated ProgressCheckFactory.newInstance(JSONObject) method is
-     * overridden.
-     */
-    static final ProgressCheck ORG_JSON_CHECK_SENTINEL = new ProgressCheck() {
-        @Override
-        public Collection<Violation> getReportedViolations() {
-            return Collections.emptyList();
-        }
-    };
-
     static boolean isEmpty(final String value) {
         return value == null || value.isEmpty();
     }

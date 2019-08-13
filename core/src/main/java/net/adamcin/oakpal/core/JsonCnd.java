@@ -62,7 +62,11 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.cnd.Lexer;
 import org.apache.jackrabbit.commons.query.qom.Operator;
 import org.apache.jackrabbit.oak.InitialContent;
+import org.apache.jackrabbit.oak.core.ImmutableRoot;
+import org.apache.jackrabbit.oak.plugins.name.ReadOnlyNamespaceRegistry;
+import org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.spi.Name;
 import org.apache.jackrabbit.spi.NameFactory;
 import org.apache.jackrabbit.spi.QItemDefinition;
@@ -76,6 +80,7 @@ import org.apache.jackrabbit.spi.commons.conversion.DefaultNamePathResolver;
 import org.apache.jackrabbit.spi.commons.conversion.NamePathResolver;
 import org.apache.jackrabbit.spi.commons.name.NameFactoryImpl;
 import org.apache.jackrabbit.spi.commons.namespace.NamespaceMapping;
+import org.apache.jackrabbit.spi.commons.namespace.RegistryNamespaceResolver;
 import org.apache.jackrabbit.spi.commons.nodetype.QDefinitionBuilderFactory;
 import org.apache.jackrabbit.spi.commons.nodetype.QItemDefinitionBuilder;
 import org.apache.jackrabbit.spi.commons.nodetype.QNodeDefinitionBuilder;
@@ -100,17 +105,22 @@ import org.slf4j.LoggerFactory;
  */
 public final class JsonCnd {
     private static final Logger LOGGER = LoggerFactory.getLogger(JsonCnd.class);
+    public static final NamespaceMapping BUILTIN_MAPPINGS = new NamespaceMapping(
+            new RegistryNamespaceResolver(
+                    new ReadOnlyNamespaceRegistry(
+                            new ImmutableRoot(InitialContent.INITIAL_CONTENT))));
 
-    private JsonCnd() {
-        // no instantiation
-    }
-
+    static final NamePathResolver BUILTIN_RESOLVER = new DefaultNamePathResolver(BUILTIN_MAPPINGS);
     public static final List<String> BUILTIN_NODETYPES = StreamSupport.stream(
             InitialContent.INITIAL_CONTENT
                     .getChildNode(JcrConstants.JCR_SYSTEM)
                     .getChildNode(NodeTypeConstants.JCR_NODE_TYPES)
                     .getChildNodeNames().spliterator(), false)
             .collect(Collectors.toList());
+
+    private JsonCnd() {
+        // no instantiation
+    }
 
     /**
      * Read a serialized JSON CND into a list of qualified node type definitions.
@@ -186,7 +196,7 @@ public final class JsonCnd {
      * @return the aggregated NamespaceMapping object
      */
     public static NamespaceMapping toNamespaceMapping(final List<JcrNs> jcrNsList) {
-        final NamespaceMapping nsMapping = new NamespaceMapping(QName.BUILTIN_MAPPINGS);
+        final NamespaceMapping nsMapping = new NamespaceMapping(BUILTIN_MAPPINGS);
         jcrNsList.forEach(uncheckVoid1(
                 jcrNs -> nsMapping.setMapping(jcrNs.getPrefix(), jcrNs.getUri())));
         return nsMapping;
@@ -352,7 +362,7 @@ public final class JsonCnd {
 
         final NamespaceMapping aggregateMapping = new NamespaceMapping(mapping);
         final Set<Name> builtinTypes = BUILTIN_NODETYPES.stream()
-                .map(uncheck1(QName.BUILTIN_RESOLVER::getQName))
+                .map(uncheck1(BUILTIN_RESOLVER::getQName))
                 .collect(Collectors.toSet());
         final Map<Name, List<QNodeTypeDefinition>> unfilteredTypes = nodeTypeSets.stream().flatMap(
                 compose(compose(NodeTypeSet::getNodeTypes, Map::entrySet), Set::stream))

@@ -2,6 +2,7 @@ package net.adamcin.oakpal.core;
 
 
 import java.io.Serializable;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Optional;
 import java.util.Set;
@@ -381,8 +382,10 @@ public abstract class Result<V> implements Serializable {
         final Collector.Characteristics[]
                 // fifth arg
                 characteristics = collector.characteristics().stream()
-                // remove IDENTITY_FINISH, but pass thru the other characteristics.
-                .filter(charac -> charac != Collector.Characteristics.IDENTITY_FINISH)
+                // remove IDENTITY_FINISH and CONCURRENT, but pass thru the other characteristics.
+                // TODO implement safety for concurrency ?
+                .filter(Fun.inSet(EnumSet.of(Collector.Characteristics.IDENTITY_FINISH,
+                        Collector.Characteristics.CONCURRENT)).negate())
                 .toArray(Collector.Characteristics[]::new);
 
         return Collector.of(supplier, accumulator, combiner, finisher, characteristics);
@@ -390,12 +393,12 @@ public abstract class Result<V> implements Serializable {
 
     public static <V> Collector<Result<V>, Stream.Builder<Result<V>>, Stream<Result<V>>>
     logAndRestream() {
-        return new RestreamLogCollector<>("");
+        return new RestreamLogCollector<>(LOGGER, "");
     }
 
     public static <V> Collector<Result<V>, Stream.Builder<Result<V>>, Stream<Result<V>>>
     logAndRestream(final @NotNull String message) {
-        return new RestreamLogCollector<>(": " + message);
+        return new RestreamLogCollector<>(LOGGER, ": " + message);
     }
 
     static final class RestreamLogCollector<T>
@@ -403,12 +406,12 @@ public abstract class Result<V> implements Serializable {
         final Supplier<Stream.Builder<Result<T>>> supplier;
         final BiConsumer<Stream.Builder<Result<T>>, Result<T>> accum;
 
-        RestreamLogCollector(final @NotNull String collectorMessage) {
-            if (LOGGER.isDebugEnabled()) {
+        RestreamLogCollector(final @NotNull Logger logger, final @NotNull String collectorMessage) {
+            if (logger.isDebugEnabled()) {
                 final Throwable creation = new Throwable();
                 this.supplier = () -> {
-                    LOGGER.debug("result collector (see TRACE for creation stack)" + collectorMessage);
-                    LOGGER.trace("created here", creation);
+                    logger.debug("result collector (see TRACE for creation stack)" + collectorMessage);
+                    logger.trace("created here", creation);
                     return Stream.builder();
                 };
                 this.accum = (builder, element) -> builder.accept(element.teeLogError());
@@ -443,7 +446,7 @@ public abstract class Result<V> implements Serializable {
 
         @Override
         public Set<Characteristics> characteristics() {
-            return EnumSet.of(Characteristics.CONCURRENT);
+            return Collections.emptySet();
         }
     }
 }

@@ -24,7 +24,6 @@ import java.util.Collections;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import net.adamcin.oakpal.core.QName;
 import net.adamcin.oakpal.testing.TestPackageUtil;
 import org.apache.jackrabbit.vault.fs.io.FileArchive;
 import org.apache.jackrabbit.vault.fs.io.ZipArchive;

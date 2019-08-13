@@ -14,22 +14,17 @@
  * limitations under the License.
  */
 
-package net.adamcin.oakpal.core;
+package net.adamcin.oakpal.webster;
 
-import java.util.Objects;
-import javax.jcr.NamespaceException;
-import javax.jcr.NamespaceRegistry;
-
-import org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants;
 import org.apache.jackrabbit.spi.Name;
-import org.apache.jackrabbit.spi.commons.conversion.DefaultNamePathResolver;
-import org.apache.jackrabbit.spi.commons.conversion.NamePathResolver;
 import org.apache.jackrabbit.spi.commons.namespace.NamespaceMapping;
-import org.apache.jackrabbit.spi.commons.namespace.NamespaceResolver;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.jcr.NamespaceException;
+import java.util.Objects;
 
 /**
  * Representation of a Qualified Name.
@@ -40,36 +35,6 @@ public final class QName {
     private final String prefix;
     private final String localName;
     private final String uri;
-
-    public static final String PREFIX_OAK = "oak";
-    public static final String NAMESPACE_OAK = "http://jackrabbit.apache.org/oak/ns/1.0";
-
-    public static final NamespaceMapping BUILTIN_MAPPINGS = new NamespaceMapping();
-    public static final NamePathResolver BUILTIN_RESOLVER = new DefaultNamePathResolver(BUILTIN_MAPPINGS);
-
-    static {
-        try {
-            BUILTIN_MAPPINGS.setMapping(NamespaceRegistry.PREFIX_EMPTY,
-                    NamespaceRegistry.NAMESPACE_EMPTY);
-            BUILTIN_MAPPINGS.setMapping(NamespaceRegistry.PREFIX_JCR,
-                    NamespaceRegistry.NAMESPACE_JCR);
-            BUILTIN_MAPPINGS.setMapping(NamespaceRegistry.PREFIX_NT,
-                    NamespaceRegistry.NAMESPACE_NT);
-            BUILTIN_MAPPINGS.setMapping(NamespaceRegistry.PREFIX_XML,
-                    NamespaceRegistry.NAMESPACE_XML);
-            BUILTIN_MAPPINGS.setMapping(NamespaceRegistry.PREFIX_MIX,
-                    NamespaceRegistry.NAMESPACE_MIX);
-            BUILTIN_MAPPINGS.setMapping(NamespaceConstants.PREFIX_REP,
-                    NamespaceConstants.NAMESPACE_REP);
-            BUILTIN_MAPPINGS.setMapping(NamespaceConstants.PREFIX_SV,
-                    NamespaceConstants.NAMESPACE_SV);
-            BUILTIN_MAPPINGS.setMapping(NamespaceConstants.PREFIX_XMLNS,
-                    NamespaceConstants.NAMESPACE_XMLNS);
-            BUILTIN_MAPPINGS.setMapping(QName.PREFIX_OAK, QName.NAMESPACE_OAK);
-        } catch (NamespaceException e) {
-            e.printStackTrace(System.err);
-        }
-    }
 
     /**
      * Create a new QName.

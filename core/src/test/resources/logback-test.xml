@@ -28,5 +28,7 @@
         <appender-ref ref="STDOUT" />
     </root>
 
+    <logger name="oakpal_special.info" level="info"/>
+    <logger name="oakpal_special.error" level="error"/>
     <logger name="net.adamcin.oakpal.core" level="debug"/>
 </configuration>

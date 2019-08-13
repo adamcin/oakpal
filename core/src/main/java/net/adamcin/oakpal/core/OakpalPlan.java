@@ -5,7 +5,6 @@ import static net.adamcin.oakpal.core.Fun.result1;
 import static net.adamcin.oakpal.core.Fun.uncheck1;
 import static net.adamcin.oakpal.core.JavaxJson.hasNonNull;
 
-import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -15,7 +14,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import javax.json.Json;
-import javax.json.JsonException;
 import javax.json.JsonObject;
 import javax.json.JsonReader;
 
@@ -270,7 +268,7 @@ public final class OakpalPlan implements JavaxJson.ObjectConvertible {
                 mapping = JsonCnd.toNamespaceMapping(jcrNsList);
                 builder.withJcrNamespaces(jcrNsList);
             } else {
-                mapping = QName.BUILTIN_MAPPINGS;
+                mapping = JsonCnd.BUILTIN_MAPPINGS;
             }
             if (hasNonNull(json, KEY_JCR_NODETYPES)) {
                 builder.withJcrNodetypes(JsonCnd.getQTypesFromJson(json.getJsonObject(KEY_JCR_NODETYPES), mapping));

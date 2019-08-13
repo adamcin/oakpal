@@ -64,7 +64,6 @@ import net.adamcin.oakpal.core.Fun;
 import net.adamcin.oakpal.core.JavaxJson;
 import net.adamcin.oakpal.core.JcrNs;
 import net.adamcin.oakpal.core.JsonCnd;
-import net.adamcin.oakpal.core.QName;
 import net.adamcin.oakpal.core.checks.Rule;
 import org.apache.jackrabbit.spi.Name;
 import org.apache.jackrabbit.spi.QNodeTypeDefinition;
@@ -514,7 +513,7 @@ public final class ChecklistExporter {
                         });
         finalPrefixes.addAll(forcedRootPrefixes);
 
-        finalPrefixes.removeAll(QName.BUILTIN_MAPPINGS.getPrefixToURIMapping().keySet());
+        finalPrefixes.removeAll(JsonCnd.BUILTIN_MAPPINGS.getPrefixToURIMapping().keySet());
 
         if (!finalPrefixes.isEmpty()) {
             final List<JcrNs> exportNamespaces = finalPrefixes.stream()

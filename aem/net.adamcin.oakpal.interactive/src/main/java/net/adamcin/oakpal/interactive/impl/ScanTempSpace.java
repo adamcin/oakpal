@@ -14,7 +14,10 @@
  * limitations under the License.
  */
 
-package net.adamcin.oakpal.core;
+package net.adamcin.oakpal.interactive.impl;
+
+import net.adamcin.oakpal.core.Fun;
+import org.apache.jackrabbit.oak.commons.IOUtils;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -24,10 +27,6 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-
-import org.apache.jackrabbit.oak.commons.IOUtils;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * AutoCloseable Handle for a set of temporary package files extracted for a scan.
@@ -43,12 +42,12 @@ public final class ScanTempSpace<R> implements AutoCloseable {
      * Create a temp file space for the provided list of package resources.
      *
      * @param fileResources list of file Resources, each adaptable to {@link InputStream}.
-     * @param opener opener function
-     * @param tmpDir temporary directory file to use
+     * @param opener        opener function
+     * @param tmpDir        temporary directory file to use
      */
-    public ScanTempSpace(final @NotNull List<R> fileResources,
-                         final @NotNull Fun.ThrowingFunction<R, InputStream> opener,
-                         final @Nullable File tmpDir) {
+    public ScanTempSpace(final List<R> fileResources,
+                         final Fun.ThrowingFunction<R, InputStream> opener,
+                         final File tmpDir) {
         this.tmpDir = tmpDir;
         this.fileResources = new ArrayList<>(fileResources);
         this.tmpFiles = new ArrayList<>(fileResources.size());

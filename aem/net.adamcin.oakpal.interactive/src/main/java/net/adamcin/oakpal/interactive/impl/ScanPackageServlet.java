@@ -23,7 +23,6 @@ import net.adamcin.oakpal.core.Locator;
 import net.adamcin.oakpal.core.OakMachine;
 import net.adamcin.oakpal.core.ProgressCheck;
 import net.adamcin.oakpal.core.ReportMapper;
-import net.adamcin.oakpal.core.ScanTempSpace;
 import net.adamcin.oakpal.interactive.ChecklistTracker;
 import org.apache.jackrabbit.vault.packaging.Packaging;
 import org.apache.sling.api.SlingHttpServletRequest;

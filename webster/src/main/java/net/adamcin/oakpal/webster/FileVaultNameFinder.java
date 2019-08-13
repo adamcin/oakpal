@@ -19,7 +19,7 @@ package net.adamcin.oakpal.webster;
 import static javax.jcr.PropertyType.NAME;
 import static javax.jcr.PropertyType.STRING;
 import static javax.jcr.PropertyType.UNDEFINED;
-import static net.adamcin.oakpal.core.QName.BUILTIN_MAPPINGS;
+import static net.adamcin.oakpal.core.JsonCnd.BUILTIN_MAPPINGS;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -39,7 +39,6 @@ import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 
-import net.adamcin.oakpal.core.QName;
 import org.apache.jackrabbit.spi.Name;
 import org.apache.jackrabbit.spi.PrivilegeDefinition;
 import org.apache.jackrabbit.spi.QNodeTypeDefinition;

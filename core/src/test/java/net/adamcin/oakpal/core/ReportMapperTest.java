@@ -20,15 +20,24 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.junit.Assert.assertEquals;
 
+import java.io.File;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.jackrabbit.vault.packaging.PackageId;
+import org.junit.Before;
 import org.junit.Test;
 
 public class ReportMapperTest {
+
+    private final File baseDir = new File("target/test-output/ReportMapperTest");
+
+    @Before
+    public void setUp() throws Exception {
+        baseDir.mkdirs();
+    }
 
     @Test
     public void testReportsToJson() throws Exception {
@@ -55,6 +64,36 @@ public class ReportMapperTest {
         ReportMapper.writeReports(originalReports, () -> writer);
         assertEquals("CheckReports should round trip",
                 new ArrayList<>(originalReports),
-                new ArrayList<>(ReportMapper.readReportsFromStream(() -> new StringReader(writer.toString()))));
+                new ArrayList<>(ReportMapper.readReports(() -> new StringReader(writer.toString()))));
+    }
+
+    @Test
+    public void testWriteThenRead() throws Exception {
+        final File jsonFile = new File(baseDir, "reports.json");
+        final List<CheckReport> originalReports = asList(
+                new SimpleReport("test/first",
+                        singletonList(
+                                new SimpleViolation(Violation.Severity.MINOR,
+                                        "one",
+                                        PackageId.fromString("test:first")))
+                ),
+                new SimpleReport("test/second",
+                        asList(
+                                new SimpleViolation(Violation.Severity.MINOR,
+                                        "one", PackageId.fromString("test:first")),
+                                new SimpleViolation(Violation.Severity.MINOR,
+                                        "two",
+                                        PackageId.fromString("test:first"),
+                                        PackageId.fromString("test:second"))
+                        )
+                )
+        );
+
+        final StringWriter writer = new StringWriter();
+        ReportMapper.writeReportsToFile(originalReports, jsonFile);
+        assertEquals("CheckReports should round trip",
+                new ArrayList<>(originalReports),
+                new ArrayList<>(ReportMapper.readReportsFromFile(jsonFile)));
+
     }
 }

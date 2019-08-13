@@ -61,7 +61,7 @@ public class OakpalPlanTest {
         baseUrl = base.toURI().toURL();
     }
 
-    private NamePathResolver resolver = new DefaultNamePathResolver(QName.BUILTIN_MAPPINGS);
+    private NamePathResolver resolver = new DefaultNamePathResolver(JsonCnd.BUILTIN_MAPPINGS);
     private static final String NS_FOO_PREFIX = "foo";
     private static final String NS_BAR_PREFIX = "bar";
     private static final String NS_FOO_URI = "http://foo.com";

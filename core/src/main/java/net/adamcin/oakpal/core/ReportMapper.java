@@ -16,6 +16,8 @@
 
 package net.adamcin.oakpal.core;
 
+import org.jetbrains.annotations.NotNull;
+
 import static net.adamcin.oakpal.core.JavaxJson.key;
 import static net.adamcin.oakpal.core.JavaxJson.mapArrayOfObjects;
 import static net.adamcin.oakpal.core.JavaxJson.obj;
@@ -55,7 +57,7 @@ public final class ReportMapper {
     public static final String KEY_PACKAGES = "packages";
 
     private ReportMapper() {
-        throw new RuntimeException("No instantiation");
+        /* No instantiation */
     }
 
     /**
@@ -74,7 +76,14 @@ public final class ReportMapper {
         Writer open() throws IOException;
     }
 
-    public static List<CheckReport> readReports(final ReaderSupplier readerSupplier) throws IOException {
+    /**
+     * Opens a reader, reads a json object, closes the reader, and returns a list of reports.
+     *
+     * @param readerSupplier a function supplying a {@link Reader}
+     * @return a list of check reports
+     * @throws IOException for failing to read
+     */
+    public static List<CheckReport> readReports(final @NotNull ReaderSupplier readerSupplier) throws IOException {
         try (Reader reader = readerSupplier.open();
              JsonReader jsonReader = Json.createReader(reader)) {
 
@@ -88,12 +97,20 @@ public final class ReportMapper {
         }
     }
 
-    public static List<CheckReport> readReportsFromFile(final File jsonFile)
+    /**
+     * Read reports from a file and return a list of check reports.
+     *
+     * @param jsonFile a json file
+     * @return a list of check reports
+     * @throws IOException if fails to read a file
+     */
+    public static List<CheckReport> readReportsFromFile(final @NotNull File jsonFile)
             throws IOException {
         return readReports(() -> new InputStreamReader(new FileInputStream(jsonFile), StandardCharsets.UTF_8));
     }
 
-    public static void writeReports(final Collection<CheckReport> reports, final WriterSupplier writerSupplier) throws IOException {
+    public static void writeReports(final @NotNull Collection<CheckReport> reports,
+                                    final @NotNull WriterSupplier writerSupplier) throws IOException {
         JsonWriterFactory writerFactory = Json
                 .createWriterFactory(Collections.singletonMap(JsonGenerator.PRETTY_PRINTING, true));
         try (Writer writer = writerSupplier.open(); JsonWriter jsonWriter = writerFactory.createWriter(writer)) {
@@ -101,13 +118,9 @@ public final class ReportMapper {
         }
     }
 
-    public static void writeReportsToFile(final Collection<CheckReport> reports, final File outputFile) throws IOException {
+    public static void writeReportsToFile(final Collection<CheckReport> reports,
+                                          final @NotNull File outputFile) throws IOException {
         writeReports(reports, () -> new OutputStreamWriter(new FileOutputStream(outputFile), StandardCharsets.UTF_8));
-    }
-
-    @Deprecated
-    public static List<CheckReport> readReportsFromStream(final ReaderSupplier readerSupplier) throws IOException {
-        return readReports(readerSupplier);
     }
 
     static CheckReport reportFromJson(final JsonObject jsonReport) {
@@ -123,33 +136,10 @@ public final class ReportMapper {
      *
      * @param reports the reports to serialize
      * @return a JsonArray of CheckReport json objects
-     * @deprecated 1.2.2 CheckReport and Violation are now JSON serializable
      */
-    @Deprecated
-    public static JsonArray reportsToJson(final Collection<CheckReport> reports) {
+    public static JsonArray reportsToJson(final @NotNull Collection<CheckReport> reports) {
         return reports.stream()
                 .map(CheckReport::toJson)
                 .collect(JsonCollectors.toJsonArray());
     }
-
-    @Deprecated
-    static JsonObject reportToJson(final CheckReport report) {
-        JavaxJson.Obj jsonReport = obj();
-
-        if (!isEmpty(report.getCheckName())) {
-            jsonReport.key(KEY_CHECK_NAME, report.getCheckName());
-        }
-        if (report.getViolations() != null) {
-            jsonReport.key(KEY_VIOLATIONS, report.getViolations().stream()
-                    .map(ReportMapper::violationToJson)
-                    .collect(JsonCollectors.toJsonArray()));
-        }
-
-        return jsonReport.get();
-    }
-
-    static JsonObject violationToJson(final Violation violation) {
-        return violation.toJson();
-    }
-
 }

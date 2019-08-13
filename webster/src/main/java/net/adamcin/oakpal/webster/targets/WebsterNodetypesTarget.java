@@ -27,7 +27,7 @@ import net.adamcin.oakpal.core.checks.Rule;
 import net.adamcin.oakpal.webster.ArchiveAware;
 import net.adamcin.oakpal.webster.CndExporter;
 import net.adamcin.oakpal.webster.FileVaultNameFinder;
-import net.adamcin.oakpal.core.QName;
+import net.adamcin.oakpal.webster.QName;
 import net.adamcin.oakpal.webster.WebsterTarget;
 import org.apache.jackrabbit.vault.fs.io.Archive;
 import org.apache.jackrabbit.vault.util.Constants;

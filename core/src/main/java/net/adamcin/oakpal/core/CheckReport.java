@@ -76,7 +76,7 @@ public interface CheckReport extends JavaxJson.ObjectConvertible {
         }
         if (!this.getViolations().isEmpty()) {
             jsonReport.key(KEY_VIOLATIONS, this.getViolations().stream()
-                    .map(ReportMapper::violationToJson)
+                    .map(Violation::toJson)
                     .collect(JsonCollectors.toJsonArray()));
         }
 

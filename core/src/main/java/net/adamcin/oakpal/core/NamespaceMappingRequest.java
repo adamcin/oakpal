@@ -4,14 +4,18 @@ import static net.adamcin.oakpal.core.Fun.inSet;
 import static net.adamcin.oakpal.core.Fun.result1;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants;
 import org.apache.jackrabbit.spi.Name;
 import org.apache.jackrabbit.spi.commons.namespace.NamespaceMapping;
 import org.jetbrains.annotations.NotNull;
+
+import javax.jcr.NamespaceRegistry;
 
 /**
  * Given all the JCR namespace gymnastics that have to be performed for {@link JsonCnd} and webster, dealing with
@@ -21,8 +25,8 @@ import org.jetbrains.annotations.NotNull;
  * @see JsonCnd#toJcrNsList(NamespaceMapping, NamespaceMappingRequest) for how this type might be used
  */
 public final class NamespaceMappingRequest {
-    private static final Set<String> BUILTIN_PREFIXES = QName.BUILTIN_MAPPINGS.getPrefixToURIMapping().keySet();
-    private static final Set<String> BUILTIN_URIS = QName.BUILTIN_MAPPINGS.getURIToPrefixMapping().keySet();
+    private static final Collection<String> BUILTIN_PREFIXES = NamespaceConstants.RESERVED_PREFIXES;
+    private static final Collection<String> BUILTIN_URIS = NamespaceConstants.RESERVED_URIS;
     private final Set<String> retainPrefixes;
     private final Set<String> retainUris;
 

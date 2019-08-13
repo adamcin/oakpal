@@ -24,6 +24,7 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.URL;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -46,6 +47,8 @@ import javax.script.SimpleScriptContext;
 import org.apache.jackrabbit.vault.fs.config.MetaInf;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.apache.jackrabbit.vault.packaging.PackageProperties;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * The {@link ScriptProgressCheck} uses the {@link Invocable} interface from JSR223 to listen for scan events and
@@ -79,6 +82,7 @@ public final class ScriptProgressCheck implements ProgressCheck {
     public static final String DEFAULT_SCRIPT_ENGINE_EXTENSION = "js";
     public static final String BINDING_SCRIPT_HELPER = "oakpal";
     public static final String BINDING_CHECK_CONFIG = "config";
+    public static final String FILENAME_INLINE_SCRIPT = "_inlineScript_";
     public static final String INVOKE_ON_STARTED_SCAN = "startedScan";
     public static final String INVOKE_ON_IDENTIFY_PACKAGE = "identifyPackage";
     public static final String INVOKE_ON_IDENTIFY_SUBPACKAGE = "identifySubpackage";
@@ -95,7 +99,9 @@ public final class ScriptProgressCheck implements ProgressCheck {
     private final URL scriptUrl;
     private final Set<String> handlerMissCache = new HashSet<>();
 
-    private ScriptProgressCheck(final Invocable script, final ScriptHelper helper, final URL scriptUrl) {
+    ScriptProgressCheck(final @NotNull Invocable script,
+                        final @NotNull ScriptHelper helper,
+                        final @Nullable URL scriptUrl) {
         this.script = script;
         this.helper = helper;
         this.scriptUrl = scriptUrl;
@@ -103,14 +109,14 @@ public final class ScriptProgressCheck implements ProgressCheck {
 
     private String getFilename() {
         if (this.scriptUrl != null) {
-            final int lastSlash = this.scriptUrl.getFile().lastIndexOf("/");
-            if (lastSlash >= 0 && this.scriptUrl.getFile().length() > lastSlash + 1) {
-                return this.scriptUrl.getFile().substring(lastSlash + 1);
+            final int lastSlash = this.scriptUrl.getPath().lastIndexOf("/");
+            if (lastSlash >= 0 && this.scriptUrl.getPath().length() > lastSlash + 1) {
+                return this.scriptUrl.getPath().substring(lastSlash + 1);
             } else {
-                return this.scriptUrl.getFile();
+                return this.scriptUrl.getPath();
             }
         } else {
-            return "_inlineScript_.js";
+            return FILENAME_INLINE_SCRIPT;
         }
     }
 
@@ -134,7 +140,7 @@ public final class ScriptProgressCheck implements ProgressCheck {
      * Script handler callback passed to {@link EventHandlerBody}.
      */
     @FunctionalInterface
-    private interface HandlerHandle {
+    interface HandlerHandle {
         void apply(Object... args) throws NoSuchMethodException, ScriptException;
     }
 
@@ -142,7 +148,7 @@ public final class ScriptProgressCheck implements ProgressCheck {
      * Lambda type for event handler body logic to eliminate boilerplate exception handling.
      */
     @FunctionalInterface
-    private interface EventHandlerBody {
+    interface EventHandlerBody {
         void apply(HandlerHandle handle) throws NoSuchMethodException, ScriptException;
     }
 
@@ -153,7 +159,7 @@ public final class ScriptProgressCheck implements ProgressCheck {
      * @param methodName the name of the handler function to invoke
      * @param body       the ScriptProgressCheck adapter body logic to execute
      */
-    private void guardHandler(final String methodName, final EventHandlerBody body) {
+    void guardHandler(final String methodName, final EventHandlerBody body) {
         if (!handlerMissCache.contains(methodName)) {
             try {
                 body.apply((args) -> this.script.invokeFunction(methodName, args));
@@ -175,14 +181,14 @@ public final class ScriptProgressCheck implements ProgressCheck {
      * @param body       the ScriptProgressCheck adapter body logic to execute
      * @throws RepositoryException if a ScriptException is thrown with a RepositoryException cause
      */
-    private void guardSessionHandler(final String methodName, final EventHandlerBody body) throws RepositoryException {
+    void guardSessionHandler(final String methodName, final EventHandlerBody body) throws RepositoryException {
         if (!handlerMissCache.contains(methodName)) {
             try {
                 body.apply((args) -> this.script.invokeFunction(methodName, args));
             } catch (NoSuchMethodException ignored) {
                 handlerMissCache.add(methodName);
             } catch (ScriptException e) {
-                if (e.getCause() instanceof RepositoryException) {
+                if (Result.failure(e).findCause(RepositoryException.class).isPresent()) {
                     throw new ScriptRepositoryException(e);
                 }
                 throw new RuntimeException(e);
@@ -192,10 +198,8 @@ public final class ScriptProgressCheck implements ProgressCheck {
 
     @Override
     public void startedScan() {
-        guardHandler(INVOKE_ON_STARTED_SCAN, handle -> {
-            helper.collector.clearViolations();
-            handle.apply();
-        });
+        helper.collector.clearViolations();
+        guardHandler(INVOKE_ON_STARTED_SCAN, HandlerHandle::apply);
     }
 
     @Override
@@ -217,8 +221,8 @@ public final class ScriptProgressCheck implements ProgressCheck {
     public void beforeExtract(final PackageId packageId, final Session inspectSession,
                               final PackageProperties packageProperties, final MetaInf metaInf,
                               final List<PackageId> subpackages) throws RepositoryException {
-        guardSessionHandler(INVOKE_ON_BEFORE_EXTRACT, handle -> handle.apply(inspectSession, packageId, packageProperties,
-                metaInf, subpackages.toArray(new PackageId[subpackages.size()])));
+        guardSessionHandler(INVOKE_ON_BEFORE_EXTRACT, handle -> handle.apply(packageId, inspectSession, packageProperties,
+                metaInf, subpackages.toArray(new PackageId[0])));
     }
 
     @Override
@@ -239,7 +243,7 @@ public final class ScriptProgressCheck implements ProgressCheck {
 
     @Override
     public void finishedScan() {
-        guardHandler(INVOKE_ON_FINISHED_SCAN, handle -> handle.apply());
+        guardHandler(INVOKE_ON_FINISHED_SCAN, HandlerHandle::apply);
     }
 
     @Override
@@ -247,6 +251,10 @@ public final class ScriptProgressCheck implements ProgressCheck {
         return this.helper.collector.getReportedViolations();
     }
 
+    /**
+     * ScriptHelper helps scripts to report violations by eliminating the need to import the severity enumerator type.
+     */
+    @SuppressWarnings("WeakerAccess")
     public static class ScriptHelper {
         private final ReportCollector collector = new ReportCollector();
 
@@ -266,14 +274,18 @@ public final class ScriptProgressCheck implements ProgressCheck {
     /**
      * Internal {@link ProgressCheckFactory} impl for script check creation.
      */
-    private static class ScriptProgressCheckFactory implements ProgressCheckFactory {
+    static class ScriptProgressCheckFactory implements ProgressCheckFactory {
 
         private final ScriptEngine engine;
         private final URL scriptUrl;
 
-        private ScriptProgressCheckFactory(final ScriptEngine engine, final URL scriptUrl) {
+        private ScriptProgressCheckFactory(final @NotNull ScriptEngine engine, final @NotNull URL scriptUrl) {
             this.engine = engine;
             this.scriptUrl = scriptUrl;
+        }
+
+        ScriptEngine getEngine() {
+            return engine;
         }
 
         @Override
@@ -288,7 +300,7 @@ public final class ScriptProgressCheck implements ProgressCheck {
                 final ScriptHelper helper = new ScriptHelper();
                 scriptBindings.put(BINDING_SCRIPT_HELPER, helper);
                 engine.setContext(contextWithBindings(scriptBindings));
-                engine.eval(new InputStreamReader(is, Charset.forName("UTF-8")));
+                engine.eval(new InputStreamReader(is, StandardCharsets.UTF_8));
                 return new ScriptProgressCheck((Invocable) engine, helper, scriptUrl);
             }
         }
@@ -305,7 +317,7 @@ public final class ScriptProgressCheck implements ProgressCheck {
         private ScriptEngine engine;
         private final String source;
 
-        private InlineScriptProgressCheckFactory(final ScriptEngine engine, final String source) {
+        private InlineScriptProgressCheckFactory(final @NotNull ScriptEngine engine, final @NotNull String source) {
             this.engine = engine;
             this.source = source;
         }
@@ -326,7 +338,7 @@ public final class ScriptProgressCheck implements ProgressCheck {
         }
     }
 
-    public static ProgressCheckFactory createScriptCheckFactory(final URL scriptUrl) throws Exception {
+    public static ProgressCheckFactory createScriptCheckFactory(final @NotNull URL scriptUrl) throws Exception {
         final int lastPeriod = scriptUrl.getPath().lastIndexOf(".");
         final String ext;
         if (lastPeriod < 0 || lastPeriod + 1 >= scriptUrl.getPath().length()) {
@@ -336,32 +348,61 @@ public final class ScriptProgressCheck implements ProgressCheck {
         }
         ScriptEngine engine = new ScriptEngineManager().getEngineByExtension(ext);
         if (engine == null) {
-            throw new Exception("Failed to find a ScriptEngine for URL extension: " + scriptUrl.toString());
+            throw new UnregisteredScriptEngineNameException(ext,
+                    "Failed to find a ScriptEngine for URL extension: " + scriptUrl.toString());
         }
         return createScriptCheckFactory(engine, scriptUrl);
     }
 
-    public static ProgressCheckFactory createScriptCheckFactory(final String engineName, final URL scriptUrl)
-            throws Exception {
-        ScriptEngine engine = new ScriptEngineManager().getEngineByName(engineName);
+    @SuppressWarnings("WeakerAccess")
+    public static class UnregisteredScriptEngineNameException extends Exception {
+        private final String engineName;
+
+        UnregisteredScriptEngineNameException(final String engineName, final String message) {
+            super(message);
+            this.engineName = engineName;
+        }
+
+        UnregisteredScriptEngineNameException(final String engineName) {
+            super("Failed to load ScriptEngine by name: " + engineName);
+            this.engineName = engineName;
+        }
+
+        @SuppressWarnings("WeakerAccess")
+        public String getEngineName() {
+            return engineName;
+        }
+    }
+
+    @SuppressWarnings("WeakerAccess")
+    public static ProgressCheckFactory createScriptCheckFactory(final @NotNull String engineName,
+                                                                final @NotNull URL scriptUrl)
+            throws UnregisteredScriptEngineNameException {
+        final ScriptEngine engine = new ScriptEngineManager().getEngineByName(engineName);
         if (engine == null) {
-            throw new Exception("Failed to load ScriptEngine by name: " + engineName);
+            throw new UnregisteredScriptEngineNameException(engineName);
         }
         return createScriptCheckFactory(engine, scriptUrl);
     }
 
-    public static ProgressCheckFactory createScriptCheckFactory(final ScriptEngine engine, final URL scriptUrl)
-            throws Exception {
+    @SuppressWarnings("WeakerAccess")
+    public static ProgressCheckFactory createScriptCheckFactory(final @NotNull ScriptEngine engine,
+                                                                final @NotNull URL scriptUrl) {
         return new ScriptProgressCheckFactory(engine, scriptUrl);
     }
 
-    public static ProgressCheckFactory createInlineScriptCheckFactory(final String inlineScript, final String inlineEngine)
-            throws Exception {
+    @SuppressWarnings("WeakerAccess")
+    public static ProgressCheckFactory createInlineScriptCheckFactory(final @NotNull String inlineScript,
+                                                                      final @Nullable String inlineEngine)
+            throws UnregisteredScriptEngineNameException {
         final ScriptEngine engine;
         if (isEmpty(inlineEngine)) {
             engine = new ScriptEngineManager().getEngineByExtension(DEFAULT_SCRIPT_ENGINE_EXTENSION);
         } else {
             engine = new ScriptEngineManager().getEngineByName(inlineEngine);
+        }
+        if (engine == null) {
+            throw new UnregisteredScriptEngineNameException(inlineEngine);
         }
 
         return new InlineScriptProgressCheckFactory(engine, inlineScript);

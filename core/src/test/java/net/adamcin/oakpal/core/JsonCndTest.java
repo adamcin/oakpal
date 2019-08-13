@@ -42,9 +42,7 @@ import javax.json.JsonValue;
 import javax.json.stream.JsonCollectors;
 
 import org.apache.jackrabbit.commons.cnd.Lexer;
-import org.apache.jackrabbit.commons.query.qom.Operator;
 import org.apache.jackrabbit.spi.*;
-import org.apache.jackrabbit.spi.commons.QItemDefinitionImpl;
 import org.apache.jackrabbit.spi.commons.conversion.DefaultNamePathResolver;
 import org.apache.jackrabbit.spi.commons.conversion.NamePathResolver;
 import org.apache.jackrabbit.spi.commons.name.NameFactoryImpl;
@@ -68,7 +66,7 @@ import org.slf4j.LoggerFactory;
 public class JsonCndTest {
     private static final Logger LOGGER = LoggerFactory.getLogger(JsonCndTest.class);
 
-    private NamePathResolver resolver = new DefaultNamePathResolver(QName.BUILTIN_MAPPINGS);
+    private NamePathResolver resolver = new DefaultNamePathResolver(JsonCnd.BUILTIN_MAPPINGS);
     private static final String NS_FOO_PREFIX = "foo";
     private static final String NS_BAR_PREFIX = "bar";
     private static final String NS_FOO_URI = "http://foo.com";
@@ -89,7 +87,7 @@ public class JsonCndTest {
     public void testGetQNodeTypesFromJson() {
         List<QNodeTypeDefinition> nts = JsonCnd.getQTypesFromJson(
                 key("nt:foo", key("attributes", arr("mixin"))).get(),
-                QName.BUILTIN_MAPPINGS);
+                JsonCnd.BUILTIN_MAPPINGS);
 
         assertEquals("size is ", 1, nts.size());
         assertEquals("name is", "foo", nts.get(0).getName().getLocalName());
@@ -101,7 +99,7 @@ public class JsonCndTest {
         assertEquals("empty list to empty object", 0,
                 JsonCnd.toJson(Collections.emptyList(), getMapping()).size());
         JsonObject qJson = key("nt:foo", key("@", arr("mixin"))).get();
-        List<QNodeTypeDefinition> nts = JsonCnd.getQTypesFromJson(qJson, QName.BUILTIN_MAPPINGS);
+        List<QNodeTypeDefinition> nts = JsonCnd.getQTypesFromJson(qJson, JsonCnd.BUILTIN_MAPPINGS);
 
         JsonObject toJson = JsonCnd.toJson(nts, getMapping());
         assertEquals("json meets json", qJson, toJson);

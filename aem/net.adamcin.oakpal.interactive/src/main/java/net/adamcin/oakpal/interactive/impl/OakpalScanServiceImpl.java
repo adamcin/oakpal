@@ -23,7 +23,6 @@ import net.adamcin.oakpal.core.InitStage;
 import net.adamcin.oakpal.core.Locator;
 import net.adamcin.oakpal.core.OakMachine;
 import net.adamcin.oakpal.core.ProgressCheck;
-import net.adamcin.oakpal.core.ScanTempSpace;
 import net.adamcin.oakpal.interactive.ChecklistTracker;
 import net.adamcin.oakpal.interactive.OakpalScanInput;
 import net.adamcin.oakpal.interactive.OakpalScanResult;
