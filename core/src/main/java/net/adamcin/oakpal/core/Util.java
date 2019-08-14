@@ -225,7 +225,7 @@ public final class Util {
     }
 
     /**
-     * Compose a function with {@link Optional::ofNullable} to wrap the output type.
+     * Compose a function with {@code Optional::ofNullable} to wrap the output type.
      *
      * @param inputFunc the input function
      * @param <T>       input type
