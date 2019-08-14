@@ -36,6 +36,10 @@ import java.util.zip.ZipFile;
  * Additionally it support registering them to a JCR repository.
  */
 public final class SlingNodetypesScanner {
+    private SlingNodetypesScanner() {
+        /* no construction */
+    }
+
     public static final String SLING_NODETYPES = "Sling-Nodetypes";
 
     /**

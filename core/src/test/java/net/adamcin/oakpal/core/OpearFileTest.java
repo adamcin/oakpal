@@ -130,6 +130,20 @@ public class OpearFileTest {
     }
 
     @Test
+    public void testFromJar_useCacheDirectory() throws Exception {
+        buildDeepTestJar();
+        final File cacheDir = new File("target/test-output/OpearFileTest/testFromJar_useCacheDirectory/cache");
+        if (cacheDir.exists()) {
+            FileUtils.deleteDirectory(cacheDir);
+        }
+
+        assertTrue("succeed with jar when cache is fresh",
+                OpearFile.fromJar(new JarFile(deepTestTarget), cacheDir).isSuccess());
+        assertTrue("succeed with cache dir when cache is present",
+                OpearFile.fromJar(new JarFile(deepTestTarget), cacheDir).isSuccess());
+    }
+
+    @Test
     public void testCacheJar_fail() throws Exception {
         buildDeepTestJar();
         final File cacheDir = new File("target/test-output/OpearFileTest/testCacheJar_fail/cache");
