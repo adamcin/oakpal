@@ -16,11 +16,9 @@
 
 package net.adamcin.oakpal.core;
 
-import static net.adamcin.oakpal.core.JavaxJson.mapArrayOfObjects;
-import static net.adamcin.oakpal.core.JavaxJson.optArray;
-import static net.adamcin.oakpal.core.ReportMapper.KEY_CHECK_NAME;
-import static net.adamcin.oakpal.core.ReportMapper.KEY_VIOLATIONS;
+import org.jetbrains.annotations.NotNull;
 
+import javax.json.JsonObject;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -28,9 +26,11 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import javax.json.JsonObject;
 
-import org.jetbrains.annotations.NotNull;
+import static net.adamcin.oakpal.core.JavaxJson.mapArrayOfObjects;
+import static net.adamcin.oakpal.core.JavaxJson.optArray;
+import static net.adamcin.oakpal.core.ReportMapper.KEY_CHECK_NAME;
+import static net.adamcin.oakpal.core.ReportMapper.KEY_VIOLATIONS;
 
 /**
  * Simple POJO implementing a {@link CheckReport}, used for deserialization.

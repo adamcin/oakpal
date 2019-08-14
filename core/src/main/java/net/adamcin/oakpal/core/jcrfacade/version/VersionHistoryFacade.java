@@ -16,18 +16,18 @@
 
 package net.adamcin.oakpal.core.jcrfacade.version;
 
+import net.adamcin.oakpal.core.ListenerReadOnlyException;
+import net.adamcin.oakpal.core.jcrfacade.NodeFacade;
+import net.adamcin.oakpal.core.jcrfacade.NodeIteratorFacade;
+import net.adamcin.oakpal.core.jcrfacade.SessionFacade;
+import org.jetbrains.annotations.NotNull;
+
 import javax.jcr.NodeIterator;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.version.Version;
 import javax.jcr.version.VersionHistory;
 import javax.jcr.version.VersionIterator;
-
-import net.adamcin.oakpal.core.ListenerReadOnlyException;
-import net.adamcin.oakpal.core.jcrfacade.NodeFacade;
-import net.adamcin.oakpal.core.jcrfacade.NodeIteratorFacade;
-import net.adamcin.oakpal.core.jcrfacade.SessionFacade;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * Wraps {@link VersionHistory} to prevent writes and to ensure only facades are returned.

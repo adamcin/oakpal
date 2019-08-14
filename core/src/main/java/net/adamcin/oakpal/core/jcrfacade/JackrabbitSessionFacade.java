@@ -16,16 +16,16 @@
 
 package net.adamcin.oakpal.core.jcrfacade;
 
-import javax.jcr.Item;
-import javax.jcr.Node;
-import javax.jcr.Property;
-import javax.jcr.RepositoryException;
-
 import net.adamcin.oakpal.core.jcrfacade.security.user.UserManagerFacade;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.jetbrains.annotations.NotNull;
+
+import javax.jcr.Item;
+import javax.jcr.Node;
+import javax.jcr.Property;
+import javax.jcr.RepositoryException;
 
 /**
  * Wraps a {@link JackrabbitSession} to guards against writes by listeners.

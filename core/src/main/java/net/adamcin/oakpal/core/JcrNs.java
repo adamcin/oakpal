@@ -16,14 +16,14 @@
 
 package net.adamcin.oakpal.core;
 
-import static net.adamcin.oakpal.core.JavaxJson.key;
-
-import java.util.Objects;
-import java.util.Optional;
-import javax.json.JsonObject;
-
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import javax.json.JsonObject;
+import java.util.Objects;
+import java.util.Optional;
+
+import static net.adamcin.oakpal.core.JavaxJson.key;
 
 /**
  * Config DTO for JCR Namespace Prefix to URI Mappings.

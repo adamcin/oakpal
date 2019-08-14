@@ -16,14 +16,14 @@
 
 package net.adamcin.oakpal.core;
 
-import java.net.URL;
-import java.util.Collection;
-import java.util.Optional;
-import javax.jcr.PathNotFoundException;
-
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.jcr.PathNotFoundException;
+import java.net.URL;
+import java.util.Collection;
+import java.util.Optional;
 
 /**
  * Default implementation which reports all exceptions as violations.

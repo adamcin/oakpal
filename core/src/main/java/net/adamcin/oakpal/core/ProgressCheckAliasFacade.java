@@ -16,19 +16,19 @@
 
 package net.adamcin.oakpal.core;
 
-import java.io.File;
-import java.util.Collection;
-import java.util.List;
-import java.util.jar.Manifest;
-import javax.jcr.Node;
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-
 import org.apache.jackrabbit.vault.fs.config.MetaInf;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.apache.jackrabbit.vault.packaging.PackageProperties;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import javax.jcr.Node;
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+import java.io.File;
+import java.util.Collection;
+import java.util.List;
+import java.util.jar.Manifest;
 
 /**
  * Internal facade class which serves to:

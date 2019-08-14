@@ -16,15 +16,15 @@
 
 package net.adamcin.oakpal.core.jcrfacade.query;
 
+import net.adamcin.oakpal.core.jcrfacade.NodeIteratorFacade;
+import net.adamcin.oakpal.core.jcrfacade.SessionFacade;
+import org.jetbrains.annotations.NotNull;
+
 import javax.jcr.NodeIterator;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.query.QueryResult;
 import javax.jcr.query.RowIterator;
-
-import net.adamcin.oakpal.core.jcrfacade.SessionFacade;
-import net.adamcin.oakpal.core.jcrfacade.NodeIteratorFacade;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * Wraps {@link QueryResult} to ensure returned objects are wrapped appropriately.

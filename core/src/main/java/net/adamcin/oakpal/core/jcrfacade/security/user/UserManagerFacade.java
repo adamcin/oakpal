@@ -16,10 +16,6 @@
 
 package net.adamcin.oakpal.core.jcrfacade.security.user;
 
-import java.security.Principal;
-import java.util.Iterator;
-import javax.jcr.RepositoryException;
-
 import net.adamcin.oakpal.core.ListenerReadOnlyException;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.AuthorizableExistsException;
@@ -30,7 +26,10 @@ import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.spi.commons.iterator.Iterators;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+
+import javax.jcr.RepositoryException;
+import java.security.Principal;
+import java.util.Iterator;
 
 /**
  * Wraps {@link UserManager} to prevent authorizable modifications and to wrap retrieved {@link Authorizable},

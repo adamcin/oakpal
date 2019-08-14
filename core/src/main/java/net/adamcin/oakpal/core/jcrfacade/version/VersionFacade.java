@@ -16,17 +16,17 @@
 
 package net.adamcin.oakpal.core.jcrfacade.version;
 
-import java.util.Calendar;
+import net.adamcin.oakpal.core.jcrfacade.NodeFacade;
+import net.adamcin.oakpal.core.jcrfacade.SessionFacade;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.version.Version;
 import javax.jcr.version.VersionHistory;
-
-import net.adamcin.oakpal.core.jcrfacade.NodeFacade;
-import net.adamcin.oakpal.core.jcrfacade.SessionFacade;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import java.util.Calendar;
 
 /**
  * Wraps {@link Version} to prevent writes.

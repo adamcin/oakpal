@@ -16,10 +16,10 @@
 
 package net.adamcin.oakpal.core.jcrfacade;
 
+import org.jetbrains.annotations.NotNull;
+
 import javax.jcr.Session;
 import javax.jcr.Workspace;
-
-import org.jetbrains.annotations.NotNull;
 
 /**
  * Wraps a {@link javax.jcr.Workspace} to guards against writes by listeners.

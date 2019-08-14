@@ -16,15 +16,15 @@
 
 package net.adamcin.oakpal.core.jcrfacade;
 
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-
 import net.adamcin.oakpal.core.ListenerReadOnlyException;
 import net.adamcin.oakpal.core.jcrfacade.security.authorization.PrivilegeManagerFacade;
 import org.apache.jackrabbit.api.JackrabbitWorkspace;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.jetbrains.annotations.NotNull;
 import org.xml.sax.InputSource;
+
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
 
 /**
  * Wraps a {@link JackrabbitWorkspace} to guard against writes by listeners.

@@ -16,13 +16,6 @@
 
 package net.adamcin.oakpal.core.checks;
 
-import static net.adamcin.oakpal.core.JavaxJson.hasNonNull;
-
-import java.util.List;
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-import javax.json.JsonObject;
-
 import net.adamcin.oakpal.core.ProgressCheck;
 import net.adamcin.oakpal.core.ProgressCheckFactory;
 import net.adamcin.oakpal.core.SimpleProgressCheck;
@@ -33,6 +26,13 @@ import org.apache.jackrabbit.vault.fs.api.WorkspaceFilter;
 import org.apache.jackrabbit.vault.fs.config.MetaInf;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.apache.jackrabbit.vault.packaging.PackageProperties;
+
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+import javax.json.JsonObject;
+import java.util.List;
+
+import static net.adamcin.oakpal.core.JavaxJson.hasNonNull;
 
 /**
  * Sanity check for {@link WorkspaceFilter}.

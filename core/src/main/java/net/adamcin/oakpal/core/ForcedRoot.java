@@ -16,19 +16,23 @@
 
 package net.adamcin.oakpal.core;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import javax.json.JsonObject;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Stream;
+
 import static net.adamcin.oakpal.core.Fun.inferTest1;
 import static net.adamcin.oakpal.core.Fun.streamIt;
 import static net.adamcin.oakpal.core.JavaxJson.mapArrayOfStrings;
 import static net.adamcin.oakpal.core.JavaxJson.obj;
 import static net.adamcin.oakpal.core.JavaxJson.optArray;
-
-import java.util.*;
-import java.util.function.Function;
-import java.util.stream.Stream;
-import javax.json.JsonObject;
-
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * Encapsulation of details necessary to force creation of a particular root path.

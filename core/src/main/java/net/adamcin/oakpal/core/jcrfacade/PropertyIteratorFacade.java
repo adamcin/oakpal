@@ -16,11 +16,11 @@
 
 package net.adamcin.oakpal.core.jcrfacade;
 
+import org.jetbrains.annotations.NotNull;
+
 import javax.jcr.Property;
 import javax.jcr.PropertyIterator;
 import javax.jcr.Session;
-
-import org.jetbrains.annotations.NotNull;
 
 /**
  * Wraps {@link PropertyIterator} to wrap iterated {@link Property} with {@link PropertyFacade}.

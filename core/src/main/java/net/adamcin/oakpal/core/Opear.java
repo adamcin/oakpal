@@ -1,8 +1,8 @@
 package net.adamcin.oakpal.core;
 
-import java.net.URL;
-
 import org.jetbrains.annotations.NotNull;
+
+import java.net.URL;
 
 /**
  * OPEAR stands for "OakPal Encapsulated ARchive".

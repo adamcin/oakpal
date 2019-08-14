@@ -16,17 +16,17 @@
 
 package net.adamcin.oakpal.core;
 
+import org.jetbrains.annotations.NotNull;
+
+import javax.json.JsonObject;
+import javax.json.stream.JsonCollectors;
+import java.util.Collection;
+import java.util.stream.Collectors;
+
 import static net.adamcin.oakpal.core.JavaxJson.obj;
 import static net.adamcin.oakpal.core.ReportMapper.KEY_CHECK_NAME;
 import static net.adamcin.oakpal.core.ReportMapper.KEY_VIOLATIONS;
 import static net.adamcin.oakpal.core.Util.isEmpty;
-
-import java.util.Collection;
-import java.util.stream.Collectors;
-import javax.json.JsonObject;
-import javax.json.stream.JsonCollectors;
-
-import org.jetbrains.annotations.NotNull;
 
 /**
  * Type for collected {@link Violation}s from a particlular {@link ProgressCheck}.

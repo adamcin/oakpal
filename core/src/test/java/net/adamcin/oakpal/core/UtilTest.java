@@ -17,6 +17,7 @@
 package net.adamcin.oakpal.core;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
@@ -30,9 +31,12 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 import java.util.jar.JarFile;
 import java.util.jar.JarOutputStream;
 import java.util.jar.Manifest;
@@ -60,6 +64,12 @@ public class UtilTest {
     }
 
     @Test
+    public void testIsEmpty() {
+        assertTrue("empty string is empty", Util.isEmpty(""));
+        assertFalse("empty string is empty", Util.isEmpty("full"));
+    }
+
+    @Test
     public void testGetManifestHeaderValues() throws IOException {
         final Manifest manifest;
         try (FileInputStream inputStream = new FileInputStream(new File("src/test/resources/manifestWithManyHeaders.mf"))) {
@@ -77,6 +87,12 @@ public class UtilTest {
             assertTrue("paths contains /test/two", paths.contains("/test/two"));
             assertTrue("paths contains /test/three", paths.contains("/test/three"));
         }
+    }
+
+    @Test
+    public void testEscapeManifestHeaderValue() {
+        assertEquals("value is escaped", "some value,other value",
+                Util.escapeManifestHeaderValue("some value", "other value"));
     }
 
     @Test
@@ -206,5 +222,31 @@ public class UtilTest {
         } finally {
             Thread.currentThread().setContextClassLoader(old);
         }
+    }
+
+    @Test
+    public void testOptFunc() {
+        final Map<String, Integer> nums = new HashMap<>();
+        final Function<String, Integer> before = nums::get;
+        nums.put("one", 1);
+        nums.put("three", 3);
+        final Function<String, Optional<Integer>> composed = Util.optFunc(before);
+        assertTrue("value for one is present", composed.apply("one").isPresent());
+        assertFalse("value for two is empty", composed.apply("two").isPresent());
+    }
+
+    @Test
+    public void testCompose() {
+        final Map<String, Integer> nums = new HashMap<>();
+        final Function<String, Integer> before = nums::get;
+        nums.put("two", 2);
+        nums.put("three", 3);
+
+        final Function<Integer, Long> after = value -> (long) (value * value);
+        final Function<String, Long> composed = Util.compose(before, after);
+        assertEquals("value for two is a squared long 4",
+                4L, composed.apply("two").longValue());
+        assertEquals("value for three is a squared long 9",
+                9L, composed.apply("three").longValue());
     }
 }

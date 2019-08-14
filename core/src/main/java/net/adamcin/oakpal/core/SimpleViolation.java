@@ -16,21 +16,21 @@
 
 package net.adamcin.oakpal.core;
 
-import static net.adamcin.oakpal.core.JavaxJson.mapArrayOfStrings;
-import static net.adamcin.oakpal.core.JavaxJson.optArray;
-import static net.adamcin.oakpal.core.ReportMapper.KEY_DESCRIPTION;
-import static net.adamcin.oakpal.core.ReportMapper.KEY_PACKAGES;
-import static net.adamcin.oakpal.core.ReportMapper.KEY_SEVERITY;
+import org.apache.jackrabbit.vault.packaging.PackageId;
 
+import javax.json.JsonObject;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import javax.json.JsonObject;
 
-import org.apache.jackrabbit.vault.packaging.PackageId;
+import static net.adamcin.oakpal.core.JavaxJson.mapArrayOfStrings;
+import static net.adamcin.oakpal.core.JavaxJson.optArray;
+import static net.adamcin.oakpal.core.ReportMapper.KEY_DESCRIPTION;
+import static net.adamcin.oakpal.core.ReportMapper.KEY_PACKAGES;
+import static net.adamcin.oakpal.core.ReportMapper.KEY_SEVERITY;
 
 /**
  * Simple implementation of a {@link Violation}.

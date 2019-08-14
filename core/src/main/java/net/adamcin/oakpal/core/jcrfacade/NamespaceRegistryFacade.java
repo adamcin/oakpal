@@ -16,11 +16,11 @@
 
 package net.adamcin.oakpal.core.jcrfacade;
 
-import javax.jcr.NamespaceRegistry;
-import javax.jcr.RepositoryException;
-
 import net.adamcin.oakpal.core.ListenerReadOnlyException;
 import org.jetbrains.annotations.NotNull;
+
+import javax.jcr.NamespaceRegistry;
+import javax.jcr.RepositoryException;
 
 /**
  * Wraps {@link NamespaceRegistry} to block namespace changes.

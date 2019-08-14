@@ -16,18 +16,6 @@
 
 package net.adamcin.oakpal.core.jcrfacade;
 
-import java.io.InputStream;
-import javax.jcr.NamespaceRegistry;
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-import javax.jcr.Workspace;
-import javax.jcr.lock.LockManager;
-import javax.jcr.nodetype.NodeTypeManager;
-import javax.jcr.observation.ObservationManager;
-import javax.jcr.query.QueryManager;
-import javax.jcr.version.Version;
-import javax.jcr.version.VersionManager;
-
 import net.adamcin.oakpal.core.ListenerReadOnlyException;
 import net.adamcin.oakpal.core.jcrfacade.lock.LockManagerFacade;
 import net.adamcin.oakpal.core.jcrfacade.nodetype.NodeTypeManagerFacade;
@@ -38,6 +26,18 @@ import org.apache.jackrabbit.api.JackrabbitWorkspace;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.xml.sax.ContentHandler;
+
+import javax.jcr.NamespaceRegistry;
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+import javax.jcr.Workspace;
+import javax.jcr.lock.LockManager;
+import javax.jcr.nodetype.NodeTypeManager;
+import javax.jcr.observation.ObservationManager;
+import javax.jcr.query.QueryManager;
+import javax.jcr.version.Version;
+import javax.jcr.version.VersionManager;
+import java.io.InputStream;
 
 /**
  * Base class for wrapping a {@link Workspace} to guards against writes by listeners.

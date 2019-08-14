@@ -24,11 +24,18 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Map;
 import java.util.Properties;
 import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
 import java.util.jar.JarOutputStream;
+import java.util.jar.Manifest;
+import java.util.zip.ZipEntry;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.io.filefilter.IOFileFilter;
+import org.apache.commons.io.filefilter.TrueFileFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -128,6 +135,61 @@ public class TestPackageUtil {
                     target.write(buffer, 0, count);
                 }
                 target.closeEntry();
+            }
+        }
+    }
+
+    static final IOFileFilter includedEntry = new IOFileFilter() {
+        @Override
+        public boolean accept(File file) {
+            return !("META-INF".equals(file.getParentFile().getName()) && "MANIFEST.MF".equals(file.getName()));
+        }
+
+        @Override
+        public boolean accept(File dir, String name) {
+            return !("META-INF".equals(dir.getName()) && "MANIFEST.MF".equals(name));
+        }
+    };
+
+
+    public static void buildJarFromDir(final File srcDir, final File targetJar, final Map<String, File> additionalEntries) throws Exception {
+        if (!targetJar.exists()) {
+            try (InputStream manIn = new FileInputStream(new File(srcDir, JarFile.MANIFEST_NAME))) {
+                final Manifest man = new Manifest(manIn);
+                final File targetDir = targetJar.getParentFile();
+                if (!targetDir.isDirectory() && !targetDir.mkdirs()) {
+                    throw new IOException("failed to create parent target directory: " + targetDir.getAbsolutePath());
+                }
+                try (JarOutputStream jos = new JarOutputStream(new FileOutputStream(targetJar), man)) {
+                    final String absPath = srcDir.getAbsolutePath();
+                    for (File file : FileUtils.listFilesAndDirs(srcDir, includedEntry, TrueFileFilter.INSTANCE)) {
+                        final String filePath = file.getAbsolutePath();
+                        final String entryName = filePath.substring(absPath.length())
+                                .replaceFirst("^/?", "")
+                                .replace(File.separator, "/");
+                        if (file.isDirectory()) {
+                            jos.putNextEntry(new ZipEntry(entryName + "/"));
+                        } else {
+                            jos.putNextEntry(new ZipEntry(entryName));
+                            try (FileInputStream fileInput = new FileInputStream(file)) {
+                                IOUtils.copy(fileInput, jos);
+                            }
+                        }
+                        jos.closeEntry();
+                    }
+                    for (Map.Entry<String, File> add : additionalEntries.entrySet()) {
+                        final String entryName = add.getKey();
+                        if (add.getValue().isDirectory()) {
+                            jos.putNextEntry(new ZipEntry(entryName.replaceAll("/?$", "/")));
+                        } else {
+                            jos.putNextEntry(new ZipEntry(entryName));
+                            try (FileInputStream fileInput = new FileInputStream(add.getValue())) {
+                                IOUtils.copy(fileInput, jos);
+                            }
+                        }
+                        jos.closeEntry();
+                    }
+                }
             }
         }
     }

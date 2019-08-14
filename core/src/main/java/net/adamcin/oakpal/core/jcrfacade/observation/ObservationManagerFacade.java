@@ -16,14 +16,14 @@
 
 package net.adamcin.oakpal.core.jcrfacade.observation;
 
+import net.adamcin.oakpal.core.ListenerReadOnlyException;
+import org.jetbrains.annotations.NotNull;
+
 import javax.jcr.RepositoryException;
 import javax.jcr.observation.EventJournal;
 import javax.jcr.observation.EventListener;
 import javax.jcr.observation.EventListenerIterator;
 import javax.jcr.observation.ObservationManager;
-
-import net.adamcin.oakpal.core.ListenerReadOnlyException;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * Wraps the {@link ObservationManager} to prevent changes and calls between listeners.

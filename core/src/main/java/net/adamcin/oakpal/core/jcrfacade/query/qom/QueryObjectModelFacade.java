@@ -16,16 +16,16 @@
 
 package net.adamcin.oakpal.core.jcrfacade.query.qom;
 
+import net.adamcin.oakpal.core.jcrfacade.SessionFacade;
+import net.adamcin.oakpal.core.jcrfacade.query.QueryFacade;
+import org.jetbrains.annotations.NotNull;
+
 import javax.jcr.Session;
 import javax.jcr.query.qom.Column;
 import javax.jcr.query.qom.Constraint;
 import javax.jcr.query.qom.Ordering;
 import javax.jcr.query.qom.QueryObjectModel;
 import javax.jcr.query.qom.Source;
-
-import net.adamcin.oakpal.core.jcrfacade.SessionFacade;
-import net.adamcin.oakpal.core.jcrfacade.query.QueryFacade;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * Extends {@link QueryFacade} to wrap {@link QueryObjectModel}, providing additional methods.

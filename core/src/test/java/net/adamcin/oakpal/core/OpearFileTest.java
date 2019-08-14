@@ -11,17 +11,13 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.jar.JarOutputStream;
 import java.util.jar.Manifest;
-import java.util.zip.ZipEntry;
 
+import net.adamcin.oakpal.testing.TestPackageUtil;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
-import org.apache.commons.io.filefilter.IOFileFilter;
-import org.apache.commons.io.filefilter.TrueFileFilter;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -31,7 +27,6 @@ import org.slf4j.LoggerFactory;
 @RunWith(MockitoJUnitRunner.class)
 public class OpearFileTest {
     private static final Logger LOGGER = LoggerFactory.getLogger(OpearFileTest.class);
-
 
     @Test
     public void testFindDefaultPlanLocation() {
@@ -209,7 +204,7 @@ public class OpearFileTest {
 
         OpearFile opearFile = opearResult.getOrDefault(null);
         assertNotNull("not null", opearFile);
-        final String checklistName = "/OAKPAL-INF/checklists/embedded-checklist.json";
+        final String checklistName = "OAKPAL-INF/checklists/embedded-checklist.json";
         final ClassLoader controlCl = new URLClassLoader(new URL[]{embedModuleTarget.toURI().toURL()}, null);
         assertNotNull("control checklist URL not null", controlCl.getResource(checklistName));
         final ClassLoader classLoader = opearFile.getPlanClassLoader(new URLClassLoader(new URL[0], null));
@@ -233,64 +228,12 @@ public class OpearFileTest {
     final File embedModuleTarget = new File(testTarget, "embedded_module.jar");
 
 
-    final IOFileFilter includedEntry = new IOFileFilter() {
-        @Override
-        public boolean accept(File file) {
-            return !("META-INF".equals(file.getParentFile().getName()) && "MANIFEST.MF".equals(file.getName()));
-        }
-
-        @Override
-        public boolean accept(File dir, String name) {
-            return !("META-INF".equals(dir.getName()) && "MANIFEST.MF".equals(name));
-        }
-    };
-
-    private void buildJarFromDir(final File srcDir, final File targetJar, final Map<String, File> additionalEntries) throws Exception {
-        if (!targetJar.exists()) {
-            try (InputStream manIn = new FileInputStream(new File(srcDir, JarFile.MANIFEST_NAME))) {
-                final Manifest man = new Manifest(manIn);
-                final File targetDir = targetJar.getParentFile();
-                if (!targetDir.isDirectory() && !targetDir.mkdirs()) {
-                    throw new IOException("failed to create parent target directory: " + targetDir.getAbsolutePath());
-                }
-                try (JarOutputStream jos = new JarOutputStream(new FileOutputStream(targetJar), man)) {
-                    final String absPath = srcDir.getAbsolutePath();
-                    for (File file : FileUtils.listFilesAndDirs(srcDir, includedEntry, TrueFileFilter.INSTANCE)) {
-                        final String filePath = file.getAbsolutePath();
-                        final String entryName = filePath.substring(absPath.length()).replace(File.separator, "/");
-                        if (file.isDirectory()) {
-                            jos.putNextEntry(new ZipEntry(entryName + "/"));
-                        } else {
-                            jos.putNextEntry(new ZipEntry(entryName));
-                            try (FileInputStream fileInput = new FileInputStream(file)) {
-                                IOUtils.copy(fileInput, jos);
-                            }
-                        }
-                        jos.closeEntry();
-                    }
-                    for (Map.Entry<String, File> add : additionalEntries.entrySet()) {
-                        final String entryName = add.getKey();
-                        if (add.getValue().isDirectory()) {
-                            jos.putNextEntry(new ZipEntry(entryName.replaceAll("/?$", "/")));
-                        } else {
-                            jos.putNextEntry(new ZipEntry(entryName));
-                            try (FileInputStream fileInput = new FileInputStream(add.getValue())) {
-                                IOUtils.copy(fileInput, jos);
-                            }
-                        }
-                        jos.closeEntry();
-                    }
-                }
-            }
-        }
-    }
-
     private void buildEmbeddedModuleJar() throws Exception {
-        buildJarFromDir(embedModuleSrc, embedModuleTarget, Collections.emptyMap());
+        TestPackageUtil.buildJarFromDir(embedModuleSrc, embedModuleTarget, Collections.emptyMap());
     }
 
     private void buildDeepTestJar() throws Exception {
         buildEmbeddedModuleJar();
-        buildJarFromDir(deepTestSrc, deepTestTarget, Collections.singletonMap(embedModuleTarget.getName(), embedModuleTarget));
+        TestPackageUtil.buildJarFromDir(deepTestSrc, deepTestTarget, Collections.singletonMap(embedModuleTarget.getName(), embedModuleTarget));
     }
 }

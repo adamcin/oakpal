@@ -16,15 +16,14 @@
 
 package net.adamcin.oakpal.core;
 
-import static net.adamcin.oakpal.core.Util.isEmpty;
-
+import javax.json.JsonObject;
+import javax.json.JsonValue;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import javax.json.Json;
-import javax.json.JsonObject;
-import javax.json.JsonValue;
+
+import static net.adamcin.oakpal.core.Util.isEmpty;
 
 /**
  * Unified class path locator for PackageLister classes and scripts.

@@ -16,9 +16,9 @@
 
 package net.adamcin.oakpal.core.jcrfacade.observation;
 
-import java.util.NoSuchElementException;
 import javax.jcr.observation.EventListener;
 import javax.jcr.observation.EventListenerIterator;
+import java.util.NoSuchElementException;
 
 /**
  * Just an empty implementation.

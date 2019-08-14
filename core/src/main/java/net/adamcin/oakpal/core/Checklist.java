@@ -16,13 +16,14 @@
 
 package net.adamcin.oakpal.core;
 
-import static java.util.Optional.ofNullable;
-import static net.adamcin.oakpal.core.JavaxJson.hasNonNull;
-import static net.adamcin.oakpal.core.JavaxJson.obj;
-import static net.adamcin.oakpal.core.JavaxJson.optArray;
-import static net.adamcin.oakpal.core.JavaxJson.optObject;
-import static net.adamcin.oakpal.core.JavaxJson.parseFromArray;
+import org.apache.jackrabbit.spi.QNodeTypeDefinition;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import javax.json.JsonObject;
+import javax.json.JsonValue;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -32,14 +33,13 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.jar.JarFile;
 import java.util.stream.Collectors;
-import javax.json.JsonObject;
-import javax.json.JsonValue;
 
-import org.apache.jackrabbit.spi.QNodeTypeDefinition;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static java.util.Optional.ofNullable;
+import static net.adamcin.oakpal.core.JavaxJson.hasNonNull;
+import static net.adamcin.oakpal.core.JavaxJson.obj;
+import static net.adamcin.oakpal.core.JavaxJson.optArray;
+import static net.adamcin.oakpal.core.JavaxJson.optObject;
+import static net.adamcin.oakpal.core.JavaxJson.parseFromArray;
 
 /**
  * It's a list of checks, along with initStage properties allowing jars to share CNDs, JCR namespaces and privileges,

@@ -16,9 +16,9 @@
 
 package net.adamcin.oakpal.core.jcrfacade;
 
-import javax.jcr.Session;
-
 import org.jetbrains.annotations.NotNull;
+
+import javax.jcr.Session;
 
 /**
  * Wraps a {@link javax.jcr.Session} to guards against writes by listeners.

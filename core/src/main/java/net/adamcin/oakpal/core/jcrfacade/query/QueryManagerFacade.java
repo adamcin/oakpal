@@ -16,17 +16,17 @@
 
 package net.adamcin.oakpal.core.jcrfacade.query;
 
+import net.adamcin.oakpal.core.jcrfacade.NodeFacade;
+import net.adamcin.oakpal.core.jcrfacade.SessionFacade;
+import net.adamcin.oakpal.core.jcrfacade.query.qom.QueryObjectModelFactoryFacade;
+import org.jetbrains.annotations.NotNull;
+
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
 import javax.jcr.query.qom.QueryObjectModelFactory;
-
-import net.adamcin.oakpal.core.jcrfacade.SessionFacade;
-import net.adamcin.oakpal.core.jcrfacade.NodeFacade;
-import net.adamcin.oakpal.core.jcrfacade.query.qom.QueryObjectModelFactoryFacade;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * Wraps {@link QueryManager} to ensure returned items are wrapped with appropriate facades.

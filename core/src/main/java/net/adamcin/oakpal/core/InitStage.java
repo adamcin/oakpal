@@ -16,10 +16,19 @@
 
 package net.adamcin.oakpal.core;
 
-import static net.adamcin.oakpal.core.Fun.onEntry;
-import static net.adamcin.oakpal.core.Fun.uncheckVoid1;
-import static net.adamcin.oakpal.core.OakMachine.NT_UNDECLARED;
+import org.apache.jackrabbit.api.JackrabbitWorkspace;
+import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
+import org.apache.jackrabbit.commons.JcrUtils;
+import org.apache.jackrabbit.spi.QNodeTypeDefinition;
+import org.apache.jackrabbit.spi.commons.nodetype.NodeTypeDefinitionFactory;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
+import javax.jcr.NamespaceRegistry;
+import javax.jcr.Node;
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+import javax.jcr.nodetype.NodeTypeDefinition;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -32,20 +41,10 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import javax.jcr.NamespaceException;
-import javax.jcr.NamespaceRegistry;
-import javax.jcr.Node;
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-import javax.jcr.nodetype.NodeTypeDefinition;
 
-import org.apache.jackrabbit.api.JackrabbitWorkspace;
-import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
-import org.apache.jackrabbit.commons.JcrUtils;
-import org.apache.jackrabbit.spi.QNodeTypeDefinition;
-import org.apache.jackrabbit.spi.commons.nodetype.NodeTypeDefinitionFactory;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import static net.adamcin.oakpal.core.Fun.onEntry;
+import static net.adamcin.oakpal.core.Fun.uncheckVoid1;
+import static net.adamcin.oakpal.core.OakMachine.NT_UNDECLARED;
 
 /**
  * Encapsulation of JCR initialization parameters for multistage inits.

@@ -16,21 +16,18 @@
 
 package net.adamcin.oakpal.core;
 
+import aQute.bnd.annotation.ConsumerType;
+import org.apache.jackrabbit.vault.packaging.PackageId;
+import org.jetbrains.annotations.NotNull;
+
+import javax.json.JsonObject;
+import java.util.Collection;
+import java.util.function.Predicate;
+
 import static net.adamcin.oakpal.core.JavaxJson.obj;
 import static net.adamcin.oakpal.core.ReportMapper.KEY_DESCRIPTION;
 import static net.adamcin.oakpal.core.ReportMapper.KEY_PACKAGES;
 import static net.adamcin.oakpal.core.ReportMapper.KEY_SEVERITY;
-
-import java.util.Collection;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
-import javax.json.JsonObject;
-
-import aQute.bnd.annotation.ConsumerType;
-import org.apache.jackrabbit.vault.packaging.PackageId;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * Report type for validations.
@@ -123,12 +120,9 @@ public interface Violation extends JavaxJson.ObjectConvertible {
      */
     @Override
     default JsonObject toJson() {
-        JavaxJson.Obj json = obj();
-        Optional.ofNullable(this.getSeverity()).ifPresent(json.key(KEY_SEVERITY)::val);
-        Optional.ofNullable(this.getDescription()).ifPresent(json.key(KEY_DESCRIPTION)::val);
-        Optional.ofNullable(this.getPackages())
-                .map(col -> col.stream().map(Objects::toString).collect(Collectors.toList()))
-                .ifPresent(json.key(KEY_PACKAGES)::val);
-        return json.get();
+        return obj()
+                .key(KEY_SEVERITY).opt(this.getSeverity())
+                .key(KEY_DESCRIPTION).opt(this.getDescription())
+                .key(KEY_PACKAGES).opt(this.getPackages()).get();
     }
 }

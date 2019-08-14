@@ -16,15 +16,15 @@
 
 package net.adamcin.oakpal.core.jcrfacade.security.user;
 
-import java.util.Iterator;
-import java.util.Set;
-import javax.jcr.RepositoryException;
-
 import net.adamcin.oakpal.core.ListenerReadOnlyException;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.spi.commons.iterator.Iterators;
 import org.jetbrains.annotations.NotNull;
+
+import javax.jcr.RepositoryException;
+import java.util.Iterator;
+import java.util.Set;
 
 public final class GroupFacade extends AuthorizableFacade<Group> implements Group {
 

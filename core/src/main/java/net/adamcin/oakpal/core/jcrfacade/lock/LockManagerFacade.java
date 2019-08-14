@@ -16,14 +16,14 @@
 
 package net.adamcin.oakpal.core.jcrfacade.lock;
 
+import net.adamcin.oakpal.core.ListenerReadOnlyException;
+import net.adamcin.oakpal.core.jcrfacade.SessionFacade;
+import org.jetbrains.annotations.NotNull;
+
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.lock.Lock;
 import javax.jcr.lock.LockManager;
-
-import net.adamcin.oakpal.core.ListenerReadOnlyException;
-import net.adamcin.oakpal.core.jcrfacade.SessionFacade;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * Wraps a {@link LockManager} to prevent lock modifications and to wrap

@@ -16,6 +16,9 @@
 
 package net.adamcin.oakpal.core.jcrfacade.nodetype;
 
+import net.adamcin.oakpal.core.ListenerReadOnlyException;
+import org.jetbrains.annotations.NotNull;
+
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.NodeDefinitionTemplate;
 import javax.jcr.nodetype.NodeType;
@@ -24,9 +27,6 @@ import javax.jcr.nodetype.NodeTypeIterator;
 import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.nodetype.NodeTypeTemplate;
 import javax.jcr.nodetype.PropertyDefinitionTemplate;
-
-import net.adamcin.oakpal.core.ListenerReadOnlyException;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * Wraps {@link NodeTypeManager} to block node type registration.

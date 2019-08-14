@@ -16,13 +16,13 @@
 
 package net.adamcin.oakpal.core.jcrfacade;
 
+import org.jetbrains.annotations.NotNull;
+
 import javax.jcr.ItemVisitor;
 import javax.jcr.Node;
 import javax.jcr.Property;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-
-import org.jetbrains.annotations.NotNull;
 
 /**
  * Wraps an {@link ItemVisitor} to wrap {@link Node} and {@link Property} instances.

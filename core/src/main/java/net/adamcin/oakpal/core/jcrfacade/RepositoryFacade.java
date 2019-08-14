@@ -16,15 +16,13 @@
 
 package net.adamcin.oakpal.core.jcrfacade;
 
+import org.jetbrains.annotations.Nullable;
+
 import javax.jcr.Credentials;
 import javax.jcr.LoginException;
-import javax.jcr.NoSuchWorkspaceException;
 import javax.jcr.Repository;
-import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.Value;
-
-import org.jetbrains.annotations.Nullable;
 
 /**
  * Wraps a {@link Repository} to prevent login.

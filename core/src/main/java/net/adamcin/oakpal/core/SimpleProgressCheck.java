@@ -16,9 +16,9 @@
 
 package net.adamcin.oakpal.core;
 
-import java.util.Collection;
-
 import org.apache.jackrabbit.vault.packaging.PackageId;
+
+import java.util.Collection;
 
 /**
  * Simple implementation of a {@link ProgressCheck} with convenient methods for reporting and collecting violations.

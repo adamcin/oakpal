@@ -16,15 +16,15 @@
 
 package net.adamcin.oakpal.core.checks;
 
+import net.adamcin.oakpal.core.JavaxJson;
+
+import javax.json.JsonArray;
+import javax.json.JsonObject;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.regex.Pattern;
-import javax.json.JsonArray;
-import javax.json.JsonObject;
-
-import net.adamcin.oakpal.core.JavaxJson;
 
 /**
  * Standard Rule tuple capturing a rule type (include/exclude or allow/deny) and a regex pattern.

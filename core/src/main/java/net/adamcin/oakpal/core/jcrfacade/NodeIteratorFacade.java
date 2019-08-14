@@ -16,11 +16,11 @@
 
 package net.adamcin.oakpal.core.jcrfacade;
 
+import org.jetbrains.annotations.NotNull;
+
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
 import javax.jcr.Session;
-
-import org.jetbrains.annotations.NotNull;
 
 /**
  * Wraps {@link NodeIterator} to return {@link NodeFacade}-wrapped nodes.

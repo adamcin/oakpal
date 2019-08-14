@@ -16,45 +16,13 @@
 
 package net.adamcin.oakpal.core.jcrfacade.query.qom;
 
+import net.adamcin.oakpal.core.jcrfacade.SessionFacade;
+import org.jetbrains.annotations.NotNull;
+
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.Value;
-import javax.jcr.query.qom.And;
-import javax.jcr.query.qom.BindVariableValue;
-import javax.jcr.query.qom.ChildNode;
-import javax.jcr.query.qom.ChildNodeJoinCondition;
-import javax.jcr.query.qom.Column;
-import javax.jcr.query.qom.Comparison;
-import javax.jcr.query.qom.Constraint;
-import javax.jcr.query.qom.DescendantNode;
-import javax.jcr.query.qom.DescendantNodeJoinCondition;
-import javax.jcr.query.qom.DynamicOperand;
-import javax.jcr.query.qom.EquiJoinCondition;
-import javax.jcr.query.qom.FullTextSearch;
-import javax.jcr.query.qom.FullTextSearchScore;
-import javax.jcr.query.qom.Join;
-import javax.jcr.query.qom.JoinCondition;
-import javax.jcr.query.qom.Length;
-import javax.jcr.query.qom.Literal;
-import javax.jcr.query.qom.LowerCase;
-import javax.jcr.query.qom.NodeLocalName;
-import javax.jcr.query.qom.NodeName;
-import javax.jcr.query.qom.Not;
-import javax.jcr.query.qom.Or;
-import javax.jcr.query.qom.Ordering;
-import javax.jcr.query.qom.PropertyExistence;
-import javax.jcr.query.qom.PropertyValue;
-import javax.jcr.query.qom.QueryObjectModel;
-import javax.jcr.query.qom.QueryObjectModelFactory;
-import javax.jcr.query.qom.SameNode;
-import javax.jcr.query.qom.SameNodeJoinCondition;
-import javax.jcr.query.qom.Selector;
-import javax.jcr.query.qom.Source;
-import javax.jcr.query.qom.StaticOperand;
-import javax.jcr.query.qom.UpperCase;
-
-import net.adamcin.oakpal.core.jcrfacade.SessionFacade;
-import org.jetbrains.annotations.NotNull;
+import javax.jcr.query.qom.*;
 
 /**
  * Wraps {@link QueryObjectModelFactory} to ensure that {@link QueryObjectModel} instances are wrapped with

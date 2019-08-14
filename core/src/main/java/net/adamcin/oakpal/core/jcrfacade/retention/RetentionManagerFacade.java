@@ -16,13 +16,13 @@
 
 package net.adamcin.oakpal.core.jcrfacade.retention;
 
+import net.adamcin.oakpal.core.ListenerReadOnlyException;
+import org.jetbrains.annotations.NotNull;
+
 import javax.jcr.RepositoryException;
 import javax.jcr.retention.Hold;
 import javax.jcr.retention.RetentionManager;
 import javax.jcr.retention.RetentionPolicy;
-
-import net.adamcin.oakpal.core.ListenerReadOnlyException;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * Wraps {@link RetentionManager} to prevent writes by handlers.

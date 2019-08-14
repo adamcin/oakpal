@@ -16,11 +16,6 @@
 
 package net.adamcin.oakpal.core.jcrfacade.security.user;
 
-import java.security.Principal;
-import java.util.Iterator;
-import javax.jcr.RepositoryException;
-import javax.jcr.Value;
-
 import net.adamcin.oakpal.core.ListenerReadOnlyException;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -28,6 +23,11 @@ import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.spi.commons.iterator.Iterators;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import javax.jcr.RepositoryException;
+import javax.jcr.Value;
+import java.security.Principal;
+import java.util.Iterator;
 
 public class AuthorizableFacade<A extends Authorizable> implements Authorizable {
 

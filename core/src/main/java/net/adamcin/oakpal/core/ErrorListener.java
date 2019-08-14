@@ -16,9 +16,9 @@
 
 package net.adamcin.oakpal.core;
 
-import java.net.URL;
-
 import org.apache.jackrabbit.vault.packaging.PackageId;
+
+import java.net.URL;
 
 /**
  * A single error handler is used during an OakPAL scan.

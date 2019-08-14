@@ -16,13 +16,13 @@
 
 package net.adamcin.oakpal.core;
 
-import static net.adamcin.oakpal.core.Fun.uncheck1;
-
+import javax.jcr.Node;
 import java.io.File;
 import java.net.URL;
 import java.util.Optional;
 import java.util.stream.Stream;
-import javax.jcr.Node;
+
+import static net.adamcin.oakpal.core.Fun.uncheck1;
 
 /**
  * Represents an error that causes a package scan to abort without notifying the {@link ErrorListener}.

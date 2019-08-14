@@ -16,17 +16,15 @@
 
 package net.adamcin.oakpal.core.jcrfacade.security;
 
-import java.security.Principal;
-import java.util.Set;
-import javax.jcr.RepositoryException;
-import javax.jcr.security.AccessControlPolicy;
-import javax.jcr.security.AccessControlPolicyIterator;
-import javax.jcr.security.Privilege;
-
-import net.adamcin.oakpal.core.ListenerReadOnlyException;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
 import org.jetbrains.annotations.NotNull;
+
+import javax.jcr.RepositoryException;
+import javax.jcr.security.AccessControlPolicy;
+import javax.jcr.security.Privilege;
+import java.security.Principal;
+import java.util.Set;
 
 /**
  * Wraps {@link JackrabbitAccessControlManager} to prevent writes by handlers.

@@ -16,12 +16,12 @@
 
 package net.adamcin.oakpal.core.jcrfacade;
 
-import java.util.Iterator;
+import org.jetbrains.annotations.NotNull;
+
 import javax.jcr.NodeIterator;
 import javax.jcr.PropertyIterator;
 import javax.jcr.RangeIterator;
-
-import org.jetbrains.annotations.NotNull;
+import java.util.Iterator;
 
 /**
  * Base class for wrapping subtypes of {@link RangeIterator}.

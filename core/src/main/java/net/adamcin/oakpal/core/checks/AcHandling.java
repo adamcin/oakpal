@@ -16,6 +16,22 @@
 
 package net.adamcin.oakpal.core.checks;
 
+import net.adamcin.oakpal.core.ProgressCheck;
+import net.adamcin.oakpal.core.ProgressCheckFactory;
+import net.adamcin.oakpal.core.SimpleProgressCheck;
+import net.adamcin.oakpal.core.Violation;
+import org.apache.jackrabbit.vault.fs.config.MetaInf;
+import org.apache.jackrabbit.vault.fs.io.AccessControlHandling;
+import org.apache.jackrabbit.vault.packaging.PackageId;
+import org.apache.jackrabbit.vault.packaging.PackageProperties;
+
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+import javax.json.JsonObject;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
 import static java.util.Optional.ofNullable;
 import static net.adamcin.oakpal.core.Fun.compose;
 import static net.adamcin.oakpal.core.JavaxJson.arrayOrEmpty;
@@ -25,22 +41,6 @@ import static org.apache.jackrabbit.vault.fs.io.AccessControlHandling.IGNORE;
 import static org.apache.jackrabbit.vault.fs.io.AccessControlHandling.MERGE;
 import static org.apache.jackrabbit.vault.fs.io.AccessControlHandling.MERGE_PRESERVE;
 import static org.apache.jackrabbit.vault.fs.io.AccessControlHandling.OVERWRITE;
-
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-import javax.json.JsonObject;
-
-import net.adamcin.oakpal.core.ProgressCheck;
-import net.adamcin.oakpal.core.ProgressCheckFactory;
-import net.adamcin.oakpal.core.SimpleProgressCheck;
-import net.adamcin.oakpal.core.Violation;
-import org.apache.jackrabbit.vault.fs.config.MetaInf;
-import org.apache.jackrabbit.vault.fs.io.AccessControlHandling;
-import org.apache.jackrabbit.vault.packaging.PackageId;
-import org.apache.jackrabbit.vault.packaging.PackageProperties;
 
 /**
  * Limit package {@code acHandling} mode to prevent unforeseen changes to ACLs upon installation.

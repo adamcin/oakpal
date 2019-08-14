@@ -16,9 +16,13 @@
 
 package net.adamcin.oakpal.core.jcrfacade;
 
-import java.io.InputStream;
-import java.math.BigDecimal;
-import java.util.Calendar;
+import net.adamcin.oakpal.core.ListenerReadOnlyException;
+import net.adamcin.oakpal.core.jcrfacade.lock.LockFacade;
+import net.adamcin.oakpal.core.jcrfacade.version.VersionFacade;
+import net.adamcin.oakpal.core.jcrfacade.version.VersionHistoryFacade;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 import javax.jcr.Binary;
 import javax.jcr.Item;
 import javax.jcr.Node;
@@ -33,13 +37,9 @@ import javax.jcr.nodetype.NodeDefinition;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.version.Version;
 import javax.jcr.version.VersionHistory;
-
-import net.adamcin.oakpal.core.ListenerReadOnlyException;
-import net.adamcin.oakpal.core.jcrfacade.lock.LockFacade;
-import net.adamcin.oakpal.core.jcrfacade.version.VersionFacade;
-import net.adamcin.oakpal.core.jcrfacade.version.VersionHistoryFacade;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import java.io.InputStream;
+import java.math.BigDecimal;
+import java.util.Calendar;
 
 /**
  * Wraps {@link Node} to prevent writes.

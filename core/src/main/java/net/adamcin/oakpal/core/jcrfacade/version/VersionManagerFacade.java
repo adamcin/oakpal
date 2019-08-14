@@ -16,6 +16,11 @@
 
 package net.adamcin.oakpal.core.jcrfacade.version;
 
+import net.adamcin.oakpal.core.ListenerReadOnlyException;
+import net.adamcin.oakpal.core.jcrfacade.NodeFacade;
+import net.adamcin.oakpal.core.jcrfacade.SessionFacade;
+import org.jetbrains.annotations.NotNull;
+
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
 import javax.jcr.RepositoryException;
@@ -23,11 +28,6 @@ import javax.jcr.Session;
 import javax.jcr.version.Version;
 import javax.jcr.version.VersionHistory;
 import javax.jcr.version.VersionManager;
-
-import net.adamcin.oakpal.core.ListenerReadOnlyException;
-import net.adamcin.oakpal.core.jcrfacade.NodeFacade;
-import net.adamcin.oakpal.core.jcrfacade.SessionFacade;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * Wraps {@link VersionManager} to prevent version history modification and to wrap retrieved {@link Version} and

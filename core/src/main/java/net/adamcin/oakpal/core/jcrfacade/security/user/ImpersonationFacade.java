@@ -16,14 +16,14 @@
 
 package net.adamcin.oakpal.core.jcrfacade.security.user;
 
-import java.security.Principal;
-import javax.jcr.RepositoryException;
-import javax.security.auth.Subject;
-
 import net.adamcin.oakpal.core.ListenerReadOnlyException;
 import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
 import org.apache.jackrabbit.api.security.user.Impersonation;
 import org.jetbrains.annotations.NotNull;
+
+import javax.jcr.RepositoryException;
+import javax.security.auth.Subject;
+import java.security.Principal;
 
 public final class ImpersonationFacade implements Impersonation {
     private final @NotNull Impersonation delegate;

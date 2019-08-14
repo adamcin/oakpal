@@ -16,15 +16,15 @@
 
 package net.adamcin.oakpal.core.jcrfacade.lock;
 
+import net.adamcin.oakpal.core.ListenerReadOnlyException;
+import net.adamcin.oakpal.core.jcrfacade.NodeFacade;
+import net.adamcin.oakpal.core.jcrfacade.SessionFacade;
+import org.jetbrains.annotations.NotNull;
+
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.lock.Lock;
-
-import net.adamcin.oakpal.core.ListenerReadOnlyException;
-import net.adamcin.oakpal.core.jcrfacade.SessionFacade;
-import net.adamcin.oakpal.core.jcrfacade.NodeFacade;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * Wraps a {@link Lock} to block the associated {@link Node}.

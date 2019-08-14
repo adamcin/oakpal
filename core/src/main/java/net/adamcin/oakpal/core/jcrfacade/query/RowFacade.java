@@ -16,15 +16,15 @@
 
 package net.adamcin.oakpal.core.jcrfacade.query;
 
+import net.adamcin.oakpal.core.jcrfacade.NodeFacade;
+import net.adamcin.oakpal.core.jcrfacade.SessionFacade;
+import org.jetbrains.annotations.NotNull;
+
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.Value;
 import javax.jcr.query.Row;
-
-import net.adamcin.oakpal.core.jcrfacade.SessionFacade;
-import net.adamcin.oakpal.core.jcrfacade.NodeFacade;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * Wraps {@link Row} to ensure returned nodes are wrapped appropriately.

@@ -16,21 +16,21 @@
 
 package net.adamcin.oakpal.core.checks;
 
+import net.adamcin.oakpal.core.ProgressCheck;
+import net.adamcin.oakpal.core.Violation;
+import org.apache.jackrabbit.vault.fs.config.MetaInf;
+import org.apache.jackrabbit.vault.packaging.PackageId;
+import org.apache.jackrabbit.vault.packaging.PackageProperties;
+
+import javax.jcr.Node;
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
 import java.io.File;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.jar.Manifest;
-import javax.jcr.Node;
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-
-import net.adamcin.oakpal.core.ProgressCheck;
-import net.adamcin.oakpal.core.Violation;
-import org.apache.jackrabbit.vault.fs.config.MetaInf;
-import org.apache.jackrabbit.vault.packaging.PackageId;
-import org.apache.jackrabbit.vault.packaging.PackageProperties;
 
 /**
  * Simple verbose package check that logs all scan events to standard out. Extend to override methods.

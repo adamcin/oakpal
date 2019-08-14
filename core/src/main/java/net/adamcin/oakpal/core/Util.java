@@ -16,6 +16,15 @@
 
 package net.adamcin.oakpal.core;
 
+import aQute.bnd.header.Attrs;
+import aQute.bnd.header.Parameters;
+import aQute.bnd.osgi.Domain;
+import net.adamcin.oakpal.core.jcrfacade.SessionFacade;
+import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.jcr.Session;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -23,8 +32,6 @@ import java.io.InputStream;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.Enumeration;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -38,15 +45,6 @@ import java.util.jar.JarFile;
 import java.util.jar.Manifest;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import javax.jcr.Session;
-
-import aQute.bnd.header.Attrs;
-import aQute.bnd.header.Parameters;
-import aQute.bnd.osgi.Domain;
-import net.adamcin.oakpal.core.jcrfacade.SessionFacade;
-import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public final class Util {
     private static final Logger LOGGER = LoggerFactory.getLogger(Util.class);
@@ -226,11 +224,31 @@ public final class Util {
     public interface TryFunction<T, R> extends Fun.ThrowingFunction<T, R> {
     }
 
+    /**
+     * Compose a function with {@link Optional::ofNullable} to wrap the output type.
+     *
+     * @param inputFunc the input function
+     * @param <T>       input type
+     * @param <R>       input function return type
+     * @return a function returning an optional of the input function return type
+     * @deprecated 1.3.0 use {@code Fun.compose(Optional::ofNullable, inputFunc)}
+     */
     @Deprecated
     public static <T, R> Function<T, Optional<R>> optFunc(final Function<T, R> inputFunc) {
         return ((Function<R, Optional<R>>) Optional::ofNullable).compose(inputFunc);
     }
 
+    /**
+     * Compose two functions, left-to-right.
+     *
+     * @param before the left function
+     * @param after  the right function
+     * @param <T>    the input type
+     * @param <I>    the intermediate type
+     * @param <R>    the output type
+     * @return a composed function from {@code T} to {@code R}
+     * @deprecated 1.3.0 use {@link Fun#compose(Function, Function)} instead
+     */
     @Deprecated
     public static <T, I, R> Function<T, R> compose(final Function<T, I> before, final Function<I, R> after) {
         return after.compose(before);

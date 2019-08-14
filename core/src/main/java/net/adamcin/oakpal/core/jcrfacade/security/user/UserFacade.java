@@ -16,13 +16,13 @@
 
 package net.adamcin.oakpal.core.jcrfacade.security.user;
 
-import javax.jcr.Credentials;
-import javax.jcr.RepositoryException;
-
 import net.adamcin.oakpal.core.ListenerReadOnlyException;
 import org.apache.jackrabbit.api.security.user.Impersonation;
 import org.apache.jackrabbit.api.security.user.User;
 import org.jetbrains.annotations.NotNull;
+
+import javax.jcr.Credentials;
+import javax.jcr.RepositoryException;
 
 public final class UserFacade extends AuthorizableFacade<User> implements User {
 

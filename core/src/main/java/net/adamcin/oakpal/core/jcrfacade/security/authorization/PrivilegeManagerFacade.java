@@ -16,12 +16,12 @@
 
 package net.adamcin.oakpal.core.jcrfacade.security.authorization;
 
-import javax.jcr.RepositoryException;
-import javax.jcr.security.Privilege;
-
 import net.adamcin.oakpal.core.ListenerReadOnlyException;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.jetbrains.annotations.NotNull;
+
+import javax.jcr.RepositoryException;
+import javax.jcr.security.Privilege;
 
 /**
  * Wraps {@link PrivilegeManager} to prevent writes by handlers.

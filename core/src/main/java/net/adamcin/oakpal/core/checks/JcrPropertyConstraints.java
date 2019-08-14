@@ -16,15 +16,10 @@
 
 package net.adamcin.oakpal.core.checks;
 
-import static net.adamcin.oakpal.core.JavaxJson.arrayOrEmpty;
-import static net.adamcin.oakpal.core.JavaxJson.hasNonNull;
-import static net.adamcin.oakpal.core.JavaxJson.mapArrayOfObjects;
+import net.adamcin.oakpal.core.SimpleViolation;
+import net.adamcin.oakpal.core.Violation;
+import org.apache.jackrabbit.vault.packaging.PackageId;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import javax.jcr.Node;
 import javax.jcr.Property;
 import javax.jcr.PropertyType;
@@ -33,11 +28,15 @@ import javax.jcr.Value;
 import javax.jcr.nodetype.NodeTypeDefinition;
 import javax.json.JsonArray;
 import javax.json.JsonObject;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-import net.adamcin.oakpal.core.SimpleViolation;
-import net.adamcin.oakpal.core.Util;
-import net.adamcin.oakpal.core.Violation;
-import org.apache.jackrabbit.vault.packaging.PackageId;
+import static net.adamcin.oakpal.core.JavaxJson.arrayOrEmpty;
+import static net.adamcin.oakpal.core.JavaxJson.hasNonNull;
+import static net.adamcin.oakpal.core.JavaxJson.mapArrayOfObjects;
 
 /**
  * Encapsulation of constraints on a JCR property for the {@link JcrProperties} check.
