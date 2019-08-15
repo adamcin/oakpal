@@ -63,7 +63,6 @@
         <module>webster</module>
         <module>maven</module>
         <module>testing</module>
-        <module>aem</module>
     </modules>
 
     <properties>
@@ -374,6 +373,11 @@
                                 <goals>
                                     <goal>prepare-agent-integration</goal>
                                 </goals>
+                                <configuration>
+                                    <excludes>
+                                        <exclude>*</exclude>
+                                    </excludes>
+                                </configuration>
                             </execution>
                             <execution>
                                 <id>its-report</id>
