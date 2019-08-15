@@ -112,7 +112,7 @@ public final class ReportMapper {
         JsonWriterFactory writerFactory = Json
                 .createWriterFactory(Collections.singletonMap(JsonGenerator.PRETTY_PRINTING, true));
         try (Writer writer = writerSupplier.open(); JsonWriter jsonWriter = writerFactory.createWriter(writer)) {
-            jsonWriter.writeObject(key(KEY_REPORTS, reportsToJson(reports)).get());
+            jsonWriter.writeObject(reportsToJsonObject(reports));
         }
     }
 
@@ -139,5 +139,15 @@ public final class ReportMapper {
         return reports.stream()
                 .map(CheckReport::toJson)
                 .collect(JsonCollectors.toJsonArray());
+    }
+
+    /**
+     * Transforms a collection of CheckReports to a JsonArray assigned to a key {@link #KEY_REPORTS} in an outer object.
+     *
+     * @param reports the reports to serialize
+     * @return a JsonObject with a JsonArray of CheckReport json objects
+     */
+    public static JsonObject reportsToJsonObject(final @NotNull Collection<CheckReport> reports) {
+        return key(KEY_REPORTS, reportsToJson(reports)).get();
     }
 }

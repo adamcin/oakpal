@@ -9,11 +9,12 @@ import javax.json.JsonObject;
 import net.adamcin.oakpal.core.CheckReport;
 import net.adamcin.oakpal.core.Violation;
 import org.apache.jackrabbit.vault.packaging.PackageId;
+import org.jetbrains.annotations.NotNull;
 
-public class ReportMessage implements StructuredMessage {
+class ReportMessage implements StructuredMessage {
     private final CheckReport report;
 
-    public ReportMessage(final CheckReport report) {
+    ReportMessage(final @NotNull CheckReport report) {
         this.report = report;
     }
 

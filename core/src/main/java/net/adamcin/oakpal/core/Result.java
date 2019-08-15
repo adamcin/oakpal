@@ -73,7 +73,7 @@ public abstract class Result<V> implements Serializable {
         return stream().findFirst();
     }
 
-    /**
+   /**
      * All Failures will be created with a top-level RuntimeException. This method returns it if this result is a
      * failure. Otherwise, Optional.empty() is returned for a success.
      *
@@ -198,6 +198,7 @@ public abstract class Result<V> implements Serializable {
             logSupression();
             return Stream.empty();
         }
+
 
         @Override
         public Optional<RuntimeException> getError() {

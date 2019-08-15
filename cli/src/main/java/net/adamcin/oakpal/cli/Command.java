@@ -2,11 +2,12 @@ package net.adamcin.oakpal.cli;
 
 import static net.adamcin.oakpal.core.Fun.compose;
 import static net.adamcin.oakpal.core.Fun.inferTest1;
+import static net.adamcin.oakpal.core.Fun.result0;
 import static net.adamcin.oakpal.core.Fun.result1;
+import static net.adamcin.oakpal.core.Fun.uncheck0;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URL;
@@ -18,7 +19,6 @@ import java.util.Optional;
 import java.util.Properties;
 import java.util.function.Function;
 
-import net.adamcin.oakpal.core.AbortedScanException;
 import net.adamcin.oakpal.core.CheckReport;
 import net.adamcin.oakpal.core.DefaultErrorListener;
 import net.adamcin.oakpal.core.Nothing;
@@ -33,17 +33,17 @@ import org.slf4j.LoggerFactory;
 final class Command {
     private static final Logger LOGGER = LoggerFactory.getLogger(Command.class);
     private static final String NO_OPT_PREFIX = "--no-";
-    private static final Integer EXIT_GENERAL_ERROR = 1;
-    private static final Integer EXIT_ABORTED_SCAN = 9;
-    private static final Integer EXIT_SEVERE_VIOLATION = 10;
-    private static final Integer EXIT_MAJOR_VIOLATION = 11;
-    private static final Integer EXIT_MINOR_VIOLATION = 12;
     private static final String VERSION_PROPERTIES_NAME = "version.properties";
     private static final String COMMAND_HELP_TXT = "help.txt";
+    static final Integer EXIT_GENERAL_ERROR = 1;
+    static final Integer EXIT_ABORTED_SCAN = 9;
+    static final Integer EXIT_SEVERE_VIOLATION = 10;
+    static final Integer EXIT_MAJOR_VIOLATION = 11;
+    static final Integer EXIT_MINOR_VIOLATION = 12;
 
     IO<Integer> perform(final @NotNull Console console, final @NotNull String[] args) {
         final Result<Options> optsResult = parseArgs(console, args);
-        if (optsResult.getError().isPresent()) {
+        if (optsResult.isFailure()) {
             return console.printLineErr(optsResult.getError().get().getMessage())
                     .add(printHelp(console::printLineErr))
                     .add(IO.unit(EXIT_GENERAL_ERROR));
@@ -54,71 +54,80 @@ final class Command {
                 return printHelp(console::printLine).add(IO.unit(0));
             } else if (opts.isJustVersion()) {
                 return printVersion(console::printLine).add(IO.unit(0));
-            }
-
-            final ClassLoader cl = opts.getScanClassLoader();
-            final URL planUrl = opts.getPlanUrl();
-            final Result<List<CheckReport>> scanResult = OakpalPlan.fromJson(planUrl)
-                    .flatMap(result1(plan ->
-                            plan.toOakMachineBuilder(new DefaultErrorListener(), cl)))
-                    .map(OakMachine.Builder::build).flatMap(oak -> runOakScan(opts, oak));
-
-            if (scanResult.getError().isPresent()) {
-                return console.printLineErr(scanResult.teeLogError().getError().get().getMessage())
-                        .add(IO.unit(EXIT_ABORTED_SCAN));
             } else {
-                final List<CheckReport> reports = scanResult.getOrDefault(Collections.emptyList());
-                final Optional<Integer> highestSeverity = reports.stream()
-                        .flatMap(compose(CheckReport::getViolations, Collection::stream))
-                        .map(Violation::getSeverity)
-                        .reduce(Violation.Severity::maxSeverity)
-                        .filter(inferTest1(opts.getFailOnSeverity().meetsMinimumSeverity()))
-                        .map(severity -> {
-                            switch (severity) {
-                                case SEVERE:
-                                    return EXIT_SEVERE_VIOLATION;
-                                case MAJOR:
-                                    return EXIT_MAJOR_VIOLATION;
-                                case MINOR:
-                                default:
-                                    return EXIT_MINOR_VIOLATION;
-                            }
-                        });
-                return printReports(reports, opts.getPrinter()).add(IO.unit(highestSeverity.orElse(0)));
+                return doScan(console, opts);
             }
         }
     }
 
-    IO<Nothing> printReports(final @NotNull List<CheckReport> reports,
-                             final @NotNull Function<StructuredMessage, IO<Nothing>> linePrinter) {
-        return reports.stream().map(compose(ReportMessage::new, linePrinter)).reduce(IO.empty, IO::add);
-    }
+    IO<Integer> doScan(final @NotNull Console console, final @NotNull Options opts) {
+        final ClassLoader cl = opts.getScanClassLoader();
+        final URL planUrl = opts.getPlanUrl();
 
-    IO<Nothing> printHelp(final @NotNull Function<Object, IO<Nothing>> linePrinter) {
-        try (InputStream input = Command.class.getResourceAsStream(COMMAND_HELP_TXT);
-             BufferedReader reader = new BufferedReader(new InputStreamReader(input, StandardCharsets.UTF_8))) {
-            return reader.lines().map(linePrinter).reduce(IO.empty, IO::add);
-        } catch (IOException e) {
-            throw new RuntimeException("failed to read version.properties", e);
-        }
-    }
+        /* ------------ */
+        /* perform scan */
+        /* ------------ */
+        final Result<List<CheckReport>> scanResult = OakpalPlan.fromJson(planUrl)
+                .flatMap(result1(plan ->
+                        plan.toOakMachineBuilder(new DefaultErrorListener(), cl)))
+                .map(OakMachine.Builder::build).flatMap(oak -> runOakScan(opts, oak));
 
-    IO<Nothing> printVersion(final @NotNull Function<Object, IO<Nothing>> linePrinter) {
-        final Properties properties = new Properties();
-        try (InputStream input = Command.class.getResourceAsStream(VERSION_PROPERTIES_NAME)) {
-            properties.load(input);
-            return linePrinter.apply("OakPAL CLI " + properties.getProperty("version"));
-        } catch (IOException e) {
-            throw new RuntimeException("failed to read version.properties", e);
+        if (scanResult.isFailure()) {
+            return console.printLineErr(scanResult.teeLogError().getError().get().getMessage())
+                    .add(IO.unit(EXIT_ABORTED_SCAN));
+        } else {
+            final List<CheckReport> reports = scanResult.getOrDefault(Collections.emptyList());
+            final Optional<Integer> highestSeverity = getHighestReportSeverity(opts, reports);
+            return printReports(reports, opts.getPrinter()).add(IO.unit(highestSeverity.orElse(0)));
         }
     }
 
     Result<List<CheckReport>> runOakScan(final @NotNull Options opts, final @NotNull OakMachine oak) {
-        try {
-            return Result.success(oak.scanPackages(opts.getScanFiles()));
-        } catch (AbortedScanException e) {
-            return Result.failure(e);
-        }
+        return result0(() -> oak.scanPackages(opts.getScanFiles())).get();
+    }
+
+    Optional<Integer> getHighestReportSeverity(final @NotNull Options opts,
+                                               final @NotNull List<CheckReport> reports) {
+        return reports.stream()
+                .flatMap(compose(CheckReport::getViolations, Collection::stream))
+                .map(Violation::getSeverity)
+                .reduce(Violation.Severity::maxSeverity)
+                .filter(opts.getFailOnSeverity().meetsMinimumSeverity())
+                .map(severity -> {
+                    switch (severity) {
+                        case SEVERE:
+                            return EXIT_SEVERE_VIOLATION;
+                        case MAJOR:
+                            return EXIT_MAJOR_VIOLATION;
+                        case MINOR:
+                        default:
+                            return EXIT_MINOR_VIOLATION;
+                    }
+                });
+    }
+
+    IO<Nothing> printReports(final @NotNull List<CheckReport> reports,
+                             final @NotNull Function<StructuredMessage, IO<Nothing>> linePrinter) {
+        return linePrinter.apply(new AllReportsMessage(reports));
+    }
+
+    IO<Nothing> printHelp(final @NotNull Function<Object, IO<Nothing>> linePrinter) {
+        return uncheck0(() -> {
+            try (InputStream input = Command.class.getResourceAsStream(COMMAND_HELP_TXT);
+                 BufferedReader reader = new BufferedReader(new InputStreamReader(input, StandardCharsets.UTF_8))) {
+                return reader.lines().map(linePrinter).reduce(IO.empty, IO::add);
+            }
+        }).get();
+    }
+
+    IO<Nothing> printVersion(final @NotNull Function<Object, IO<Nothing>> linePrinter) {
+        return uncheck0(() -> {
+            final Properties properties = new Properties();
+            try (InputStream input = Command.class.getResourceAsStream(VERSION_PROPERTIES_NAME)) {
+                properties.load(input);
+                return linePrinter.apply("OakPAL CLI " + properties.getProperty("version"));
+            }
+        }).get();
     }
 
     @NotNull Result<Options> parseArgs(final @NotNull Console console, final @NotNull String[] args) {
@@ -139,15 +148,15 @@ final class Command {
                     break;
                 case "-f":
                 case "--file":
-                    builder.setOpearFile(isNoOpt ? null : new File(console.getCwd(), args[++i]));
+                    builder.setOpearFile(isNoOpt ? null : console.getCwd().toPath().resolve(args[++i]).toFile());
                     break;
                 case "-c":
                 case "--cache":
-                    builder.setCacheDir(isNoOpt ? null : new File(console.getCwd(), args[++i]));
+                    builder.setCacheDir(isNoOpt ? null : console.getCwd().toPath().resolve(args[++i]).toFile());
                     break;
                 case "-o":
                 case "--outfile":
-                    builder.setOutFile(isNoOpt ? null : new File(console.getCwd(), args[++i]));
+                    builder.setOutFile(isNoOpt ? null : console.getCwd().toPath().resolve(args[++i]).toFile());
                     break;
                 case "-j":
                 case "--json":
@@ -163,15 +172,15 @@ final class Command {
                     final String severityArg = args[++i];
                     final Result<Violation.Severity> severityResult = result1(Violation.Severity::byName)
                             .apply(severityArg);
-                    if (severityResult.getError().isPresent()) {
+                    if (severityResult.isFailure()) {
                         return Result.failure(severityResult.getError().get());
                     }
-                    severityResult.stream().forEach(builder::setFailOnSeverity);
+                    severityResult.forEach(builder::setFailOnSeverity);
                     break;
                 default:
-                    final File scanFile = new File(console.getCwd(), wholeOpt);
+                    final File scanFile = console.getCwd().toPath().resolve(wholeOpt).toFile();
                     if (!scanFile.isFile()) {
-                        return Result.failure(String.format("%s is not a file.", scanFile.getAbsolutePath()));
+                        return Result.failure(String.format("%s is not a file.", wholeOpt));
                     }
                     builder.addScanFile(scanFile);
                     break;

@@ -1,6 +1,12 @@
 package net.adamcin.oakpal.cli;
 
-import static net.adamcin.oakpal.core.Fun.result1;
+import net.adamcin.oakpal.core.Nothing;
+import net.adamcin.oakpal.core.OakpalPlan;
+import net.adamcin.oakpal.core.OpearFile;
+import net.adamcin.oakpal.core.Result;
+import net.adamcin.oakpal.core.Violation;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.io.IOException;
@@ -12,16 +18,9 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.jar.JarFile;
 
-import net.adamcin.oakpal.core.Nothing;
-import net.adamcin.oakpal.core.OakpalPlan;
-import net.adamcin.oakpal.core.OpearFile;
-import net.adamcin.oakpal.core.Result;
-import net.adamcin.oakpal.core.Violation;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
 class Options {
     static final String CACHE_DIR_NAME = ".oakpal-cache";
+    static final Function<StructuredMessage, IO<Nothing>> EMPTY_PRINTER = message -> IO.empty;
     static final Options DEFAULT_OPTIONS = new Options();
     private final boolean justHelp;
     private final boolean justVersion;
@@ -40,7 +39,7 @@ class Options {
                 new File(System.getProperty("java.io.tmpdir")),
                 null, null,
                 Collections.emptyList(),
-                message -> IO.empty,
+                EMPTY_PRINTER,
                 Violation.Severity.MAJOR);
     }
 
@@ -170,12 +169,12 @@ class Options {
 
         Result<Options> build(final @NotNull Console console) {
             final File opearResolved = Optional.ofNullable(opearFile).orElseGet(() ->
-                    new File(console.getCwd(),
-                            console.getEnv().getOrDefault(Console.ENV_OAKPAL_OPEAR, ".")));
+                    console.getCwd().toPath().resolve(
+                            console.getEnv().getOrDefault(Console.ENV_OAKPAL_OPEAR, ".")).toFile());
 
             final File realCacheDir = this.cacheDir != null
                     ? this.cacheDir
-                    : new File(console.getCwd(), CACHE_DIR_NAME);
+                    : console.getCwd().toPath().resolve(CACHE_DIR_NAME).toFile();
             final File opearCache = new File(realCacheDir, "opears");
             opearCache.mkdirs();
 
@@ -217,7 +216,7 @@ class Options {
         final Function<StructuredMessage, Object> objectifier = outputJson
                 ? StructuredMessage::toJson : message -> message;
         final Result<Function<Object, IO<Nothing>>> printerResult = Optional.ofNullable(outFile)
-                .map(result1(file -> (Function<Object, IO<Nothing>>) console.openPrinter(file)))
+                .map(file -> console.openPrinter(file).map(printer -> (Function<Object, IO<Nothing>>) printer))
                 .orElse(Result.success(console::printLine));
         return printerResult.map(objectifier::andThen);
     }

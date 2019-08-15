@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Properties;
 
 import net.adamcin.oakpal.core.Nothing;
+import net.adamcin.oakpal.core.Result;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -63,12 +64,12 @@ public interface Console {
 
     /**
      * Create a new printer that must be disposed eventually, which specifically writes lines to the specified path.
+     * throws FileNotFoundException when {@link java.io.PrintWriter} would
      *
      * @param outFile path of file to open for writing
-     * @return a disposable handle/printer
-     * @throws FileNotFoundException when {@link java.io.PrintWriter} would
+     * @return a success with a disposable handle/printer, or a failure if IOException
      */
-    DisposablePrinter openPrinter(@NotNull File outFile) throws FileNotFoundException;
+    Result<DisposablePrinter> openPrinter(@NotNull File outFile);
 
     /**
      * Dispose open printers.

@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.Properties;
 
 import net.adamcin.oakpal.core.Nothing;
+import net.adamcin.oakpal.core.Result;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -91,25 +92,13 @@ final class Main implements Console {
         }
     }
 
-    private static final DisposablePrinter SILENT_PRINTER = new DisposablePrinter() {
-        @Override
-        public void dispose() {
-
-        }
-
-        @Override
-        public IO<Nothing> apply(final Object o) {
-            return IO.empty;
-        }
-    };
-
     @Override
-    public DisposablePrinter openPrinter(final @NotNull File outFile) {
-        DisposablePrinter printer = result1((File file) -> new PrintWriter(file, StandardCharsets.UTF_8.name())).apply(outFile)
-                .map(writer -> (DisposablePrinter) new DisposablePrinterImpl(writer))
-                .getOrDefault(SILENT_PRINTER);
-        printers.put(outFile, printer);
-        return printer;
+    public Result<DisposablePrinter> openPrinter(final @NotNull File outFile) {
+        final Result<DisposablePrinter> printerResult =
+                result1((File file) -> new PrintWriter(file, StandardCharsets.UTF_8.name())).apply(outFile)
+                        .map(DisposablePrinterImpl::new);
+        printerResult.forEach(printer -> printers.put(outFile, printer));
+        return printerResult;
     }
 
     @Override
@@ -120,7 +109,9 @@ final class Main implements Console {
 
     int doMain(final @NotNull String[] args) {
         final Command command = new Command();
-        return command.perform(this, args).get();
+        final int exitCode = command.perform(this, args).get();
+        this.dispose();
+        return exitCode;
     }
 
     /**
@@ -137,8 +128,8 @@ final class Main implements Console {
     public static void main(final String[] args) {
         StackTraceElement[] stack = new Exception().getStackTrace();
         final StackTraceElement last = stack[stack.length - 1];
-        final boolean iStartedIt = Main.class.getName().equals(last.getClassName())
-                && "main".equals(last.getMethodName());
+        final boolean iStartedIt =
+                Main.class.getName().equals(last.getClassName()) && "main".equals(last.getMethodName());
 
         final PrintStream out = System.out;
         if (iStartedIt) {

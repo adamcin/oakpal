@@ -2,6 +2,7 @@ package net.adamcin.oakpal.cli;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.doCallRealMethod;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -43,9 +44,17 @@ public class OptionsTest {
         FileUtils.deleteDirectory(tempDir);
     }
 
+    private Console getMockConsole() {
+        final Console console = mock(Console.class);
+        doCallRealMethod().when(console).getCwd();
+        doCallRealMethod().when(console).getEnv();
+        doCallRealMethod().when(console).getSystemProperties();
+        return console;
+    }
+
     @Test
     public void testSettersAndSimpleBuild() {
-        final Console console = mock(Console.class);
+        final Console console = getMockConsole();
         Options.Builder builder = new Options.Builder();
 
         builder.setJustHelp(false);
@@ -61,14 +70,14 @@ public class OptionsTest {
 
     @Test
     public void testOutFile() throws Exception {
-        final Console console = mock(Console.class);
+        final Console console = getMockConsole();
         when(console.getCwd()).thenReturn(tempDir);
         Options.Builder builder = new Options.Builder().setOutputJson(true);
         final File outFile = new File(tempDir, "testOutFile.json");
         builder.setOutFile(outFile);
         final DisposablePrinter printer = new Main.DisposablePrinterImpl(new PrintWriter(outFile));
 
-        when(console.openPrinter(outFile)).thenReturn(printer);
+        when(console.openPrinter(outFile)).thenReturn(Result.success(printer));
         final Result<Options> options = builder.build(console);
         options.stream().forEachOrdered(opts -> {
             opts.getPrinter().apply(() -> JavaxJson.key("message", "test").get()).get();
@@ -85,7 +94,7 @@ public class OptionsTest {
 
     @Test
     public void testOpearFile() {
-        final Console console = mock(Console.class);
+        final Console console = getMockConsole();
         when(console.getCwd()).thenReturn(tempDir);
         Options.Builder builder = new Options.Builder().setOpearFile(new File("src/test/resources/opears/emptyplan"));
 
