@@ -6,9 +6,9 @@ jdk:
   - oraclejdk11
 dist: trusty
 script:
-  - mvn -B -e verify site site:stage
+  - ./mvn -B -e verify site site:stage
 after_success:
-  - mvn -B -Pcoverage clean verify coveralls:report
+  - ./mvn -B -Pcoverage clean verify coveralls:report
 cache:
   directories:
     - $HOME/.m2

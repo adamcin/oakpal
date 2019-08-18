@@ -54,7 +54,8 @@ public class OpearPackageMojoTest extends OakpalMojoTestCaseBase {
     protected void setUp() throws Exception {
         try {
             super.setUp();
-        } catch (Exception e) {
+        } catch (Throwable e) {
+            LOGGER.error("error", e);
             e.printStackTrace(System.err);
             throw e;
         }

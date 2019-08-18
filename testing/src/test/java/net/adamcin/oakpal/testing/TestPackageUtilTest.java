@@ -41,7 +41,8 @@ public class TestPackageUtilTest {
 
     @Test
     public void testPrepareTestPackageFromFolder() throws Exception {
-        File simple = TestPackageUtil.prepareTestPackageFromFolder("simple-1.0.zip", new File("src/test/resources/extracted/simple"));
+        System.out.println(new File("src/test/resources/extracted/simple").getAbsolutePath());
+        File simple = TestPackageUtil.prepareTestPackageFromFolder("simple-1.0.zip", new File("src/test/resources/extracted/simple").getAbsoluteFile());
         assertTrue("simple-1.0.zip should exist", simple.exists());
 
         JarFile simpleJar = new JarFile(simple);

@@ -25,6 +25,7 @@ import java.io.InputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
@@ -81,12 +82,14 @@ public class TestPackageUtil {
     }
 
     public static File prepareTestPackageFromFolder(final String filename, final File srcFolder) throws IOException {
-        if (srcFolder == null || !srcFolder.isDirectory()) {
-            throw new IOException("expected directory in srcFolder parameter for test package filename " + filename);
+        final File absFile = srcFolder.getAbsoluteFile();
+        if (!absFile.isDirectory()) {
+            throw new IOException("expected directory in srcFolder parameter for test package filename "
+                    + filename + ", srcFolder exists " + srcFolder);
         }
         File file = new File(testPackagesRoot.toFile(), filename);
         try (JarOutputStream jos = new JarOutputStream(new FileOutputStream(file))) {
-            add(srcFolder, srcFolder, jos);
+            add(absFile, absFile, jos);
         }
 
         return file;
