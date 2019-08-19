@@ -17,9 +17,7 @@
 package net.adamcin.oakpal.core;
 
 import junitx.util.PrivateAccessor;
-import net.adamcin.oakpal.core.checks.Echo;
 import net.adamcin.oakpal.testing.TestPackageUtil;
-import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
@@ -31,7 +29,13 @@ import org.apache.jackrabbit.oak.spi.state.ProxyNodeStore;
 import org.apache.jackrabbit.vault.fs.api.ProgressTrackerListener;
 import org.apache.jackrabbit.vault.fs.config.MetaInf;
 import org.apache.jackrabbit.vault.fs.io.Archive;
-import org.apache.jackrabbit.vault.packaging.*;
+import org.apache.jackrabbit.vault.packaging.InstallContext;
+import org.apache.jackrabbit.vault.packaging.InstallHookProcessor;
+import org.apache.jackrabbit.vault.packaging.JcrPackageManager;
+import org.apache.jackrabbit.vault.packaging.PackageException;
+import org.apache.jackrabbit.vault.packaging.PackageId;
+import org.apache.jackrabbit.vault.packaging.PackageProperties;
+import org.apache.jackrabbit.vault.packaging.Packaging;
 import org.apache.jackrabbit.vault.packaging.impl.PackagingImpl;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -46,17 +50,35 @@ import java.io.InputStream;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 import java.util.jar.Manifest;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static net.adamcin.oakpal.core.Fun.*;
-import static org.junit.Assert.*;
+import static net.adamcin.oakpal.core.Fun.compose;
+import static net.adamcin.oakpal.core.Fun.toEntry;
+import static net.adamcin.oakpal.core.Fun.uncheck1;
+import static net.adamcin.oakpal.core.Fun.uncheckVoid1;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.anyBoolean;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.nullable;
+import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 
 @RunWith(MockitoJUnitRunner.class)
 public class OakMachineTest {
@@ -693,19 +715,17 @@ public class OakMachineTest {
 
     @Test
     public void testCustomNodeStore() throws Exception {
-        MutableBoolean usedCustomNodeStore = new MutableBoolean(false);
-        OakMachine.JcrCustomizer checker = (jcr) -> {
-            try {
-                // relies a bit on the Oak internals, but safe enough for a test
-                Object oak = PrivateAccessor.getField(jcr, "oak");
-                Object nodeStore = PrivateAccessor.getField(oak, "store");
-                usedCustomNodeStore.setValue(nodeStore instanceof CustomNodeStore);
-            } catch (Exception e) {}
-        };
-        OakMachine machine = new OakMachine.Builder().withNodeStore(new CustomNodeStore()).withJcrCustomizer(checker).build();
+        CompletableFuture<Boolean> usedCustomNodeStore = new CompletableFuture<>();
+        OakMachine.JcrCustomizer checker = uncheckVoid1(jcr -> {
+            // relies a bit on the Oak internals, but safe enough for a test
+            Object oak = PrivateAccessor.getField(jcr, "oak");
+            Object nodeStore = PrivateAccessor.getField(oak, "store");
+            usedCustomNodeStore.complete(nodeStore instanceof CustomNodeStore);
+        })::accept;
+        OakMachine machine = new OakMachine.Builder().withNodeStoreSupplier(CustomNodeStore::new).withJcrCustomizer(checker).build();
         machine.scanPackage();
 
-        assertTrue("Custom node store was used", usedCustomNodeStore.booleanValue());
+        assertTrue("Custom node store was used", usedCustomNodeStore.getNow(false));
     }
 
     private static class CustomNodeStore extends ProxyNodeStore {

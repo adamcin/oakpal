@@ -23,6 +23,7 @@ import org.apache.jackrabbit.commons.cnd.TemplateBuilderFactory;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.jcr.Jcr;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
@@ -67,6 +68,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.function.Supplier;
 import java.util.jar.JarInputStream;
 import java.util.jar.Manifest;
 import java.util.stream.Collectors;
@@ -103,7 +105,7 @@ public final class OakMachine {
 
     private final InstallHookPolicy scanInstallHookPolicy;
 
-    private final NodeStore nodeStore;
+    private final Supplier<NodeStore> nodeStoreSupplier;
 
     private OakMachine(final Packaging packagingService,
                        final List<ProgressCheck> progressChecks,
@@ -115,7 +117,7 @@ public final class OakMachine {
                        final ClassLoader installHookClassLoader,
                        final boolean enablePreInstallHooks,
                        final InstallHookPolicy scanInstallHookPolicy,
-                       final NodeStore nodeStore) {
+                       final Supplier<NodeStore> nodeStoreSupplier) {
         this.packagingService = packagingService != null ? packagingService : newOakpalPackagingService();
         this.progressChecks = progressChecks;
         this.errorListener = errorListener;
@@ -126,7 +128,7 @@ public final class OakMachine {
         this.installHookClassLoader = installHookClassLoader;
         this.enablePreInstallHooks = enablePreInstallHooks;
         this.scanInstallHookPolicy = scanInstallHookPolicy;
-        this.nodeStore = nodeStore;
+        this.nodeStoreSupplier = nodeStoreSupplier != null ? nodeStoreSupplier : MemoryNodeStore::new;
     }
 
     /**
@@ -153,7 +155,7 @@ public final class OakMachine {
 
         private InstallHookPolicy scanInstallHookPolicy;
 
-        private NodeStore nodeStore;
+        private Supplier<NodeStore> nodeStoreSupplier;
 
         /**
          * Provide a {@link Packaging} service for use in retrieving a {@link JcrPackageManager} for an admin session.
@@ -368,13 +370,18 @@ public final class OakMachine {
         }
 
         /**
-         * Specify an NodeStore for the scan.
+         * Specify a supplier that will produce a {@link NodeStore} for the scan. By default,
+         * {@link MemoryNodeStore#MemoryNodeStore()} will be used (e.g. {@code MemoryNodeStore::new}).
          *
-         * @param nodeStore the NodeStore
+         * Note: OakMachine will call {@link Supplier#get} for every execution of {@link #scanPackage(File...)}.
+         * Beyond the call to this supplier function, it is the client's responsibility to manage the external
+         * NodeStore's state between scans when using the same {@link OakMachine} instance.
+         *
+         * @param nodeStoreSupplier the NodeStore
          * @return my builder self
          */
-        public Builder withNodeStore(final NodeStore nodeStore) {
-            this.nodeStore = nodeStore;
+        public Builder withNodeStoreSupplier(final Supplier<NodeStore> nodeStoreSupplier) {
+            this.nodeStoreSupplier = nodeStoreSupplier;
             return this;
         }
 
@@ -394,7 +401,7 @@ public final class OakMachine {
                     installHookClassLoader != null ? installHookClassLoader : Util.getDefaultClassLoader(),
                     enablePreInstallHooks,
                     scanInstallHookPolicy,
-                    nodeStore);
+                    nodeStoreSupplier);
         }
     }
 
@@ -796,6 +803,7 @@ public final class OakMachine {
     }
 
     private Repository initRepository() throws RepositoryException {
+        final NodeStore nodeStore = nodeStoreSupplier.get();
         final Jcr jcr = nodeStore == null ? new Jcr() : new Jcr(nodeStore);
 
         Properties userProps = new Properties();
