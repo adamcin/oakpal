@@ -16,13 +16,18 @@
 
 package net.adamcin.oakpal.core;
 
+import junitx.util.PrivateAccessor;
 import net.adamcin.oakpal.core.checks.Echo;
 import net.adamcin.oakpal.testing.TestPackageUtil;
+import org.apache.commons.lang3.mutable.MutableBoolean;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.spi.state.ProxyNodeStore;
 import org.apache.jackrabbit.vault.fs.api.ProgressTrackerListener;
 import org.apache.jackrabbit.vault.fs.config.MetaInf;
 import org.apache.jackrabbit.vault.fs.io.Archive;
@@ -684,6 +689,36 @@ public class OakMachineTest {
         new OakMachine.Builder().build().adminInitAndInspect(session -> {
             JcrPackageManager manager = service.getPackageManager(session);
         });
+    }
+
+    @Test
+    public void testCustomNodeStore() throws Exception {
+        MutableBoolean usedCustomNodeStore = new MutableBoolean(false);
+        OakMachine.JcrCustomizer checker = (jcr) -> {
+            try {
+                // relies a bit on the Oak internals, but safe enough for a test
+                Object oak = PrivateAccessor.getField(jcr, "oak");
+                Object nodeStore = PrivateAccessor.getField(oak, "store");
+                usedCustomNodeStore.setValue(nodeStore instanceof CustomNodeStore);
+            } catch (Exception e) {}
+        };
+        OakMachine machine = new OakMachine.Builder().withNodeStore(new CustomNodeStore()).withJcrCustomizer(checker).build();
+        machine.scanPackage();
+
+        assertTrue("Custom node store was used", usedCustomNodeStore.booleanValue());
+    }
+
+    private static class CustomNodeStore extends ProxyNodeStore {
+        private final NodeStore nodeStore;
+
+        private CustomNodeStore() {
+            this.nodeStore = new MemoryNodeStore();
+        }
+
+        @Override
+        public NodeStore getNodeStore() {
+            return nodeStore;
+        }
     }
 }
 
