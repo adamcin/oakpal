@@ -38,6 +38,7 @@ import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.apache.jackrabbit.vault.packaging.PackageProperties;
 import org.apache.jackrabbit.vault.packaging.Packaging;
 import org.apache.jackrabbit.vault.packaging.impl.PackagingImpl;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -73,6 +74,7 @@ import static net.adamcin.oakpal.core.Fun.toEntry;
 import static net.adamcin.oakpal.core.Fun.uncheck1;
 import static net.adamcin.oakpal.core.Fun.uncheckVoid1;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
@@ -761,58 +763,53 @@ public class OakMachineTest {
             FileUtils.deleteDirectory(blobStoreFile);
         }
 
-        builder().withNodeStoreSupplier(() -> new FileBlobMemoryNodeStore(blobStoreFile.getAbsolutePath())).build()
-                .adminInitAndInspect(session -> {
-                    // less than AbtractBlobStore.minBlockSize - 2 (for varInt length prefix where length >= 128 && < 16384)
-                    final int bufSize = 4093;
-                    final byte[] buffer = new byte[bufSize];
-                    final String fillString = "abcdefghijklmnopqrstuvwxyz";
-                    final byte[] fillData = fillString.getBytes(StandardCharsets.UTF_8);
-                    int pos = 0;
-                    while (pos < bufSize - fillData.length) {
-                        pos += new ByteArrayInputStream(fillData).read(buffer, pos, fillData.length);
-                    }
-                    if (bufSize - pos > 0) {
-                        new ByteArrayInputStream(fillData).read(buffer, pos, bufSize - pos);
-                    }
+        final OakMachine.Builder machineBuilder = builder().withNodeStoreSupplier(() ->
+                new FileBlobMemoryNodeStore(blobStoreFile.getAbsolutePath()));
 
-                    Binary binary = session.getValueFactory().createBinary(new ByteArrayInputStream(buffer));
+        machineBuilder.build().adminInitAndInspect(session -> {
+                    // less than AbtractBlobStore.minBlockSize - 2 (for varInt length prefix where length >= 128 && < 16384)
+                    final Binary binary = alphaFill(session, 4093);
+
                     Node fooNode = session.getRootNode().addNode("foo", "nt:unstructured");
                     fooNode.setProperty("data", binary);
                     session.save();
 
-                    assertTrue("blob is retrievable", fooNode.getProperty("data").getString().startsWith(fillString));
+                    assertTrue("blob is retrievable", fooNode.getProperty("data").getString().startsWith("abcdefg"));
                 });
 
         final File[] inlineChildren = blobStoreFile.listFiles();
         assertNotNull("should have non-null inlineChildren", inlineChildren);
         assertEquals("inline children is empty <4k", 0, inlineChildren.length);
 
-        builder().withNodeStoreSupplier(() -> new FileBlobMemoryNodeStore(blobStoreFile.getAbsolutePath())).build()
-                .adminInitAndInspect(session -> {
-                    final int bufSize = 8092;
-                    final byte[] buffer = new byte[bufSize];
-                    final String fillString = "abcdefghijklmnopqrstuvwxyz";
-                    final byte[] fillData = fillString.getBytes(StandardCharsets.UTF_8);
-                    int pos = 0;
-                    while (pos < bufSize - fillData.length) {
-                        pos += new ByteArrayInputStream(fillData).read(buffer, pos, fillData.length);
-                    }
-                    if (bufSize - pos > 0) {
-                        new ByteArrayInputStream(fillData).read(buffer, pos, bufSize - pos);
-                    }
-
-                    Binary binary = session.getValueFactory().createBinary(new ByteArrayInputStream(buffer));
+        machineBuilder.build().adminInitAndInspect(session -> {
+                    // bigger than 4096
+                    final Binary binary = alphaFill(session, 8192);
+                    assertFalse("/foo should not exist", session.nodeExists("/foo"));
                     Node fooNode = session.getRootNode().addNode("foo", "nt:unstructured");
                     fooNode.setProperty("data", binary);
                     session.save();
 
-                    assertTrue("blob is retrievable", fooNode.getProperty("data").getString().startsWith(fillString));
+                    assertTrue("blob is retrievable", fooNode.getProperty("data").getString().startsWith("abcdefg"));
                 });
 
         final File[] blobChildren = blobStoreFile.listFiles();
         assertNotNull("should have non-null blobChildren", blobChildren);
         assertEquals("blobChildren is not empty @>4k", 1, blobChildren.length);
+    }
+
+    private static Binary alphaFill(final @NotNull Session session, final int bufSize) throws RepositoryException {
+        final byte[] buffer = new byte[bufSize];
+        final String fillString = "abcdefghijklmnopqrstuvwxyz";
+        final byte[] fillData = fillString.getBytes(StandardCharsets.UTF_8);
+        int pos = 0;
+        while (pos < bufSize - fillData.length) {
+            pos += new ByteArrayInputStream(fillData).read(buffer, pos, fillData.length);
+        }
+        if (bufSize - pos > 0) {
+            new ByteArrayInputStream(fillData).read(buffer, pos, bufSize - pos);
+        }
+
+        return session.getValueFactory().createBinary(new ByteArrayInputStream(buffer));
     }
 }
 
