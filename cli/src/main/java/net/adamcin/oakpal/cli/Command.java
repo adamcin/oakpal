@@ -21,6 +21,7 @@ import java.util.function.Function;
 
 import net.adamcin.oakpal.core.CheckReport;
 import net.adamcin.oakpal.core.DefaultErrorListener;
+import net.adamcin.oakpal.core.FileBlobMemoryNodeStore;
 import net.adamcin.oakpal.core.Nothing;
 import net.adamcin.oakpal.core.OakMachine;
 import net.adamcin.oakpal.core.OakpalPlan;
@@ -69,7 +70,8 @@ final class Command {
         /* ------------ */
         final Result<List<CheckReport>> scanResult = OakpalPlan.fromJson(planUrl)
                 .flatMap(result1(plan ->
-                        plan.toOakMachineBuilder(new DefaultErrorListener(), cl)))
+                        plan.toOakMachineBuilder(new DefaultErrorListener(), cl).withNodeStoreSupplier(() ->
+                                new FileBlobMemoryNodeStore(opts.getCacheDir().toPath().resolve("blobs").toFile().getAbsolutePath()))))
                 .map(OakMachine.Builder::build).flatMap(oak -> runOakScan(opts, oak));
 
         if (scanResult.isFailure()) {

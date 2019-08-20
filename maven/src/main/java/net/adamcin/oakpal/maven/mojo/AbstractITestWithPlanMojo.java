@@ -265,6 +265,9 @@ abstract class AbstractITestWithPlanMojo extends AbstractITestMojo implements Pl
     @Parameter
     protected InstallHookPolicy installHookPolicy;
 
+    @Parameter(defaultValue = "${project.build.directory}/oakpal-blobs")
+    protected String blobStorePath;
+
     @Override
     public final PlanBuilderParams getPlanBuilderParams() {
         return this;

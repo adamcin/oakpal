@@ -24,8 +24,12 @@ import java.io.Reader;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
@@ -34,10 +38,12 @@ import javax.jcr.SimpleCredentials;
 import javax.jcr.ValueFactory;
 import javax.jcr.Workspace;
 import javax.jcr.nodetype.NodeTypeManager;
+import javax.jcr.security.Privilege;
 
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import net.adamcin.oakpal.core.Fun;
+import net.adamcin.oakpal.core.Result;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.api.JackrabbitWorkspace;
@@ -59,6 +65,10 @@ import org.apache.jackrabbit.spi.PrivilegeDefinition;
 import org.apache.jackrabbit.spi.commons.conversion.DefaultNamePathResolver;
 import org.apache.jackrabbit.spi.commons.conversion.NamePathResolver;
 import org.apache.jackrabbit.spi.commons.privilege.PrivilegeDefinitionReader;
+
+import static net.adamcin.oakpal.core.Fun.result1;
+import static net.adamcin.oakpal.core.Fun.uncheck1;
+import static net.adamcin.oakpal.core.Fun.zipKeysWithValueFunc;
 
 public final class TestUtil {
     private TestUtil() {
@@ -137,7 +147,6 @@ public final class TestUtil {
         return NodeStoreFixtureProvider.create(opts, true);
     }
 
-
     public static void withReadOnlyFixture(final File segmentStore, final File globalStore,
                                            final SessionStrategy sessionStrategy)
             throws Exception {
@@ -197,6 +206,35 @@ public final class TestUtil {
                 }
             }
         }
+    }
+
+    public static List<Map.Entry<PrivilegeDefinition, Result<Privilege>>>
+    installPrivilegesWithIndivResults(final Session session, final URL... privileges) throws RepositoryException {
+        final Workspace workspace = session.getWorkspace();
+        final NamePathResolver resolver = new DefaultNamePathResolver(session);
+        final NamespaceRegistry registry = workspace.getNamespaceRegistry();
+
+        final BiConsumer<String, String> nsSetter = Fun.tryOrVoid2(registry::registerNamespace);
+        final Function<Name, String> mapper = Fun.tryOrDefault1(resolver::getJCRName, null);
+
+        if (!(workspace instanceof JackrabbitWorkspace)) {
+            throw new RepositoryException("Workspace must be instance of JackrabbitWorkspace, but isn't. type: " +
+                    workspace.getClass().getName());
+        }
+        final PrivilegeManager privilegeManager = ((JackrabbitWorkspace) session.getWorkspace()).getPrivilegeManager();
+        return Stream.of(privileges).flatMap(uncheck1((URL privUrl) -> {
+            try (Reader reader = new InputStreamReader(privUrl.openStream(), StandardCharsets.UTF_8)) {
+                final PrivilegeDefinitionReader privReader =
+                        new PrivilegeDefinitionReader(reader, "text/xml");
+                privReader.getNamespaces().forEach(nsSetter);
+                return Stream.of(privReader.getPrivilegeDefinitions());
+            }
+        })).map(zipKeysWithValueFunc(result1((PrivilegeDefinition def) ->
+                privilegeManager.registerPrivilege(resolver.getJCRName(def.getName()),
+                        def.isAbstract(),
+                        def.getDeclaredAggregateNames().stream()
+                                .map(mapper).toArray(String[]::new))
+        ))).collect(Collectors.toList());
     }
 
     public static void installPrivilegesFromURL(final Session session, final URL... privileges)

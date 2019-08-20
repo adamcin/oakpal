@@ -16,19 +16,30 @@
 
 package net.adamcin.oakpal.webster;
 
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.OutputStreamWriter;
-import java.net.URL;
-import java.util.Arrays;
-import javax.jcr.Workspace;
-
+import net.adamcin.oakpal.core.Nothing;
 import org.apache.jackrabbit.api.JackrabbitWorkspace;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.junit.Test;
+
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+import javax.jcr.Workspace;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.OutputStreamWriter;
+import java.io.StringWriter;
+import java.net.URL;
+import java.util.Arrays;
+import java.util.Collections;
+
+import static net.adamcin.oakpal.core.Fun.result0;
+import static net.adamcin.oakpal.core.Fun.result1;
+import static net.adamcin.oakpal.core.Fun.resultNothing1;
+import static net.adamcin.oakpal.core.Fun.throwingVoidToNothing1;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class PrivilegeXmlExporterTest {
 
@@ -83,5 +94,57 @@ public class PrivilegeXmlExporterTest {
             }
             assertTrue("cq:storeUGC should NOT be imported", thrown);
         });
+    }
+
+    @Test
+    public void testWritePrivileges_defaults() throws Exception {
+        final File tempDir = new File(testBaseDir, "testWritePrivileges_defaults");
+        final File fromRepoDir = new File(tempDir, "fromRepo/segmentstore");
+        final File toRepoDir = new File(tempDir, "toRepo/segmentstore");
+        final File exportedXml = new File(tempDir, "exported.xml");
+
+        TestUtil.prepareRepo(fromRepoDir, session -> {
+            final URL aemPrivileges = getClass().getResource("/aem_privileges.xml");
+            TestUtil.installPrivilegesFromURL(session, aemPrivileges);
+        });
+
+        if (exportedXml.exists()) {
+            exportedXml.delete();
+        }
+
+        TestUtil.withReadOnlyFixture(fromRepoDir, session -> {
+            final Workspace workspace = session.getWorkspace();
+            final PrivilegeManager privilegeManager = ((JackrabbitWorkspace) workspace).getPrivilegeManager();
+
+            assertNotNull("crx:replicate should be imported",
+                    privilegeManager.getPrivilege("crx:replicate"));
+            assertNotNull("cq:storeUGC should be imported",
+                    privilegeManager.getPrivilege("cq:storeUGC"));
+
+            PrivilegeXmlExporter.writePrivileges(() -> new OutputStreamWriter(
+                            new FileOutputStream(exportedXml)),
+                    session, null, true);
+        });
+
+        TestUtil.prepareRepo(toRepoDir, session -> {
+            final URL exportedUrl = exportedXml.toURL();
+            resultNothing1((URL url) -> TestUtil.installPrivilegesWithIndivResults(session, url)).apply(exportedUrl);
+        });
+
+        TestUtil.withReadOnlyFixture(toRepoDir, session -> {
+            final Workspace workspace = session.getWorkspace();
+            final PrivilegeManager privilegeManager = ((JackrabbitWorkspace) workspace).getPrivilegeManager();
+
+            assertNotNull("crx:replicate should be imported",
+                    privilegeManager.getPrivilege("crx:replicate"));
+        });
+    }
+
+    @Test(expected = RepositoryException.class)
+    public void testWritePrivileges_throws() throws Exception {
+        final Session session = mock(Session.class);
+        final Workspace workspace = mock(Workspace.class);
+        when(session.getWorkspace()).thenReturn(workspace);
+        PrivilegeXmlExporter.writePrivileges(StringWriter::new, session, Collections.emptyList(), false);
     }
 }

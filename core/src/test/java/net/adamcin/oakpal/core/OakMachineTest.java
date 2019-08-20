@@ -18,6 +18,7 @@ package net.adamcin.oakpal.core;
 
 import junitx.util.PrivateAccessor;
 import net.adamcin.oakpal.testing.TestPackageUtil;
+import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
@@ -37,19 +38,23 @@ import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.apache.jackrabbit.vault.packaging.PackageProperties;
 import org.apache.jackrabbit.vault.packaging.Packaging;
 import org.apache.jackrabbit.vault.packaging.impl.PackagingImpl;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import javax.jcr.Binary;
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -68,6 +73,7 @@ import static net.adamcin.oakpal.core.Fun.toEntry;
 import static net.adamcin.oakpal.core.Fun.uncheck1;
 import static net.adamcin.oakpal.core.Fun.uncheckVoid1;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -82,6 +88,13 @@ import static org.mockito.Mockito.withSettings;
 
 @RunWith(MockitoJUnitRunner.class)
 public class OakMachineTest {
+
+    final File testOutDir = new File("target/test-out/OakMachineTest");
+
+    @Before
+    public void setUp() throws Exception {
+        testOutDir.mkdirs();
+    }
 
     private OakMachine.Builder builder() {
         return new OakMachine.Builder();
@@ -739,6 +752,67 @@ public class OakMachineTest {
         public NodeStore getNodeStore() {
             return nodeStore;
         }
+    }
+
+    @Test
+    public void testFileBlobMemoryNodeStore() throws Exception {
+        final File blobStoreFile = new File(testOutDir, "testFileBlobMemoryNodeStore/datastore");
+        if (blobStoreFile.isDirectory()) {
+            FileUtils.deleteDirectory(blobStoreFile);
+        }
+
+        builder().withNodeStoreSupplier(() -> new FileBlobMemoryNodeStore(blobStoreFile.getAbsolutePath())).build()
+                .adminInitAndInspect(session -> {
+                    // less than AbtractBlobStore.minBlockSize - 2 (for varInt length prefix where length >= 128 && < 16384)
+                    final int bufSize = 4093;
+                    final byte[] buffer = new byte[bufSize];
+                    final String fillString = "abcdefghijklmnopqrstuvwxyz";
+                    final byte[] fillData = fillString.getBytes(StandardCharsets.UTF_8);
+                    int pos = 0;
+                    while (pos < bufSize - fillData.length) {
+                        pos += new ByteArrayInputStream(fillData).read(buffer, pos, fillData.length);
+                    }
+                    if (bufSize - pos > 0) {
+                        new ByteArrayInputStream(fillData).read(buffer, pos, bufSize - pos);
+                    }
+
+                    Binary binary = session.getValueFactory().createBinary(new ByteArrayInputStream(buffer));
+                    Node fooNode = session.getRootNode().addNode("foo", "nt:unstructured");
+                    fooNode.setProperty("data", binary);
+                    session.save();
+
+                    assertTrue("blob is retrievable", fooNode.getProperty("data").getString().startsWith(fillString));
+                });
+
+        final File[] inlineChildren = blobStoreFile.listFiles();
+        assertNotNull("should have non-null inlineChildren", inlineChildren);
+        assertEquals("inline children is empty <4k", 0, inlineChildren.length);
+
+        builder().withNodeStoreSupplier(() -> new FileBlobMemoryNodeStore(blobStoreFile.getAbsolutePath())).build()
+                .adminInitAndInspect(session -> {
+                    final int bufSize = 8092;
+                    final byte[] buffer = new byte[bufSize];
+                    final String fillString = "abcdefghijklmnopqrstuvwxyz";
+                    final byte[] fillData = fillString.getBytes(StandardCharsets.UTF_8);
+                    int pos = 0;
+                    while (pos < bufSize - fillData.length) {
+                        pos += new ByteArrayInputStream(fillData).read(buffer, pos, fillData.length);
+                    }
+                    if (bufSize - pos > 0) {
+                        new ByteArrayInputStream(fillData).read(buffer, pos, bufSize - pos);
+                    }
+
+                    Binary binary = session.getValueFactory().createBinary(new ByteArrayInputStream(buffer));
+                    Node fooNode = session.getRootNode().addNode("foo", "nt:unstructured");
+                    fooNode.setProperty("data", binary);
+                    session.save();
+
+                    assertTrue("blob is retrievable", fooNode.getProperty("data").getString().startsWith(fillString));
+                });
+
+        final File[] blobChildren = blobStoreFile.listFiles();
+        assertNotNull("should have non-null blobChildren", blobChildren);
+        assertEquals("blobChildren is not empty @>4k", 1, blobChildren.length);
     }
 }
 

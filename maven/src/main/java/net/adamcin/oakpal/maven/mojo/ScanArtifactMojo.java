@@ -23,6 +23,7 @@ import java.util.Optional;
 
 import net.adamcin.oakpal.core.CheckReport;
 import net.adamcin.oakpal.core.DefaultErrorListener;
+import net.adamcin.oakpal.core.FileBlobMemoryNodeStore;
 import net.adamcin.oakpal.core.OakMachine;
 import net.adamcin.oakpal.core.ReportMapper;
 import net.adamcin.oakpal.maven.component.OakpalComponentConfigurator;
@@ -75,8 +76,12 @@ public class ScanArtifactMojo extends AbstractITestWithPlanMojo {
         if (packageArtifact.isPresent() && packageArtifact.get().exists()) {
             List<CheckReport> reports;
             try {
-                final OakMachine machine = buildPlan().toOakMachineBuilder(new DefaultErrorListener(),
-                        Thread.currentThread().getContextClassLoader()).build();
+                final OakMachine.Builder machineBuilder = buildPlan().toOakMachineBuilder(new DefaultErrorListener(),
+                        Thread.currentThread().getContextClassLoader());
+                if (blobStorePath != null) {
+                    machineBuilder.withNodeStoreSupplier(() -> new FileBlobMemoryNodeStore(blobStorePath));
+                }
+                final OakMachine machine = machineBuilder.build();
                 reports = machine.scanPackage(packageArtifact.get());
             } catch (Exception e) {
                 throw new MojoFailureException("Failed to execute package scan. " + e.getMessage(), e);

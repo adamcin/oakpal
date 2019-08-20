@@ -26,6 +26,10 @@ import java.util.regex.Pattern;
  * CLI parsers, like oak-run's. Handles double-quotes and escapes to support any path character that might be needed.
  */
 public final class CliArgParser {
+    private CliArgParser() {
+        /* no construction */
+    }
+
     enum TokenType {
         WHITESPACE("\\s"),
         ESCAPE("\\\\"),
