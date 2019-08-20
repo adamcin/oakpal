@@ -31,8 +31,7 @@ import java.io.InputStream;
  * A {@link MemoryNodeStore} that offloads binaries to a {@link FileBlobStore}. This is more memory-efficient for
  * production scans than a {@link MemoryNodeStore} by itself.
  *
- * If the size of the tree, excluding binaries, is likely to consume all heap, consider upgrading to a
- * {@link org.apache.jackrabbit.oak.segment.SegmentNodeStore SegmentNodeStore}.
+ * If the size of the tree, excluding binaries, is likely to consume all heap, consider upgrading to a SegmentNodeStore.
  */
 public class FileBlobMemoryNodeStore extends ProxyNodeStore {
 
