@@ -889,12 +889,9 @@ public final class OakMachine {
             if (preInstall) {
                 return;
             }
-            // TODO extend handler to provide more detailed events matching the actions, -UREAD!
-            // NOP, MOD, REP, ERR, ADD, DEL, MIS
+            // NOP("-"), MOD("U"), REP("R"), ERR("E"), ADD("A"), DEL("D"), MIS("!")
             if (path != null && path.startsWith("/")) {
-                // ! or MIS is actually only fired when a file is imported without a jcr:data property.
-                // Should this even be reported to progress checks? this is more of an error, I think.
-                if ("D".equals(action) || "!".equals(action)) {
+                if ("D".equals(action)) { // deleted
                     handlers.forEach(handler -> {
                         try {
                             handler.deletedPath(packageId, path, session);
@@ -902,7 +899,7 @@ public final class OakMachine {
                             OakMachine.this.getErrorListener().onListenerPathException(e, handler, packageId, path);
                         }
                     });
-                } else {
+                } else if ("ARU-".contains(action)) { // added, replaced, updated
                     try {
                         Node node = session.getNode(path);
                         handlers.forEach(handler -> {
@@ -915,6 +912,8 @@ public final class OakMachine {
                     } catch (RepositoryException e) {
                         OakMachine.this.getErrorListener().onImporterException(e, packageId, path);
                     }
+                } else if ("E".equals(action)) {
+                    onError(mode, path, new RuntimeException("Unknown error"));
                 }
             }
         }

@@ -713,6 +713,32 @@ public class OakMachineTest {
     }
 
     @Test
+    public void testImporterListenerAdapter_onMessage_error() {
+        final PackageId expectId = PackageId.fromString("my_packages:tmp_foo_bar");
+        final String expectPath = "/correct/path";
+        final Session session = mock(Session.class);
+
+        final CompletableFuture<Exception> eLatch = new CompletableFuture<>();
+        final CompletableFuture<PackageId> idLatch = new CompletableFuture<>();
+        final CompletableFuture<String> pathLatch = new CompletableFuture<>();
+
+        final ErrorListener errorListener = mock(ErrorListener.class);
+        doAnswer(call -> {
+            eLatch.complete(call.getArgument(0, Exception.class));
+            idLatch.complete(call.getArgument(1, PackageId.class));
+            pathLatch.complete(call.getArgument(2, String.class));
+            return true;
+        }).when(errorListener).onImporterException(any(Exception.class), any(PackageId.class), anyString());
+        final OakMachine machine = builder().withErrorListener(errorListener).build();
+        final OakMachine.ImporterListenerAdapter adapter = machine.new ImporterListenerAdapter(expectId,
+                machine.getProgressChecks(), session, false);
+        adapter.onMessage(ProgressTrackerListener.Mode.PATHS, "E", expectPath);
+        assertEquals("package id is", expectId, idLatch.getNow(null));
+        assertEquals("path is", expectPath, pathLatch.getNow(null));
+        assertTrue("error is RuntimeException", eLatch.getNow(null) instanceof RuntimeException);
+    }
+
+    @Test
     public void testNewOakpalPackagingServiceNoArgs() throws Exception {
         Packaging service = OakMachine.newOakpalPackagingService();
         new OakMachine.Builder().build().adminInitAndInspect(session -> {
