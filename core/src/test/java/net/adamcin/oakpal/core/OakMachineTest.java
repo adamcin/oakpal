@@ -712,8 +712,8 @@ public class OakMachineTest {
         assertEquals("path is", expectPath, pathLatch.getNow(null));
     }
 
-    @Test
-    public void testImporterListenerAdapter_onMessage_error() {
+    @Test(expected = RuntimeException.class)
+    public void testImporterListenerAdapter_onMessage_error() throws Exception {
         final PackageId expectId = PackageId.fromString("my_packages:tmp_foo_bar");
         final String expectPath = "/correct/path";
         final Session session = mock(Session.class);
@@ -735,7 +735,7 @@ public class OakMachineTest {
         adapter.onMessage(ProgressTrackerListener.Mode.PATHS, "E", expectPath);
         assertEquals("package id is", expectId, idLatch.getNow(null));
         assertEquals("path is", expectPath, pathLatch.getNow(null));
-        assertTrue("error is RuntimeException", eLatch.getNow(null) instanceof RuntimeException);
+        throw eLatch.getNow(new Exception());
     }
 
     @Test
