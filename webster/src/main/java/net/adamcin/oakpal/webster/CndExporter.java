@@ -16,6 +16,31 @@
 
 package net.adamcin.oakpal.webster;
 
+import aQute.bnd.maven.support.Repo;
+import net.adamcin.oakpal.core.Fun;
+import net.adamcin.oakpal.core.JsonCnd;
+import net.adamcin.oakpal.core.Result;
+import net.adamcin.oakpal.core.checks.Rule;
+import org.apache.jackrabbit.commons.cnd.CompactNodeTypeDefReader;
+import org.apache.jackrabbit.commons.cnd.ParseException;
+import org.apache.jackrabbit.commons.cnd.TemplateBuilderFactory;
+import org.apache.jackrabbit.spi.Name;
+import org.apache.jackrabbit.spi.commons.conversion.DefaultNamePathResolver;
+import org.apache.jackrabbit.spi.commons.conversion.NamePathResolver;
+import org.apache.jackrabbit.spi.commons.nodetype.compact.CompactNodeTypeDefWriter;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import javax.jcr.NamespaceException;
+import javax.jcr.NamespaceRegistry;
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+import javax.jcr.nodetype.NoSuchNodeTypeException;
+import javax.jcr.nodetype.NodeDefinitionTemplate;
+import javax.jcr.nodetype.NodeType;
+import javax.jcr.nodetype.NodeTypeDefinition;
+import javax.jcr.nodetype.NodeTypeIterator;
+import javax.jcr.nodetype.NodeTypeTemplate;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -41,28 +66,13 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import javax.jcr.NamespaceRegistry;
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-import javax.jcr.nodetype.NoSuchNodeTypeException;
-import javax.jcr.nodetype.NodeDefinitionTemplate;
-import javax.jcr.nodetype.NodeType;
-import javax.jcr.nodetype.NodeTypeDefinition;
-import javax.jcr.nodetype.NodeTypeIterator;
-import javax.jcr.nodetype.NodeTypeTemplate;
 
-import net.adamcin.oakpal.core.Fun;
-import net.adamcin.oakpal.core.JsonCnd;
-import net.adamcin.oakpal.core.checks.Rule;
-import org.apache.jackrabbit.commons.cnd.CompactNodeTypeDefReader;
-import org.apache.jackrabbit.commons.cnd.ParseException;
-import org.apache.jackrabbit.commons.cnd.TemplateBuilderFactory;
-import org.apache.jackrabbit.spi.Name;
-import org.apache.jackrabbit.spi.commons.conversion.DefaultNamePathResolver;
-import org.apache.jackrabbit.spi.commons.conversion.NamePathResolver;
-import org.apache.jackrabbit.spi.commons.nodetype.compact.CompactNodeTypeDefWriter;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import static net.adamcin.oakpal.core.Fun.compose;
+import static net.adamcin.oakpal.core.Fun.composeTest;
+import static net.adamcin.oakpal.core.Fun.inSet;
+import static net.adamcin.oakpal.core.Fun.mapValue;
+import static net.adamcin.oakpal.core.Fun.result1;
+import static net.adamcin.oakpal.core.Fun.uncheck1;
 
 /**
  * Interface independent logic for exporting .cnd files from a JCR session.
@@ -74,6 +84,10 @@ public final class CndExporter {
         private List<Rule> scopeReplaceNames;
         private boolean includeBuiltins;
 
+        /**
+         * @param scopeExportNames
+         * @return
+         */
         public Builder withScopeExportNames(final List<Rule> scopeExportNames) {
             this.scopeExportNames = scopeExportNames;
             return this;
@@ -164,11 +178,20 @@ public final class CndExporter {
         final NamePathResolver resolver = new DefaultNamePathResolver(session);
         final TemplateBuilderFactory defFactory = new TemplateBuilderFactory(session);
 
+        List<Result<String>> resolvedUris = desiredTypeNames.stream()
+                .flatMap(JsonCnd::streamNsPrefix)
+                .collect(Collectors.toSet()).stream().map(result1(session::getNamespaceURI)).collect(Collectors.toList());
+
+        final String allPrefixMessages = combineCauseMessages(resolvedUris.stream(), NamespaceException.class);
+        if (!allPrefixMessages.isEmpty()) {
+            throw new RepositoryException(allPrefixMessages);
+        }
+
         final Function<String, Name> mapper = Fun.tryOrDefault1(resolver::getQName, null);
         final Function<Name, String> qualifier = Fun.tryOrDefault1(resolver::getJCRName, null);
 
         final Set<Name> exportTypeNames = new HashSet<>();
-        desiredTypeNames.stream().map(mapper).forEachOrdered(exportTypeNames::add);
+        desiredTypeNames.stream().map(mapper).filter(Objects::nonNull).forEachOrdered(exportTypeNames::add);
 
         final Map<Name, NodeTypeDefinition> writableTypes = new LinkedHashMap<>();
         if (initialCnd != null && initialCnd.isFile()) {
@@ -179,7 +202,6 @@ public final class CndExporter {
                 for (NodeTypeTemplate def : ntReader.getNodeTypeDefinitions()) {
                     Name defName = mapper.apply(def.getName());
                     writableTypes.put(defName, def);
-                    ntDepStream(def).map(mapper).forEachOrdered(exportTypeNames::add);
                 }
             }
         }
@@ -189,25 +211,34 @@ public final class CndExporter {
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
 
-
-        final Function<String, String> normalizer = qualifier.compose(mapper);
+        final Function<String, String> normalizer = compose(mapper, qualifier);
 
         final Predicate<NodeTypeDefinition> scopeExportFilter = Fun
-                .composeTest(normalizer.compose(NodeTypeDefinition::getName),
+                .composeTest(compose(NodeTypeDefinition::getName, normalizer),
                         (name -> Rule.lastMatch(scopeExportNames, name).isInclude()));
 
+        final Predicate<String> scopeReplaceMatcher =
+                name -> Rule.lastMatch(scopeReplaceNames, name).isInclude();
+
         final Predicate<NodeTypeDefinition> scopeReplaceFilter = Fun
-                .composeTest(normalizer.compose(NodeTypeDefinition::getName),
-                        (name -> Rule.lastMatch(scopeReplaceNames, name).isInclude()));
+                .composeTest(compose(NodeTypeDefinition::getName, normalizer), scopeReplaceMatcher);
 
         final Predicate<NodeTypeDefinition> addOrReplaceFilter = Fun
-                .composeTest(mapper.compose(NodeTypeDefinition::getName),
-                        writableTypes::containsKey)
+                .composeTest(compose(NodeTypeDefinition::getName, mapper), inSet(writableTypes.keySet()))
                 .negate().or(scopeReplaceFilter);
 
+        final Predicate<Name> builtinMatcher = includeBuiltins ? name -> true : Fun.inSet(builtinNodetypes).negate();
         final Predicate<NodeTypeDefinition> builtinFilter =
-                Fun.composeTest(mapper.compose(NodeTypeDefinition::getName),
-                        includeBuiltins ? name -> true : ((Predicate<Name>) builtinNodetypes::contains).negate());
+                Fun.composeTest(compose(NodeTypeDefinition::getName, mapper), builtinMatcher);
+
+        writableTypes.values().stream()
+                .map(NodeTypeTemplate.class::cast)
+                .flatMap(CndExporter::ntDepStream)
+                .map(mapper)
+                .filter(Objects::nonNull)
+                .filter(inSet(writableTypes.keySet()).negate())
+                .filter(builtinMatcher)
+                .forEachOrdered(exportTypeNames::add);
 
         // export if name
         // 1. matches scopeExportNames
@@ -280,16 +311,33 @@ public final class CndExporter {
         }
 
         final Map<Name, NodeTypeDefinition> exportedTypes = new LinkedHashMap<>();
-        for (Name qName : exportableTypeNames) {
+        final List<Result<NodeType>> typesToAdd = exportableTypeNames.stream().map(qName -> {
             if (allTypes.containsKey(qName)) {
-                final NodeType def = allTypes.get(qName);
-                addType(resolver, exportedTypes, def);
+                return Result.success(allTypes.get(qName));
             } else {
-                throw new NoSuchNodeTypeException("Failed to find nodetype with name: " + qName);
+                return result1(resolver::getJCRName).apply(qName)
+                        .flatMap(jcrName ->
+                                Result.<NodeType>failure(
+                                        new NoSuchNodeTypeException("Failed to find nodetype with name: " + jcrName)));
             }
+        }).collect(Collectors.toList());
+
+        final String allMessages = combineCauseMessages(typesToAdd.stream(), NoSuchNodeTypeException.class);
+        if (!allMessages.isEmpty()) {
+            throw new NoSuchNodeTypeException(allMessages);
         }
 
+        typesToAdd.stream().flatMap(Result::stream).forEachOrdered(def -> addType(resolver, exportedTypes, def));
         return exportedTypes;
+    }
+
+    static <T> String combineCauseMessages(final @NotNull Stream<Result<T>> results, final Class<? extends Throwable> causeType) {
+        return results.filter(Result::isFailure)
+                .map(result -> result.findCause(causeType))
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .map(Throwable::getMessage)
+                .collect(Collectors.joining(", "));
     }
 
     static <T> Stream<T> optStream(final T element) {
@@ -310,13 +358,12 @@ public final class CndExporter {
 
     static void addType(final @NotNull NamePathResolver resolver,
                         final @NotNull Map<Name, NodeTypeDefinition> typeSet,
-                        final @NotNull NodeType def)
-            throws RepositoryException {
-        final Name name = resolver.getQName(def.getName());
+                        final @NotNull NodeType def) {
+        final Name name = uncheck1(resolver::getQName).apply(def.getName());
         if (typeSet.containsKey(name)) {
             return;
         }
-        final Consumer<NodeType> accum = Fun.uncheckVoid1(nt -> addType(resolver, typeSet, nt));
+        final Consumer<NodeType> accum = nt -> addType(resolver, typeSet, nt);
         // first add super types
         optStream(def.getDeclaredSupertypes()).flatMap(Stream::of).forEachOrdered(accum);
         // then add this type

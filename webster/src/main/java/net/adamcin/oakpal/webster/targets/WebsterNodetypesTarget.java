@@ -35,7 +35,24 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- *
+ * Exports a nodetypes.cnd file from a source Oak repository to support a filevault archive.
+ * <p>
+ * {@code config} options:
+ * <dl>
+ * <dt>{@code scopeExportNames}</dt>
+ * <dd>A list of {@link Rule}s with patterns matched against nodetype JCR names (like "nt:folder", "nt:unstructured"),
+ * which restricts the scope for the export. Rules are evaluated top-to-bottom. The type of the last rule to match is
+ * the effective action taken for the element. Export scope includes all nodetypes by default.</dd>
+ * <dt>{@code scopeReplaceNames}</dt>
+ * <dd>A list of {@link Rule}s with patterns matched against nodetype JCR names (like "nt:folder", "nt:unstructured"),
+ * which restricts the scope of replacement of nodetype definitions that are already defined in the target CND file, if
+ * it exists. By excluding certain nodetypes from replacement, you can make the target CND file the authoritative source
+ * for their definitions. Replacement scope includes all nodetypes by default.</dd>
+ * <dt>{@code includeBuiltins}</dt>
+ * <dd>({@code boolean}, defaults to {@code false}). Oak defines a set of builtin nodetypes which are not normally
+ * included in application package CNDs. If you wish to export and include builtin nodetypes for package deployment on
+ * a non-Oak JCR repository, you will need to set this to {@code true}.</dd>
+ * </dl>
  */
 final class WebsterNodetypesTarget implements WebsterTarget, ArchiveAware {
     private static final Logger LOGGER = LoggerFactory.getLogger(WebsterNodetypesTarget.class);

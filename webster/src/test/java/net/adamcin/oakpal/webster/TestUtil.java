@@ -16,33 +16,13 @@
 
 package net.adamcin.oakpal.webster;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.Reader;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.function.BiConsumer;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import javax.jcr.NamespaceRegistry;
-import javax.jcr.Repository;
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-import javax.jcr.SimpleCredentials;
-import javax.jcr.ValueFactory;
-import javax.jcr.Workspace;
-import javax.jcr.nodetype.NodeTypeManager;
-import javax.jcr.security.Privilege;
-
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import net.adamcin.oakpal.core.Fun;
+import net.adamcin.oakpal.core.InitStage;
+import net.adamcin.oakpal.core.JsonCnd;
+import net.adamcin.oakpal.core.OakMachine;
+import net.adamcin.oakpal.core.OakpalPlan;
 import net.adamcin.oakpal.core.Result;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.api.JackrabbitRepository;
@@ -65,10 +45,39 @@ import org.apache.jackrabbit.spi.PrivilegeDefinition;
 import org.apache.jackrabbit.spi.commons.conversion.DefaultNamePathResolver;
 import org.apache.jackrabbit.spi.commons.conversion.NamePathResolver;
 import org.apache.jackrabbit.spi.commons.privilege.PrivilegeDefinitionReader;
+import org.jetbrains.annotations.NotNull;
+
+import javax.jcr.NamespaceRegistry;
+import javax.jcr.Repository;
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+import javax.jcr.SimpleCredentials;
+import javax.jcr.ValueFactory;
+import javax.jcr.Workspace;
+import javax.jcr.nodetype.NodeTypeManager;
+import javax.jcr.security.Privilege;
+import javax.json.JsonObject;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.function.BiConsumer;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static net.adamcin.oakpal.core.Fun.result1;
 import static net.adamcin.oakpal.core.Fun.uncheck1;
 import static net.adamcin.oakpal.core.Fun.zipKeysWithValueFunc;
+import static net.adamcin.oakpal.core.JavaxJson.arr;
+import static net.adamcin.oakpal.core.JavaxJson.obj;
+import static org.junit.Assert.assertTrue;
 
 public final class TestUtil {
     private TestUtil() {
@@ -268,7 +277,28 @@ public final class TestUtil {
         }
     }
 
+    public static void assertFileContains(final @NotNull File haystack, final @NotNull String needle)
+            throws Exception {
+        final String contents = FileUtils.readFileToString(haystack, StandardCharsets.UTF_8);
+        assertTrue(haystack.getName() + " contains '" + needle + "'",
+                contents.contains(needle));
+    }
+
     public interface SessionStrategy {
         void accept(Session session) throws Exception;
+    }
+
+    public static OakMachine.Builder fromPlan(final @NotNull JsonObject planJson) throws Exception {
+        return OakpalPlan.fromJson(planJson).toOakMachineBuilder(null, OakpalPlan.class.getClassLoader());
+    }
+
+    public static void initState(final @NotNull WebsterPlan.Builder builder,
+                                 final @NotNull JsonObject planJson) throws Exception {
+        OakMachine.Builder machineBuilder = fromPlan(planJson);
+        builder.withFixtureProvider(() -> {
+            final NodeStoreFixture fixture = JcrFactory.getNodeStoreFixture(true, "memory");
+            machineBuilder.withNodeStoreSupplier(fixture::getStore).build().scanPackage();
+            return fixture;
+        });
     }
 }

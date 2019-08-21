@@ -342,14 +342,7 @@ public class OakpalPlanTest {
         assertEquals("default preInstallUrls", Collections.emptyList(), derived.getPreInstallUrls());
     }
 
-    @Test
-    public void testFromJson_fullPlan() throws Exception {
-        final URL expectBaseUrl = new URL(baseUrl, "fullPlan.json");
-        final Result<OakpalPlan> fullPlan = OakpalPlan.fromJson(expectBaseUrl);
-        assertTrue("full plan is successful", fullPlan.isSuccess());
-        final OakpalPlan derived = fullPlan.getOrDefault(null);
-        assertNotNull("not null full plan", derived);
-
+    private void expectFullPlan(final @NotNull OakpalPlan derived) throws Exception {
         final List<String> expectChecklists = Arrays.asList("checklist1", "checklist2");
         final CheckSpec check1 = CheckSpec.fromJson(key("name", "check1").key("impl", CHECK_NOTHING).get());
         final CheckSpec check2 = CheckSpec.fromJson(key("name", "check2").key("impl", CHECK_NOTHING).get());
@@ -369,9 +362,6 @@ public class OakpalPlanTest {
         final String privilege2 = "foo:priv2";
         final List<String> expectPrivileges = Arrays.asList(privilege1, privilege2);
         final InstallHookPolicy expectPolicy = InstallHookPolicy.PROHIBIT;
-        final URL url1 = new URL("http://foo.com/foo1.zip");
-        final URL url2 = new URL("http://foo.com/foo2.zip");
-        final List<URL> expectPreInstallUrls = Arrays.asList(url1, url2);
 
         assertEquals("expect checklists", expectChecklists, derived.getChecklists());
         assertEquals("expect checks", expectChecks, derived.getChecks());
@@ -381,8 +371,40 @@ public class OakpalPlanTest {
         assertEquals("expect privileges", expectPrivileges, derived.getJcrPrivileges());
         assertTrue("expect enablePreInstallHook", derived.isEnablePreInstallHooks());
         assertSame("expect installHooksPolicy", expectPolicy, derived.getInstallHookPolicy());
-        assertEquals("expect preInstallUrls", expectPreInstallUrls, derived.getPreInstallUrls());
         assertNotNull("expect fromJson originalJson is not null", derived.getOriginalJson());
+    }
+
+    @Test
+    public void testFromJson_fullPlan_justJson() throws Exception {
+        final URL expectBaseUrl = new URL(baseUrl, "fullPlan.json");
+
+        try (InputStream input = expectBaseUrl.openStream();
+             JsonReader reader = Json.createReader(input)) {
+            final JsonObject expectJson = reader.readObject();
+            final OakpalPlan derived = OakpalPlan.fromJson(expectJson);
+            assertNotNull("not null full plan", derived);
+
+            expectFullPlan(derived);
+            assertEquals("expect no preInstallUrls", Collections.emptyList(), derived.getPreInstallUrls());
+            assertEquals("expect fromJson originalJson is", expectJson, derived.getOriginalJson());
+            assertEquals("expect fromJson toJson is", expectJson, derived.toJson());
+        }
+    }
+
+    @Test
+    public void testFromJson_fullPlan_fromUrl() throws Exception {
+        final URL expectBaseUrl = new URL(baseUrl, "fullPlan.json");
+        final Result<OakpalPlan> fullPlan = OakpalPlan.fromJson(expectBaseUrl);
+        assertTrue("full plan is successful", fullPlan.isSuccess());
+        final OakpalPlan derived = fullPlan.getOrDefault(null);
+        assertNotNull("not null full plan", derived);
+
+        expectFullPlan(derived);
+        final URL url1 = new URL("http://foo.com/foo1.zip");
+        final URL url2 = new URL("http://foo.com/foo2.zip");
+        final List<URL> expectPreInstallUrls = Arrays.asList(url1, url2);
+        assertEquals("expect preInstallUrls", expectPreInstallUrls, derived.getPreInstallUrls());
+
         try (InputStream input = expectBaseUrl.openStream();
              JsonReader reader = Json.createReader(input)) {
             final JsonObject expectJson = reader.readObject();

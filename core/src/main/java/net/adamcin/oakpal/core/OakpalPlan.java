@@ -244,46 +244,62 @@ public final class OakpalPlan implements JavaxJson.ObjectConvertible {
                 .withEnablePreInstallHooks(enablePreInstallHooks);
     }
 
+
+    private static OakpalPlan fromJson(final @NotNull Builder builder,
+                                       final @NotNull JsonObject json) {
+        if (hasNonNull(json, KEY_PREINSTALL_URLS) && builder.base != null) {
+            builder.withPreInstallUrls(JavaxJson.mapArrayOfStrings(json.getJsonArray(KEY_PREINSTALL_URLS),
+                    uncheck1(url -> new URL(builder.base, url))));
+        }
+        if (hasNonNull(json, KEY_CHECKLISTS)) {
+            builder.withChecklists(JavaxJson.mapArrayOfStrings(json.getJsonArray(KEY_CHECKLISTS)));
+        }
+        if (hasNonNull(json, KEY_CHECKS)) {
+            builder.withChecks(JavaxJson.mapArrayOfObjects(json.getJsonArray(KEY_CHECKS), CheckSpec::fromJson));
+        }
+        if (hasNonNull(json, KEY_FORCED_ROOTS)) {
+            builder.withForcedRoots(JavaxJson.mapArrayOfObjects(json.getJsonArray(KEY_FORCED_ROOTS), ForcedRoot::fromJson));
+        }
+        final NamespaceMapping mapping;
+        if (hasNonNull(json, KEY_JCR_NAMESPACES)) {
+            final List<JcrNs> jcrNsList = JavaxJson.mapArrayOfObjects(json.getJsonArray(KEY_JCR_NAMESPACES),
+                    JcrNs::fromJson);
+            mapping = JsonCnd.toNamespaceMapping(jcrNsList);
+            builder.withJcrNamespaces(jcrNsList);
+        } else {
+            mapping = JsonCnd.BUILTIN_MAPPINGS;
+        }
+        if (hasNonNull(json, KEY_JCR_NODETYPES)) {
+            builder.withJcrNodetypes(JsonCnd.getQTypesFromJson(json.getJsonObject(KEY_JCR_NODETYPES), mapping));
+        }
+        if (hasNonNull(json, KEY_JCR_PRIVILEGES)) {
+            builder.withJcrPrivileges(JavaxJson.mapArrayOfStrings(json.getJsonArray(KEY_JCR_PRIVILEGES)));
+        }
+        if (hasNonNull(json, KEY_ENABLE_PRE_INSTALL_HOOKS)) {
+            builder.withEnablePreInstallHooks(json.getBoolean(KEY_ENABLE_PRE_INSTALL_HOOKS));
+        }
+        if (hasNonNull(json, KEY_INSTALL_HOOK_POLICY)) {
+            builder.withInstallHookPolicy(InstallHookPolicy.forName(
+                    json.getString(KEY_INSTALL_HOOK_POLICY)));
+        }
+        return builder.build(json);
+    }
+
+    /**
+     * Constructs an OakpalPlan without a base url or a name.
+     *
+     * @param json the json object to read.
+     * @return an OakpalPlan, guaranteed
+     */
+    public static OakpalPlan fromJson(final @NotNull JsonObject json) {
+        return fromJson(new Builder(null, null), json);
+    }
+
     public static Result<OakpalPlan> fromJson(final @NotNull URL jsonUrl) {
         try (JsonReader reader = Json.createReader(jsonUrl.openStream())) {
             final JsonObject json = reader.readObject();
-            final OakpalPlan.Builder builder = new OakpalPlan.Builder(jsonUrl, Text.getName(jsonUrl.getPath()));
-            if (hasNonNull(json, KEY_PREINSTALL_URLS)) {
-                builder.withPreInstallUrls(JavaxJson.mapArrayOfStrings(json.getJsonArray(KEY_PREINSTALL_URLS),
-                        uncheck1(url -> new URL(jsonUrl, url))));
-            }
-            if (hasNonNull(json, KEY_CHECKLISTS)) {
-                builder.withChecklists(JavaxJson.mapArrayOfStrings(json.getJsonArray(KEY_CHECKLISTS)));
-            }
-            if (hasNonNull(json, KEY_CHECKS)) {
-                builder.withChecks(JavaxJson.mapArrayOfObjects(json.getJsonArray(KEY_CHECKS), CheckSpec::fromJson));
-            }
-            if (hasNonNull(json, KEY_FORCED_ROOTS)) {
-                builder.withForcedRoots(JavaxJson.mapArrayOfObjects(json.getJsonArray(KEY_FORCED_ROOTS), ForcedRoot::fromJson));
-            }
-            final NamespaceMapping mapping;
-            if (hasNonNull(json, KEY_JCR_NAMESPACES)) {
-                final List<JcrNs> jcrNsList = JavaxJson.mapArrayOfObjects(json.getJsonArray(KEY_JCR_NAMESPACES),
-                        JcrNs::fromJson);
-                mapping = JsonCnd.toNamespaceMapping(jcrNsList);
-                builder.withJcrNamespaces(jcrNsList);
-            } else {
-                mapping = JsonCnd.BUILTIN_MAPPINGS;
-            }
-            if (hasNonNull(json, KEY_JCR_NODETYPES)) {
-                builder.withJcrNodetypes(JsonCnd.getQTypesFromJson(json.getJsonObject(KEY_JCR_NODETYPES), mapping));
-            }
-            if (hasNonNull(json, KEY_JCR_PRIVILEGES)) {
-                builder.withJcrPrivileges(JavaxJson.mapArrayOfStrings(json.getJsonArray(KEY_JCR_PRIVILEGES)));
-            }
-            if (hasNonNull(json, KEY_ENABLE_PRE_INSTALL_HOOKS)) {
-                builder.withEnablePreInstallHooks(json.getBoolean(KEY_ENABLE_PRE_INSTALL_HOOKS));
-            }
-            if (hasNonNull(json, KEY_INSTALL_HOOK_POLICY)) {
-                builder.withInstallHookPolicy(InstallHookPolicy.forName(
-                        json.getString(KEY_INSTALL_HOOK_POLICY)));
-            }
-            return Result.success(builder.build(json));
+            final Builder builder = new Builder(jsonUrl, Text.getName(jsonUrl.getPath()));
+            return Result.success(fromJson(builder, json));
         } catch (Exception e) {
             return Result.failure(e);
         }
