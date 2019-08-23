@@ -23,8 +23,10 @@ import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.core.ImmutableRoot;
 import org.apache.jackrabbit.oak.plugins.name.ReadOnlyNamespaceRegistry;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.spi.Name;
 import org.apache.jackrabbit.spi.NameFactory;
+import org.apache.jackrabbit.spi.PrivilegeDefinition;
 import org.apache.jackrabbit.spi.QItemDefinition;
 import org.apache.jackrabbit.spi.QNodeDefinition;
 import org.apache.jackrabbit.spi.QNodeTypeDefinition;
@@ -43,6 +45,7 @@ import org.apache.jackrabbit.spi.commons.nodetype.QNodeDefinitionBuilder;
 import org.apache.jackrabbit.spi.commons.nodetype.QNodeTypeDefinitionBuilder;
 import org.apache.jackrabbit.spi.commons.nodetype.QPropertyDefinitionBuilder;
 import org.apache.jackrabbit.spi.commons.nodetype.constraint.ValueConstraint;
+import org.apache.jackrabbit.spi.commons.privilege.PrivilegeDefinitionImpl;
 import org.apache.jackrabbit.spi.commons.value.QValueFactoryImpl;
 import org.apache.jackrabbit.spi.commons.value.ValueFormat;
 import org.apache.jackrabbit.vault.fs.spi.CNDReader;
@@ -92,8 +95,10 @@ import java.util.stream.StreamSupport;
 
 import static java.util.Optional.ofNullable;
 import static net.adamcin.oakpal.core.Fun.compose;
+import static net.adamcin.oakpal.core.Fun.constantly1;
 import static net.adamcin.oakpal.core.Fun.inSet;
 import static net.adamcin.oakpal.core.Fun.inferTest1;
+import static net.adamcin.oakpal.core.Fun.mapEntry;
 import static net.adamcin.oakpal.core.Fun.mapKey;
 import static net.adamcin.oakpal.core.Fun.mapValue;
 import static net.adamcin.oakpal.core.Fun.onEntry;
@@ -104,7 +109,11 @@ import static net.adamcin.oakpal.core.Fun.uncheck1;
 import static net.adamcin.oakpal.core.Fun.uncheck2;
 import static net.adamcin.oakpal.core.Fun.uncheckVoid1;
 import static net.adamcin.oakpal.core.Fun.uncheckVoid2;
+import static net.adamcin.oakpal.core.Fun.zipKeysWithValueFunc;
+import static net.adamcin.oakpal.core.JavaxJson.JSON_VALUE_STRING;
 import static net.adamcin.oakpal.core.JavaxJson.mapArrayOfStrings;
+import static net.adamcin.oakpal.core.JavaxJson.obj;
+import static net.adamcin.oakpal.core.JavaxJson.optArray;
 import static net.adamcin.oakpal.core.JavaxJson.unwrap;
 import static net.adamcin.oakpal.core.JavaxJson.wrap;
 
@@ -128,6 +137,13 @@ public final class JsonCnd {
                     .getChildNode(NodeTypeConstants.JCR_NODE_TYPES)
                     .getChildNodeNames().spliterator(), false)
             .collect(Collectors.toList());
+    public static final List<String> BUILTIN_PRIVILEGES = Stream.concat(Stream.of(PrivilegeConstants.JCR_ALL),
+            Stream.concat(
+                    PrivilegeConstants.NON_AGGREGATE_PRIVILEGES.stream(),
+                    PrivilegeConstants.AGGREGATE_PRIVILEGES.keySet().stream()))
+            .collect(Collectors.toList());
+    static final String PRIVILEGE_KEY_ABSTRACT = "abstract";
+    static final String PRIVILEGE_KEY_CONTAINS = "contains";
 
     private JsonCnd() {
         // no instantiation
@@ -148,6 +164,30 @@ public final class JsonCnd {
     }
 
     /**
+     * Read a serialized JSON privileges object (or array of privilege names) into a list of qualified privilege definitions.
+     *
+     * @param json    the jcrPrivileges object (organized by "privilegeName": { "abstract": boolean, "aggregateNames": [ ... ] }) or array of names
+     * @param mapping the mapping to use to resolve JCR namespaces from prefixes, see {@link #toNamespaceMapping(List)}
+     * @return a list of qualified privilege definitions
+     */
+    @SuppressWarnings("WeakerAccess")
+    public static List<PrivilegeDefinition>
+    getPrivilegesFromJson(final @NotNull JsonValue json,
+                          final @NotNull NamespaceMapping mapping) {
+        if (json.getValueType() == JsonValue.ValueType.ARRAY) {
+            return JavaxJson.mapArrayOfStrings(json.asJsonArray(),
+                    zipKeysWithValueFunc(constantly1(() -> JsonValue.EMPTY_JSON_OBJECT)), true)
+                    .stream()
+                    .map(mapEntry(uncheck2(privDefinitionMapper(mapping))))
+                    .collect(Collectors.toList());
+        } else if (json.getValueType() == JsonValue.ValueType.OBJECT) {
+            return JavaxJson.mapObjectValues(json.asJsonObject(), uncheck2(privDefinitionMapper(mapping)), true);
+        } else {
+            return Collections.emptyList();
+        }
+    }
+
+    /**
      * Write a list of qualified node types to a JSON CND object.
      *
      * @param ntDefs  the list of qualified node type definitions to write
@@ -161,6 +201,36 @@ public final class JsonCnd {
                 .map(def -> toEntry(def, NodeTypeDefinitionKey.writeAllJson(def, resolver)))
                 .filter(testValue(JavaxJson::nonEmptyValue))
                 .map(mapKey(compose(QNodeTypeDefinition::getName, uncheck1(jcrNameOrResidual(resolver)))))
+                .sorted(Map.Entry.comparingByKey())
+                .collect(JsonCollectors.toJsonObject());
+    }
+
+    /**
+     * Write a list of privilege definitions to a JSON privileges object.
+     *
+     * @param privDefs the list of qualified privilege definitions to write
+     * @param mapping  a JCR namespace mapping to resolve prefixes for qualified names
+     * @return a JSON CND object
+     */
+    public static JsonValue privilegesToJson(final @NotNull List<PrivilegeDefinition> privDefs,
+                                             final @NotNull NamespaceMapping mapping) {
+        final NamePathResolver resolver = new DefaultNamePathResolver(mapping);
+        if (privDefs.stream().allMatch(def -> !def.isAbstract() && def.getDeclaredAggregateNames().isEmpty())) {
+            return privDefs.stream()
+                    .map(compose(PrivilegeDefinition::getName, uncheck1(jcrNameOrResidual(resolver))))
+                    .map(JavaxJson::wrap)
+                    .sorted(Comparator.comparing(JSON_VALUE_STRING))
+                    .collect(JsonCollectors.toJsonArray());
+        }
+        return privDefs.stream()
+                .map(def -> toEntry(def, (JsonValue) obj()
+                        .key(PRIVILEGE_KEY_ABSTRACT).opt(def.isAbstract(), false)
+                        .key(PRIVILEGE_KEY_CONTAINS)
+                        .opt(def.getDeclaredAggregateNames().stream()
+                                .map(uncheck1(jcrNameOrResidual(resolver)))
+                                .collect(Collectors.toList()))
+                        .get()))
+                .map(mapKey(compose(PrivilegeDefinition::getName, uncheck1(jcrNameOrResidual(resolver)))))
                 .sorted(Map.Entry.comparingByKey())
                 .collect(JsonCollectors.toJsonObject());
     }
@@ -198,6 +268,17 @@ public final class JsonCnd {
      */
     public static Stream<Name> namedBy(final @NotNull QNodeTypeDefinition def) {
         return Stream.concat(Stream.of(def.getName()), def.getDependencies().stream());
+    }
+
+    /**
+     * Stream the qualified names referenced in a privilege definition in order to determine which namespaces must be
+     * represented in a serialized mapping.
+     *
+     * @param def a qualified privilege definition
+     * @return a stream of qualified names
+     */
+    public static Stream<Name> namedBy(final @NotNull PrivilegeDefinition def) {
+        return Stream.concat(Stream.of(def.getName()), def.getDeclaredAggregateNames().stream());
     }
 
     /**
@@ -306,6 +387,28 @@ public final class JsonCnd {
     static Fun.ThrowingBiFunction<String, JsonObject, QNodeTypeDefinition>
     qDefinitionMapper(final @NotNull NamespaceMapping mapping) {
         return nodeTypeDefinitionMapper(new DefaultNamePathResolver(mapping));
+    }
+
+    /**
+     * Constructs a {@link PrivilegeDefinition} using the provided NamespaceMapping and returns a constructed
+     * {@link PrivilegeDefinition}.
+     *
+     * @param mapping an aggregated NamespaceMapping
+     * @return a throwing bi-function mapping a JSON key and object value to a constructed {@link PrivilegeDefinition}
+     */
+    @SuppressWarnings("WeakerAccess")
+    static Fun.ThrowingBiFunction<String, JsonObject, PrivilegeDefinition>
+    privDefinitionMapper(final @NotNull NamespaceMapping mapping) {
+        final NamePathResolver resolver = new DefaultNamePathResolver(mapping);
+        return (jcrName, json) -> {
+            final Name qName = resolver.getQName(jcrName);
+            final boolean isAbstract = json.getBoolean(PRIVILEGE_KEY_ABSTRACT, false);
+            final List<Name> aggregateNames = optArray(json, PRIVILEGE_KEY_CONTAINS)
+                    .map(names -> JavaxJson.mapArrayOfStrings(names, uncheck1(resolver::getQName)))
+                    .orElse(Collections.emptyList());
+            return new PrivilegeDefinitionImpl(qName, isAbstract,
+                    aggregateNames.isEmpty() ? Collections.emptySet() : new LinkedHashSet<>(aggregateNames));
+        };
     }
 
     /**

@@ -17,6 +17,8 @@
 package net.adamcin.oakpal.core;
 
 import static net.adamcin.oakpal.core.Fun.toEntry;
+import static net.adamcin.oakpal.core.Fun.uncheck1;
+import static net.adamcin.oakpal.core.Fun.uncheck2;
 import static net.adamcin.oakpal.core.JavaxJson.arr;
 import static net.adamcin.oakpal.core.JavaxJson.key;
 import static net.adamcin.oakpal.core.JavaxJson.obj;
@@ -32,17 +34,24 @@ import java.io.File;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.security.AccessControlException;
 import javax.json.JsonObject;
+import javax.json.JsonValue;
 
 import org.apache.jackrabbit.api.JackrabbitWorkspace;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
+import org.apache.jackrabbit.spi.Name;
+import org.apache.jackrabbit.spi.PrivilegeDefinition;
 import org.apache.jackrabbit.spi.QNodeTypeDefinition;
+import org.apache.jackrabbit.spi.commons.conversion.DefaultNamePathResolver;
+import org.apache.jackrabbit.spi.commons.conversion.NamePathResolver;
 import org.apache.jackrabbit.spi.commons.namespace.NamespaceMapping;
+import org.apache.jackrabbit.spi.commons.privilege.PrivilegeDefinitionImpl;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -143,11 +152,74 @@ public class InitStageTest {
 
     }
 
+    @Test
+    public void testBuildWithPrivilegeDefinition() throws Exception {
+        final String privName = "foo:canDo";
+
+        final NamespaceMapping mapping = JsonCnd.toNamespaceMapping(getNs());
+        final PrivilegeDefinition privDef = uncheck2(JsonCnd.privDefinitionMapper(mapping))
+                .apply(privName, JsonValue.EMPTY_JSON_OBJECT);
+        final InitStage stage = new InitStage.Builder().withNs(getNs())
+                .withPrivilegeDefinition(privDef)
+                .build();
+        new OakMachine.Builder().withInitStage(stage).build().adminInitAndInspect(session -> {
+            PrivilegeManager manager = ((JackrabbitWorkspace) session.getWorkspace()).getPrivilegeManager();
+            assertEquals("privilege should not throw", privName, manager.getPrivilege(privName).getName());
+        });
+
+        final InitStage stageWithCollection = new InitStage.Builder().withNs(getNs())
+                .withPrivilegeDefinitions(Collections.singletonList(privDef))
+                .build();
+
+        new OakMachine.Builder().withInitStage(stageWithCollection).build().adminInitAndInspect(session -> {
+            PrivilegeManager manager = ((JackrabbitWorkspace) session.getWorkspace()).getPrivilegeManager();
+            assertEquals("privilege should not throw", privName, manager.getPrivilege(privName).getName());
+        });
+
+        final NamespaceMapping mapping2 = JsonCnd.toNamespaceMapping(getNs());
+        mapping2.setMapping("oof", "http://oof.com");
+
+        final NamePathResolver resolver = new DefaultNamePathResolver(mapping2);
+        final Name badPrivilege = resolver.getQName("oof:agg");
+        final InitStage stageWithAggregate = new InitStage.Builder().withNs(getNs())
+                .withPrivilegeDefinitions(Collections.singletonList(
+                        new PrivilegeDefinitionImpl(badPrivilege, false,
+                                Collections.singleton(resolver.getQName("oof:unknown")))))
+                .build();
+
+        final CompletableFuture<String> errorPrivilege = new CompletableFuture<>();
+        final ErrorListener errorListener = mock(ErrorListener.class);
+        doAnswer(invoked -> errorPrivilege.complete(invoked.getArgument(1))).when(errorListener)
+                .onJcrPrivilegeRegistrationError(any(Throwable.class), anyString());
+        new OakMachine.Builder()
+                .withInitStage(stageWithAggregate)
+                .withErrorListener(errorListener)
+                .build().adminInitAndInspect(session -> {
+            PrivilegeManager manager = ((JackrabbitWorkspace) session.getWorkspace()).getPrivilegeManager();
+            assertEquals("privilege should not throw", "jcr:read", manager.getPrivilege("jcr:read").getName());
+        });
+
+        assertEquals("bad privilege is", badPrivilege.toString(), errorPrivilege.getNow(""));
+
+    }
+
     @Test(expected = AccessControlException.class)
     public void testBuildWithNullPrivilege() throws Exception {
         final String privName = "foo:canDo";
         final InitStage stage = new InitStage.Builder().withNs(getNs())
                 .withPrivileges(null)
+                .build();
+        new OakMachine.Builder().withInitStage(stage).build().adminInitAndInspect(session -> {
+            PrivilegeManager manager = ((JackrabbitWorkspace) session.getWorkspace()).getPrivilegeManager();
+            manager.getPrivilege(privName);
+        });
+    }
+
+    @Test(expected = AccessControlException.class)
+    public void testBuildWithNullPrivilegeDefinition() throws Exception {
+        final String privName = "foo:canDo";
+        final InitStage stage = new InitStage.Builder().withNs(getNs())
+                .withPrivilegeDefinitions(null)
                 .build();
         new OakMachine.Builder().withInitStage(stage).build().adminInitAndInspect(session -> {
             PrivilegeManager manager = ((JackrabbitWorkspace) session.getWorkspace()).getPrivilegeManager();

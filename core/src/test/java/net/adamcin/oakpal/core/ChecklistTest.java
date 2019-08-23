@@ -37,6 +37,7 @@ import javax.json.JsonArray;
 import javax.json.JsonObject;
 import javax.json.JsonReader;
 
+import org.apache.jackrabbit.spi.PrivilegeDefinition;
 import org.apache.jackrabbit.spi.QNodeTypeDefinition;
 import org.apache.jackrabbit.spi.commons.namespace.NamespaceMapping;
 import org.junit.Before;
@@ -167,9 +168,18 @@ public class ChecklistTest {
 
     @Test
     public void testBuilderWithPrivileges() {
+        final List<JcrNs> jcrNamespaces = Arrays.asList(
+                JcrNs.create("foo", "http://foo.com"),
+                JcrNs.create("bar", "http://bar.com"));
+        final NamespaceMapping mapping = JsonCnd.toNamespaceMapping(jcrNamespaces);
         Checklist.Builder builderWithPrivileges = new Checklist.Builder("test");
-        final List<String> privileges = Arrays.asList("foo:canDo", "bar:canBe");
+        builderWithPrivileges.withJcrNamespaces(jcrNamespaces);
+        final List<String> privilegeNames = Arrays.asList("foo:canDo", "bar:canBe");
+        final List<PrivilegeDefinition> privileges =
+                JsonCnd.getPrivilegesFromJson(JavaxJson.wrap(privilegeNames), mapping);
         builderWithPrivileges.withJcrPrivileges(privileges);
+        assertEquals("jcr privilege names pass thru",
+                privilegeNames, builderWithPrivileges.build().getJcrPrivilegeNames());
         assertEquals("jcr privileges pass thru",
                 privileges, builderWithPrivileges.build().getJcrPrivileges());
     }
@@ -260,7 +270,8 @@ public class ChecklistTest {
                 .key("bar:primaryType").val(key("extends", arr().val("nt:base")))
                 .key("bar:mixinType").val(key("@", arr().val("mixin"))).get(), mapping);
         builder.withJcrNodetypes(nodetypes);
-        final List<String> privileges = Arrays.asList("foo:canDo", "bar:canBe");
+        final List<PrivilegeDefinition> privileges =
+                JsonCnd.getPrivilegesFromJson(arr("foo:canDo", "bar:canBe").get(), mapping);
         builder.withJcrPrivileges(privileges);
         final List<ForcedRoot> forcedRoots = Arrays.asList(
                 ForcedRoot.fromJson(obj()
@@ -320,8 +331,9 @@ public class ChecklistTest {
                 .key("bar:mixinType").val(key("@", arr().val("mixin"))).get(), mapping);
         final JsonObject nodetypesJson = JsonCnd.toJson(nodetypes, mapping);
         builder.withJcrNodetypes(nodetypes);
-        final List<String> privileges = Arrays.asList("foo:canDo", "bar:canBe");
-        final JsonArray privilegesJson = JavaxJson.wrap(privileges).asJsonArray();
+        final JsonArray privilegesJson = arr("bar:canBe", "foo:canDo").get();
+        final List<PrivilegeDefinition> privileges =
+                JsonCnd.getPrivilegesFromJson(privilegesJson, mapping);
         builder.withJcrPrivileges(privileges);
         final List<ForcedRoot> forcedRoots = Arrays.asList(
                 ForcedRoot.fromJson(obj()

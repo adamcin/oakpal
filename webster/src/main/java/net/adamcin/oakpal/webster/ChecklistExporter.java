@@ -430,7 +430,7 @@ public final class ChecklistExporter {
         if (checklist != null) {
             checklist.toJson().forEach(builder::add);
 
-            checklist.getJcrPrivileges().stream()
+            checklist.getJcrPrivilegeNames().stream()
                     .map(nsRemapName(origMapping, remapping))
                     .forEachOrdered(privileges::add);
 

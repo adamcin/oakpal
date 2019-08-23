@@ -18,6 +18,7 @@ package net.adamcin.oakpal.core;
 
 import org.apache.jackrabbit.api.JackrabbitWorkspace;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
+import org.apache.jackrabbit.spi.PrivilegeDefinition;
 import org.apache.jackrabbit.spi.QNodeTypeDefinition;
 import org.apache.jackrabbit.spi.commons.conversion.DefaultNamePathResolver;
 import org.apache.jackrabbit.spi.commons.conversion.NamePathResolver;
@@ -141,8 +142,10 @@ public class OakpalPlanTest {
     public void testBuilder_withJcrPrivileges() {
         final String privilege1 = "foo:priv1";
         final String privilege2 = "foo:priv2";
-        assertEquals("expect privileges", Arrays.asList(privilege1, privilege2),
-                builder().withJcrPrivileges(Arrays.asList(privilege1, privilege2))
+        final List<PrivilegeDefinition> expectPrivileges =
+                JsonCnd.getPrivilegesFromJson(arr(privilege1, privilege2).get(), getMapping());
+        assertEquals("expect privileges", expectPrivileges,
+                builder().withJcrPrivileges(expectPrivileges)
                         .build().getJcrPrivileges());
     }
 
@@ -220,7 +223,8 @@ public class OakpalPlanTest {
         final List<QNodeTypeDefinition> expectTypes = JsonCnd.getQTypesFromJson(json, getMapping());
         final String privilege1 = "foo:priv1";
         final String privilege2 = "foo:priv2";
-        final List<String> expectPrivileges = Arrays.asList(privilege1, privilege2);
+        final List<PrivilegeDefinition> expectPrivileges =
+                JsonCnd.getPrivilegesFromJson(arr(privilege1, privilege2).get(), getMapping());
         final InstallHookPolicy expectPolicy = InstallHookPolicy.PROHIBIT;
         final URL url1 = new URL("http://foo.com/foo1.zip");
         final URL url2 = new URL("http://foo.com/foo2.zip");
@@ -277,7 +281,8 @@ public class OakpalPlanTest {
         final List<QNodeTypeDefinition> expectTypes = JsonCnd.getQTypesFromJson(json, getMapping());
         final String privilege1 = "foo:priv1";
         final String privilege2 = "foo:priv2";
-        final List<String> expectPrivileges = Arrays.asList(privilege1, privilege2);
+        final List<PrivilegeDefinition> expectPrivileges =
+                JsonCnd.getPrivilegesFromJson(arr(privilege1, privilege2).get(), getMapping());
         final InstallHookPolicy expectPolicy = InstallHookPolicy.PROHIBIT;
         final URL url1 = new URL("http://foo.com/foo1.zip");
         final URL url2 = new URL("http://foo.com/foo2.zip");
@@ -360,7 +365,9 @@ public class OakpalPlanTest {
         final List<QNodeTypeDefinition> expectTypes = JsonCnd.getQTypesFromJson(json, getMapping());
         final String privilege1 = "foo:priv1";
         final String privilege2 = "foo:priv2";
-        final List<String> expectPrivileges = Arrays.asList(privilege1, privilege2);
+        final List<String> expectPrivilegeNames = Arrays.asList(privilege1, privilege2);
+        final List<PrivilegeDefinition> expectPrivileges =
+                JsonCnd.getPrivilegesFromJson(wrap(expectPrivilegeNames), getMapping());
         final InstallHookPolicy expectPolicy = InstallHookPolicy.PROHIBIT;
 
         assertEquals("expect checklists", expectChecklists, derived.getChecklists());

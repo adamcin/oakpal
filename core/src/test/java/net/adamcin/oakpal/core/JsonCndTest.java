@@ -95,6 +95,81 @@ public class JsonCndTest {
     }
 
     @Test
+    public void testGetPrivilegesFromJson() {
+        List<PrivilegeDefinition> oneDef = JsonCnd.getPrivilegesFromJson(key("nt:canDo", obj()
+                        .key(JsonCnd.PRIVILEGE_KEY_ABSTRACT, true)
+                        .key(JsonCnd.PRIVILEGE_KEY_CONTAINS, arr("jcr:read", "jcr:write"))).get(),
+                JsonCnd.BUILTIN_MAPPINGS);
+
+        assertEquals("size is ", 1, oneDef.size());
+        assertEquals("name is", "canDo", oneDef.get(0).getName().getLocalName());
+        assertEquals("uri is", Name.NS_NT_URI, oneDef.get(0).getName().getNamespaceURI());
+
+        List<PrivilegeDefinition> oneName = JsonCnd.getPrivilegesFromJson(arr("nt:canDo").get(),
+                JsonCnd.BUILTIN_MAPPINGS);
+
+        assertEquals("size is ", 1, oneName.size());
+        assertEquals("name is", "canDo", oneName.get(0).getName().getLocalName());
+        assertEquals("uri is", Name.NS_NT_URI, oneName.get(0).getName().getNamespaceURI());
+
+        List<PrivilegeDefinition> jsonNull = JsonCnd.getPrivilegesFromJson(wrap(null), JsonCnd.BUILTIN_MAPPINGS);
+
+        assertEquals("size is ", 0, jsonNull.size());
+
+        List<PrivilegeDefinition> defs = JsonCnd.getPrivilegesFromJson(obj()
+                .key("jcr:canDo", obj())
+                .key("jcr:willDo", obj()
+                        .key(JsonCnd.PRIVILEGE_KEY_ABSTRACT, false))
+                .key("jcr:wouldDoBut", obj()
+                        .key(JsonCnd.PRIVILEGE_KEY_ABSTRACT, true))
+                .key("jcr:wontDo", null)
+                .key("jcr:none", obj()
+                        .key(JsonCnd.PRIVILEGE_KEY_CONTAINS, arr()))
+                .key("jcr:rw", obj()
+                        .key(JsonCnd.PRIVILEGE_KEY_ABSTRACT, false)
+                        .key(JsonCnd.PRIVILEGE_KEY_CONTAINS,
+                                arr("jcr:read", "jcr:write", "jcr:addChildNodes")))
+                .key("jcr:mightRw", obj()
+                        .key(JsonCnd.PRIVILEGE_KEY_ABSTRACT, true)
+                        .key(JsonCnd.PRIVILEGE_KEY_CONTAINS,
+                                arr("jcr:read", "jcr:write", "jcr:removeNode")))
+                .get(), getMapping());
+
+        final Map<String, PrivilegeDefinition> defMap = defs.stream()
+                .collect(Collectors.toMap(compose(PrivilegeDefinition::getName, uncheck1(resolver::getJCRName)),
+                        def -> def));
+        final PrivilegeDefinition canDo = defMap.get("jcr:canDo");
+        assertNotNull("canDo not null", canDo);
+        assertFalse("canDo not abstract", canDo.isAbstract());
+        assertEquals("canDo contains nothing", Collections.emptySet(), canDo.getDeclaredAggregateNames());
+        final PrivilegeDefinition willDo = defMap.get("jcr:willDo");
+        assertNotNull("willDo not null", willDo);
+        assertFalse("willDo not abstract", willDo.isAbstract());
+        assertEquals("willDo contains nothing", Collections.emptySet(), willDo.getDeclaredAggregateNames());
+        final PrivilegeDefinition wouldDoBut = defMap.get("jcr:wouldDoBut");
+        assertNotNull("wouldDoBut not null", wouldDoBut);
+        assertTrue("wouldDoBut is abstract", wouldDoBut.isAbstract());
+        assertEquals("wouldDoBut contains nothing", Collections.emptySet(), wouldDoBut.getDeclaredAggregateNames());
+        final PrivilegeDefinition wontDo = defMap.get("jcr:wontDo");
+        assertNull("wontDo is null", wontDo);
+        final PrivilegeDefinition none = defMap.get("jcr:none");
+        assertNotNull("none not null", none);
+        assertFalse("none not abstract", none.isAbstract());
+        assertEquals("none contains nothing", Collections.emptySet(), none.getDeclaredAggregateNames());
+        final PrivilegeDefinition rw = defMap.get("jcr:rw");
+        assertNotNull("rw not null", rw);
+        assertFalse("rw not abstract", rw.isAbstract());
+        assertEquals("rw contains nothing", Stream.of("jcr:read", "jcr:write", "jcr:addChildNodes")
+                        .map(uncheck1(resolver::getQName)).collect(Collectors.toSet()),
+                rw.getDeclaredAggregateNames());
+        final PrivilegeDefinition mightRw = defMap.get("jcr:mightRw");
+        assertNotNull("mightRw not null", mightRw);
+        assertTrue("mightRw is abstract", mightRw.isAbstract());
+        assertEquals("mightRw contains nothing", Stream.of("jcr:read", "jcr:write", "jcr:removeNode")
+                .map(uncheck1(resolver::getQName)).collect(Collectors.toSet()), mightRw.getDeclaredAggregateNames());
+    }
+
+    @Test
     public void testToJson() {
         assertEquals("empty list to empty object", 0,
                 JsonCnd.toJson(Collections.emptyList(), getMapping()).size());
@@ -103,6 +178,51 @@ public class JsonCndTest {
 
         JsonObject toJson = JsonCnd.toJson(nts, getMapping());
         assertEquals("json meets json", qJson, toJson);
+    }
+
+    @Test
+    public void testPrivilegesToJson() {
+        List<PrivilegeDefinition> arrDefs =
+                JsonCnd.getPrivilegesFromJson(arr("jcr:read", "jcr:write").get(), getMapping());
+        assertEquals("arr defs are", arr("jcr:read", "jcr:write").get(),
+                JsonCnd.privilegesToJson(arrDefs, getMapping()));
+
+        List<PrivilegeDefinition> objDefs = JsonCnd.getPrivilegesFromJson(obj()
+                .key("jcr:canDo", obj())
+                .key("jcr:willDo", obj()
+                        .key(JsonCnd.PRIVILEGE_KEY_ABSTRACT, false))
+                .key("jcr:wouldDoBut", obj()
+                        .key(JsonCnd.PRIVILEGE_KEY_ABSTRACT, true))
+                .key("jcr:wontDo", null)
+                .key("jcr:none", obj()
+                        .key(JsonCnd.PRIVILEGE_KEY_CONTAINS, arr()))
+                .key("jcr:rw", obj()
+                        .key(JsonCnd.PRIVILEGE_KEY_CONTAINS,
+                                arr("jcr:read", "jcr:write", "jcr:addChildNodes"))
+                        .key(JsonCnd.PRIVILEGE_KEY_ABSTRACT, false))
+                .key("jcr:mightRw", obj()
+                        .key(JsonCnd.PRIVILEGE_KEY_CONTAINS,
+                                arr("jcr:read", "jcr:write", "jcr:removeNode"))
+                        .key(JsonCnd.PRIVILEGE_KEY_ABSTRACT, true))
+                .get(), getMapping());
+
+        JsonObject expectJson = obj()
+                .key("jcr:canDo", obj())
+                .key("jcr:mightRw", obj()
+                        .key(JsonCnd.PRIVILEGE_KEY_ABSTRACT, true)
+                        .key(JsonCnd.PRIVILEGE_KEY_CONTAINS,
+                                arr("jcr:read", "jcr:write", "jcr:removeNode")))
+                .key("jcr:none", obj())
+                .key("jcr:rw", obj()
+                        .key(JsonCnd.PRIVILEGE_KEY_CONTAINS,
+                                arr("jcr:read", "jcr:write", "jcr:addChildNodes")))
+                .key("jcr:willDo", obj())
+                .key("jcr:wouldDoBut", obj()
+                        .key(JsonCnd.PRIVILEGE_KEY_ABSTRACT, true))
+                .get();
+
+        assertEquals("obj defs are", expectJson, JsonCnd.privilegesToJson(objDefs, getMapping()));
+
     }
 
     @Test
@@ -127,7 +247,7 @@ public class JsonCndTest {
     }
 
     @Test
-    public void testNamedBy() throws Exception {
+    public void testNamedBy_qNodeTypes() throws Exception {
         new OakMachine.Builder().build().adminInitAndInspect(session -> {
             final NodeTypeManager manager = session.getWorkspace().getNodeTypeManager();
             final Function<NodeTypeDefinition, QNodeTypeDefinition> fAdapter = JsonCnd.adaptToQ(session);
@@ -141,6 +261,33 @@ public class JsonCndTest {
             assertEquals("name is", "hierarchyNode", hierName.getLocalName());
             assertEquals("uri is", Name.NS_NT_URI, hierName.getNamespaceURI());
         });
+    }
+
+    @Test
+    public void testNamedBy_privileges() {
+        List<PrivilegeDefinition> defs = JsonCnd.getPrivilegesFromJson(obj()
+                .key("jcr:canDo", obj())
+                .key("jcr:willDo", obj()
+                        .key(JsonCnd.PRIVILEGE_KEY_ABSTRACT, false))
+                .key("jcr:wouldDoBut", obj()
+                        .key(JsonCnd.PRIVILEGE_KEY_ABSTRACT, true))
+                .key("jcr:none", obj()
+                        .key(JsonCnd.PRIVILEGE_KEY_CONTAINS, arr()))
+                .key("jcr:rw", obj()
+                        .key(JsonCnd.PRIVILEGE_KEY_CONTAINS,
+                                arr("jcr:read", "jcr:write", "jcr:addChildNodes")))
+                .key("jcr:mightRw", obj()
+                        .key(JsonCnd.PRIVILEGE_KEY_ABSTRACT, true)
+                        .key(JsonCnd.PRIVILEGE_KEY_CONTAINS,
+                                arr("jcr:read", "jcr:write", "jcr:removeNode")))
+                .get(), getMapping());
+
+        final List<String> jcrNames = Arrays.asList("jcr:canDo", "jcr:willDo", "jcr:wouldDoBut", "jcr:none", "jcr:rw",
+                "jcr:mightRw", "jcr:read", "jcr:write", "jcr:addChildNodes", "jcr:removeNode");
+
+        final Set<Name> expectNamedBy = jcrNames.stream().map(uncheck1(resolver::getQName)).collect(Collectors.toSet());
+        final Set<Name> actualNamedBy = defs.stream().flatMap(JsonCnd::namedBy).collect(Collectors.toSet());
+        assertEquals("expect namedBy", expectNamedBy, actualNamedBy);
     }
 
     @Test

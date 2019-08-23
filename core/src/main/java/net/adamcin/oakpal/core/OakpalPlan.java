@@ -1,5 +1,6 @@
 package net.adamcin.oakpal.core;
 
+import org.apache.jackrabbit.spi.PrivilegeDefinition;
 import org.apache.jackrabbit.spi.QNodeTypeDefinition;
 import org.apache.jackrabbit.spi.commons.namespace.NamespaceMapping;
 import org.apache.jackrabbit.util.Text;
@@ -70,7 +71,7 @@ public final class OakpalPlan implements JavaxJson.ObjectConvertible {
     private final List<URL> preInstallUrls;
     private final List<JcrNs> jcrNamespaces;
     private final List<QNodeTypeDefinition> jcrNodetypes;
-    private final List<String> jcrPrivileges;
+    private final List<PrivilegeDefinition> jcrPrivileges;
     private final List<ForcedRoot> forcedRoots;
     private final List<CheckSpec> checks;
     private final boolean enablePreInstallHooks;
@@ -83,7 +84,7 @@ public final class OakpalPlan implements JavaxJson.ObjectConvertible {
                        final @NotNull List<URL> preInstallUrls,
                        final @NotNull List<JcrNs> jcrNamespaces,
                        final @NotNull List<QNodeTypeDefinition> jcrNodetypes,
-                       final @NotNull List<String> jcrPrivileges,
+                       final @NotNull List<PrivilegeDefinition> jcrPrivileges,
                        final @NotNull List<ForcedRoot> forcedRoots,
                        final @NotNull List<CheckSpec> checks,
                        final boolean enablePreInstallHooks,
@@ -130,7 +131,7 @@ public final class OakpalPlan implements JavaxJson.ObjectConvertible {
         return jcrNodetypes;
     }
 
-    public List<String> getJcrPrivileges() {
+    public List<PrivilegeDefinition> getJcrPrivileges() {
         return jcrPrivileges;
     }
 
@@ -186,13 +187,14 @@ public final class OakpalPlan implements JavaxJson.ObjectConvertible {
                     .getOrElse(() -> preInstallUrls.stream().map(URL::toExternalForm).collect(Collectors.toList())));
         }
 
+        final NamespaceMapping mapping = JsonCnd.toNamespaceMapping(jcrNamespaces);
         return JavaxJson.obj()
                 .key(KEY_PREINSTALL_URLS).opt(preInstallStrings)
                 .key(KEY_CHECKLISTS).opt(checklists)
                 .key(KEY_CHECKS).opt(checks)
                 .key(KEY_FORCED_ROOTS).opt(forcedRoots)
-                .key(KEY_JCR_NODETYPES).opt(JsonCnd.toJson(jcrNodetypes, JsonCnd.toNamespaceMapping(jcrNamespaces)))
-                .key(KEY_JCR_PRIVILEGES).opt(jcrPrivileges)
+                .key(KEY_JCR_NODETYPES).opt(JsonCnd.toJson(jcrNodetypes, mapping))
+                .key(KEY_JCR_PRIVILEGES).opt(JsonCnd.privilegesToJson(jcrPrivileges, mapping))
                 .key(KEY_JCR_NAMESPACES).opt(jcrNamespaces)
                 .key(KEY_ENABLE_PRE_INSTALL_HOOKS).opt(enablePreInstallHooks, false)
                 .key(KEY_INSTALL_HOOK_POLICY).opt(installHookPolicy)
@@ -209,8 +211,8 @@ public final class OakpalPlan implements JavaxJson.ObjectConvertible {
 
         builder.withQNodeTypes(jcrNodetypes);
 
-        for (String privilege : jcrPrivileges) {
-            builder = builder.withPrivilege(privilege);
+        for (PrivilegeDefinition privilege : jcrPrivileges) {
+            builder = builder.withPrivilegeDefinition(privilege);
         }
 
         for (ForcedRoot forcedRoot : forcedRoots) {
@@ -273,7 +275,7 @@ public final class OakpalPlan implements JavaxJson.ObjectConvertible {
             builder.withJcrNodetypes(JsonCnd.getQTypesFromJson(json.getJsonObject(KEY_JCR_NODETYPES), mapping));
         }
         if (hasNonNull(json, KEY_JCR_PRIVILEGES)) {
-            builder.withJcrPrivileges(JavaxJson.mapArrayOfStrings(json.getJsonArray(KEY_JCR_PRIVILEGES)));
+            builder.withJcrPrivileges(JsonCnd.getPrivilegesFromJson(json.get(KEY_JCR_PRIVILEGES), mapping));
         }
         if (hasNonNull(json, KEY_ENABLE_PRE_INSTALL_HOOKS)) {
             builder.withEnablePreInstallHooks(json.getBoolean(KEY_ENABLE_PRE_INSTALL_HOOKS));
@@ -312,7 +314,7 @@ public final class OakpalPlan implements JavaxJson.ObjectConvertible {
         private List<URL> preInstallUrls = Collections.emptyList();
         private List<JcrNs> jcrNamespaces = Collections.emptyList();
         private List<QNodeTypeDefinition> jcrNodetypes = Collections.emptyList();
-        private List<String> jcrPrivileges = Collections.emptyList();
+        private List<PrivilegeDefinition> jcrPrivileges = Collections.emptyList();
         private List<ForcedRoot> forcedRoots = Collections.emptyList();
         private List<CheckSpec> checks = Collections.emptyList();
         private boolean enablePreInstallHooks;
@@ -358,7 +360,7 @@ public final class OakpalPlan implements JavaxJson.ObjectConvertible {
             return this;
         }
 
-        public Builder withJcrPrivileges(final @NotNull List<String> jcrPrivileges) {
+        public Builder withJcrPrivileges(final @NotNull List<PrivilegeDefinition> jcrPrivileges) {
             this.jcrPrivileges = new ArrayList<>(jcrPrivileges);
             return this;
         }

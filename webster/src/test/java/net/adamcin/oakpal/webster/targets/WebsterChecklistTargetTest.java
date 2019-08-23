@@ -16,7 +16,11 @@
 
 package net.adamcin.oakpal.webster.targets;
 
+import net.adamcin.oakpal.core.OakMachine;
+import net.adamcin.oakpal.webster.TestUtil;
 import net.adamcin.oakpal.webster.WebsterTarget;
+import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.vault.fs.io.FileArchive;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -39,5 +43,16 @@ public class WebsterChecklistTargetTest {
         WebsterTarget target = JsonTargetFactory.CHECKLIST.createTarget(targetFile, obj().get());
         assertTrue("target is checklist target: " + target.getClass().getSimpleName(),
                 target instanceof WebsterChecklistTarget);
+    }
+
+    @Test
+    public void testFromJson() throws Exception {
+        final File targetFile = new File(testOutDir, "testFromJson.json");
+        if (targetFile.exists()) {
+            targetFile.delete();
+        }
+        OakMachine.Builder builder = TestUtil.fromPlan(obj().get());
+        WebsterChecklistTarget target = WebsterChecklistTarget.fromJson(targetFile, obj().get());
+        builder.build().initAndInspect(target::perform);
     }
 }

@@ -16,7 +16,11 @@
 
 package net.adamcin.oakpal.core;
 
+import org.apache.jackrabbit.spi.PrivilegeDefinition;
 import org.apache.jackrabbit.spi.QNodeTypeDefinition;
+import org.apache.jackrabbit.spi.commons.conversion.DefaultNamePathResolver;
+import org.apache.jackrabbit.spi.commons.conversion.NamePathResolver;
+import org.apache.jackrabbit.spi.commons.namespace.NamespaceMapping;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -35,6 +39,8 @@ import java.util.jar.JarFile;
 import java.util.stream.Collectors;
 
 import static java.util.Optional.ofNullable;
+import static net.adamcin.oakpal.core.Fun.compose;
+import static net.adamcin.oakpal.core.Fun.uncheck1;
 import static net.adamcin.oakpal.core.JavaxJson.hasNonNull;
 import static net.adamcin.oakpal.core.JavaxJson.obj;
 import static net.adamcin.oakpal.core.JavaxJson.optArray;
@@ -90,7 +96,7 @@ public final class Checklist implements JavaxJson.ObjectConvertible {
     private final List<URL> cndUrls;
     private final List<JcrNs> jcrNamespaces;
     private final List<QNodeTypeDefinition> jcrNodetypes;
-    private final List<String> jcrPrivileges;
+    private final List<PrivilegeDefinition> jcrPrivileges;
     private final List<ForcedRoot> forcedRoots;
     private final List<CheckSpec.ImmutableSpec> checks;
 
@@ -100,7 +106,7 @@ public final class Checklist implements JavaxJson.ObjectConvertible {
               final @NotNull List<URL> cndUrls,
               final @NotNull List<JcrNs> jcrNamespaces,
               final @NotNull List<QNodeTypeDefinition> jcrNodetypes,
-              final @NotNull List<String> jcrPrivileges,
+              final @NotNull List<PrivilegeDefinition> jcrPrivileges,
               final @NotNull List<ForcedRoot> forcedRoots,
               final @NotNull List<CheckSpec.ImmutableSpec> checks) {
         this.originalJson = originalJson;
@@ -134,7 +140,14 @@ public final class Checklist implements JavaxJson.ObjectConvertible {
         return jcrNamespaces;
     }
 
-    public List<String> getJcrPrivileges() {
+    public List<String> getJcrPrivilegeNames() {
+        final NamePathResolver resolver = new DefaultNamePathResolver(JsonCnd.toNamespaceMapping(jcrNamespaces));
+        return jcrPrivileges.stream()
+                .map(compose(PrivilegeDefinition::getName, uncheck1(resolver::getJCRName)))
+                .collect(Collectors.toList());
+    }
+
+    public List<PrivilegeDefinition> getJcrPrivileges() {
         return jcrPrivileges;
     }
 
@@ -153,7 +166,7 @@ public final class Checklist implements JavaxJson.ObjectConvertible {
         InitStage.Builder builder = new InitStage.Builder()
                 .withOrderedCndUrls(getCndUrls())
                 .withForcedRoots(getForcedRoots())
-                .withPrivileges(getJcrPrivileges())
+                .withPrivileges(getJcrPrivilegeNames())
                 .withQNodeTypes(getJcrNodetypes())
                 .withNs(getJcrNamespaces());
 
@@ -166,7 +179,7 @@ public final class Checklist implements JavaxJson.ObjectConvertible {
         private List<QNodeTypeDefinition> jcrNodetypes = new ArrayList<>();
         private List<URL> cndUrls = new ArrayList<>();
         private List<JcrNs> jcrNamespaces = new ArrayList<>();
-        private List<String> jcrPrivileges = new ArrayList<>();
+        private List<PrivilegeDefinition> jcrPrivileges = new ArrayList<>();
         private List<ForcedRoot> forcedRoots = new ArrayList<>();
         private List<CheckSpec> checks = new ArrayList<>();
 
@@ -194,7 +207,7 @@ public final class Checklist implements JavaxJson.ObjectConvertible {
             return this;
         }
 
-        Builder withJcrPrivileges(final @NotNull List<String> jcrPrivileges) {
+        Builder withJcrPrivileges(final @NotNull List<PrivilegeDefinition> jcrPrivileges) {
             this.jcrPrivileges.addAll(jcrPrivileges);
             return this;
         }
@@ -273,16 +286,15 @@ public final class Checklist implements JavaxJson.ObjectConvertible {
         if (this.originalJson != null) {
             return this.originalJson;
         } else {
+            final NamespaceMapping mapping = JsonCnd.toNamespaceMapping(getJcrNamespaces());
             return obj()
                     .key(KEY_NAME).opt(getName())
 
                     .key(KEY_CHECKS).opt(checks)
                     .key(KEY_FORCED_ROOTS).opt(getForcedRoots())
                     .key(KEY_CND_URLS).opt(getCndUrls())
-                    .key(KEY_JCR_NODETYPES).opt(JsonCnd
-                            .toJson(getJcrNodetypes(),
-                                    JsonCnd.toNamespaceMapping(getJcrNamespaces())))
-                    .key(KEY_JCR_PRIVILEGES).opt(getJcrPrivileges())
+                    .key(KEY_JCR_NODETYPES).opt(JsonCnd.toJson(getJcrNodetypes(), mapping))
+                    .key(KEY_JCR_PRIVILEGES).opt(JsonCnd.privilegesToJson(getJcrPrivileges(), mapping))
                     .key(KEY_JCR_NAMESPACES).opt(getJcrNamespaces())
                     .get();
         }
@@ -325,11 +337,15 @@ public final class Checklist implements JavaxJson.ObjectConvertible {
             builder.withJcrNamespaces(jcrNsList);
         });
         optObject(json, KEY_JCR_NODETYPES).ifPresent(jsonObject -> {
-            builder.withJcrNodetypes(JsonCnd.getQTypesFromJson(jsonObject, JsonCnd.toNamespaceMapping(jcrNsList)));
+            builder.withJcrNodetypes(
+                    JsonCnd.getQTypesFromJson(jsonObject,
+                            JsonCnd.toNamespaceMapping(jcrNsList)));
         });
-        optArray(json, KEY_JCR_PRIVILEGES).ifPresent(jsonArray -> {
-            builder.withJcrPrivileges(JavaxJson.mapArrayOfStrings(jsonArray));
-        });
+        if (json.containsKey(KEY_JCR_PRIVILEGES)) {
+            builder.withJcrPrivileges(
+                    JsonCnd.getPrivilegesFromJson(json.get(KEY_JCR_PRIVILEGES),
+                    JsonCnd.toNamespaceMapping(jcrNsList)));
+        }
         optArray(json, KEY_FORCED_ROOTS).ifPresent(jsonArray -> {
             builder.withForcedRoots(JavaxJson.mapArrayOfObjects(jsonArray, ForcedRoot::fromJson));
         });

@@ -29,7 +29,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -37,9 +36,9 @@ import javax.jcr.Workspace;
 import javax.jcr.security.Privilege;
 
 import net.adamcin.oakpal.core.Fun;
+import net.adamcin.oakpal.core.JsonCnd;
 import org.apache.jackrabbit.api.JackrabbitWorkspace;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
-import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.spi.Name;
 import org.apache.jackrabbit.spi.PrivilegeDefinition;
 import org.apache.jackrabbit.spi.commons.conversion.DefaultNamePathResolver;
@@ -54,12 +53,6 @@ import org.jetbrains.annotations.NotNull;
  * @see org.apache.jackrabbit.spi.commons.privilege.PrivilegeDefinitionReader
  */
 public final class PrivilegeXmlExporter {
-
-    static final List<String> BUILTIN_PRIVILEGES = Stream.concat(Stream.of(PrivilegeConstants.JCR_ALL),
-            Stream.concat(
-                    PrivilegeConstants.NON_AGGREGATE_PRIVILEGES.stream(),
-                    PrivilegeConstants.AGGREGATE_PRIVILEGES.keySet().stream()))
-            .collect(Collectors.toList());
 
     private PrivilegeXmlExporter() {
         // no construct
@@ -99,7 +92,7 @@ public final class PrivilegeXmlExporter {
         final NamePathResolver resolver = new DefaultNamePathResolver(session);
         final Function<String, Name> mapper = Fun.tryOrDefault1(resolver::getQName, null);
         // first resolve the builtins to qualified Names
-        final Set<Name> builtinPrivileges = BUILTIN_PRIVILEGES.stream()
+        final Set<Name> builtinPrivileges = JsonCnd.BUILTIN_PRIVILEGES.stream()
                 .map(mapper).filter(Objects::nonNull).collect(toSet());
         // create the builtinFilter for reuse
         final Predicate<Name> builtinFilter = includeBuiltins

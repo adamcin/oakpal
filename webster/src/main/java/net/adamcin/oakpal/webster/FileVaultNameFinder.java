@@ -39,6 +39,7 @@ import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 
+import net.adamcin.oakpal.core.JsonCnd;
 import org.apache.jackrabbit.spi.Name;
 import org.apache.jackrabbit.spi.PrivilegeDefinition;
 import org.apache.jackrabbit.spi.QNodeTypeDefinition;
@@ -73,7 +74,7 @@ public final class FileVaultNameFinder {
     }
 
     void loadBuiltins() {
-        for (String name : PrivilegeXmlExporter.BUILTIN_PRIVILEGES) {
+        for (String name : JsonCnd.BUILTIN_PRIVILEGES) {
             Optional.ofNullable(QName.parseQName(BUILTIN_MAPPINGS, QName.Type.PRIVILEGE, name)).ifPresent(this::addDefinition);
         }
 

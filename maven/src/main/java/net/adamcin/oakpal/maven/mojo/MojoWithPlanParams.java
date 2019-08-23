@@ -2,6 +2,7 @@ package net.adamcin.oakpal.maven.mojo;
 
 import static net.adamcin.oakpal.core.Fun.compose;
 import static net.adamcin.oakpal.core.Fun.uncheck1;
+import static net.adamcin.oakpal.core.JavaxJson.wrap;
 
 import java.io.File;
 import java.io.IOException;
@@ -77,7 +78,6 @@ interface MojoWithPlanParams extends MojoWithCommonParams, MojoWithRepositoryPar
 
         planBuilder.withPreInstallUrls(preInstall.stream()
                 .map(uncheck1(File::toURL)).collect(Collectors.toList()));
-        planBuilder.withJcrPrivileges(params.getJcrPrivileges());
         planBuilder.withForcedRoots(params.getForcedRoots());
         planBuilder.withEnablePreInstallHooks(params.isEnablePreInstallHooks());
         planBuilder.withInstallHookPolicy(params.getInstallHookPolicy());
@@ -116,6 +116,7 @@ interface MojoWithPlanParams extends MojoWithCommonParams, MojoWithRepositoryPar
 
         // read and aggregate nodetypes from CNDs
         final NamespaceMapping initMapping = JsonCnd.toNamespaceMapping(params.getJcrNamespaces());
+        planBuilder.withJcrPrivileges(JsonCnd.getPrivilegesFromJson(wrap(params.getJcrPrivileges()), initMapping));
         List<NodeTypeSet> readSets = JsonCnd.readNodeTypes(initMapping,
                 new ArrayList<>(unorderedCndUrls)).stream()
                 .flatMap(Result::stream).collect(Collectors.toList());

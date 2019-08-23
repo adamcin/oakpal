@@ -19,8 +19,13 @@ package net.adamcin.oakpal.core;
 import org.apache.jackrabbit.api.JackrabbitWorkspace;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.commons.JcrUtils;
+import org.apache.jackrabbit.spi.PrivilegeDefinition;
 import org.apache.jackrabbit.spi.QNodeTypeDefinition;
+import org.apache.jackrabbit.spi.commons.conversion.DefaultNamePathResolver;
+import org.apache.jackrabbit.spi.commons.conversion.NamePathResolver;
+import org.apache.jackrabbit.spi.commons.namespace.NamespaceMapping;
 import org.apache.jackrabbit.spi.commons.nodetype.NodeTypeDefinitionFactory;
+import org.apache.jackrabbit.spi.commons.privilege.PrivilegeDefinitionImpl;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -41,8 +46,15 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
+import static net.adamcin.oakpal.core.Fun.compose;
+import static net.adamcin.oakpal.core.Fun.mapEntry;
 import static net.adamcin.oakpal.core.Fun.onEntry;
+import static net.adamcin.oakpal.core.Fun.result1;
+import static net.adamcin.oakpal.core.Fun.uncheck1;
 import static net.adamcin.oakpal.core.Fun.uncheckVoid1;
 import static net.adamcin.oakpal.core.OakMachine.NT_UNDECLARED;
 
@@ -59,7 +71,9 @@ public final class InitStage {
     // uri to prefix !!
     private final Map<String, String> namespaces;
 
-    private final Set<String> privileges;
+    private final Set<String> privilegeNames;
+
+    private final Set<PrivilegeDefinition> privileges;
 
     private final Map<String, ForcedRoot> forcedRoots;
 
@@ -67,13 +81,15 @@ public final class InitStage {
                       final List<URL> orderedCndUrls,
                       final List<QNodeTypeDefinition> qNodeTypes,
                       final Map<String, String> namespaces,
-                      final Set<String> privileges,
+                      final Set<PrivilegeDefinition> privileges,
+                      final Set<String> privilegeNames,
                       final Map<String, ForcedRoot> forcedRoots) {
         this.unorderedCndUrls = unorderedCndUrls;
         this.orderedCndUrls = orderedCndUrls;
         this.qNodeTypes = qNodeTypes;
         this.namespaces = namespaces;
         this.privileges = privileges;
+        this.privilegeNames = privilegeNames;
         this.forcedRoots = forcedRoots;
     }
 
@@ -84,7 +100,9 @@ public final class InitStage {
     public static class Builder {
         private Map<String, String> namespaces = new LinkedHashMap<>();
 
-        private Set<String> privileges = new LinkedHashSet<>();
+        private Set<PrivilegeDefinition> privileges = new LinkedHashSet<>();
+
+        private Set<String> privilegeNames = new LinkedHashSet<>();
 
         private Map<String, ForcedRoot> forcedRoots = new LinkedHashMap<>();
 
@@ -124,8 +142,36 @@ public final class InitStage {
          * @param privilege the name of the privilege
          * @return my builder self
          */
-        public Builder withPrivilege(final @NotNull String... privilege) {
+        public Builder withPrivilegeDefinition(final @NotNull PrivilegeDefinition... privilege) {
             this.privileges.addAll(Arrays.asList(privilege));
+            return this;
+        }
+
+        /**
+         * Register an additional JCR privilege prior to the scan. If the privilege belongs to a custom namespace, be
+         * sure to register that as well using {@link #withNs(String, String)}
+         *
+         * @param privileges the privilege definitions
+         * @return my builder self
+         */
+        public Builder withPrivilegeDefinitions(final @Nullable Collection<PrivilegeDefinition> privileges) {
+            if (privileges != null) {
+                this.privileges = new HashSet<>(privileges);
+            } else {
+                this.privileges = new HashSet<>();
+            }
+            return this;
+        }
+
+        /**
+         * Register an additional JCR privilege prior to the scan. If the privilege belongs to a custom namespace, be
+         * sure to register that as well using {@link #withNs(String, String)}
+         *
+         * @param privilege the name of the privilege
+         * @return my builder self
+         */
+        public Builder withPrivilege(final @NotNull String... privilege) {
+            this.privilegeNames.addAll(Arrays.asList(privilege));
             return this;
         }
 
@@ -138,9 +184,9 @@ public final class InitStage {
          */
         public Builder withPrivileges(final @Nullable Collection<String> privileges) {
             if (privileges != null) {
-                this.privileges = new HashSet<>(privileges);
+                this.privilegeNames = new HashSet<>(privileges);
             } else {
-                this.privileges = new HashSet<>();
+                this.privilegeNames = new HashSet<>();
             }
             return this;
         }
@@ -258,7 +304,8 @@ public final class InitStage {
          * @return an {@link InitStage}
          */
         public InitStage build() {
-            return new InitStage(unorderedCndUrls, orderedCndUrls, qNodeTypes, namespaces, privileges, forcedRoots);
+            return new InitStage(unorderedCndUrls, orderedCndUrls, qNodeTypes,
+                    namespaces, privileges, privilegeNames, forcedRoots);
         }
     }
 
@@ -296,16 +343,40 @@ public final class InitStage {
             }
         }
 
-        if (!privileges.isEmpty()) {
+        if (!privilegeNames.isEmpty()) {
             if (admin.getWorkspace() instanceof JackrabbitWorkspace) {
                 PrivilegeManager pm = ((JackrabbitWorkspace) admin.getWorkspace()).getPrivilegeManager();
-                privileges.forEach(privilege -> {
+                privilegeNames.forEach(privilege -> {
                     try {
-                        pm.registerPrivilege(privilege, false, new String[0]);
+                        if (result1(pm::getPrivilege).apply(privilege).isFailure()) {
+                            pm.registerPrivilege(privilege, false, new String[0]);
+                        }
                     } catch (final Exception e) {
                         errorListener.onJcrPrivilegeRegistrationError(e, privilege);
                     }
                 });
+            }
+        }
+
+        if (!privileges.isEmpty()) {
+            if (admin.getWorkspace() instanceof JackrabbitWorkspace) {
+                PrivilegeManager pm = ((JackrabbitWorkspace) admin.getWorkspace()).getPrivilegeManager();
+                NamePathResolver resolver = new DefaultNamePathResolver(admin);
+                final Consumer<PrivilegeDefinition> privConsumer = privilege -> {
+                    try {
+                        final String jcrName = resolver.getJCRName(privilege.getName());
+                        if (result1(pm::getPrivilege).apply(jcrName).isFailure()) {
+                            pm.registerPrivilege(jcrName, privilege.isAbstract(),
+                                    privilege.getDeclaredAggregateNames().stream()
+                                            .map(uncheck1(resolver::getJCRName)).toArray(String[]::new));
+                        }
+                    } catch (final Exception e) {
+                        errorListener.onJcrPrivilegeRegistrationError(e,
+                                result1(resolver::getJCRName).apply(privilege.getName())
+                                        .getOrDefault(privilege.getName().toString()));
+                    }
+                };
+                privileges.stream().forEachOrdered(privConsumer);
             }
         }
 
