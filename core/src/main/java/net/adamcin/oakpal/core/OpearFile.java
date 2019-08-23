@@ -3,6 +3,8 @@ package net.adamcin.oakpal.core;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -30,6 +32,7 @@ import static net.adamcin.oakpal.core.Fun.result1;
  * META-INF/MANIFEST.MF.
  */
 public final class OpearFile implements Opear {
+    private static final Logger LOGGER = LoggerFactory.getLogger(OpearFile.class);
 
     static final class OpearMetadata {
         private final String cacheId;
@@ -122,6 +125,7 @@ public final class OpearFile implements Opear {
     }
 
     static OpearMetadata metaForSimpleDir(final @NotNull File directory) {
+        LOGGER.trace("[OpearFile#metaForSimpleDir] returning simple opear metadata for directory: {}", directory);
         final String[] plans = new File(directory, Opear.SIMPLE_DIR_PLAN).exists()
                 ? new String[]{Opear.SIMPLE_DIR_PLAN}
                 : new String[0];

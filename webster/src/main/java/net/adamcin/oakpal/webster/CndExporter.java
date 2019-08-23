@@ -16,7 +16,6 @@
 
 package net.adamcin.oakpal.webster;
 
-import aQute.bnd.maven.support.Repo;
 import net.adamcin.oakpal.core.Fun;
 import net.adamcin.oakpal.core.JsonCnd;
 import net.adamcin.oakpal.core.Result;
@@ -68,9 +67,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static net.adamcin.oakpal.core.Fun.compose;
-import static net.adamcin.oakpal.core.Fun.composeTest;
 import static net.adamcin.oakpal.core.Fun.inSet;
-import static net.adamcin.oakpal.core.Fun.mapValue;
 import static net.adamcin.oakpal.core.Fun.result1;
 import static net.adamcin.oakpal.core.Fun.uncheck1;
 
@@ -85,14 +82,22 @@ public final class CndExporter {
         private boolean includeBuiltins;
 
         /**
-         * @param scopeExportNames
-         * @return
+         * Define scope for export of desired nodetypes.
+         *
+         * @param scopeExportNames list of rules matched against node type JCR names (prefix:name).
+         * @return this builder
          */
         public Builder withScopeExportNames(final List<Rule> scopeExportNames) {
             this.scopeExportNames = scopeExportNames;
             return this;
         }
 
+        /**
+         * Define scope for replacement of existing nodetypes in input file.
+         *
+         * @param scopeReplaceNames list of rules matched against node type JCR names (prefix:name).
+         * @return this builder
+         */
         public Builder withScopeReplaceNames(final List<Rule> scopeReplaceNames) {
             this.scopeReplaceNames = scopeReplaceNames;
             return this;

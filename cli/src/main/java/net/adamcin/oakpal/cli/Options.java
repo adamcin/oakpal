@@ -170,25 +170,27 @@ class Options {
         Result<Options> build(final @NotNull Console console) {
             final File opearResolved = Optional.ofNullable(opearFile).orElseGet(() ->
                     console.getCwd().toPath().resolve(
-                            console.getEnv().getOrDefault(Console.ENV_OAKPAL_OPEAR, ".")).toFile());
+                            console.getEnv().getOrDefault(Console.ENV_OAKPAL_OPEAR, "."))
+                            .toFile());
 
             final File realCacheDir = this.cacheDir != null
                     ? this.cacheDir
-                    : console.getCwd().toPath().resolve(CACHE_DIR_NAME).toFile();
+                    : console.getCwd().toPath().resolve(CACHE_DIR_NAME).toFile().getAbsoluteFile();
             final File opearCache = new File(realCacheDir, "opears");
             opearCache.mkdirs();
 
-            final Result<OpearFile> opearResult = Result.success(opearResolved).flatMap(file -> {
-                if (file.isFile()) {
-                    try (JarFile jarFile = new JarFile(opearResolved, true)) {
-                        return OpearFile.fromJar(jarFile, opearCache);
-                    } catch (IOException e) {
-                        return Result.failure(String.format("%s is not a jar format file", opearResolved.getPath()), e);
-                    }
-                } else {
-                    return OpearFile.fromDirectory(file);
-                }
-            });
+            final Result<OpearFile> opearResult = Result.success(opearResolved.getAbsoluteFile())
+                    .flatMap(file -> {
+                        if (file.isFile()) {
+                            try (JarFile jarFile = new JarFile(file, true)) {
+                                return OpearFile.fromJar(jarFile, opearCache);
+                            } catch (IOException e) {
+                                return Result.failure(String.format("%s is not a jar format file", file.getPath()), e);
+                            }
+                        } else {
+                            return OpearFile.fromDirectory(file);
+                        }
+                    });
 
             return opearResult.flatMap(opear ->
                     Optional.ofNullable(planName)

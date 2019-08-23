@@ -3,8 +3,7 @@ ADD . /app
 WORKDIR /app
 RUN mvn clean install -pl testing,core,cli
 
-FROM adoptopenjdk/openjdk8:alpine
-COPY --from=registry.hub.docker.com/adamcin/jvshim /go/bin/jvshim /usr/bin/java
+FROM adoptopenjdk/openjdk11-openj9:alpine-slim
 RUN mkdir -p /app/oakpal-cli
 COPY --from=build /app/cli/target/oakpal-cli-*-dist.tar.gz /app
 RUN tar --strip-components 1 -C /app/oakpal-cli -zxf /app/oakpal-cli-*-dist.tar.gz \
