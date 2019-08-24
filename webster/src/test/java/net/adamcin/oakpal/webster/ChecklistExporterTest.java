@@ -48,6 +48,8 @@ import net.adamcin.oakpal.core.JavaxJson;
 import net.adamcin.oakpal.core.checks.Rule;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.commons.NamespaceHelper;
+import org.apache.jackrabbit.spi.commons.namespace.NamespaceMapping;
+import org.apache.jackrabbit.spi.commons.namespace.SessionNamespaceResolver;
 import org.apache.jackrabbit.util.ISO9075;
 import org.junit.Test;
 
@@ -383,12 +385,13 @@ public class ChecklistExporterTest {
     @Test
     public void testNodeToRootSimple() throws Exception {
         TestUtil.withInMemoryRepo(session -> {
+            final NamespaceMapping mapping = new NamespaceMapping(new SessionNamespaceResolver(session));
             TestUtil.installCndFromURL(session, getClass().getResource("/sling_nodetypes.cnd"));
 
             ChecklistExporter exporter = new ChecklistExporter.Builder().build();
 
             Node node1 = JcrUtils.getOrCreateByPath("/test/node1", "nt:folder", "sling:Folder", session, true);
-            ForcedRoot root1 = exporter.nodeToRoot(node1).orElse(null);
+            ForcedRoot root1 = exporter.nodeToRoot(node1, mapping).orElse(null);
 
             assertNotNull("root1 should be present", root1);
             assertEquals("root1 primary type should be sling:Folder", "sling:Folder", root1.getPrimaryType());
@@ -396,7 +399,7 @@ public class ChecklistExporterTest {
 
             Node node2 = JcrUtils.getOrCreateByPath("/test/node2", "nt:folder", "sling:OrderedFolder", session, true);
             node2.addMixin(String.format("{%s}title", NamespaceHelper.MIX));
-            ForcedRoot root2 = exporter.nodeToRoot(node2).orElse(null);
+            ForcedRoot root2 = exporter.nodeToRoot(node2, mapping).orElse(null);
             assertNotNull("root2 should be present", root2);
             assertEquals("root2 primary type should be sling:OrderedFolder", "sling:OrderedFolder", root2.getPrimaryType());
             assertTrue("root2 mixin types should contain mix:title", root2.getMixinTypes().contains("mix:title"));
@@ -406,6 +409,7 @@ public class ChecklistExporterTest {
     @Test
     public void testNodeToRootPathScoped() throws Exception {
         TestUtil.withInMemoryRepo(session -> {
+            final NamespaceMapping mapping = new NamespaceMapping(new SessionNamespaceResolver(session));
             TestUtil.installCndFromURL(session, getClass().getResource("/sling_nodetypes.cnd"));
 
             Node node1 = JcrUtils.getOrCreateByPath("/test_include/node1", "nt:folder", session);
@@ -416,11 +420,11 @@ public class ChecklistExporterTest {
                             .fromJsonArray(arr(key("type", "include").key("pattern", "/test_include(/.*)?"))
                                     .get())).build();
 
-            ForcedRoot root1 = exporter.nodeToRoot(node1).orElse(null);
+            ForcedRoot root1 = exporter.nodeToRoot(node1, mapping).orElse(null);
 
             assertNotNull("root1 should not be null", root1);
 
-            ForcedRoot root2 = exporter.nodeToRoot(node2).orElse(null);
+            ForcedRoot root2 = exporter.nodeToRoot(node2, mapping).orElse(null);
 
             assertNull("root2 should be null", root2);
         });
@@ -430,6 +434,7 @@ public class ChecklistExporterTest {
     public void testNodeToRootNodeTypeScoped() throws Exception {
         TestUtil.withInMemoryRepo(session -> {
             TestUtil.installCndFromURL(session, getClass().getResource("/sling_nodetypes.cnd"));
+            final NamespaceMapping mapping = new NamespaceMapping(new SessionNamespaceResolver(session));
 
             Node node1 = JcrUtils.getOrCreateByPath("/test/node1", "nt:folder", session);
             node1.addMixin("mix:title");
@@ -448,19 +453,19 @@ public class ChecklistExporterTest {
                     Rule.fromJsonArray(arr(key("type", "include").key("pattern", "sling:Resource"))
                             .get())).build();
 
-            ForcedRoot mixRoot = mixExporter.nodeToRoot(node1).orElse(null);
+            ForcedRoot mixRoot = mixExporter.nodeToRoot(node1, mapping).orElse(null);
             assertNotNull("mixRoot should not be null", mixRoot);
             assertTrue("mixRoot should contain mix:title mixin", mixRoot.getMixinTypes().contains("mix:title"));
             assertFalse("mixRoot should not contain sling:Resource mixin", mixRoot.getMixinTypes().contains("sling:Resource"));
             assertFalse("mixRoot should not contain sling:ResourceSuperType mixin", mixRoot.getMixinTypes().contains("sling:ResourceSuperType"));
 
-            ForcedRoot slingRoot = slingExporter.nodeToRoot(node1).orElse(null);
+            ForcedRoot slingRoot = slingExporter.nodeToRoot(node1, mapping).orElse(null);
             assertNotNull("slingRoot should not be null", slingRoot);
             assertFalse("slingRoot should not contain mix:title mixin", slingRoot.getMixinTypes().contains("mix:title"));
             assertTrue("slingRoot should contain sling:Resource mixin", slingRoot.getMixinTypes().contains("sling:Resource"));
             assertTrue("slingRoot should contain sling:ResourceSuperType mixin", slingRoot.getMixinTypes().contains("sling:ResourceSuperType"));
 
-            ForcedRoot rtRoot = rtExporter.nodeToRoot(node1).orElse(null);
+            ForcedRoot rtRoot = rtExporter.nodeToRoot(node1, mapping).orElse(null);
             assertNotNull("rtRoot should not be null", rtRoot);
             assertNull("rtRoot primaryType should be null", rtRoot.getPrimaryType());
             assertFalse("rtRoot should not contain mix:title mixin", rtRoot.getMixinTypes().contains("mix:title"));

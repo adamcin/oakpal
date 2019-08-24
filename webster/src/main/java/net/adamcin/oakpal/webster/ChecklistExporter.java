@@ -16,10 +16,41 @@
 
 package net.adamcin.oakpal.webster;
 
-import static net.adamcin.oakpal.core.Fun.mapValue;
-import static net.adamcin.oakpal.core.Fun.testKey;
-import static net.adamcin.oakpal.core.Fun.uncheck1;
+import net.adamcin.oakpal.core.Checklist;
+import net.adamcin.oakpal.core.ForcedRoot;
+import net.adamcin.oakpal.core.Fun;
+import net.adamcin.oakpal.core.JavaxJson;
+import net.adamcin.oakpal.core.JcrNs;
+import net.adamcin.oakpal.core.JsonCnd;
+import net.adamcin.oakpal.core.checks.Rule;
+import org.apache.jackrabbit.spi.Name;
+import org.apache.jackrabbit.spi.QNodeTypeDefinition;
+import org.apache.jackrabbit.spi.commons.conversion.DefaultNamePathResolver;
+import org.apache.jackrabbit.spi.commons.conversion.NamePathResolver;
+import org.apache.jackrabbit.spi.commons.namespace.NamespaceMapping;
+import org.apache.jackrabbit.spi.commons.namespace.SessionNamespaceResolver;
+import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import javax.jcr.NamespaceRegistry;
+import javax.jcr.Node;
+import javax.jcr.NodeIterator;
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+import javax.jcr.nodetype.NodeType;
+import javax.jcr.nodetype.NodeTypeDefinition;
+import javax.jcr.nodetype.NodeTypeManager;
+import javax.jcr.query.Query;
+import javax.jcr.query.QueryManager;
+import javax.jcr.query.QueryResult;
+import javax.json.Json;
+import javax.json.JsonArray;
+import javax.json.JsonObject;
+import javax.json.JsonObjectBuilder;
+import javax.json.JsonWriter;
+import javax.json.stream.JsonCollectors;
+import javax.json.stream.JsonGenerator;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.ArrayList;
@@ -39,41 +70,11 @@ import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import javax.jcr.NamespaceRegistry;
-import javax.jcr.Node;
-import javax.jcr.NodeIterator;
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-import javax.jcr.nodetype.NodeType;
-import javax.jcr.nodetype.NodeTypeDefinition;
-import javax.jcr.nodetype.NodeTypeManager;
-import javax.jcr.query.Query;
-import javax.jcr.query.QueryManager;
-import javax.jcr.query.QueryResult;
-import javax.json.Json;
-import javax.json.JsonArray;
-import javax.json.JsonObject;
-import javax.json.JsonObjectBuilder;
-import javax.json.JsonWriter;
-import javax.json.stream.JsonCollectors;
-import javax.json.stream.JsonGenerator;
 
-import net.adamcin.oakpal.core.Checklist;
-import net.adamcin.oakpal.core.ForcedRoot;
-import net.adamcin.oakpal.core.Fun;
-import net.adamcin.oakpal.core.JavaxJson;
-import net.adamcin.oakpal.core.JcrNs;
-import net.adamcin.oakpal.core.JsonCnd;
-import net.adamcin.oakpal.core.checks.Rule;
-import org.apache.jackrabbit.spi.Name;
-import org.apache.jackrabbit.spi.QNodeTypeDefinition;
-import org.apache.jackrabbit.spi.commons.conversion.DefaultNamePathResolver;
-import org.apache.jackrabbit.spi.commons.conversion.NamePathResolver;
-import org.apache.jackrabbit.spi.commons.namespace.NamespaceMapping;
-import org.apache.jackrabbit.spi.commons.namespace.SessionNamespaceResolver;
-import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static net.adamcin.oakpal.core.Fun.compose;
+import static net.adamcin.oakpal.core.Fun.mapValue;
+import static net.adamcin.oakpal.core.Fun.testKey;
+import static net.adamcin.oakpal.core.Fun.uncheck1;
 
 /**
  * Exports namespaces, node types, and {@link ForcedRoot}s from a JCR session to assist with project checklist management.
@@ -581,6 +582,7 @@ public final class ChecklistExporter {
         nodeTypeNames.stream()
                 .filter(COVARIANT_FILTER)
                 .map(COVARIANT_FORMAT)
+                // TODO this can quietly suppress ALL nodetypes and lead to a JCR query parse exception
                 .filter(Fun.testOrDefault1(ntManager::hasNodeType, false))
                 .map(name -> String.format("SELECT [jcr:path] FROM [%s] AS a", name))
                 .forEachOrdered(subqueries::add);
@@ -605,6 +607,7 @@ public final class ChecklistExporter {
      */
     List<ForcedRoot> query(final Session session, final String statement) throws RepositoryException {
         final QueryManager qm = session.getWorkspace().getQueryManager();
+        final NamespaceMapping mapping = new NamespaceMapping(new SessionNamespaceResolver(session));
         final String language =
                 statement.toUpperCase().replaceFirst("^\\s*((MEASURE|EXPLAIN)\\s*)*", "")
                         .startsWith("SELECT") ? Query.JCR_SQL2 : Query.XPATH;
@@ -612,7 +615,7 @@ public final class ChecklistExporter {
         final QueryResult result = query.execute();
         final Map<String, ForcedRoot> roots = new LinkedHashMap<>();
         for (NodeIterator nodes = result.getNodes(); nodes.hasNext(); ) {
-            nodeToRoot(nodes.nextNode()).ifPresent(root -> roots.put(root.getPath(), root));
+            nodeToRoot(nodes.nextNode(), mapping).ifPresent(root -> roots.put(root.getPath(), root));
         }
         return new ArrayList<>(roots.values());
     }
@@ -627,9 +630,10 @@ public final class ChecklistExporter {
      */
     List<ForcedRoot> traverse(final Session session, final List<String> paths) throws RepositoryException {
         final List<ForcedRoot> roots = new ArrayList<>();
+        final NamespaceMapping mapping = new NamespaceMapping(new SessionNamespaceResolver(session));
         for (String path : paths) {
             if (session.nodeExists(path)) {
-                nodeToRoot(session.getNode(path)).ifPresent(roots::add);
+                nodeToRoot(session.getNode(path), mapping).ifPresent(roots::add);
             }
         }
         return roots;
@@ -642,7 +646,7 @@ public final class ChecklistExporter {
      * @return empty when the node is not within path scope
      * @throws RepositoryException when an error occurs
      */
-    Optional<ForcedRoot> nodeToRoot(final Node node) throws RepositoryException {
+    Optional<ForcedRoot> nodeToRoot(final Node node, final NamespaceMapping mapping) throws RepositoryException {
         if (Rule.lastMatch(pathScopes, node.getPath()).isExclude()) {
             return Optional.empty();
         }
@@ -650,11 +654,12 @@ public final class ChecklistExporter {
         ForcedRoot forcedRoot = new ForcedRoot();
         forcedRoot.setPath(node.getPath());
         final String primaryType = node.getPrimaryNodeType().getName();
-        if (Rule.lastMatch(nodeTypeFilters, primaryType).isInclude()) {
+        if (Rule.lastMatch(nodeTypeFilters, QName.parseQName(mapping, QName.Type.NODETYPE, primaryType).toString()).isInclude()) {
             forcedRoot.setPrimaryType(primaryType);
         }
         final List<String> mixinTypes = Stream.of(node.getMixinNodeTypes())
-                .map(NodeType::getName)
+                .map(compose(NodeType::getName,
+                        qName -> QName.parseQName(mapping, QName.Type.NODETYPE, qName).toString()))
                 .filter(name -> Rule.lastMatch(nodeTypeFilters, name).isInclude())
                 .collect(Collectors.toList());
         forcedRoot.setMixinTypes(mixinTypes);

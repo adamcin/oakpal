@@ -28,6 +28,7 @@ import org.junit.Test;
 import java.io.File;
 
 import static net.adamcin.oakpal.core.JavaxJson.arr;
+import static net.adamcin.oakpal.core.JavaxJson.key;
 import static net.adamcin.oakpal.core.JavaxJson.obj;
 import static net.adamcin.oakpal.webster.TestUtil.assertFileContains;
 import static net.adamcin.oakpal.webster.targets.WebsterNodetypesTargetTest.assertFileNotContains;
@@ -88,6 +89,18 @@ public class WebsterPrivilegesTargetTest {
 
         assertFileNotContains(targetFile, "<privileges/>");
         assertFileContains(targetFile, "name=\"foo:canBar\"");
+
+        OakMachine.Builder builderWithAbstract = TestUtil.fromPlan(obj()
+                .key("jcrNamespaces", arr(JcrNs.create("foo", "http://adamcin.net/foo")))
+                .key("jcrPrivileges", key("foo:canBar", key("abstract", true)))
+                .get());
+        WebsterPrivilegesTarget targetWithAbstract = new WebsterPrivilegesTarget(targetFile);
+        targetWithAbstract.setArchive(new FileArchive(new File("src/test/resources/filevault/onePrivRef")), writeBack);
+        builderWithAbstract.build().initAndInspect(targetWithAbstract::perform);
+
+        assertFileNotContains(targetFile, "<privileges/>");
+        assertFileContains(targetFile, "name=\"foo:canBar\"");
+        assertFileContains(targetFile, "abstract=\"true\"");
     }
 
 

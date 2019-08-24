@@ -68,6 +68,14 @@ final class WebsterChecklistTarget implements WebsterTarget {
             this.args = args;
         }
 
+        ChecklistExporter.SelectorType getType() {
+            return type;
+        }
+
+        List<String> getArgs() {
+            return Arrays.asList(args);
+        }
+
         void selectOnExporter(ChecklistExporter.Builder exporter) {
             switch (type) {
                 case PATH:

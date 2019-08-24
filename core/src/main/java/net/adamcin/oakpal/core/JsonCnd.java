@@ -129,6 +129,10 @@ public final class JsonCnd {
             new RegistryNamespaceResolver(
                     new ReadOnlyNamespaceRegistry(
                             new ImmutableRoot(InitialContent.INITIAL_CONTENT))));
+    static {
+        uncheckVoid2(BUILTIN_MAPPINGS::setMapping)
+                .accept(OakMachine.NS_PREFIX_OAKPAL, OakMachine.NS_URI_OAKPAL);
+    }
 
     static final NamePathResolver BUILTIN_RESOLVER = new DefaultNamePathResolver(BUILTIN_MAPPINGS);
     public static final List<String> BUILTIN_NODETYPES = StreamSupport.stream(

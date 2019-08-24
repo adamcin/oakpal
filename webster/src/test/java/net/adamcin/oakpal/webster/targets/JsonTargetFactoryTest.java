@@ -16,11 +16,21 @@
 
 package net.adamcin.oakpal.webster.targets;
 
+import net.adamcin.oakpal.core.JavaxJson;
 import org.junit.Test;
 
+import java.io.File;
 import java.util.stream.Stream;
 
 import static net.adamcin.oakpal.core.Fun.compose;
+import static net.adamcin.oakpal.core.JavaxJson.arr;
+import static net.adamcin.oakpal.core.JavaxJson.key;
+import static net.adamcin.oakpal.core.JavaxJson.obj;
+import static net.adamcin.oakpal.webster.targets.JsonTargetFactory.CHECKLIST;
+import static net.adamcin.oakpal.webster.targets.JsonTargetFactory.HINT_KEY_MORE_TARGETS;
+import static net.adamcin.oakpal.webster.targets.JsonTargetFactory.KEY_TYPE;
+import static net.adamcin.oakpal.webster.targets.JsonTargetFactory.NODETYPES;
+import static net.adamcin.oakpal.webster.targets.JsonTargetFactory.PRIVILEGES;
 import static org.junit.Assert.*;
 
 public class JsonTargetFactoryTest {
@@ -58,8 +68,86 @@ public class JsonTargetFactoryTest {
         assertFalse("not a type name is not a target type", JsonTargetFactory.isTargetType(""));
     }
 
+    @Test(expected = IllegalArgumentException.class)
+    public void testFromJson_unknownHint_throws() throws Exception {
+        JsonTargetFactory.fromJson(new File("."), obj().get(), "unknown");
+    }
+
     @Test
-    public void testFromJson() {
+    public void testFromJson_validHints() throws Exception {
+        final File baseDir = new File(".");
+        assertTrue("is checklist target",
+                JsonTargetFactory.fromJson(baseDir, obj().get(),
+                        CHECKLIST.name()) instanceof WebsterChecklistTarget);
+        assertTrue("is nodetypes target",
+                JsonTargetFactory.fromJson(baseDir, obj().get(),
+                        NODETYPES.name()) instanceof WebsterNodetypesTarget);
+        assertTrue("is privileges target",
+                JsonTargetFactory.fromJson(baseDir, obj().get(),
+                        PRIVILEGES.name()) instanceof WebsterPrivilegesTarget);
+    }
+
+    @Test
+    public void testFromJson_withTypeProperty() throws Exception {
+        final File baseDir = new File(".");
+        assertTrue("is checklist target",
+                JsonTargetFactory.fromJson(baseDir,
+                        key(KEY_TYPE, CHECKLIST.name())
+                                .get(), "unknown") instanceof WebsterChecklistTarget);
+        assertTrue("is nodetypes target",
+                JsonTargetFactory.fromJson(baseDir,
+                        key(KEY_TYPE, NODETYPES.name())
+                                .get(), "unknown") instanceof WebsterNodetypesTarget);
+        assertTrue("is privileges target",
+                JsonTargetFactory.fromJson(baseDir,
+                        key(KEY_TYPE, PRIVILEGES.name())
+                                .get(), "unknown") instanceof WebsterPrivilegesTarget);
+    }
+
+    @Test
+    public void testFromJsonHintMap() throws Exception {
+        final File baseDir = new File(".");
+        assertTrue("is unknown target",
+                JsonTargetFactory.fromJsonHintMap(baseDir, key("unknown", obj()).get()).isEmpty());
+        assertTrue("is checklist target",
+                JsonTargetFactory.fromJsonHintMap(baseDir, key(CHECKLIST.name(), obj()).get())
+                        .get(0) instanceof WebsterChecklistTarget);
+        assertTrue("is nodetypes target",
+                JsonTargetFactory.fromJsonHintMap(baseDir, key(NODETYPES.name(), obj()).get())
+                        .get(0) instanceof WebsterNodetypesTarget);
+        assertTrue("is privileges target",
+                JsonTargetFactory.fromJsonHintMap(baseDir, key(PRIVILEGES.name(), obj()).get())
+                        .get(0) instanceof WebsterPrivilegesTarget);
+
+        assertTrue("is checklist target",
+                JsonTargetFactory.fromJsonHintMap(baseDir, key(CHECKLIST.name(), null).get())
+                        .get(0) instanceof WebsterChecklistTarget);
+        assertTrue("is nodetypes target",
+                JsonTargetFactory.fromJsonHintMap(baseDir, key(NODETYPES.name(), null).get())
+                        .get(0) instanceof WebsterNodetypesTarget);
+        assertTrue("is privileges target",
+                JsonTargetFactory.fromJsonHintMap(baseDir, key(PRIVILEGES.name(), null).get())
+                        .get(0) instanceof WebsterPrivilegesTarget);
+
+        assertTrue("is checklist target",
+                JsonTargetFactory.fromJsonHintMap(baseDir, key(HINT_KEY_MORE_TARGETS, arr(key(KEY_TYPE, CHECKLIST.name()))).get())
+                        .get(0) instanceof WebsterChecklistTarget);
+        assertTrue("is nodetypes target",
+                JsonTargetFactory.fromJsonHintMap(baseDir, key(HINT_KEY_MORE_TARGETS, arr(key(KEY_TYPE, NODETYPES.name()))).get())
+                        .get(0) instanceof WebsterNodetypesTarget);
+        assertTrue("is privileges target",
+                JsonTargetFactory.fromJsonHintMap(baseDir, key(HINT_KEY_MORE_TARGETS, arr(key(KEY_TYPE, PRIVILEGES.name()))).get())
+                        .get(0) instanceof WebsterPrivilegesTarget);
+
+        assertTrue("is checklist target",
+                JsonTargetFactory.fromJsonHintMap(baseDir, key(HINT_KEY_MORE_TARGETS, key(CHECKLIST.name(), obj())).get())
+                        .get(0) instanceof WebsterChecklistTarget);
+        assertTrue("is nodetypes target",
+                JsonTargetFactory.fromJsonHintMap(baseDir, key(HINT_KEY_MORE_TARGETS, key(NODETYPES.name(), obj())).get())
+                        .get(0) instanceof WebsterNodetypesTarget);
+        assertTrue("is privileges target",
+                JsonTargetFactory.fromJsonHintMap(baseDir, key(HINT_KEY_MORE_TARGETS, key(PRIVILEGES.name(), obj())).get())
+                        .get(0) instanceof WebsterPrivilegesTarget);
 
     }
 }
