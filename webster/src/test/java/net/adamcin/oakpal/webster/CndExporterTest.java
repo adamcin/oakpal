@@ -16,6 +16,7 @@
 
 package net.adamcin.oakpal.webster;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -29,9 +30,15 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Scanner;
+import java.util.function.Function;
+import java.util.stream.Stream;
 import javax.jcr.Workspace;
 import javax.jcr.nodetype.NodeTypeManager;
 
+import net.adamcin.oakpal.core.JcrNs;
+import net.adamcin.oakpal.core.JsonCnd;
+import net.adamcin.oakpal.core.Result;
+import org.apache.jackrabbit.spi.commons.namespace.NamespaceMapping;
 import org.junit.Test;
 
 public class CndExporterTest {
@@ -164,5 +171,34 @@ public class CndExporterTest {
             assertFalse("sling:OrderedFolder should NOT be imported",
                     ntManager.hasNodeType("sling:OrderedFolder"));
         });
+    }
+
+    static final class NoStringConstructorException extends Exception {
+        public NoStringConstructorException() {
+            super("NoStringConstructorException");
+        }
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void testCombineCauseMessages_reflectiveError() throws NoStringConstructorException {
+        CndExporter.combineCauseMessages(
+                Stream.of(
+                        Result.failure(new Exception("one")),
+                        Result.failure(new Exception("two"))),
+                Exception.class,
+                NoStringConstructorException.class);
+    }
+
+    @Test
+    public void testNsRemapName() {
+        final NamespaceMapping from = JsonCnd
+                .toNamespaceMapping(Collections
+                        .singletonList(JcrNs.create("fooFrom", "http://foo.com")));
+        final NamespaceMapping to = JsonCnd
+                .toNamespaceMapping(Collections
+                        .singletonList(JcrNs.create("fooTo", "http://foo.com")));
+
+        final Function<String, String> remapper = ChecklistExporter.nsRemapName(from, to);
+        assertEquals("expect new prefix", "fooTo:mixin", remapper.apply("fooFrom:mixin"));
     }
 }

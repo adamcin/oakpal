@@ -131,17 +131,18 @@ public final class JsonCnd {
                             new ImmutableRoot(InitialContent.INITIAL_CONTENT))));
 
     static final NamePathResolver BUILTIN_RESOLVER = new DefaultNamePathResolver(BUILTIN_MAPPINGS);
-    public static final List<String> BUILTIN_NODETYPES = StreamSupport.stream(
-            InitialContent.INITIAL_CONTENT
+    public static final List<String> BUILTIN_NODETYPES = Collections.unmodifiableList(
+            StreamSupport.stream(InitialContent.INITIAL_CONTENT
                     .getChildNode(JcrConstants.JCR_SYSTEM)
                     .getChildNode(NodeTypeConstants.JCR_NODE_TYPES)
                     .getChildNodeNames().spliterator(), false)
-            .collect(Collectors.toList());
-    public static final List<String> BUILTIN_PRIVILEGES = Stream.concat(Stream.of(PrivilegeConstants.JCR_ALL),
-            Stream.concat(
-                    PrivilegeConstants.NON_AGGREGATE_PRIVILEGES.stream(),
-                    PrivilegeConstants.AGGREGATE_PRIVILEGES.keySet().stream()))
-            .collect(Collectors.toList());
+                    .collect(Collectors.toList()));
+    public static final List<String> BUILTIN_PRIVILEGES = Collections.unmodifiableList(
+            Stream.concat(Stream.of(PrivilegeConstants.JCR_ALL),
+                    Stream.concat(
+                            PrivilegeConstants.NON_AGGREGATE_PRIVILEGES.stream(),
+                            PrivilegeConstants.AGGREGATE_PRIVILEGES.keySet().stream()))
+                    .collect(Collectors.toList()));
     static final String PRIVILEGE_KEY_ABSTRACT = "abstract";
     static final String PRIVILEGE_KEY_CONTAINS = "contains";
 

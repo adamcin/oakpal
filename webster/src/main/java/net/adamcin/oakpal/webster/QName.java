@@ -26,11 +26,12 @@ import org.slf4j.LoggerFactory;
 import javax.jcr.NamespaceException;
 import java.util.Objects;
 
+import static net.adamcin.oakpal.core.Fun.result1;
+
 /**
  * Representation of a Qualified Name.
  */
 public final class QName {
-    private static final Logger LOGGER = LoggerFactory.getLogger(QName.class);
     private final Type type;
     private final String prefix;
     private final String localName;
@@ -44,9 +45,9 @@ public final class QName {
      * @param localName the unqualified local name
      * @param uri       the namespace URI
      */
-    public QName(@NotNull final Type type,
+    public QName(final @NotNull Type type,
                  final @Nullable String prefix,
-                 @NotNull final String localName,
+                 final @NotNull String localName,
                  final @Nullable String uri) {
         this.type = type;
         this.prefix = prefix;
@@ -54,47 +55,38 @@ public final class QName {
         this.uri = uri;
     }
 
-    public static QName parseQName(final NamespaceMapping mapping, final Type type, final String qName) {
+    public static final class UnqualifiedNameException extends RuntimeException {
+        UnqualifiedNameException(final @NotNull String jcrName) {
+            super(jcrName + " is not a qualified name (expected prefix:localName or {uri}localName format)");
+        }
+    }
+
+    public static QName parseQName(final @NotNull NamespaceMapping mapping,
+                                   final @NotNull Type type,
+                                   final @NotNull String qName) {
         if (qName.contains(":")) {
             final String[] parts = qName.split(":", 2);
             final String prefix = parts[0];
             final String localName = parts[1];
-            String uri = null;
-            try {
-                uri = mapping.getURI(prefix);
-            } catch (final NamespaceException e) {
-                if (LOGGER.isDebugEnabled()) {
-                    LOGGER.debug("[parseQName prefixed] type={} qName={} error={}", type, qName, e.getMessage());
-                }
-            }
-            return new QName(type, prefix, localName, uri);
+            return new QName(type, prefix, localName,
+                    result1(mapping::getURI).apply(prefix).toOptional().orElse(null));
         } else if (qName.startsWith("{") && qName.contains("}")) {
             final int lastBrace = qName.indexOf("}");
             final String uri = qName.substring(1, lastBrace);
             final String localName = qName.substring(lastBrace + 1);
-            String prefix = null;
-            try {
-                prefix = mapping.getPrefix(uri);
-            } catch (final NamespaceException e) {
-                if (LOGGER.isDebugEnabled()) {
-                    LOGGER.debug("[parseQName expanded] type={} qName={} error={}", type, qName, e.getMessage());
-                }
-            }
-            return new QName(type, prefix, localName, uri);
+            return new QName(type,
+                    result1(mapping::getPrefix).apply(uri).toOptional().orElse(null),
+                    localName, uri);
         }
-        return null;
+        throw new UnqualifiedNameException(qName);
     }
 
-    public static QName adaptName(final NamespaceMapping mapping, final Type type, final Name name) {
-        String prefix = null;
-        try {
-            prefix = mapping.getPrefix(name.getNamespaceURI());
-        } catch (NamespaceException e) {
-            if (LOGGER.isDebugEnabled()) {
-                LOGGER.debug("[parseQName expanded] type={} name={} error={}", type, name, e.getMessage());
-            }
-        }
-        return new QName(type, prefix, name.getLocalName(), name.getNamespaceURI());
+    public static QName adaptName(final @NotNull NamespaceMapping mapping,
+                                  final @NotNull Type type,
+                                  final @NotNull Name name) {
+        return new QName(type, result1(mapping::getPrefix)
+                .apply(name.getNamespaceURI()).toOptional().orElse(null),
+                name.getLocalName(), name.getNamespaceURI());
     }
 
     public Type getType() {

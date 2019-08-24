@@ -75,7 +75,6 @@ import static net.adamcin.oakpal.core.Fun.uncheck1;
  * Interface independent logic for exporting .cnd files from a JCR session.
  */
 public final class CndExporter {
-
     public static final class Builder {
         private List<Rule> scopeExportNames;
         private List<Rule> scopeReplaceNames;
@@ -187,10 +186,7 @@ public final class CndExporter {
                 .flatMap(JsonCnd::streamNsPrefix)
                 .collect(Collectors.toSet()).stream().map(result1(session::getNamespaceURI)).collect(Collectors.toList());
 
-        final String allPrefixMessages = combineCauseMessages(resolvedUris.stream(), NamespaceException.class);
-        if (!allPrefixMessages.isEmpty()) {
-            throw new RepositoryException(allPrefixMessages);
-        }
+        combineCauseMessages(resolvedUris.stream(), NamespaceException.class, RepositoryException.class);
 
         final Function<String, Name> mapper = Fun.tryOrDefault1(resolver::getQName, null);
         final Function<Name, String> qualifier = Fun.tryOrDefault1(resolver::getJCRName, null);
@@ -327,22 +323,30 @@ public final class CndExporter {
             }
         }).collect(Collectors.toList());
 
-        final String allMessages = combineCauseMessages(typesToAdd.stream(), NoSuchNodeTypeException.class);
-        if (!allMessages.isEmpty()) {
-            throw new NoSuchNodeTypeException(allMessages);
-        }
+        combineCauseMessages(typesToAdd.stream(), NoSuchNodeTypeException.class, NoSuchNodeTypeException.class);
 
         typesToAdd.stream().flatMap(Result::stream).forEachOrdered(def -> addType(resolver, exportedTypes, def));
         return exportedTypes;
     }
 
-    static <T> String combineCauseMessages(final @NotNull Stream<Result<T>> results, final Class<? extends Throwable> causeType) {
-        return results.filter(Result::isFailure)
+    static <T, E extends Throwable> void combineCauseMessages(final @NotNull Stream<Result<T>> results,
+                                                              final @NotNull Class<? extends Throwable> causeType,
+                                                              final @NotNull Class<E> andThrow) throws E {
+        final String combined = results.filter(Result::isFailure)
                 .map(result -> result.findCause(causeType))
                 .filter(Optional::isPresent)
                 .map(Optional::get)
                 .map(Throwable::getMessage)
                 .collect(Collectors.joining(", "));
+        if (!combined.isEmpty()) {
+            E rethrow;
+            try {
+                rethrow = andThrow.getConstructor(String.class).newInstance(combined);
+            } catch (final ReflectiveOperationException e) {
+                throw new IllegalStateException(combined, e);
+            }
+            throw rethrow;
+        }
     }
 
     static <T> Stream<T> optStream(final T element) {
