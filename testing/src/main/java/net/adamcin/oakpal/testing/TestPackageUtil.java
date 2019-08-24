@@ -16,7 +16,14 @@
 
 package net.adamcin.oakpal.testing;
 
-import java.io.BufferedInputStream;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.io.filefilter.IOFileFilter;
+import org.apache.commons.io.filefilter.TrueFileFilter;
+import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -24,47 +31,46 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collections;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Properties;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.jar.JarOutputStream;
 import java.util.jar.Manifest;
-import java.util.zip.ZipEntry;
-
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
-import org.apache.commons.io.filefilter.IOFileFilter;
-import org.apache.commons.io.filefilter.TrueFileFilter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * FileVault Test Package Factory
  */
-public class TestPackageUtil {
-
+public final class TestPackageUtil {
     private TestPackageUtil() {
         // no construct
     }
 
-    static final Logger log = LoggerFactory.getLogger(TestPackageUtil.class);
+    private static final Logger log = LoggerFactory.getLogger(TestPackageUtil.class);
+    private static final Properties properties = new Properties();
+    private static String testPackagesSrc;
 
     static final String PN_TEST_PACKAGES_SRC = "test-packages.src";
     static final String PN_TEST_PACKAGES_ROOT = "test-packages.root";
     private static Path testPackagesRoot;
-    private static String testPackagesSrc;
-    static final Properties properties = new Properties();
 
-    static {
-        try (InputStream propsIn = TestPackageUtil.class.getResourceAsStream("/test-packages.properties")) {
+    static void loadPropertiesFromResource(final @NotNull Properties props, final @NotNull String resourceName) {
+        try (InputStream propsIn = TestPackageUtil.class.getResourceAsStream(resourceName)) {
             if (propsIn != null) {
-                properties.load(propsIn);
+                props.load(propsIn);
+            } else {
+                throw new IOException("failed to open stream from resource: " + resourceName);
             }
         } catch (IOException e) {
-            log.error("Failed to load test-packages.properties");
+            log.error("Failed to load properties from " + resourceName + " (see cause in DEBUG)");
+            log.debug("Failed to load properties from " + resourceName, e);
         }
+    }
+
+    static {
+        loadPropertiesFromResource(properties, "/test-packages.properties");
+
         testPackagesSrc = properties.getProperty(PN_TEST_PACKAGES_SRC, "/oakpal-testing/test-packages/");
         // replace legacy non-windows suffix if it exists, then force resolved test-packages subdir.
         testPackagesRoot = Paths.get(properties.getProperty(PN_TEST_PACKAGES_ROOT, "target")
@@ -81,65 +87,17 @@ public class TestPackageUtil {
         return file;
     }
 
-    public static File prepareTestPackageFromFolder(final String filename, final File srcFolder) throws IOException {
+    public static File prepareTestPackageFromFolder(final @NotNull String filename,
+                                                    final @NotNull File srcFolder) throws IOException {
         final File absFile = srcFolder.getAbsoluteFile();
         if (!absFile.isDirectory()) {
             throw new IOException("expected directory in srcFolder parameter for test package filename "
                     + filename + ", srcFolder exists " + srcFolder);
         }
         File file = new File(testPackagesRoot.toFile(), filename);
-        try (JarOutputStream jos = new JarOutputStream(new FileOutputStream(file))) {
-            add(absFile, absFile, jos);
-        }
+        buildJarFromDir(absFile, file.getAbsoluteFile(), Collections.emptyMap());
 
         return file;
-    }
-
-    static void add(final File root, final File source, final JarOutputStream target) throws IOException {
-        if (root == null || source == null) {
-            throw new IllegalArgumentException("Cannot add from a null file");
-        }
-        if (!(source.getPath() + File.separator).startsWith(root.getPath() + File.separator)) {
-            throw new IllegalArgumentException("source must be the same file or a child of root");
-        }
-        final String relPath;
-        if (!root.getPath().equals(source.getPath())) {
-            relPath = source.getPath().substring(root.getPath().length() + 1).replace(File.separator, "/");
-        } else {
-            relPath = "";
-        }
-        if (source.isDirectory()) {
-            if (!relPath.isEmpty()) {
-                String name = relPath;
-                if (!name.endsWith("/")) {
-                    name += "/";
-                }
-                JarEntry entry = new JarEntry(name);
-                entry.setTime(source.lastModified());
-                target.putNextEntry(entry);
-                target.closeEntry();
-            }
-            File[] children = source.listFiles();
-            if (children != null) {
-                for (File nestedFile : children) {
-                    add(root, nestedFile, target);
-                }
-            }
-        } else {
-            JarEntry entry = new JarEntry(relPath);
-            entry.setTime(source.lastModified());
-            target.putNextEntry(entry);
-            try (InputStream in = new BufferedInputStream(new FileInputStream(source))) {
-                byte[] buffer = new byte[1024];
-                while (true) {
-                    int count = in.read(buffer);
-                    if (count == -1)
-                        break;
-                    target.write(buffer, 0, count);
-                }
-                target.closeEntry();
-            }
-        }
     }
 
     static final IOFileFilter includedEntry = new IOFileFilter() {
@@ -154,44 +112,72 @@ public class TestPackageUtil {
         }
     };
 
-
-    public static void buildJarFromDir(final File srcDir, final File targetJar, final Map<String, File> additionalEntries) throws Exception {
-        if (!targetJar.exists()) {
-            try (InputStream manIn = new FileInputStream(new File(srcDir, JarFile.MANIFEST_NAME))) {
-                final Manifest man = new Manifest(manIn);
-                final File targetDir = targetJar.getParentFile();
-                if (!targetDir.isDirectory() && !targetDir.mkdirs()) {
-                    throw new IOException("failed to create parent target directory: " + targetDir.getAbsolutePath());
+    static void buildJarOutputStreamFromDir(final @NotNull File srcDir,
+                                            final @NotNull JarOutputStream jos,
+                                            final @NotNull Map<String, File> additionalEntries) throws IOException {
+        final String absPath = srcDir.getAbsolutePath();
+        for (File file : FileUtils.listFilesAndDirs(srcDir, includedEntry, TrueFileFilter.INSTANCE)) {
+            final String filePath = file.getAbsolutePath();
+            final String entryName = filePath.substring(absPath.length())
+                    .replaceFirst("^/?", "")
+                    .replace(File.separator, "/");
+            if (entryName.isEmpty()) {
+                continue;
+            }
+            if (file.isDirectory()) {
+                JarEntry entry = new JarEntry(entryName + "/");
+                entry.setTime(file.lastModified());
+                jos.putNextEntry(entry);
+            } else {
+                JarEntry entry = new JarEntry(entryName);
+                entry.setTime(file.lastModified());
+                jos.putNextEntry(entry);
+                try (FileInputStream fileInput = new FileInputStream(file)) {
+                    IOUtils.copy(fileInput, jos);
                 }
-                try (JarOutputStream jos = new JarOutputStream(new FileOutputStream(targetJar), man)) {
-                    final String absPath = srcDir.getAbsolutePath();
-                    for (File file : FileUtils.listFilesAndDirs(srcDir, includedEntry, TrueFileFilter.INSTANCE)) {
-                        final String filePath = file.getAbsolutePath();
-                        final String entryName = filePath.substring(absPath.length())
-                                .replaceFirst("^/?", "")
-                                .replace(File.separator, "/");
-                        if (file.isDirectory()) {
-                            jos.putNextEntry(new ZipEntry(entryName + "/"));
-                        } else {
-                            jos.putNextEntry(new ZipEntry(entryName));
-                            try (FileInputStream fileInput = new FileInputStream(file)) {
-                                IOUtils.copy(fileInput, jos);
-                            }
-                        }
-                        jos.closeEntry();
+            }
+            jos.closeEntry();
+        }
+        for (Map.Entry<String, File> add : additionalEntries.entrySet()) {
+            final String entryName = add.getKey();
+            if (entryName.isEmpty()) {
+                continue;
+            }
+            if (add.getValue().isDirectory()) {
+                JarEntry entry = new JarEntry(entryName.replaceFirst("/?$", "/"));
+                entry.setTime(add.getValue().lastModified());
+                jos.putNextEntry(entry);
+            } else {
+                JarEntry entry = new JarEntry(entryName.replaceFirst("/?$", ""));
+                entry.setTime(add.getValue().lastModified());
+                jos.putNextEntry(entry);
+                try (FileInputStream fileInput = new FileInputStream(add.getValue())) {
+                    IOUtils.copy(fileInput, jos);
+                }
+            }
+            jos.closeEntry();
+        }
+    }
+
+    public static void buildJarFromDir(final @NotNull File srcDir,
+                                       final @NotNull File targetJar,
+                                       final @NotNull Map<String, File> additionalEntries) throws IOException {
+        if (!targetJar.exists()) {
+            final File targetDir = targetJar.getParentFile();
+            if (!targetDir.isDirectory() && !targetDir.mkdirs()) {
+                throw new IOException("failed to create parent target directory: " + targetDir.getAbsolutePath());
+            }
+            final File manifestFile = new File(srcDir, JarFile.MANIFEST_NAME);
+            if (manifestFile.exists()) {
+                try (InputStream manIn = new FileInputStream(manifestFile)) {
+                    final Manifest man = new Manifest(manIn);
+                    try (JarOutputStream jos = new JarOutputStream(new FileOutputStream(targetJar), man)) {
+                        buildJarOutputStreamFromDir(srcDir, jos, additionalEntries);
                     }
-                    for (Map.Entry<String, File> add : additionalEntries.entrySet()) {
-                        final String entryName = add.getKey();
-                        if (add.getValue().isDirectory()) {
-                            jos.putNextEntry(new ZipEntry(entryName.replaceAll("/?$", "/")));
-                        } else {
-                            jos.putNextEntry(new ZipEntry(entryName));
-                            try (FileInputStream fileInput = new FileInputStream(add.getValue())) {
-                                IOUtils.copy(fileInput, jos);
-                            }
-                        }
-                        jos.closeEntry();
-                    }
+                }
+            } else {
+                try (JarOutputStream jos = new JarOutputStream(new FileOutputStream(targetJar))) {
+                    buildJarOutputStreamFromDir(srcDir, jos, additionalEntries);
                 }
             }
         }
