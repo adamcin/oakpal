@@ -75,7 +75,7 @@ public final class TestPackageUtil {
         // replace legacy non-windows suffix if it exists, then force resolved test-packages subdir.
         testPackagesRoot = Paths.get(properties.getProperty(PN_TEST_PACKAGES_ROOT, "target")
                 .replaceAll("/test-packages$", "")).resolve("test-packages");
-        testPackagesRoot.toFile().mkdir();
+        testPackagesRoot.toFile().mkdirs();
     }
 
     public static File prepareTestPackage(final String filename) throws IOException {
