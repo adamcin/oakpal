@@ -20,10 +20,7 @@ import org.apache.jackrabbit.spi.Name;
 import org.apache.jackrabbit.spi.commons.namespace.NamespaceMapping;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import javax.jcr.NamespaceException;
 import java.util.Objects;
 
 import static net.adamcin.oakpal.core.Fun.result1;
@@ -64,19 +61,19 @@ public final class QName {
     public static QName parseQName(final @NotNull NamespaceMapping mapping,
                                    final @NotNull Type type,
                                    final @NotNull String qName) {
-        if (qName.contains(":")) {
-            final String[] parts = qName.split(":", 2);
-            final String prefix = parts[0];
-            final String localName = parts[1];
-            return new QName(type, prefix, localName,
-                    result1(mapping::getURI).apply(prefix).toOptional().orElse(null));
-        } else if (qName.startsWith("{") && qName.contains("}")) {
+        if (qName.startsWith("{") && qName.contains("}")) {
             final int lastBrace = qName.indexOf("}");
             final String uri = qName.substring(1, lastBrace);
             final String localName = qName.substring(lastBrace + 1);
             return new QName(type,
                     result1(mapping::getPrefix).apply(uri).toOptional().orElse(null),
                     localName, uri);
+        } else if (qName.contains(":")) {
+            final String[] parts = qName.split(":", 2);
+            final String prefix = parts[0];
+            final String localName = parts[1];
+            return new QName(type, prefix, localName,
+                    result1(mapping::getURI).apply(prefix).toOptional().orElse(null));
         }
         throw new UnqualifiedNameException(qName);
     }
