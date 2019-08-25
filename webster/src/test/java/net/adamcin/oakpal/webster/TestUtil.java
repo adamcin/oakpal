@@ -19,8 +19,6 @@ package net.adamcin.oakpal.webster;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import net.adamcin.oakpal.core.Fun;
-import net.adamcin.oakpal.core.InitStage;
-import net.adamcin.oakpal.core.JsonCnd;
 import net.adamcin.oakpal.core.OakMachine;
 import net.adamcin.oakpal.core.OakpalPlan;
 import net.adamcin.oakpal.core.Result;
@@ -75,7 +73,6 @@ import java.util.stream.Stream;
 import static net.adamcin.oakpal.core.Fun.result1;
 import static net.adamcin.oakpal.core.Fun.uncheck1;
 import static net.adamcin.oakpal.core.Fun.zipKeysWithValueFunc;
-import static net.adamcin.oakpal.core.JavaxJson.arr;
 import static net.adamcin.oakpal.core.JavaxJson.obj;
 import static org.junit.Assert.assertTrue;
 
@@ -156,45 +153,55 @@ public final class TestUtil {
         return NodeStoreFixtureProvider.create(opts, true);
     }
 
+    public static void compositeWithFixture(final @NotNull NodeStoreFixture fixture,
+                                            final @NotNull SessionStrategy sessionStrategy)
+            throws Exception {
+        Repository repo = null;
+        Session session = null;
+        try {
+            repo = JcrFactory.getJcr(fixture);
+            session = repo.login(new SimpleCredentials("admin", "admin".toCharArray()));
+            sessionStrategy.accept(session);
+        } finally {
+            if (session != null) {
+                session.logout();
+            }
+            TestUtil.closeRepo(repo);
+        }
+    }
+
+    public static void compositeWithFixtures(final @NotNull NodeStoreFixture fixture,
+                                             final @NotNull NodeStoreFixture globalFixture,
+                                             final @NotNull SessionStrategy sessionStrategy)
+            throws Exception {
+        Repository repo = null;
+        Session session = null;
+        try {
+            repo = JcrFactory.getJcr(fixture, globalFixture.getStore());
+            session = repo.login(new SimpleCredentials("admin", "admin".toCharArray()));
+            sessionStrategy.accept(session);
+        } finally {
+            if (session != null) {
+                session.logout();
+            }
+            TestUtil.closeRepo(repo);
+        }
+    }
+
     public static void withReadOnlyFixture(final File segmentStore, final File globalStore,
                                            final SessionStrategy sessionStrategy)
             throws Exception {
-
         try (NodeStoreFixture fixture = TestUtil.getReadOnlyFixture(segmentStore, null);
              NodeStoreFixture globalFixture = TestUtil.getReadWriteFixture(globalStore, null)) {
-
-            Repository repo = null;
-            Session session = null;
-            try {
-                repo = JcrFactory.getJcr(fixture, globalFixture.getStore());
-                session = repo.login(new SimpleCredentials("admin", "admin".toCharArray()));
-                sessionStrategy.accept(session);
-            } finally {
-                if (session != null) {
-                    session.logout();
-                }
-                TestUtil.closeRepo(repo);
-            }
+            compositeWithFixtures(fixture, globalFixture, sessionStrategy);
         }
     }
 
     public static void withReadOnlyFixture(final File segmentStore,
                                            final SessionStrategy sessionStrategy)
             throws Exception {
-
         try (NodeStoreFixture fixture = TestUtil.getReadOnlyFixture(segmentStore, null)) {
-            Repository repo = null;
-            Session session = null;
-            try {
-                repo = JcrFactory.getJcr(fixture);
-                session = repo.login(new SimpleCredentials("admin", "admin".toCharArray()));
-                sessionStrategy.accept(session);
-            } finally {
-                if (session != null) {
-                    session.logout();
-                }
-                TestUtil.closeRepo(repo);
-            }
+            compositeWithFixture(fixture, sessionStrategy);
         }
     }
 

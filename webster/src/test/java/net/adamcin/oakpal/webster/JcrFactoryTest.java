@@ -18,17 +18,25 @@ package net.adamcin.oakpal.webster;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStream;
 import java.net.URL;
+import javax.jcr.Binary;
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
 import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
 import javax.jcr.query.QueryResult;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.commons.JcrUtils;
+import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.run.cli.NodeStoreFixture;
 import org.junit.Test;
 
 public class JcrFactoryTest {
@@ -69,5 +77,61 @@ public class JcrFactoryTest {
         });
     }
 
+    @Test(expected = UnsupportedOperationException.class)
+    public void testGetReadOnlyFixture() throws Exception {
+        final File seedDir = new File(testBaseDir, "testGetReadOnlyFixture/seedRepo/segmentstore");
+        TestUtil.prepareRepo(seedDir, session -> {
+            session.getRootNode().addNode("foo", "nt:unstructured");
+            session.save();
+        });
+        final File globalDir = new File(testBaseDir, "testGetReadOnlyFixture/globalRepo/segmentstore");
+        TestUtil.prepareRepo(globalDir, session -> {});
 
+        try (NodeStoreFixture fixture = JcrFactory.getReadOnlyFixture(seedDir);
+             NodeStoreFixture globalFixture = JcrFactory.getReadOnlyFixture(globalDir)) {
+            TestUtil.compositeWithFixtures(fixture, globalFixture, session -> {
+                session.getWorkspace().getNamespaceRegistry()
+                        .registerNamespace("foo", "http://foo.com");
+            });
+        }
+    }
+
+    @Test
+    public void testGetReadWriteFixture() throws Exception {
+        final File seedDir = new File(testBaseDir, "testGetReadWriteFixture/seedRepo/segmentstore");
+        TestUtil.prepareRepo(seedDir, session -> {
+            session.getRootNode().addNode("foo", "nt:unstructured");
+            session.save();
+        });
+        final File globalDir = new File(testBaseDir, "testGetReadWriteFixture/globalRepo/segmentstore");
+        TestUtil.prepareRepo(globalDir, session -> {});
+
+        try (NodeStoreFixture fixture = JcrFactory.getReadWriteFixture(seedDir);
+             NodeStoreFixture globalFixture = JcrFactory.getReadWriteFixture(globalDir)) {
+            TestUtil.compositeWithFixtures(fixture, globalFixture, session -> {
+                session.getWorkspace().getNamespaceRegistry()
+                        .registerNamespace("foo", "http://foo.com");
+            });
+        }
+    }
+
+    @Test
+    public void testGetNodeStoreFixture_withWithoutFDS() throws Exception {
+        final File seedRepoHome = new File(testBaseDir, "testGetNodeStoreFixture_withFDS/seedRepo");
+        FileUtils.deleteDirectory(seedRepoHome);
+        final File seedDir = new File(seedRepoHome, "segmentstore");
+        final File fdsDir = new File(seedRepoHome, "datastore");
+
+        assertFalse("fds dir should not exist @ " + fdsDir.getAbsolutePath(), fdsDir.exists());
+        try (NodeStoreFixture fixture = JcrFactory.getNodeStoreFixture(false, seedDir)) {
+            assertNull("blob store should be null without datastore dir", fixture.getBlobStore());
+        }
+
+        FileUtils.deleteDirectory(seedRepoHome);
+        fdsDir.mkdirs();
+        assertTrue("fds dir should exist @ " + fdsDir.getAbsolutePath(), fdsDir.exists());
+        try (NodeStoreFixture fixture = JcrFactory.getNodeStoreFixture(false, seedDir)) {
+            assertNotNull("blob store should not be null", fixture.getBlobStore());
+        }
+    }
 }
