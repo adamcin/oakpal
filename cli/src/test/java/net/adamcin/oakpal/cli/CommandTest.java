@@ -5,6 +5,7 @@ import static net.adamcin.oakpal.core.JavaxJson.key;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -22,6 +23,7 @@ import java.io.StringWriter;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Queue;
@@ -45,6 +47,7 @@ import net.adamcin.oakpal.core.SimpleProgressCheck;
 import net.adamcin.oakpal.core.SimpleReport;
 import net.adamcin.oakpal.core.SimpleViolation;
 import net.adamcin.oakpal.core.Violation;
+import net.adamcin.oakpal.testing.TestPackageUtil;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.jetbrains.annotations.NotNull;
@@ -250,6 +253,28 @@ public class CommandTest {
         validator.expectSuccess(args("-s", "severe"),
                 options -> assertEquals("expect severe",
                         Violation.Severity.SEVERE, options.getFailOnSeverity()));
+
+        validator.expectSuccess(args("--no-plan"),
+                options -> assertNull("expect no plan", options.getPlanName()));
+    }
+
+    @Test
+    public void testParseArgs_realOpear() throws Exception {
+        final File testOutDir = new File(testOutputBaseDir, "testParseArgs_realOpear");
+        FileUtils.deleteDirectory(testOutDir);
+        final File simpleEchoSrc = new File("src/test/resources/opears/simpleEcho");
+        final File simpleEchoJar = new File(testOutDir, "simpleEcho.jar");
+        TestPackageUtil.buildJarFromDir(simpleEchoSrc, simpleEchoJar, Collections.emptyMap());
+
+        final Console console = getMockConsole();
+        final OptionsValidator validator = new OptionsValidator(console);
+
+        validator.expectSuccess(args("--plan", "other-plan.json", "-f", simpleEchoJar.getAbsolutePath()),
+                options -> assertEquals("expect plan name", "other-plan.json", options.getPlanName()));
+
+        final File notAJar = new File(testOutDir, "notA.jar");
+        FileUtils.touch(notAJar);
+        validator.expectFailure(args("-f", notAJar.getAbsolutePath()));
     }
 
     @Test

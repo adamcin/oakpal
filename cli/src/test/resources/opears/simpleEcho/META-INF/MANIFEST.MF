@@ -1,4 +1,4 @@
 Manifest-Version: 1.0
 Bundle-SymbolicName: simpleEcho
 Bundle-ClassPath: .
-Oakpal-Plan: plan.json
+Oakpal-Plan: plan.json,other-plan.json

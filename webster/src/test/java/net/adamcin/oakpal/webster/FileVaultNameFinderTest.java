@@ -16,15 +16,6 @@
 
 package net.adamcin.oakpal.webster;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-
-import java.io.File;
-import java.util.Collections;
-import java.util.Set;
-import java.util.stream.Collectors;
-
 import net.adamcin.oakpal.testing.TestPackageUtil;
 import org.apache.jackrabbit.vault.fs.io.FileArchive;
 import org.apache.jackrabbit.vault.fs.io.ZipArchive;
@@ -35,6 +26,14 @@ import org.xml.sax.SAXException;
 import org.xml.sax.helpers.AttributesImpl;
 
 import javax.jcr.NamespaceRegistry;
+import java.io.File;
+import java.util.Collections;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class FileVaultNameFinderTest {
     private static final Logger LOGGER = LoggerFactory.getLogger(FileVaultNameFinderTest.class);

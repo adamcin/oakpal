@@ -10,6 +10,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.function.IntConsumer;
 
 import net.adamcin.oakpal.core.Nothing;
 import net.adamcin.oakpal.core.Result;
@@ -22,19 +23,16 @@ import org.jetbrains.annotations.NotNull;
 final class Main implements Console {
     private final File cwd;
     private final Map<String, String> env;
-    private final Properties systemProperties;
     private final PrintStream stdout;
     private final PrintStream stderr;
     private final Map<File, DisposablePrinter> printers = new HashMap<>();
 
     Main(final @NotNull File cwd,
          final @NotNull Map<String, String> env,
-         final @NotNull Properties systemProperties,
          final @NotNull PrintStream stdout,
          final @NotNull PrintStream stderr) {
         this.cwd = cwd;
         this.env = env;
-        this.systemProperties = systemProperties;
         this.stdout = stdout;
         this.stderr = stderr;
     }
@@ -47,11 +45,6 @@ final class Main implements Console {
     @Override
     public @NotNull Map<String, String> getEnv() {
         return Collections.unmodifiableMap(this.env);
-    }
-
-    @Override
-    public @NotNull Properties getSystemProperties() {
-        return this.systemProperties;
     }
 
     @Override
@@ -114,6 +107,12 @@ final class Main implements Console {
         return exitCode;
     }
 
+    private static @NotNull IntConsumer exitFunction = Runtime.getRuntime()::exit;
+
+    public static void setExitFunction(final @NotNull IntConsumer exitFunction) {
+        Main.exitFunction = exitFunction;
+    }
+
     /**
      * Let's do a mental map:
      * <p>
@@ -128,22 +127,11 @@ final class Main implements Console {
     public static void main(final String[] args) {
         StackTraceElement[] stack = new Exception().getStackTrace();
         final StackTraceElement last = stack[stack.length - 1];
-        final boolean iStartedIt =
-                Main.class.getName().equals(last.getClassName()) && "main".equals(last.getMethodName());
 
-        final PrintStream out = System.out;
-        if (iStartedIt) {
-            System.setOut(System.err);
-        }
         Main main = new Main(new File(".").getAbsoluteFile(),
                 Collections.unmodifiableMap(System.getenv()),
-                new Properties(System.getProperties()),
-                out, System.err);
+                System.out, System.err);
 
-        if (iStartedIt) {
-            Runtime.getRuntime().exit(main.doMain(args));
-        } else {
-            main.doMain(args);
-        }
+        exitFunction.accept(main.doMain(args));
     }
 }

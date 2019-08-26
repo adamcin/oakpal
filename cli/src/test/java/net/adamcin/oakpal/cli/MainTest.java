@@ -16,6 +16,7 @@ public class MainTest {
     @Before
     public void setUp() throws Exception {
         testOutputBaseDir.mkdirs();
+        Main.setExitFunction(status -> {});
     }
 
     @Test
