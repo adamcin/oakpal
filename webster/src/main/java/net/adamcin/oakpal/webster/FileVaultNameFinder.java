@@ -19,6 +19,7 @@ package net.adamcin.oakpal.webster;
 import static javax.jcr.PropertyType.NAME;
 import static javax.jcr.PropertyType.STRING;
 import static javax.jcr.PropertyType.UNDEFINED;
+import static net.adamcin.oakpal.core.Fun.result1;
 import static net.adamcin.oakpal.core.JsonCnd.BUILTIN_MAPPINGS;
 
 import java.io.IOException;
@@ -39,7 +40,9 @@ import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 
+import net.adamcin.oakpal.core.Fun;
 import net.adamcin.oakpal.core.JsonCnd;
+import net.adamcin.oakpal.core.Result;
 import org.apache.jackrabbit.spi.Name;
 import org.apache.jackrabbit.spi.PrivilegeDefinition;
 import org.apache.jackrabbit.spi.QNodeTypeDefinition;
@@ -58,6 +61,7 @@ import org.apache.jackrabbit.vault.util.DocViewNode;
 import org.apache.jackrabbit.vault.util.DocViewProperty;
 import org.apache.jackrabbit.vault.util.PlatformNameFormat;
 import org.apache.jackrabbit.vault.util.RejectingEntityDefaultHandler;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.Attributes;
@@ -74,13 +78,15 @@ public final class FileVaultNameFinder {
     }
 
     void loadBuiltins() {
-        for (String name : JsonCnd.BUILTIN_PRIVILEGES) {
-            Optional.ofNullable(QName.parseQName(BUILTIN_MAPPINGS, QName.Type.PRIVILEGE, name)).ifPresent(this::addDefinition);
-        }
+        JsonCnd.BUILTIN_PRIVILEGES.stream()
+                .map(result1(jcrName -> QName.parseQName(BUILTIN_MAPPINGS, QName.Type.PRIVILEGE, jcrName)))
+                .flatMap(Result::stream)
+                .forEachOrdered(this::addDefinition);
 
-        for (String name : CndExporter.BUILTIN_NODETYPES) {
-            Optional.ofNullable(QName.parseQName(BUILTIN_MAPPINGS, QName.Type.NODETYPE, name)).ifPresent(this::addDefinition);
-        }
+        JsonCnd.BUILTIN_NODETYPES.stream()
+                .map(result1(jcrName -> QName.parseQName(BUILTIN_MAPPINGS, QName.Type.NODETYPE, jcrName)))
+                .flatMap(Result::stream)
+                .forEachOrdered(this::addDefinition);
     }
 
     void addReference(final QName qName) {
@@ -93,17 +99,17 @@ public final class FileVaultNameFinder {
         this.definitions.add(qName);
     }
 
-    void collectPrivilegeDefinition(final NamespaceMapping mapping, final PrivilegeDefinition def) {
-        try {
-            Name defName = def.getName();
-            addDefinition(QName.adaptName(mapping, QName.Type.PRIVILEGE, defName));
-            def.getDeclaredAggregateNames().stream()
-                    .map(name -> QName.adaptName(mapping, QName.Type.PRIVILEGE, name))
-                    .filter(Objects::nonNull)
-                    .forEachOrdered(this::addReference);
-        } catch (final Exception e) {
-            // do nothing
-        }
+    void collectPrivilegeDefinition(final @NotNull NamespaceMapping mapping,
+                                    final @NotNull PrivilegeDefinition def) {
+        final Function<Name, Result<QName>> adapterFn =
+                result1(name -> QName.adaptName(mapping, QName.Type.PRIVILEGE, name));
+        adapterFn.apply(def.getName()).forEach(this::addDefinition);
+        Name defName = def.getName();
+        addDefinition(QName.adaptName(mapping, QName.Type.PRIVILEGE, defName));
+        def.getDeclaredAggregateNames().stream()
+                .map(adapterFn)
+                .flatMap(Result::stream)
+                .forEachOrdered(this::addReference);
     }
 
     void collectNodeTypeNames(final NamespaceMapping mapping, final QNodeTypeDefinition def) {
@@ -263,19 +269,19 @@ public final class FileVaultNameFinder {
                 try {
                     DocViewNode ni = new DocViewNode(name, label, attributes, npResolver);
                     if (ni.primary != null) {
-                        Optional.ofNullable(QName.parseQName(mapping, QName.Type.NODETYPE, ni.primary))
-                                .ifPresent(FileVaultNameFinder.this::addReference);
+                        Fun.result0(() -> QName.parseQName(mapping, QName.Type.NODETYPE, ni.primary)).get()
+                                .forEach(FileVaultNameFinder.this::addReference);
                     }
                     if (ni.mixins != null) {
-                        Stream.of(ni.mixins).map(type -> QName.parseQName(mapping, QName.Type.NODETYPE, type))
-                                .filter(Objects::nonNull).forEachOrdered(FileVaultNameFinder.this::addReference);
+                        Stream.of(ni.mixins).map(result1(type -> QName.parseQName(mapping, QName.Type.NODETYPE, type)))
+                                .flatMap(Result::stream).forEachOrdered(FileVaultNameFinder.this::addReference);
                     }
                     if (ni.props.containsKey("rep:privileges")) {
                         DocViewProperty prop = ni.props.get("rep:privileges");
                         if (prop.values != null
                                 && (prop.type == UNDEFINED || prop.type == STRING || prop.type == NAME)) {
-                            Stream.of(prop.values).map(type -> QName.parseQName(mapping, QName.Type.PRIVILEGE, type))
-                                    .filter(Objects::nonNull).forEachOrdered(FileVaultNameFinder.this::addReference);
+                            Stream.of(prop.values).map(result1(type -> QName.parseQName(mapping, QName.Type.PRIVILEGE, type)))
+                                    .flatMap(Result::stream).forEachOrdered(FileVaultNameFinder.this::addReference);
                         }
                     }
                 } catch (NamespaceException e) {

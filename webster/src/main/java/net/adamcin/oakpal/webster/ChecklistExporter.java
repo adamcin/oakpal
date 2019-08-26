@@ -22,8 +22,11 @@ import net.adamcin.oakpal.core.Fun;
 import net.adamcin.oakpal.core.JavaxJson;
 import net.adamcin.oakpal.core.JcrNs;
 import net.adamcin.oakpal.core.JsonCnd;
+import net.adamcin.oakpal.core.NamespaceMappingRequest;
+import net.adamcin.oakpal.core.Result;
 import net.adamcin.oakpal.core.checks.Rule;
 import org.apache.jackrabbit.spi.Name;
+import org.apache.jackrabbit.spi.PrivilegeDefinition;
 import org.apache.jackrabbit.spi.QNodeTypeDefinition;
 import org.apache.jackrabbit.spi.commons.conversion.DefaultNamePathResolver;
 import org.apache.jackrabbit.spi.commons.conversion.NamePathResolver;
@@ -55,6 +58,7 @@ import java.io.IOException;
 import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -65,6 +69,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiPredicate;
+import java.util.function.BinaryOperator;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
@@ -72,9 +77,12 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static net.adamcin.oakpal.core.Fun.compose;
+import static net.adamcin.oakpal.core.Fun.inferTest1;
 import static net.adamcin.oakpal.core.Fun.mapValue;
 import static net.adamcin.oakpal.core.Fun.testKey;
+import static net.adamcin.oakpal.core.Fun.testValue;
 import static net.adamcin.oakpal.core.Fun.uncheck1;
+import static net.adamcin.oakpal.core.Fun.uncheckVoid1;
 
 /**
  * Exports namespaces, node types, and {@link ForcedRoot}s from a JCR session to assist with project checklist management.
@@ -217,14 +225,11 @@ public final class ChecklistExporter {
     /**
      * Represents an atomic export operation.
      */
-    private static class Op {
+    static class Op {
         private final SelectorType selectorType;
         private final List<String> args;
 
-        private Op(final SelectorType selectorType, final String... args) {
-            if (args == null) {
-                throw new IllegalArgumentException("args cannot be null");
-            }
+        Op(final @NotNull SelectorType selectorType, final @NotNull String... args) {
             this.selectorType = selectorType;
             this.args = Arrays.asList(args);
         }
@@ -287,19 +292,19 @@ public final class ChecklistExporter {
     static final Predicate<String> COVARIANT_FILTER = name -> name.startsWith(COVARIANT_PREFIX);
     static final Function<String, String> COVARIANT_FORMAT = name -> name.substring(COVARIANT_PREFIX.length());
 
-    static void ensureNamespaces(final Session session, final NamespaceMapping namespaces) throws RepositoryException {
+    static void ensureNamespaces(final @NotNull Session session,
+                                 final @NotNull NamespaceMapping namespaces) throws RepositoryException {
         NamespaceRegistry registry = session.getWorkspace().getNamespaceRegistry();
         List<String> registered = Arrays.asList(registry.getURIs());
-        for (Map.Entry<String, String> entry : namespaces.getURIToPrefixMapping().entrySet()) {
-            if (entry.getKey().isEmpty() || entry.getValue().isEmpty()) {
-                continue;
-            }
-            if (registered.contains(entry.getKey())) {
-                session.setNamespacePrefix(entry.getValue(), entry.getKey());
-            } else {
-                registry.registerNamespace(entry.getValue(), entry.getKey());
-            }
-        }
+        namespaces.getURIToPrefixMapping().entrySet().stream()
+                .filter(entry -> !entry.getKey().isEmpty() && !entry.getValue().isEmpty())
+                .forEachOrdered(uncheckVoid1(entry -> {
+                    if (registered.contains(entry.getKey())) {
+                        session.setNamespacePrefix(entry.getValue(), entry.getKey());
+                    } else {
+                        registry.registerNamespace(entry.getValue(), entry.getKey());
+                    }
+                }));
     }
 
     static Set<String> findJcrPrefixesInForcedRoot(final @NotNull Set<String> acc, final @NotNull ForcedRoot forcedRoot) {
@@ -311,6 +316,10 @@ public final class ChecklistExporter {
         Optional.ofNullable(forcedRoot.getPrimaryType()).ifPresent(acc::add);
         Optional.ofNullable(forcedRoot.getMixinTypes()).ifPresent(acc::addAll);
         return acc;
+    }
+
+    static <U> BinaryOperator<U> preferDifferent(final @NotNull U value) {
+        return (left, right) -> left.equals(value) ? right : left;
     }
 
     static Function<String, String> nsRemapName(final NamespaceMapping fromMapping, final NamespaceMapping toMapping) {
@@ -332,7 +341,7 @@ public final class ChecklistExporter {
                 .reduce(
                         value,
                         (input, entry) -> entry.getValue().matcher(input).replaceAll(entry.getKey()),
-                        (left, right) -> left.equals(value) ? right : left);
+                        preferDifferent(value));
     }
 
     static Function<ForcedRoot, ForcedRoot> nsRemapForcedRoot(final NamespaceMapping fromMapping, final NamespaceMapping toMapping) {
@@ -425,15 +434,13 @@ public final class ChecklistExporter {
 
         final JsonObjectBuilder builder = Json.createObjectBuilder();
         final Map<String, ForcedRoot> existing = new LinkedHashMap<>();
-        final List<String> privileges = new ArrayList<>();
+        final List<PrivilegeDefinition> privileges = new ArrayList<>();
 
         // remap the names of existing jcr definitions to match the new jcr namespaces
         if (checklist != null) {
             checklist.toJson().forEach(builder::add);
 
-            checklist.getJcrPrivilegeNames().stream()
-                    .map(nsRemapName(origMapping, remapping))
-                    .forEachOrdered(privileges::add);
+            privileges.addAll(checklist.getJcrPrivileges());
 
             checklist.getForcedRoots().stream()
                     .map(nsRemapForcedRoot(origMapping, remapping))
@@ -441,10 +448,11 @@ public final class ChecklistExporter {
                     .forEachOrdered(root -> existing.put(root.getPath(), root));
         }
 
-        final Set<String> finalPrefixes = new HashSet<>();
+        //final Set<String> finalPrefixes = new HashSet<>();
+        final NamespaceMappingRequest.Builder request = new NamespaceMappingRequest.Builder();
         if (!privileges.isEmpty()) {
-            builder.add(Checklist.KEY_JCR_PRIVILEGES, JavaxJson.wrap(privileges));
-            privileges.stream().flatMap(JsonCnd::streamNsPrefix).forEach(finalPrefixes::add);
+            builder.add(Checklist.KEY_JCR_PRIVILEGES, JsonCnd.privilegesToJson(privileges, origMapping));
+            privileges.stream().flatMap(JsonCnd::namedBy).forEach(request::withQName);
         }
 
         newRoots.forEach(root -> existing.put(root.getPath(), root));
@@ -469,10 +477,7 @@ public final class ChecklistExporter {
         final List<Name> foundNodeTypes = forcedRoots.stream()
                 .reduce(new HashSet<>(),
                         ChecklistExporter::findNodeTypesInForcedRoot,
-                        (left, right) -> {
-                            left.addAll(right);
-                            return left;
-                        }).stream()
+                        addToLeft()).stream()
                 .map(uncheck1(resolver::getQName))
                 .collect(Collectors.toList());
 
@@ -495,7 +500,7 @@ public final class ChecklistExporter {
             final Map<String, String> uriMapping = remapping.getURIToPrefixMapping();
             nsUris.forEach(Fun.uncheckVoid1(uri -> {
                 final String prefix = uriMapping.containsKey(uri) ? uriMapping.get(uri) : spm.getPrefix(uri);
-                finalPrefixes.add(prefix);
+                request.withRetainPrefix(prefix);
                 spm.setMapping(prefix, uri);
             }));
 
@@ -508,23 +513,15 @@ public final class ChecklistExporter {
         final Set<String> forcedRootPrefixes = forcedRoots.stream()
                 .reduce(new HashSet<>(),
                         ChecklistExporter::findJcrPrefixesInForcedRoot,
-                        (left, right) -> {
-                            left.addAll(right);
-                            return left;
-                        });
-        finalPrefixes.addAll(forcedRootPrefixes);
+                        addToLeft());
+        forcedRootPrefixes.forEach(request::withRetainPrefix);
 
-        finalPrefixes.removeAll(JsonCnd.BUILTIN_MAPPINGS.getPrefixToURIMapping().keySet());
-
-        if (!finalPrefixes.isEmpty()) {
-            final List<JcrNs> exportNamespaces = finalPrefixes.stream()
-                    .map(uncheck1(prefix -> JcrNs.create(prefix, spm.getURI(prefix))))
-                    .sorted()
-                    .collect(Collectors.toList());
-
-            builder.add(Checklist.KEY_JCR_NAMESPACES, exportNamespaces.stream()
-                    .map(JcrNs::toJson)
-                    .collect(JsonCollectors.toJsonArray()));
+        final List<JcrNs> exportNamespaces = request.build()
+                .resolveToJcrNs(spm).stream()
+                .flatMap(Result::stream)
+                .collect(Collectors.toList());
+        if (!exportNamespaces.isEmpty()) {
+            builder.add(Checklist.KEY_JCR_NAMESPACES, JavaxJson.wrap(exportNamespaces));
         }
 
         final JsonObject sorted = builder.build().entrySet().stream()
@@ -537,6 +534,13 @@ public final class ChecklistExporter {
                      .createWriter(writer)) {
             jsonWriter.writeObject(sorted);
         }
+    }
+
+    static <E, U extends Collection<E>> BinaryOperator<U> addToLeft() {
+        return (left, right) -> {
+            left.addAll(right);
+            return left;
+        };
     }
 
     /**

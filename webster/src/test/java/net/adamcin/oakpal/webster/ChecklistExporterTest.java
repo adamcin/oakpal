@@ -18,10 +18,12 @@ package net.adamcin.oakpal.webster;
 
 import static net.adamcin.oakpal.core.JavaxJson.arr;
 import static net.adamcin.oakpal.core.JavaxJson.key;
+import static net.adamcin.oakpal.core.JavaxJson.obj;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
@@ -32,9 +34,13 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.function.BinaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import javax.jcr.NamespaceRegistry;
 import javax.jcr.Node;
 import javax.json.Json;
 import javax.json.JsonArray;
@@ -44,7 +50,11 @@ import javax.json.JsonReader;
 import net.adamcin.oakpal.core.Checklist;
 import net.adamcin.oakpal.core.ForcedRoot;
 import net.adamcin.oakpal.core.Fun;
+import net.adamcin.oakpal.core.InitStage;
 import net.adamcin.oakpal.core.JavaxJson;
+import net.adamcin.oakpal.core.JcrNs;
+import net.adamcin.oakpal.core.JsonCnd;
+import net.adamcin.oakpal.core.OakMachine;
 import net.adamcin.oakpal.core.checks.Rule;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.commons.NamespaceHelper;
@@ -54,7 +64,69 @@ import org.apache.jackrabbit.util.ISO9075;
 import org.junit.Test;
 
 public class ChecklistExporterTest {
-    final File testBaseDir = new File("target/repos/ForcedRootExporterTest");
+    final File testBaseDir = new File("target/repos/ChecklistExporterTest");
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testSelectorType_byName_unknown() {
+        ChecklistExporter.SelectorType.byName("unknown");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testForcedRootUpdatePolicy_byName_unknown() {
+        ChecklistExporter.ForcedRootUpdatePolicy.byName("unknown");
+    }
+
+    @Test
+    public void testOpToString() {
+        final ChecklistExporter.Op op =
+                new ChecklistExporter.Op(ChecklistExporter.SelectorType.NODETYPE, "+nt:base");
+        assertEquals("op.toString = ", "NODETYPE: [+nt:base]", op.toString());
+    }
+
+    @Test
+    public void testPreferDifferent() {
+        final String value = "original";
+        final BinaryOperator<String> operator = ChecklistExporter.preferDifferent(value);
+        assertEquals("left if unequal", "left", operator.apply("left", "right"));
+        assertEquals("right if left equal", "right", operator.apply(value, "right"));
+    }
+
+    @Test
+    public void testAddToLeftCombiner() {
+        final Set<String> abc = new HashSet<>(Arrays.asList("a", "b", "c"));
+        final Set<String> oneTwoThree = new HashSet<>(Arrays.asList("1", "2", "3"));
+        final BinaryOperator<Set<String>> operator = ChecklistExporter.addToLeft();
+        final Set<String> result = operator.apply(abc, oneTwoThree);
+        assertSame("result is same as left", abc, result);
+        final Set<String> expected = new HashSet<>(Arrays.asList("a", "b", "c", "1", "2", "3"));
+        assertEquals("result is expected", expected, result);
+    }
+
+    @Test
+    public void testEnsureNamespaces() throws Exception {
+        final NamespaceMapping mapping = JsonCnd.toNamespaceMapping(Arrays.asList(
+                JcrNs.create("", ""),
+                JcrNs.create("foo", "http://foo.com"),
+                JcrNs.create("bar", "http://bar.com")));
+
+        new OakMachine.Builder()
+                .withInitStage(
+                        new InitStage.Builder()
+                                .withNs("bar", "http://bar.com")
+                                .build())
+                .build()
+                .adminInitAndInspect(session -> {
+                    final NamespaceRegistry registry = session.getWorkspace()
+                            .getNamespaceRegistry();
+                    assertEquals("bar already registered", "bar", registry.getPrefix("http://bar.com"));
+                    assertFalse("foo not registered", Arrays.asList(registry.getPrefixes()).contains("foo"));
+                    ChecklistExporter.ensureNamespaces(session, mapping);
+                    assertTrue("foo registered now", Arrays.asList(registry.getPrefixes()).contains("foo"));
+                    assertEquals("bar still registered", "bar", registry.getPrefix("http://bar.com"));
+                    assertEquals("foo uri is", "http://foo.com", registry.getURI("foo"));
+                });
+
+    }
 
     @Test
     public void testUpdateChecklist() throws Exception {
@@ -109,18 +181,27 @@ public class ChecklistExporterTest {
             session.save();
         });
 
-
         TestUtil.withReadOnlyFixture(pass1Dir, session -> {
             ChecklistExporter pathExporter = new ChecklistExporter.Builder().byPath(allPaths.toArray(new String[0])).build();
 
             pathExporter.updateChecklist(() -> new OutputStreamWriter(
                             new FileOutputStream(pass1Checklist), StandardCharsets.UTF_8),
-                    session, null, null);
+                    session, Checklist.fromJson("", null, obj()
+                            .key(Checklist.KEY_JCR_NAMESPACES, Collections
+                                    .singletonList(JcrNs.create("sling",
+                                            "http://sling.apache.org/jcr/sling/1.0")))
+                            .key(Checklist.KEY_JCR_PRIVILEGES, obj()
+                                    .key("sling:doesAll", obj()
+                                            .key("contains", arr("sling:doOne", "sling:doTwo")))
+                                    .get())
+                            .get()), null);
 
             try (JsonReader reader = Json.createReader(new FileInputStream(pass1Checklist))) {
                 JsonObject checklist = reader.readObject();
                 assertTrue("checklist object should contain the forcedRoots key",
                         checklist.containsKey(Checklist.KEY_FORCED_ROOTS));
+                assertTrue("checklist object should contain the privileges key",
+                        checklist.containsKey(Checklist.KEY_JCR_PRIVILEGES));
 
                 JsonArray forcedRoots = checklist.getJsonArray(Checklist.KEY_FORCED_ROOTS);
                 assertEquals("forcedRoots should be array with expected number of elements", allPaths.size(),
@@ -157,6 +238,8 @@ public class ChecklistExporterTest {
                 JsonObject checklist = reader.readObject();
                 assertTrue("checklist object should contain the forcedRoots key",
                         checklist.containsKey(Checklist.KEY_FORCED_ROOTS));
+                assertTrue("checklist object should contain the privileges key",
+                        checklist.containsKey(Checklist.KEY_JCR_PRIVILEGES));
 
                 JsonArray forcedRoots = checklist.getJsonArray(Checklist.KEY_FORCED_ROOTS);
                 assertEquals("forcedRoots should be array with expected number of elements", allPaths.size(),

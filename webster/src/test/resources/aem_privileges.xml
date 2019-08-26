@@ -18,4 +18,8 @@
 <privileges xmlns:crx="http://www.day.com/crx/1.0" xmlns:cq="http://www.day.com/jcr/cq/1.0">
     <privilege abstract="false" name="crx:replicate"/>
     <privilege abstract="false" name="cq:storeUGC"/>
+    <privilege abstract="false" name="cq:allExtra">
+        <contains name="crx:replicate"/>
+        <contains name="cq:storeUGC"/>
+    </privilege>
 </privileges>
