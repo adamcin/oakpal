@@ -16,15 +16,6 @@
 
 package net.adamcin.oakpal.webster;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import javax.jcr.Repository;
-import javax.jcr.Session;
-import javax.jcr.SimpleCredentials;
-
 import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.oak.run.cli.NodeStoreFixture;
 import org.apache.jackrabbit.vault.fs.io.Archive;
@@ -35,13 +26,22 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.jcr.Repository;
+import javax.jcr.Session;
+import javax.jcr.SimpleCredentials;
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
 public final class WebsterPlan {
     private static final Logger LOGGER = LoggerFactory.getLogger(WebsterPlan.class);
 
     private static final FixtureProvider DEFAULT_FIXTURE_PROVIDER = new FixtureProvider() {
         @Override
         public NodeStoreFixture openFixture() throws Exception {
-            throw new IllegalStateException("This Webster Plan only supports archive validation.");
+            throw new IllegalStateException("A fixture provider must be supplied to the builder.");
         }
     };
 
@@ -61,12 +61,12 @@ public final class WebsterPlan {
         private File archiveRoot;
         private final List<WebsterTarget> targets = new ArrayList<>();
 
-        public Builder withFixtureProvider(@NotNull FixtureProvider fixtureProvider) {
+        public Builder withFixtureProvider(final @NotNull FixtureProvider fixtureProvider) {
             this.fixtureProvider = fixtureProvider;
             return this;
         }
 
-        public Builder withGlobalSegmentStore(@NotNull File globalSegmentStore) {
+        public Builder withGlobalSegmentStore(final @NotNull File globalSegmentStore) {
             this.globalSegmentStore = globalSegmentStore;
             return this;
         }
@@ -76,22 +76,16 @@ public final class WebsterPlan {
             return this;
         }
 
-        public Builder withArchiveRoot(@NotNull File archiveRoot) {
+        public Builder withArchiveRoot(final @NotNull File archiveRoot) {
             this.archiveRoot = archiveRoot;
             return this;
         }
 
-        public Builder withTarget(@NotNull WebsterTarget action) {
-            this.targets.add(action);
-            return this;
+        public Builder withTarget(final @NotNull WebsterTarget... target) {
+            return this.withTargets(Arrays.asList(target));
         }
 
-        public Builder withTargets(@NotNull WebsterTarget... targets) {
-            this.targets.addAll(Arrays.asList(targets));
-            return this;
-        }
-
-        public Builder withTargets(@NotNull List<WebsterTarget> targets) {
+        public Builder withTargets(final @NotNull List<WebsterTarget> targets) {
             this.targets.addAll(targets);
             return this;
         }
