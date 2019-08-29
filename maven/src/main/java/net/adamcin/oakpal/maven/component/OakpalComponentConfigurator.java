@@ -18,19 +18,14 @@ package net.adamcin.oakpal.maven.component;
 
 import static net.adamcin.oakpal.maven.component.OakpalComponentConfigurator.HINT;
 
-import org.codehaus.plexus.classworlds.realm.ClassRealm;
 import org.codehaus.plexus.component.annotations.Component;
 import org.codehaus.plexus.component.configurator.BasicComponentConfigurator;
-import org.codehaus.plexus.component.configurator.ComponentConfigurationException;
 import org.codehaus.plexus.component.configurator.ComponentConfigurator;
-import org.codehaus.plexus.component.configurator.ConfigurationListener;
-import org.codehaus.plexus.component.configurator.expression.ExpressionEvaluator;
-import org.codehaus.plexus.configuration.PlexusConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Adds a {@link JavaxJsonObjectConverter} to the {@link BasicComponentConfigurator} to support mapping arbitrarily nested
+ * Adds a {@link JsonConverter} to the {@link BasicComponentConfigurator} to support mapping arbitrarily nested
  * {@link org.codehaus.plexus.configuration.PlexusConfiguration} elements to a single {@link javax.json.JsonObject} graph.
  */
 @Component(role = ComponentConfigurator.class, hint = HINT)
@@ -39,6 +34,6 @@ public class OakpalComponentConfigurator extends BasicComponentConfigurator {
     public static final String HINT = "oakpal";
 
     public OakpalComponentConfigurator() {
-        converterLookup.registerConverter(new JavaxJsonObjectConverter());
+        converterLookup.registerConverter(new JsonConverter());
     }
 }

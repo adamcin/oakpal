@@ -24,6 +24,7 @@ import net.adamcin.oakpal.core.CheckSpec;
 import net.adamcin.oakpal.core.ForcedRoot;
 import net.adamcin.oakpal.core.InstallHookPolicy;
 import net.adamcin.oakpal.core.JcrNs;
+import net.adamcin.oakpal.maven.component.JsonConverter;
 import org.apache.maven.plugins.annotations.Parameter;
 
 /**
@@ -161,7 +162,7 @@ abstract class AbstractITestWithPlanMojo extends AbstractITestMojo implements Pl
      * <p>
      * If your {@code impl} represents a script check or a {@link net.adamcin.oakpal.core.ProgressCheckFactory}, you can
      * also provide a {@code config} element that will be translated to a {@link javax.json.JsonObject} by the
-     * {@link net.adamcin.oakpal.maven.component.JavaxJsonObjectConverter} via the
+     * {@link JsonConverter} via the
      * {@link net.adamcin.oakpal.maven.component.OakpalComponentConfigurator}:
      * <pre>
      * &lt;checks&gt;

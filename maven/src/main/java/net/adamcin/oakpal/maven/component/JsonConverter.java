@@ -16,9 +16,16 @@
 
 package net.adamcin.oakpal.maven.component;
 
-import java.io.StringReader;
-import java.util.Arrays;
-import java.util.regex.Pattern;
+import net.adamcin.oakpal.core.JavaxJson;
+import org.codehaus.plexus.component.configurator.ComponentConfigurationException;
+import org.codehaus.plexus.component.configurator.ConfigurationListener;
+import org.codehaus.plexus.component.configurator.converters.AbstractConfigurationConverter;
+import org.codehaus.plexus.component.configurator.converters.lookup.ConverterLookup;
+import org.codehaus.plexus.component.configurator.expression.ExpressionEvaluator;
+import org.codehaus.plexus.configuration.PlexusConfiguration;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 import javax.json.Json;
 import javax.json.JsonArray;
 import javax.json.JsonArrayBuilder;
@@ -27,14 +34,9 @@ import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 import javax.json.JsonReader;
 import javax.json.JsonValue;
-
-import net.adamcin.oakpal.core.JavaxJson;
-import org.codehaus.plexus.component.configurator.ComponentConfigurationException;
-import org.codehaus.plexus.component.configurator.ConfigurationListener;
-import org.codehaus.plexus.component.configurator.converters.AbstractConfigurationConverter;
-import org.codehaus.plexus.component.configurator.converters.lookup.ConverterLookup;
-import org.codehaus.plexus.component.configurator.expression.ExpressionEvaluator;
-import org.codehaus.plexus.configuration.PlexusConfiguration;
+import java.io.StringReader;
+import java.util.Arrays;
+import java.util.regex.Pattern;
 
 /**
  * This implementation converts a deeply-nested {@link PlexusConfiguration} graph into a {@link JsonObject}. Using the
@@ -87,7 +89,7 @@ import org.codehaus.plexus.configuration.PlexusConfiguration;
  * <li>no children: Assume a primitive or String, and return {@link #stringToValue(String)}.</li>
  * </ol>
  */
-public final class JavaxJsonObjectConverter extends AbstractConfigurationConverter {
+public final class JsonConverter extends AbstractConfigurationConverter {
     static final String HINT_LIST = "list";
     static final String HINT_MAP = "map";
     static final String HINT_STRING = "string";
@@ -153,7 +155,7 @@ public final class JavaxJsonObjectConverter extends AbstractConfigurationConvert
      * @return the converted config structure
      * @throws ComponentConfigurationException if property interpolation fails or if an invalid hint is requested.
      */
-    public JsonValue convertChild(final PlexusConfiguration child, final ExpressionEvaluator evaluator)
+    public JsonValue convertChild(final @NotNull PlexusConfiguration child, final ExpressionEvaluator evaluator)
             throws ComponentConfigurationException {
         final Object value = fromExpression(child, evaluator);
         final String hint = child.getAttribute("hint");
@@ -164,11 +166,11 @@ public final class JavaxJsonObjectConverter extends AbstractConfigurationConvert
                 case HINT_LIST:
                     return readJsonArrayFromConfig(child, evaluator);
                 case HINT_STRING:
-                    return Json.createValue(String.valueOf(value));
+                    return JavaxJson.wrap(String.valueOf(value));
                 case HINT_NUMBER:
-                    return JavaxJson.val(readNumberFromValue(value)).get();
+                    return JavaxJson.wrap(readNumberFromValue(child.getName(), value));
                 case HINT_BOOLEAN:
-                    return JavaxJson.val(readBooleanFromValue(value)).get();
+                    return JavaxJson.wrap(readBooleanFromValue(child.getName(), value));
                 case HINT_VALUE_LITERAL:
                     return readJsonValueFromValue(child.getName(), value);
                 case HINT_OBJECT_LITERAL:
@@ -192,7 +194,7 @@ public final class JavaxJsonObjectConverter extends AbstractConfigurationConvert
         return JavaxJson.val(value).get();
     }
 
-    boolean mightBeList(final PlexusConfiguration config) {
+    boolean mightBeList(final @NotNull PlexusConfiguration config) {
         if (config.getChildCount() >= 1) {
             final String parentStem = plexusPluralStem(config.getName());
             final String firstChild = config.getChild(0).getName();
@@ -204,79 +206,8 @@ public final class JavaxJsonObjectConverter extends AbstractConfigurationConvert
         return false;
     }
 
-    JsonValue readJsonValueFromValue(final String key, final Object value) throws ComponentConfigurationException {
-        if (value instanceof JsonValue) {
-            return (JsonValue) value;
-        } else if (value instanceof String) {
-            try (JsonReader reader = Json.createReader(new StringReader((String) value))) {
-                return reader.readValue();
-            } catch (JsonException e) {
-                throw new ComponentConfigurationException("Failed to parse value for key " + key + " as JsonValue.", e);
-            }
-        } else {
-            return JsonObject.NULL;
-        }
-    }
-
-    JsonValue readJsonObjectFromValue(final String key, final Object value) throws ComponentConfigurationException {
-        if (value instanceof JsonObject) {
-            return (JsonObject) value;
-        } else if (value instanceof String) {
-            try (JsonReader reader = Json.createReader(new StringReader((String) value))) {
-                return reader.readObject();
-            } catch (JsonException e) {
-                throw new ComponentConfigurationException("Failed to parse value for key " + key + " as JsonObject.", e);
-            }
-        } else {
-            return JsonObject.NULL;
-        }
-    }
-
-    JsonValue readJsonArrayFromValue(final String key, final Object value) throws ComponentConfigurationException {
-        if (value instanceof JsonArray) {
-            return (JsonArray) value;
-        } else if (value instanceof String) {
-            try (JsonReader reader = Json.createReader(new StringReader((String) value))) {
-                return reader.readArray();
-            } catch (JsonException e) {
-                throw new ComponentConfigurationException("Failed to parse value for key " + key + " as JsonArray.", e);
-            }
-        } else {
-            return JsonObject.NULL;
-        }
-    }
-
-    Number readNumberFromValue(final Object value) {
-        if (value instanceof Number) {
-            return (Number) value;
-        } else if (value instanceof String) {
-            Object jsonValue = stringToValue((String) value);
-            if (jsonValue instanceof Number) {
-                return (Number) jsonValue;
-            } else {
-                return Double.NaN;
-            }
-        } else {
-            return Double.NaN;
-        }
-    }
-
-    Boolean readBooleanFromValue(final Object value) {
-        if (value instanceof Boolean) {
-            return (Boolean) value;
-        } else if (value instanceof String) {
-            Object jsonValue = stringToValue((String) value);
-            if (jsonValue instanceof Boolean) {
-                return (Boolean) jsonValue;
-            } else {
-                return !((String) value).isEmpty() && jsonValue != JsonObject.NULL;
-            }
-        } else {
-            return false;
-        }
-    }
-
-    JsonObject readJsonObjectFromConfig(final PlexusConfiguration config, final ExpressionEvaluator evaluator)
+    JsonObject readJsonObjectFromConfig(final @NotNull PlexusConfiguration config,
+                                        final ExpressionEvaluator evaluator)
             throws ComponentConfigurationException {
         final JsonObjectBuilder retValue = Json.createObjectBuilder();
         for (PlexusConfiguration child : config.getChildren()) {
@@ -286,7 +217,8 @@ public final class JavaxJsonObjectConverter extends AbstractConfigurationConvert
         return retValue.build();
     }
 
-    JsonArray readJsonArrayFromConfig(final PlexusConfiguration config, final ExpressionEvaluator evaluator)
+    JsonArray readJsonArrayFromConfig(final @NotNull PlexusConfiguration config,
+                                      final ExpressionEvaluator evaluator)
             throws ComponentConfigurationException {
         final JsonArrayBuilder retValue = Json.createArrayBuilder();
         for (PlexusConfiguration child : config.getChildren()) {
@@ -295,15 +227,87 @@ public final class JavaxJsonObjectConverter extends AbstractConfigurationConvert
         return retValue.build();
     }
 
+
+    JsonValue readJsonObjectFromValue(final String key, final @Nullable Object value) throws ComponentConfigurationException {
+        if (value instanceof JsonObject) {
+            return (JsonObject) value;
+        } else if (value instanceof String) {
+            try (JsonReader reader = Json.createReader(new StringReader((String) value))) {
+                return reader.readObject();
+            } catch (JsonException e) {
+                throw new ComponentConfigurationException("Failed to parse value for key " + key + " as JsonObject.", e);
+            }
+        }
+        return JsonObject.NULL;
+    }
+
+    JsonValue readJsonArrayFromValue(final String key, final @Nullable Object value) throws ComponentConfigurationException {
+        if (value instanceof JsonArray) {
+            return (JsonArray) value;
+        } else if (value instanceof String) {
+            try (JsonReader reader = Json.createReader(new StringReader((String) value))) {
+                return reader.readArray();
+            } catch (JsonException e) {
+                throw new ComponentConfigurationException("Failed to parse value for key " + key + " as JsonArray.", e);
+            }
+        }
+        return JsonObject.NULL;
+    }
+
+    JsonValue readJsonValueFromValue(final String key, final @Nullable Object value) throws ComponentConfigurationException {
+        if (value instanceof JsonValue) {
+            return (JsonValue) value;
+        } else if (value instanceof String) {
+            try (JsonReader reader = Json.createReader(new StringReader((String) value))) {
+                return reader.readValue();
+            } catch (JsonException e) {
+                throw new ComponentConfigurationException("Failed to parse value for key " + key + " as JsonValue.", e);
+            }
+        }
+        return JsonObject.NULL;
+    }
+
+    Number readNumberFromValue(final String key, final @Nullable Object value) throws ComponentConfigurationException {
+        if (value instanceof Number) {
+            return (Number) value;
+        } else if (value instanceof String) {
+            Object readValue = stringToValue((String) value);
+            if (readValue instanceof Number) {
+                return (Number) readValue;
+            } else if (!isBlankish(readValue)) {
+                throw new ComponentConfigurationException("Failed to parse value for key " + key + " as number.");
+            }
+        }
+        return null;
+    }
+
+    boolean isBlankish(final Object value) {
+        return value == null || (value instanceof String && ((String) value).trim().isEmpty());
+    }
+
+    Boolean readBooleanFromValue(final String key, final @Nullable Object value) throws ComponentConfigurationException {
+        if (value instanceof Boolean) {
+            return (Boolean) value;
+        } else if (value instanceof String) {
+            Object readValue = stringToValue((String) value);
+            if (readValue instanceof Boolean) {
+                return (Boolean) readValue;
+            } else if (!isBlankish(readValue)) {
+                throw new ComponentConfigurationException("Failed to parse value for key " + key + " as boolean.");
+            }
+        }
+        return false;
+    }
+
+
     /**
      * Borrowed from org.json.JSONObject.
-     *
+     * <p>
      * Try to convert a string into a number, boolean, or null. If the string
      * can't be converted, return the string.
      *
-     * @param string
-     *            A String.
-     * @return A simple JSON value.
+     * @param string A String.
+     * @return A simple JSON-wrappable value.
      */
     public static Object stringToValue(String string) {
         if (string.equals("")) {
@@ -316,7 +320,7 @@ public final class JavaxJsonObjectConverter extends AbstractConfigurationConvert
             return Boolean.FALSE;
         }
         if (string.equalsIgnoreCase("null")) {
-            return JsonObject.NULL;
+            return null;
         }
 
         /*
@@ -328,6 +332,7 @@ public final class JavaxJsonObjectConverter extends AbstractConfigurationConvert
         if ((initial >= '0' && initial <= '9') || initial == '-') {
             try {
                 if (string.indexOf('.') > -1 || string.indexOf('e') > -1
+                        || "-NaN".equals(string) || "-Infinity".equals(string)
                         || string.indexOf('E') > -1
                         || "-0".equals(string)) {
                     Double d = Double.valueOf(string);
@@ -338,7 +343,7 @@ public final class JavaxJsonObjectConverter extends AbstractConfigurationConvert
                     Long myLong = new Long(string);
                     if (string.equals(myLong.toString())) {
                         if (myLong.longValue() == myLong.intValue()) {
-                            return Integer.valueOf(myLong.intValue());
+                            return myLong.intValue();
                         }
                         return myLong;
                     }
@@ -348,6 +353,4 @@ public final class JavaxJsonObjectConverter extends AbstractConfigurationConvert
         }
         return string;
     }
-
-
 }
