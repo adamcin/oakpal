@@ -1,7 +1,5 @@
 package net.adamcin.oakpal.maven.mojo;
 
-import java.util.Optional;
-
 import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecution;
@@ -10,6 +8,8 @@ import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
 import org.apache.maven.repository.RepositorySystem;
 import org.apache.maven.settings.Settings;
+
+import java.util.Optional;
 
 abstract class AbstractCommonMojo extends AbstractMojo implements MojoWithCommonParams, MojoWithRepositoryParams {
     /**
