@@ -57,7 +57,7 @@ public class AbstractCommonMojoTest {
 
     }
 
-    static class ConcreteMojo extends AbstractCommonMojo {
+    private static class ConcreteMojo extends AbstractCommonMojo {
 
         void setRepositorySystem(RepositorySystem repositorySystem) {
             this.repositorySystem = repositorySystem;

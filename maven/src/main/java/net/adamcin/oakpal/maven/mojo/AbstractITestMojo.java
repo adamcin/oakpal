@@ -27,6 +27,7 @@ import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.Parameter;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Base Mojo providing access to maven context.
@@ -82,7 +83,7 @@ abstract class AbstractITestMojo extends AbstractCommonMojo {
         return this.containerClassLoader;
     }
 
-    protected void reactToReports(List<CheckReport> reports) throws MojoFailureException {
+    protected void reactToReports(final @NotNull List<CheckReport> reports) throws MojoFailureException {
         String errorMessage = String.format("** Violations were reported at or above severity: %s **", failOnSeverity);
 
         List<CheckReport> nonEmptyReports = reports.stream()
@@ -127,6 +128,9 @@ abstract class AbstractITestMojo extends AbstractCommonMojo {
             getLog().info("skipping [skip=" + skip + "][skipITs=" + skipITs + "][skipTests=" + skipTests + "]");
             return;
         } else {
+            if (summaryFile == null) {
+                throw new MojoExecutionException("summaryFile parameter is required.");
+            }
             File parentFile = summaryFile.getParentFile();
             if (!(parentFile.isDirectory() || parentFile.mkdirs())) {
                 throw new MojoExecutionException("Failed to create report summary directory " + parentFile.getPath());
