@@ -1,6 +1,7 @@
 package net.adamcin.oakpal.maven.mojo;
 
 import java.io.File;
+import java.net.URI;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
@@ -11,6 +12,7 @@ import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import net.adamcin.oakpal.core.Fun;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.artifact.repository.DefaultRepositoryRequest;
 import org.apache.maven.artifact.repository.RepositoryRequest;
@@ -19,6 +21,7 @@ import org.apache.maven.artifact.resolver.ArtifactResolutionResult;
 import org.apache.maven.model.Dependency;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.repository.RepositorySystem;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Mojo Interface providing default methods for resolution of artifacts and creation of maven classloaders.
@@ -73,18 +76,15 @@ public interface MojoWithRepositoryParams extends MojoWithCommonParams {
 
         dependencyJars.addAll(resolveDependencies(unresolvedDependencies, true));
 
-        try {
-            List<URL> urls = new ArrayList<>(dependencyJars.size());
-            for (File file : dependencyJars) {
-                urls.add(file.toURI().toURL());
-            }
-            return new URLClassLoader(urls.toArray(new URL[urls.size()]), getClass().getClassLoader());
-        } catch (Exception e) {
-            throw new MojoFailureException("ClassLoader error: ", e);
-        }
+        URL[] urls = dependencyJars.stream()
+                .map(Fun.compose(File::toURI, Fun.uncheck1(URI::toURL)))
+                .toArray(URL[]::new);
+
+        return new URLClassLoader(urls, getClass().getClassLoader());
     }
 
-    default Set<Artifact> depToArtifact(final Dependency dependency, final RepositoryRequest baseRequest,
+    default Set<Artifact> depToArtifact(final @NotNull Dependency dependency,
+                                        final @NotNull RepositoryRequest baseRequest,
                                         final boolean transitive) {
         Artifact artifact = getRepositorySystem().createDependencyArtifact(dependency);
         ArtifactResolutionRequest request = new ArtifactResolutionRequest(baseRequest);
@@ -94,8 +94,7 @@ public interface MojoWithRepositoryParams extends MojoWithCommonParams {
         return transitive ? result.getArtifacts() : Collections.singleton(artifact);
     }
 
-    default List<Artifact> resolveArtifacts(final List<Dependency> dependencies, final boolean transitive)
-            throws MojoFailureException {
+    default List<Artifact> resolveArtifacts(final @NotNull List<Dependency> dependencies, final boolean transitive) {
         RepositoryRequest baseRequest = DefaultRepositoryRequest.getRepositoryRequest(getSession(),
                 getProject().orElse(null));
 
@@ -105,7 +104,7 @@ public interface MojoWithRepositoryParams extends MojoWithCommonParams {
                 .collect(Collectors.toList());
     }
 
-    default List<File> resolveDependencies(final List<Dependency> dependencies, final boolean transitive)
+    default List<File> resolveDependencies(final @NotNull List<Dependency> dependencies, final boolean transitive)
             throws MojoFailureException {
 
         List<Artifact> preResolved = resolveArtifacts(dependencies, transitive);
