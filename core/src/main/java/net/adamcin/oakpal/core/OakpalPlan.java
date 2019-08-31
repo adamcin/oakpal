@@ -22,6 +22,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static net.adamcin.oakpal.core.Fun.compose;
+import static net.adamcin.oakpal.core.Fun.inferTest1;
 import static net.adamcin.oakpal.core.Fun.result1;
 import static net.adamcin.oakpal.core.Fun.uncheck1;
 import static net.adamcin.oakpal.core.JavaxJson.hasNonNull;
@@ -325,6 +326,7 @@ public final class OakpalPlan implements JavaxJson.ObjectConvertible {
             this.name = Optional.ofNullable(name)
                     .orElseGet(() -> Optional.ofNullable(base)
                             .map(compose(URL::getPath, Text::getName))
+                            .filter(inferTest1(String::isEmpty).negate())
                             .orElse(DEFAULT_PLAN_NAME));
         }
 

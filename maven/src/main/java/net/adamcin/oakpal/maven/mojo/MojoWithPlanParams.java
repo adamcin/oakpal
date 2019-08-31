@@ -1,21 +1,7 @@
 package net.adamcin.oakpal.maven.mojo;
 
-import static net.adamcin.oakpal.core.Fun.compose;
-import static net.adamcin.oakpal.core.Fun.uncheck1;
-import static net.adamcin.oakpal.core.JavaxJson.wrap;
-
-import java.io.File;
-import java.io.IOException;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
 import net.adamcin.oakpal.core.ForcedRoot;
+import net.adamcin.oakpal.core.Fun;
 import net.adamcin.oakpal.core.JcrNs;
 import net.adamcin.oakpal.core.JsonCnd;
 import net.adamcin.oakpal.core.NamespaceMappingRequest;
@@ -29,33 +15,64 @@ import org.apache.maven.model.Dependency;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.project.MavenProject;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import java.io.File;
+import java.io.IOException;
+import java.net.URI;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import static net.adamcin.oakpal.core.Fun.compose;
+import static net.adamcin.oakpal.core.Fun.uncheck1;
+import static net.adamcin.oakpal.core.JavaxJson.wrap;
 
 interface MojoWithPlanParams extends MojoWithCommonParams, MojoWithRepositoryParams {
 
-    PlanBuilderParams getPlanBuilderParams();
+    @NotNull PlanBuilderParams getPlanBuilderParams();
 
-    default URL getPlanBaseUrl() {
-        return uncheck1(File::toURL).apply(getProject().map(MavenProject::getBasedir).orElse(new File(".")));
+    /**
+     * Returns a URL that serves as the plan base URL for resource resolution. Either the maven project's
+     * basedir or the current working directory.
+     *
+     * @return the appropriate base url for the plan
+     */
+    default @NotNull URL getPlanBaseUrl() {
+        return compose(File::toURI, uncheck1(URI::toURL)).apply(
+                getProject()
+                        .flatMap(compose(MavenProject::getBasedir, Optional::ofNullable))
+                        .map(File::getAbsoluteFile)
+                        .orElse(new File(".").getAbsoluteFile()));
     }
 
-    default String getPlanName() {
+    /**
+     * Override to specify a plan name to use as the default in an opear. Otherwise, return null to use the first
+     * plan listed in the Oakpal-Plan header by default.
+     *
+     * @return a specific default plan name or null
+     */
+    default @Nullable String getPlanName() {
         return null;
     }
 
     /**
-     * Construct an Oakpal Plan purely from the relevant mojo parameters.
+     * Return a list of package files to include as pre-install packages in the plan.
      *
-     * @return a complete init stage
+     * @param params the plan builder parameters
+     * @return a list of pre-install package files
      * @throws MojoFailureException if an error occurs
      */
-    default OakpalPlan buildPlan() throws MojoFailureException {
-        final PlanBuilderParams params = getPlanBuilderParams();
-        final OakpalPlan.Builder planBuilder = new OakpalPlan.Builder(getPlanBaseUrl(), getPlanName());
-
-        getLog().debug("building plan: " + params);
-        planBuilder.withChecklists(params.getChecklists());
-        planBuilder.withChecks(params.getChecks());
-
+    default @NotNull List<File> getPreInstallFiles(final @NotNull PlanBuilderParams params)
+            throws MojoFailureException {
         final List<File> preInstall = new ArrayList<>();
         if (params.getPreInstallArtifacts() != null && !params.getPreInstallArtifacts().isEmpty()) {
             List<Dependency> preInstallDeps = new ArrayList<>();
@@ -75,21 +92,35 @@ interface MojoWithPlanParams extends MojoWithCommonParams, MojoWithRepositoryPar
         if (params.getPreInstallFiles() != null) {
             preInstall.addAll(params.getPreInstallFiles());
         }
+        return preInstall;
+    }
 
-        planBuilder.withPreInstallUrls(preInstall.stream()
-                .map(uncheck1(File::toURL)).collect(Collectors.toList()));
-        planBuilder.withForcedRoots(params.getForcedRoots());
-        planBuilder.withEnablePreInstallHooks(params.isEnablePreInstallHooks());
-        planBuilder.withInstallHookPolicy(params.getInstallHookPolicy());
+    /**
+     * Find and resolve CND resources on the classpath, read them, and aggregate the node type definitions for writing
+     * to the {@code jcrNodetypes} property of a plan.
+     *
+     * @param params         the plan builder parameters
+     * @param planMapping    the initial JCR namespace mapping to use
+     * @param cndResolver    a throwing function that accepts a list of resource names provided by the params to resolve on
+     *                       the classpath that returns a map of names to resolved urls
+     * @param slingCndFinder a throwing supplier that discovers CND resources on the classpath referenced in
+     *                       {@code Sling-Nodetypes} manifest headers
+     * @return an aggregated nodetype set
+     * @throws MojoFailureException if an error occurs
+     */
+    default @NotNull NodeTypeSet aggregateCnds(final @NotNull PlanBuilderParams params,
+                                               final @NotNull NamespaceMapping planMapping,
+                                               final @NotNull Fun.ThrowingFunction<List<String>, Map<String, URL>> cndResolver,
+                                               final @NotNull Fun.ThrowingSupplier<List<URL>> slingCndFinder)
+            throws MojoFailureException {
 
         final Set<URL> unorderedCndUrls = new LinkedHashSet<>();
-
         if (params.getCndNames() != null) {
             try {
-                Map<String, URL> pluginNtds = SlingNodetypesScanner.resolveNodeTypeDefinitions(params.getCndNames());
+                Map<String, URL> pluginNtds = cndResolver.tryApply(params.getCndNames());
                 for (String cndName : params.getCndNames()) {
                     if (!pluginNtds.containsKey(cndName)) {
-                        throw new MojoExecutionException("Failed to find node type definition on classpath for cndName "
+                        throw new MojoFailureException("Failed to find node type definition on classpath for cndName "
                                 + cndName);
                     }
                 }
@@ -101,7 +132,7 @@ interface MojoWithPlanParams extends MojoWithCommonParams, MojoWithRepositoryPar
 
         if (params.isSlingNodeTypes()) {
             try {
-                List<URL> pluginNtds = SlingNodetypesScanner.findNodeTypeDefinitions();
+                List<URL> pluginNtds = slingCndFinder.tryGet();
                 for (URL ntd : pluginNtds) {
                     if (!unorderedCndUrls.contains(ntd)) {
                         getLog().info(SlingNodetypesScanner.SLING_NODETYPES + ": Discovered node types: "
@@ -109,19 +140,47 @@ interface MojoWithPlanParams extends MojoWithCommonParams, MojoWithRepositoryPar
                     }
                 }
                 unorderedCndUrls.addAll(pluginNtds);
-            } catch (IOException e) {
+            } catch (Exception e) {
                 throw new MojoFailureException("Failed to resolve cndNames.", e);
             }
         }
 
         // read and aggregate nodetypes from CNDs
-        final NamespaceMapping initMapping = JsonCnd.toNamespaceMapping(params.getJcrNamespaces());
-        planBuilder.withJcrPrivileges(JsonCnd.getPrivilegesFromJson(wrap(params.getJcrPrivileges()), initMapping));
-        List<NodeTypeSet> readSets = JsonCnd.readNodeTypes(initMapping,
+        List<NodeTypeSet> readSets = JsonCnd.readNodeTypes(planMapping,
                 new ArrayList<>(unorderedCndUrls)).stream()
                 .flatMap(Result::stream).collect(Collectors.toList());
 
-        final NodeTypeSet nodeTypeSet = JsonCnd.aggregateNodeTypes(initMapping, readSets);
+        return JsonCnd.aggregateNodeTypes(planMapping, readSets);
+    }
+
+    /**
+     * Construct an Oakpal Plan purely from the relevant mojo parameters.
+     *
+     * @return a complete init stage
+     * @throws MojoFailureException if an error occurs
+     */
+    default OakpalPlan buildPlan() throws MojoFailureException {
+        final PlanBuilderParams params = getPlanBuilderParams();
+        final OakpalPlan.Builder planBuilder = new OakpalPlan.Builder(getPlanBaseUrl(), getPlanName());
+
+        getLog().debug("building plan: " + params);
+        planBuilder.withChecklists(params.getChecklists());
+        planBuilder.withChecks(params.getChecks());
+        planBuilder.withForcedRoots(params.getForcedRoots());
+        planBuilder.withEnablePreInstallHooks(params.isEnablePreInstallHooks());
+        planBuilder.withInstallHookPolicy(params.getInstallHookPolicy());
+
+        // get pre-install files
+        final List<File> preInstall = getPreInstallFiles(params);
+        planBuilder.withPreInstallUrls(preInstall.stream()
+                .map(compose(File::toURI, uncheck1(URI::toURL))).collect(Collectors.toList()));
+
+        final NamespaceMapping planMapping = JsonCnd.toNamespaceMapping(params.getJcrNamespaces());
+        planBuilder.withJcrPrivileges(JsonCnd.getPrivilegesFromJson(wrap(params.getJcrPrivileges()), planMapping));
+
+        final NodeTypeSet nodeTypeSet = aggregateCnds(params, planMapping,
+                SlingNodetypesScanner::resolveNodeTypeDefinitions, SlingNodetypesScanner::findNodeTypeDefinitions);
+
         final List<QNodeTypeDefinition> jcrNodetypes = new ArrayList<>(nodeTypeSet.getNodeTypes().values());
         planBuilder.withJcrNodetypes(jcrNodetypes);
 
