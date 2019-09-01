@@ -4,7 +4,11 @@ jdk:
   - openjdk11
   - oraclejdk8
   - oraclejdk11
-dist: trusty
+matrix:
+  include:
+    - os: linux
+      dist: trusty
+    - os: windows
 script:
   - ./mvnw -B -e verify site site:stage
 after_success:

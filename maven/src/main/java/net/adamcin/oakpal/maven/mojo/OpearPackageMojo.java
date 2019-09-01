@@ -6,6 +6,7 @@ import static net.adamcin.oakpal.core.Fun.entriesToMap;
 import static net.adamcin.oakpal.core.Fun.inSet;
 import static net.adamcin.oakpal.core.Fun.result1;
 import static net.adamcin.oakpal.core.Fun.testValue;
+import static net.adamcin.oakpal.core.Fun.uncheck0;
 import static net.adamcin.oakpal.core.Fun.uncheck1;
 import static net.adamcin.oakpal.core.Fun.zipKeysWithValueFunc;
 import static net.adamcin.oakpal.core.Fun.zipValuesWithKeyFunc;
@@ -124,12 +125,12 @@ public class OpearPackageMojo extends AbstractCommonMojo {
 
     String getOwnVersion() {
         final Properties properties = new Properties();
-        try (InputStream input = getClass().getResourceAsStream("version.properties")) {
-            properties.load(input);
-            return properties.getProperty("version");
-        } catch (IOException e) {
-            throw new RuntimeException("failed to read version.properties", e);
-        }
+        return uncheck0(() -> {
+            try (InputStream input = getClass().getResourceAsStream("version.properties")) {
+                properties.load(input);
+                return properties.getProperty("version");
+            }
+        }).get();
     }
 
     String getBundleSymbolicName() {

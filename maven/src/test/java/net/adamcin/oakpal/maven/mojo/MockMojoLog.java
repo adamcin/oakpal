@@ -185,4 +185,8 @@ public final class MockMojoLog implements Log {
             }
         });
     }
+
+    public Optional<MockMojoLogEntry> last() {
+        return entries.isEmpty() ? Optional.empty() : Optional.of(entries.get(entries.size() - 1));
+    }
 }
