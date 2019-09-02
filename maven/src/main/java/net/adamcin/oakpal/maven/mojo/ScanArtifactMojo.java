@@ -18,6 +18,7 @@ package net.adamcin.oakpal.maven.mojo;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -33,6 +34,7 @@ import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Scans the main project artifact by simulating package installation and listening for violations reported by the
@@ -50,57 +52,24 @@ public class ScanArtifactMojo extends AbstractITestWithPlanMojo {
     @Parameter(property = "oakpal.scan.skip")
     public boolean skip;
 
-    /**
-     * If violations are reported, defer the build failure until a subsequent verify goal. Set this to true when build
-     * has more than one scan execution, so that all errors can be reported. Otherwise, the first execution with
-     * failure-level violations will fail the build before the subsequent scan executions have a chance to run.
-     * <p>
-     * If this is set to true, be sure the {@code verify} goal has been activated for the build, otherwise violations
-     * will not be printed and failure-level violations will be implicitly ignored.
-     *
-     * @since 1.1.0
-     */
-    @Parameter
-    protected boolean deferBuildFailure;
-
     @Override
     protected boolean isIndividuallySkipped() {
         return skip;
     }
 
-    @Override
-    protected void executeGuardedIntegrationTest() throws MojoExecutionException, MojoFailureException {
+    final @NotNull File getScanArtifactFile() throws MojoFailureException {
         Optional<File> packageArtifact = getProject()
                 .flatMap(p -> Optional.ofNullable(p.getArtifact()))
                 .flatMap(a -> Optional.ofNullable(a.getFile()));
         if (packageArtifact.isPresent() && packageArtifact.get().exists()) {
-            List<CheckReport> reports;
-            try {
-                final OakMachine.Builder machineBuilder = buildPlan().toOakMachineBuilder(new DefaultErrorListener(),
-                        Thread.currentThread().getContextClassLoader());
-                if (blobStorePath != null) {
-                    machineBuilder.withNodeStoreSupplier(() -> new FileBlobMemoryNodeStore(blobStorePath));
-                }
-                final OakMachine machine = machineBuilder.build();
-                reports = machine.scanPackage(packageArtifact.get());
-            } catch (Exception e) {
-                throw new MojoFailureException("Failed to execute package scan. " + e.getMessage(), e);
-            }
-
-            try {
-                ReportMapper.writeReportsToFile(reports, summaryFile);
-                getLog().info("Check report summary written to " + summaryFile.getPath());
-            } catch (final IOException e) {
-                throw new MojoFailureException("Failed to write summary reports.", e);
-            }
-
-            if (deferBuildFailure) {
-                getLog().info("Evaluation of check reports has been deferred by 'deferBuildFailure=true'.");
-            } else {
-                reactToReports(reports);
-            }
+            return packageArtifact.get();
         } else {
             throw new MojoFailureException("Failed to resolve file for project artifact.");
         }
+    }
+
+    @Override
+    protected void executeGuardedIntegrationTest() throws MojoFailureException {
+        performScan(Collections.singletonList(getScanArtifactFile()));
     }
 }

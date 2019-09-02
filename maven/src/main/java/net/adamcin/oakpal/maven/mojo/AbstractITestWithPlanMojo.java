@@ -17,15 +17,24 @@
 package net.adamcin.oakpal.maven.mojo;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import net.adamcin.oakpal.core.AbortedScanException;
+import net.adamcin.oakpal.core.CheckReport;
 import net.adamcin.oakpal.core.CheckSpec;
+import net.adamcin.oakpal.core.DefaultErrorListener;
+import net.adamcin.oakpal.core.FileBlobMemoryNodeStore;
 import net.adamcin.oakpal.core.ForcedRoot;
 import net.adamcin.oakpal.core.InstallHookPolicy;
 import net.adamcin.oakpal.core.JcrNs;
+import net.adamcin.oakpal.core.OakMachine;
+import net.adamcin.oakpal.core.ReportMapper;
 import net.adamcin.oakpal.maven.component.JsonConverter;
+import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.Parameter;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Base scan class defining scanner parameters.
@@ -266,6 +275,24 @@ abstract class AbstractITestWithPlanMojo extends AbstractITestMojo implements Pl
     @Parameter
     protected InstallHookPolicy installHookPolicy;
 
+    /**
+     * If violations are reported, defer the build failure until a subsequent verify goal. Set this to true when build
+     * has more than one scan execution, so that all errors can be reported. Otherwise, the first execution with
+     * failure-level violations will fail the build before the subsequent scan executions have a chance to run.
+     * <p>
+     * If this is set to true, be sure the {@code verify} goal has been activated for the build, otherwise violations
+     * will not be printed and failure-level violations will be implicitly ignored.
+     *
+     * @since 1.1.0
+     */
+    @Parameter
+    protected boolean deferBuildFailure;
+
+    /**
+     * Specify a different blob store path.
+     *
+     * @since 1.4.0
+     */
     @Parameter(defaultValue = "${project.build.directory}/oakpal-blobs")
     protected String blobStorePath;
 
@@ -327,5 +354,38 @@ abstract class AbstractITestWithPlanMojo extends AbstractITestMojo implements Pl
     @Override
     public InstallHookPolicy getInstallHookPolicy() {
         return installHookPolicy;
+    }
+
+    protected void performScan(final @NotNull List<File> scanFiles) throws MojoFailureException {
+        List<CheckReport> reports;
+        try {
+
+            final OakMachine.Builder machineBuilder = buildPlan().toOakMachineBuilder(new DefaultErrorListener(),
+                    Thread.currentThread().getContextClassLoader());
+            if (blobStorePath != null && !blobStorePath.isEmpty()) {
+                machineBuilder.withNodeStoreSupplier(() -> new FileBlobMemoryNodeStore(blobStorePath));
+            }
+            final OakMachine machine = machineBuilder.build();
+            reports = machine.scanPackages(scanFiles);
+        } catch (AbortedScanException e) {
+            String currentFilePath = e.getCurrentPackageFile()
+                    .map(f -> "Failed package: " + f.getAbsolutePath()).orElse("");
+            throw new MojoFailureException("Failed to execute package scan. " + currentFilePath, e);
+        } catch (Exception e) {
+            throw new MojoFailureException("Failed to execute package scan. " + e.getMessage(), e);
+        }
+
+        try {
+            ReportMapper.writeReportsToFile(reports, summaryFile);
+            getLog().info("Check report summary written to " + summaryFile.getPath());
+        } catch (final IOException e) {
+            throw new MojoFailureException("Failed to write summary reports.", e);
+        }
+
+        if (deferBuildFailure) {
+            getLog().info("Evaluation of check reports has been deferred by 'deferBuildFailure=true'.");
+        } else {
+            reactToReports(reports);
+        }
     }
 }

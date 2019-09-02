@@ -371,7 +371,7 @@ public class CheckSpec implements JavaxJson.ObjectConvertible {
      * @param json check spec object
      * @return a new CheckSpec
      */
-    static CheckSpec fromJson(final JsonObject json) {
+    public static CheckSpec fromJson(final @NotNull JsonObject json) {
         final CheckSpec checkSpec = new CheckSpec();
         if (hasNonNull(json, KEY_IMPL)) {
             checkSpec.setImpl(json.getString(KEY_IMPL));

@@ -19,57 +19,87 @@ package net.adamcin.oakpal.maven.mojo;
 import java.io.File;
 
 import net.adamcin.oakpal.testing.TestPackageUtil;
+import org.apache.commons.io.FileUtils;
+import org.apache.derby.iapi.services.io.FileUtil;
+import org.apache.maven.artifact.Artifact;
+import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugin.testing.MojoRule;
+import org.apache.maven.plugin.testing.WithoutMojo;
+import org.apache.maven.project.MavenProject;
 import org.codehaus.plexus.ContainerConfiguration;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.mockito.Mock;
 
-public class ScanArtifactMojoTest extends OakpalMojoTestCaseBase {
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
-    @Rule
-    public MojoRule rule = new MojoRule() {
-        @Override
-        protected void before() throws Throwable {
-        }
+public class ScanArtifactMojoTest {
 
-        @Override
-        protected void after() {
-        }
-    };
+    private final File testOutBaseDir = new File("target/test-out/ScanArtifactMojoTest");
 
-    @Override
-    protected void setUp() throws Exception {
-        try {
-            super.setUp();
-        } catch (Exception e) {
-            e.printStackTrace(System.err);
-            throw e;
-        }
+    @Before
+    public void setUp() throws Exception {
+        testOutBaseDir.mkdirs();
     }
 
-    @Override
-    protected ContainerConfiguration setupContainerConfiguration() {
-        return super.setupContainerConfiguration();
+    static ScanArtifactMojo newMojo() {
+        ScanArtifactMojo mojo = new ScanArtifactMojo();
+        MockMojoLog log = new MockMojoLog();
+        mojo.setLog(log);
+        return mojo;
+    }
+
+    @Test(expected = MojoFailureException.class)
+    public void testGetScanArtifactFile_failWhenEmpty() throws Exception {
+        newMojo().getScanArtifactFile();
     }
 
     @Test
-    public void testExecute() throws Exception {
-        File pom = getTestFile("src/test/resources/unit/happyscan/pom.xml");
-        assertNotNull(pom);
-        assertTrue(pom.exists());
+    public void testGetScanArtifactFile() throws Exception {
+        final File testOutDir = new File(testOutBaseDir, "testGetScanArtifactFile");
+        FileUtils.deleteDirectory(testOutDir);
+        testOutDir.mkdirs();
+        final File artifactFile = new File(testOutDir, "test-artifact.zip");
+        FileUtils.touch(artifactFile);
 
-        SessionAndProject pair = buildProject(pom);
+        final MavenProject project = mock(MavenProject.class);
+        ScanArtifactMojo mojo = newMojo();
+        mojo.project = project;
+        final Artifact artifact = mock(Artifact.class);
+        when(project.getArtifact()).thenReturn(artifact);
+        when(artifact.getFile()).thenReturn(artifactFile);
+        assertSame("expect same artifact", artifactFile, mojo.getScanArtifactFile());
+    }
 
-        pair.getProject().getArtifact().setFile(TestPackageUtil.prepareTestPackage("fullcoverage.zip"));
+    @Test
+    public void testIsIndividuallySkipped() {
+        ScanArtifactMojo mojo = newMojo();
+        assertFalse("is not skipped", mojo.isIndividuallySkipped());
+        mojo.skip = true;
+        assertTrue("is skipped", mojo.isIndividuallySkipped());
+    }
 
-        try {
-            ScanArtifactMojo myMojo = (ScanArtifactMojo) lookupConfiguredMojo(pair.getProject(), "scan");
-            assertNotNull("myMojo null", myMojo);
-            myMojo.execute();
-        } catch (Exception e) {
-            e.printStackTrace(System.err);
-            throw e;
-        }
+    @Test
+    public void testExecuteGuardedIntegrationTest() throws Exception {
+        final File testPackage = TestPackageUtil.prepareTestPackage("tmp_foo_bar.zip");
+        final File testOutDir = new File(testOutBaseDir, "testExecuteGuardedIntegrationTest");
+        FileUtils.deleteDirectory(testOutDir);
+        testOutDir.mkdirs();
+        final File artifactFile = testPackage;
+
+        final MavenProject project = mock(MavenProject.class);
+        ScanArtifactMojo mojo = newMojo();
+        mojo.summaryFile = new File(testOutDir, "summary.json");
+        mojo.project = project;
+        final Artifact artifact = mock(Artifact.class);
+        when(project.getArtifact()).thenReturn(artifact);
+        when(artifact.getFile()).thenReturn(artifactFile);
+        mojo.executeGuardedIntegrationTest();
     }
 
 }

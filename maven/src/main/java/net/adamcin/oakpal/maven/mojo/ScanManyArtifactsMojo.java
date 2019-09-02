@@ -59,20 +59,7 @@ public class ScanManyArtifactsMojo extends AbstractITestWithPlanMojo {
      * Specifically skip this plugin's execution.
      */
     @Parameter(property = "oakpal.scan-many.skip")
-    public boolean skip;
-
-    /**
-     * If violations are reported, defer the build failure until a subsequent verify goal. Set this to true when build
-     * has more than one scan execution, so that all errors can be reported. Otherwise, the first execution with
-     * failure-level violations will fail the build before the subsequent scan executions have a chance to run.
-     * <p>
-     * If this is set to true, be sure the {@code verify} goal has been activated for the build, otherwise violations
-     * will not be printed and failure-level violations will be implicitly ignored.
-     *
-     * @since 1.1.0
-     */
-    @Parameter
-    protected boolean deferBuildFailure;
+    boolean skip;
 
     /**
      * Specify a list of content-package artifacts to download and scan in sequence.
@@ -102,7 +89,7 @@ public class ScanManyArtifactsMojo extends AbstractITestWithPlanMojo {
      * </pre>
      */
     @Parameter(name = "scanArtifacts")
-    protected List<Dependency> scanArtifacts = new ArrayList<>();
+    List<Dependency> scanArtifacts = new ArrayList<>();
 
     /**
      * Specify a list of local package files to add to the list to scan. These will be installed after those listed in
@@ -117,77 +104,29 @@ public class ScanManyArtifactsMojo extends AbstractITestWithPlanMojo {
      * </pre>
      */
     @Parameter(name = "scanFiles")
-    protected List<File> scanFiles = new ArrayList<>();
+    List<File> scanFiles = new ArrayList<>();
 
     @Override
     protected boolean isIndividuallySkipped() {
         return skip;
     }
 
-    @Override
-    protected void executeGuardedIntegrationTest() throws MojoExecutionException, MojoFailureException {
-
+    final List<File> listScanFiles() throws MojoFailureException {
         List<File> resolvedArtifacts = new ArrayList<>();
 
         if (scanArtifacts != null && !scanArtifacts.isEmpty()) {
-            RepositoryRequest baseRequest = DefaultRepositoryRequest.getRepositoryRequest(session, project);
-
-            Set<Artifact> preResolved = scanArtifacts.stream()
-                    .map(d -> depToArtifact(d, baseRequest, false))
-                    .flatMap(Set::stream)
-                    .collect(Collectors.toSet());
-
-            Optional<Artifact> unresolvedArtifact = preResolved.stream()
-                    .filter(a -> a.getFile() == null || !a.getFile().exists())
-                    .findFirst();
-
-            if (unresolvedArtifact.isPresent()) {
-                Artifact a = unresolvedArtifact.get();
-                throw new MojoFailureException(String.format("Failed to resolve file for artifact: %s:%s:%s",
-                        a.getGroupId(), a.getArtifactId(), a.getVersion()));
-            }
-
-            List<File> scannableResolved = preResolved.stream()
-                    .map(a -> Optional.ofNullable(a.getFile()))
-                    .filter(Optional::isPresent)
-                    .map(Optional::get)
-                    .filter(File::exists).collect(Collectors.toList());
-            resolvedArtifacts.addAll(scannableResolved);
+            resolvedArtifacts.addAll(resolveDependencies(scanArtifacts, false));
         }
 
         if (scanFiles != null && !scanFiles.isEmpty()) {
             resolvedArtifacts.addAll(scanFiles);
         }
 
-        List<CheckReport> reports;
-        try {
+        return resolvedArtifacts;
+    }
 
-            final OakMachine.Builder machineBuilder = buildPlan().toOakMachineBuilder(new DefaultErrorListener(),
-                    Thread.currentThread().getContextClassLoader());
-            if (blobStorePath != null && !blobStorePath.isEmpty()) {
-                machineBuilder.withNodeStoreSupplier(() -> new FileBlobMemoryNodeStore(blobStorePath));
-            }
-            final OakMachine machine = machineBuilder.build();
-            reports = machine.scanPackages(resolvedArtifacts);
-        } catch (AbortedScanException e) {
-            String currentFilePath = e.getCurrentPackageFile()
-                    .map(f -> "Failed package: " + f.getAbsolutePath()).orElse("");
-            throw new MojoFailureException("Failed to execute package scan. " + currentFilePath, e);
-        } catch (Exception e) {
-            throw new MojoFailureException("Failed to execute package scan.", e);
-        }
-
-        try {
-            ReportMapper.writeReportsToFile(reports, summaryFile);
-            getLog().info("Check report summary written to " + summaryFile.getPath());
-        } catch (final IOException e) {
-            throw new MojoFailureException("Failed to write summary reports.", e);
-        }
-
-        if (deferBuildFailure) {
-            getLog().info("Evaluation of check reports has been deferred by 'deferBuildFailure=true'.");
-        } else {
-            reactToReports(reports);
-        }
+    @Override
+    protected void executeGuardedIntegrationTest() throws MojoFailureException {
+        performScan(listScanFiles());
     }
 }
