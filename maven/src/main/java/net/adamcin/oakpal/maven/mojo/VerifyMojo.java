@@ -44,7 +44,7 @@ public class VerifyMojo extends AbstractITestMojo {
      * @since 1.1.0
      */
     @Parameter(property = "oakpal.verify.skip")
-    public boolean skip;
+    boolean skip;
 
     /**
      * Specify additional summary files to verify. Non-existent files are ignored, but any failure to read an existing
@@ -53,7 +53,7 @@ public class VerifyMojo extends AbstractITestMojo {
      * @since 1.1.0
      */
     @Parameter
-    private List<File> summaryFiles = new ArrayList<>();
+    List<File> summaryFiles = new ArrayList<>();
 
     @Override
     protected boolean isIndividuallySkipped() {
@@ -61,7 +61,11 @@ public class VerifyMojo extends AbstractITestMojo {
     }
 
     @Override
-    void executeGuardedIntegrationTest() throws MojoExecutionException, MojoFailureException {
+    void executeGuardedIntegrationTest() throws MojoFailureException {
+        reactToReports(collectReports());
+    }
+
+    List<CheckReport> collectReports() throws MojoFailureException {
         List<CheckReport> reports;
         try {
             reports = new ArrayList<>(readReportsFromFile(summaryFile));
@@ -73,11 +77,10 @@ public class VerifyMojo extends AbstractITestMojo {
         } catch (final Exception e) {
             throw new MojoFailureException("Failed to read check report summary file.", e);
         }
-
-        reactToReports(reports);
+        return reports;
     }
 
-    private List<CheckReport> readReportsFromFile(final File summaryFile) throws Exception {
+    static List<CheckReport> readReportsFromFile(final File summaryFile) throws Exception {
         if (summaryFile != null && summaryFile.exists()) {
             return ReportMapper.readReportsFromFile(summaryFile);
         } else {

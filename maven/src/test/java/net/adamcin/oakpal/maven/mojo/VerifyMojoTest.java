@@ -19,57 +19,80 @@ package net.adamcin.oakpal.maven.mojo;
 import java.io.File;
 
 import net.adamcin.oakpal.testing.TestPackageUtil;
+import org.apache.commons.io.FileUtils;
+import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugin.testing.MojoRule;
 import org.codehaus.plexus.ContainerConfiguration;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
-public class VerifyMojoTest extends OakpalMojoTestCaseBase {
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
-    @Rule
-    public MojoRule rule = new MojoRule() {
-        @Override
-        protected void before() throws Throwable {
-        }
+public class VerifyMojoTest {
 
-        @Override
-        protected void after() {
-        }
-    };
+    private final File testOutBaseDir = new File("target/test-out/VerifyMojoTest");
 
-    @Override
-    protected void setUp() throws Exception {
-        try {
-            super.setUp();
-        } catch (Exception e) {
-            e.printStackTrace(System.err);
-            throw e;
-        }
+    @Before
+    public void setUp() throws Exception {
+        testOutBaseDir.mkdirs();
     }
 
-    @Override
-    protected ContainerConfiguration setupContainerConfiguration() {
-        return super.setupContainerConfiguration();
+    private static VerifyMojo newMojo() {
+        VerifyMojo mojo = new VerifyMojo();
+        MockMojoLog log = new MockMojoLog();
+        mojo.setLog(log);
+        return mojo;
     }
 
     @Test
-    public void testExecute() throws Exception {
-        File pom = getTestFile("src/test/resources/unit/justverify/pom.xml");
-        assertNotNull(pom);
-        assertTrue(pom.exists());
-
-        SessionAndProject pair = buildProject(pom);
-
-        pair.getProject().getArtifact().setFile(TestPackageUtil.prepareTestPackage("fullcoverage.zip"));
-
-        try {
-            VerifyMojo myMojo = (VerifyMojo) lookupConfiguredMojo(pair.getProject(), "verify");
-            assertNotNull("myMojo null", myMojo);
-            myMojo.execute();
-        } catch (Exception e) {
-            e.printStackTrace(System.err);
-            throw e;
-        }
+    public void testIsIndividuallySkipped() {
+        VerifyMojo mojo = newMojo();
+        assertFalse("is not skipped", mojo.isIndividuallySkipped());
+        mojo.skip = true;
+        assertTrue("is skipped", mojo.isIndividuallySkipped());
     }
 
+    @Test
+    public void testReadReportsFromFile() throws Exception {
+
+    }
+
+    @Test(expected = MojoFailureException.class)
+    public void testCollectReports_throws() throws Exception {
+        final File testOutDir = new File(testOutBaseDir, "testCollectReports_throws");
+        FileUtils.deleteDirectory(testOutDir);
+        testOutDir.mkdirs();
+        VerifyMojo mojo = new VerifyMojo();
+        final File summaryFile = new File(testOutDir, "summaryDir");
+        summaryFile.mkdirs();
+        mojo.summaryFile = summaryFile;
+        mojo.collectReports();
+    }
+
+    @Test(expected = MojoFailureException.class)
+    public void testCollectReports_addThrows() throws Exception {
+        final File testOutDir = new File(testOutBaseDir, "testCollectReports_addThrows");
+        FileUtils.deleteDirectory(testOutDir);
+        testOutDir.mkdirs();
+        VerifyMojo mojo = new VerifyMojo();
+        final File summaryFile = new File(testOutDir, "summary.json");
+        final File addSummaryFile = new File(testOutDir, "summary2.json");
+        addSummaryFile.mkdirs();
+        mojo.summaryFile = summaryFile;
+        mojo.summaryFiles.add(addSummaryFile);
+        mojo.collectReports();
+    }
+
+    @Test
+    public void testExecuteGuardedIntegrationTest() throws Exception {
+        final File testOutDir = new File(testOutBaseDir, "testExecuteGuardedIntegrationTest");
+        VerifyMojo mojo = new VerifyMojo();
+        final File summaryFile = new File(testOutDir, "summary.json");
+        final File addSummaryFile = new File(testOutDir, "summary2.json");
+        mojo.summaryFile = summaryFile;
+        mojo.summaryFiles.add(addSummaryFile);
+        mojo.executeGuardedIntegrationTest();
+    }
 }
