@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Mark Adamcin
+ * Copyright 2019 Mark Adamcin
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,62 +16,107 @@
 
 package net.adamcin.oakpal.maven.mojo;
 
-import java.io.File;
-
-import org.apache.maven.plugin.testing.MojoRule;
-import org.apache.maven.shared.utils.io.FileUtils;
-import org.codehaus.plexus.ContainerConfiguration;
-import org.junit.Rule;
+import org.apache.commons.io.FileUtils;
+import org.apache.maven.execution.MavenExecutionRequest;
+import org.apache.maven.execution.MavenSession;
+import org.apache.maven.model.Build;
+import org.apache.maven.plugin.MojoFailureException;
+import org.apache.maven.project.MavenProject;
+import org.apache.maven.repository.RepositorySystem;
+import org.junit.Before;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-public class OpearPlanMojoTest extends OakpalMojoTestCaseBase {
-    private static final Logger LOGGER = LoggerFactory.getLogger(OpearPlanMojoTest.class);
+import javax.json.Json;
+import javax.json.JsonObject;
+import javax.json.JsonReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 
-    @Rule
-    public MojoRule rule = new MojoRule() {
-        @Override
-        protected void before() throws Throwable {
-        }
+import static net.adamcin.oakpal.core.JavaxJson.arr;
+import static net.adamcin.oakpal.core.JavaxJson.key;
+import static org.junit.Assert.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
-        @Override
-        protected void after() {
-        }
-    };
+public class OpearPlanMojoTest {
+    private final File testOutBaseDir = new File("target/test-out/OpearPlanMojoTest");
 
-    @Override
-    protected void setUp() throws Exception {
-        try {
-            super.setUp();
-        } catch (Exception e) {
-            e.printStackTrace(System.err);
-            throw e;
-        }
+    private static OpearPlanMojo newMojo() {
+        OpearPlanMojo mojo = new OpearPlanMojo();
+        MockMojoLog log = new MockMojoLog();
+        mojo.setLog(log);
+        return mojo;
     }
 
-    @Override
-    protected ContainerConfiguration setupContainerConfiguration() {
-        return super.setupContainerConfiguration();
+    @Before
+    public void setUp() throws Exception {
+        testOutBaseDir.mkdirs();
     }
 
     @Test
-    public void testExecute1() throws Exception {
-        File buildPlanPom = getTestFile("src/test/resources/unit/opear-plan1/pom.xml");
-        FileUtils.deleteDirectory(new File(buildPlanPom.getParentFile(), "target"));
-        assertNotNull(buildPlanPom);
-        assertTrue(buildPlanPom.exists());
+    public void testGetPlanBuilderParams() {
+        OpearPlanMojo mojo = newMojo();
+        assertNotNull("always have plan params", mojo.getPlanBuilderParams());
 
-        SessionAndProject pair = buildProject(buildPlanPom);
-
-        try {
-            OpearPlanMojo planMojo = (OpearPlanMojo) lookupConfiguredMojo(pair.getProject(), "opear-plan");
-            assertNotNull("planMojo null", planMojo);
-            planMojo.execute();
-        } catch (Exception e) {
-            e.printStackTrace(System.err);
-            throw e;
-        }
+        mojo.planParams = new PlanParams();
+        assertSame("same plan params", mojo.planParams, mojo.getPlanBuilderParams());
     }
 
+    @Test(expected = MojoFailureException.class)
+    public void testExecute_failDir() throws Exception {
+        final File testOutDir = new File(testOutBaseDir, "testExecute_failDir");
+        FileUtils.deleteDirectory(testOutDir);
+        OpearPlanMojo mojo = newMojo();
+        final MavenProject project = mock(MavenProject.class);
+        mojo.project = project;
+        final Build build = mock(Build.class);
+        when(project.getBuild()).thenReturn(build);
+        final File classes = new File(testOutDir, "classes");
+        when(build.getOutputDirectory()).thenReturn(classes.getPath());
+
+        final MavenSession session = mock(MavenSession.class);
+        mojo.session = session;
+        final MavenExecutionRequest executionRequest = mock(MavenExecutionRequest.class);
+        when(session.getRequest()).thenReturn(executionRequest);
+        final RepositorySystem repositorySystem = mock(RepositorySystem.class);
+        mojo.repositorySystem = repositorySystem;
+
+        mojo.planFile = new File(testOutDir, "opear-plans/plan.json");
+        mojo.planFile.mkdirs();
+        mojo.execute();
+    }
+
+    @Test
+    public void testExecute() throws Exception {
+        final File testOutDir = new File(testOutBaseDir, "testExecute");
+        FileUtils.deleteDirectory(testOutDir);
+        OpearPlanMojo mojo = newMojo();
+        final MavenProject project = mock(MavenProject.class);
+        mojo.project = project;
+        final Build build = mock(Build.class);
+        when(project.getBuild()).thenReturn(build);
+        final File classes = new File(testOutDir, "classes");
+        when(build.getOutputDirectory()).thenReturn(classes.getPath());
+
+        final MavenSession session = mock(MavenSession.class);
+        mojo.session = session;
+        final MavenExecutionRequest executionRequest = mock(MavenExecutionRequest.class);
+        when(session.getRequest()).thenReturn(executionRequest);
+        final RepositorySystem repositorySystem = mock(RepositorySystem.class);
+        mojo.repositorySystem = repositorySystem;
+        mojo.planParams = new PlanParams();
+        mojo.planParams.setChecklists(Arrays.asList("checklist1", "checklist2"));
+        mojo.planFile = new File(testOutDir, "opear-plans/plan.json");
+        mojo.execute();
+
+        try (Reader reader = new InputStreamReader(new FileInputStream(mojo.planFile), StandardCharsets.UTF_8);
+             JsonReader jsonReader = Json.createReader(reader)) {
+            final JsonObject readObject = jsonReader.readObject();
+            assertEquals("expect json", key("checklists", arr("checklist1", "checklist2")).get(), readObject);
+        }
+    }
 }

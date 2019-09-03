@@ -56,6 +56,7 @@ import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
+import org.apache.maven.project.MavenProject;
 import org.apache.maven.shared.utils.io.FileUtils;
 import org.codehaus.plexus.archiver.jar.JarArchiver;
 import org.codehaus.plexus.archiver.util.DefaultFileSet;
@@ -73,53 +74,62 @@ import org.jetbrains.annotations.NotNull;
         defaultPhase = LifecyclePhase.PACKAGE)
 public class OpearPackageMojo extends AbstractCommonMojo {
 
-    private static final String OAKPAL_GROUP_ID = "net.adamcin.oakpal";
-    private static final String OAKPAL_CORE_ARTIFACT_ID = "oakpal-core";
+    public static final String OPEAR = "opear";
+
+    static final String OAKPAL_GROUP_ID = "net.adamcin.oakpal";
+    static final String OAKPAL_CORE_ARTIFACT_ID = "oakpal-core";
 
     private static final Predicate<Artifact> TEST_IS_OAKPAL_CORE =
             composeTest(Artifact::getGroupId, OAKPAL_GROUP_ID::equals)
                     .and(composeTest(Artifact::getArtifactId, OAKPAL_CORE_ARTIFACT_ID::equals));
 
     @Component
-    private ArtifactHandlerManager artifactHandlerManager;
+    ArtifactHandlerManager artifactHandlerManager;
 
     @Parameter(defaultValue = "${project.build.finalName}", required = true)
-    private String finalName;
+    String finalName;
 
     @Parameter(defaultValue = "${project.build.directory}/opear-plans/plan.json", required = true)
-    private File planFile;
+    File planFile;
 
     @Parameter
-    private List<File> additionalPlans = new ArrayList<>();
+    List<File> additionalPlans = new ArrayList<>();
 
     @Parameter(defaultValue = "${project.build.directory}", required = true)
-    private File outputDirectory;
+    File outputDirectory;
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
         resolveDependencies(project.getDependencies(), true);
         try {
-            final Artifact projectArtifact = this.project.getArtifact();
-            final ArtifactHandler opearHandler = this.artifactHandlerManager.getArtifactHandler("opear");
             final File finalFile = assembleOpear();
-            if ("opear".equals(project.getPackaging())) {
-                // set project artifact
-                projectArtifact.setFile(finalFile);
-                projectArtifact.setArtifactHandler(opearHandler);
-            } else {
-                // attach artifact
-                Artifact attachment = new DefaultArtifact(
-                        projectArtifact.getGroupId(),
-                        projectArtifact.getArtifactId(),
-                        projectArtifact.getVersion(),
-                        null,
-                        "opear",
-                        null,
-                        opearHandler);
-                project.addAttachedArtifact(attachment);
-            }
+            attachArtifact(finalFile);
         } catch (Exception e) {
             throw new MojoExecutionException("Failed to assemble the opear file.", e);
+        }
+    }
+
+    Artifact attachArtifact(final @NotNull File finalFile) {
+        final Artifact projectArtifact = this.project.getArtifact();
+        final ArtifactHandler opearHandler = this.artifactHandlerManager.getArtifactHandler(OPEAR);
+        if (OPEAR.equals(project.getPackaging())) {
+            // set project artifact
+            projectArtifact.setFile(finalFile);
+            projectArtifact.setArtifactHandler(opearHandler);
+            return projectArtifact;
+        } else {
+            // attach artifact
+            Artifact attachment = new DefaultArtifact(
+                    project.getGroupId(),
+                    project.getArtifactId(),
+                    project.getVersion(),
+                    null,
+                    OPEAR,
+                    null,
+                    opearHandler);
+            attachment.setFile(finalFile);
+            project.addAttachedArtifact(attachment);
+            return attachment;
         }
     }
 
@@ -134,20 +144,20 @@ public class OpearPackageMojo extends AbstractCommonMojo {
     }
 
     String getBundleSymbolicName() {
-        if ("opear".equals(project.getPackaging())) {
+        if (OPEAR.equals(project.getPackaging())) {
             return project.getArtifactId();
         } else {
-            return project.getArtifactId() + "-opear";
+            return project.getArtifactId() + "-" + OPEAR;
         }
     }
 
-    String getOakpalCoreVersion() throws MojoFailureException {
+    String getOakpalCoreVersion() {
         return resolveArtifacts(project.getDependencies(), true).stream().filter(TEST_IS_OAKPAL_CORE)
                 .findFirst()
                 .map(Artifact::getVersion).orElse(getOwnVersion());
     }
 
-    List<File> getEmbeddedLibraries() throws MojoFailureException {
+    List<File> getEmbeddedLibraries() {
         final Set<String> NOT_EMBEDDABLE = new HashSet<>(
                 Arrays.asList(Artifact.SCOPE_IMPORT, Artifact.SCOPE_PROVIDED, Artifact.SCOPE_TEST));
         return resolveArtifacts(project.getDependencies(), true).stream().filter(TEST_IS_OAKPAL_CORE.negate())
@@ -157,7 +167,7 @@ public class OpearPackageMojo extends AbstractCommonMojo {
 
     File assembleOpear() throws Exception {
         final String prefix = "lib/";
-        final File finalFile = new File(this.outputDirectory, this.finalName + ".opear");
+        final File finalFile = new File(this.outputDirectory, this.finalName + "." + OPEAR);
 
         final File planPrep = new File(this.outputDirectory, "plans-tmp-" + this.finalName);
         FileUtils.deleteDirectory(planPrep);
@@ -179,8 +189,8 @@ public class OpearPackageMojo extends AbstractCommonMojo {
             if (project.getArtifact().getFile().isDirectory()) {
                 throw new Exception("cannot embed project artifact while it is a directory.");
             }
-            embeddedFiles.add(project.getFile());
-        } else if ("opear".equals(project.getPackaging())
+            embeddedFiles.add(project.getArtifact().getFile());
+        } else if (OPEAR.equals(project.getPackaging())
                 && new File(project.getBuild().getOutputDirectory()).isDirectory()) {
             embeddedFiles.add(new File(project.getBuild().getOutputDirectory()));
         }
@@ -232,7 +242,7 @@ public class OpearPackageMojo extends AbstractCommonMojo {
      */
     Result<List<String>> shrinkWrapPlans(final @NotNull File toDir) {
         final Result<List<OakpalPlan>> initialResult =
-                !planFile.isFile()
+                !(planFile != null && planFile.isFile())
                         ? Result.success(new ArrayList<>())
                         : Result.success(planFile)
                         .flatMap(compose(File::toURI, result1(URI::toURL)))
@@ -242,7 +252,7 @@ public class OpearPackageMojo extends AbstractCommonMojo {
         final Result<List<OakpalPlan>> addedResult = initialResult.flatMap(plans ->
                 additionalPlans.stream()
                         .map(compose(File::toURI, result1(URI::toURL)))
-                        .collect(Result.tryCollect(Collectors.toCollection(LinkedHashSet::new)))
+                        .collect(Result.tryCollect(Collectors.toList()))
                         .flatMap(planUrls -> planUrls.stream()
                                 .map(OakpalPlan::fromJson)
                                 .collect(Result.logAndRestream())
@@ -321,7 +331,7 @@ public class OpearPackageMojo extends AbstractCommonMojo {
     }
 
     public static class OpearArchiver extends JarArchiver {
-        public static final String ARCHIVE_TYPE = "opear";
+        public static final String ARCHIVE_TYPE = OPEAR;
 
         public OpearArchiver() {
             this.archiveType = ARCHIVE_TYPE;

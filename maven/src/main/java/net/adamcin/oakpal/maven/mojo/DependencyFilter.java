@@ -53,12 +53,25 @@ public class DependencyFilter implements Predicate<Dependency> {
      * @return a dependency from scratch
      */
     public Dependency toDependency() {
+        return toDependency(null);
+    }
+
+    /**
+     * If this filter does not match a dependency, try creating one from the provided parameters and resolving it.
+     *
+     * @param scope set the dependency scope
+     * @return a dependency from scratch
+     */
+    public Dependency toDependency(final String scope) {
         Dependency dependency = new Dependency();
         dependency.setGroupId(groupId);
         dependency.setArtifactId(artifactId);
         dependency.setVersion(version);
         dependency.setType(type);
         dependency.setClassifier(classifier);
+        if (scope != null) {
+            dependency.setScope(scope);
+        }
         return dependency;
     }
 

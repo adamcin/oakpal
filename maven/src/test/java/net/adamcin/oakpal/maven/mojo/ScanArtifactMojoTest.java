@@ -16,21 +16,15 @@
 
 package net.adamcin.oakpal.maven.mojo;
 
-import java.io.File;
-
 import net.adamcin.oakpal.testing.TestPackageUtil;
 import org.apache.commons.io.FileUtils;
-import org.apache.derby.iapi.services.io.FileUtil;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.plugin.MojoFailureException;
-import org.apache.maven.plugin.testing.MojoRule;
-import org.apache.maven.plugin.testing.WithoutMojo;
 import org.apache.maven.project.MavenProject;
-import org.codehaus.plexus.ContainerConfiguration;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.mockito.Mock;
+
+import java.io.File;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;

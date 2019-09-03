@@ -16,17 +16,16 @@
 
 package net.adamcin.oakpal.maven.mojo;
 
-import java.io.File;
-
-import net.adamcin.oakpal.testing.TestPackageUtil;
+import net.adamcin.oakpal.core.CheckReport;
 import org.apache.commons.io.FileUtils;
 import org.apache.maven.plugin.MojoFailureException;
-import org.apache.maven.plugin.testing.MojoRule;
-import org.codehaus.plexus.ContainerConfiguration;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
 
+import java.io.File;
+import java.util.List;
+
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -56,7 +55,12 @@ public class VerifyMojoTest {
 
     @Test
     public void testReadReportsFromFile() throws Exception {
-
+        final File testOutDir = new File(testOutBaseDir, "testReadReportsFromFile");
+        FileUtils.deleteDirectory(testOutDir);
+        testOutDir.mkdirs();
+        File summaryFile = new File("src/test/resources/unit/justverify/fake-summary.json");
+        List<CheckReport> reports = VerifyMojo.readReportsFromFile(summaryFile);
+        assertEquals("reports not empty", 8, reports.size());
     }
 
     @Test(expected = MojoFailureException.class)

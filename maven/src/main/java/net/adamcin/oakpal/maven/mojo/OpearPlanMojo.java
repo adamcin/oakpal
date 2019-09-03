@@ -35,10 +35,10 @@ import org.jetbrains.annotations.NotNull;
 public class OpearPlanMojo extends AbstractCommonMojo implements MojoWithPlanParams {
 
     @Parameter(name = "planFile", defaultValue = "${project.build.directory}/opear-plans/plan.json", required = true)
-    private File planFile;
+    File planFile;
 
     @Parameter(name = "planParams")
-    private PlanParams planParams;
+    PlanParams planParams;
 
     @Override
     public void execute() throws MojoFailureException {
