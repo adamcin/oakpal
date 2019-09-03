@@ -86,7 +86,7 @@ public class OpearPackageMojoTest {
     }
 
     @Test(expected = MojoExecutionException.class)
-    public void testExecute() throws Exception {
+    public void testExecute_fails() throws Exception {
         final OpearPackageMojo mojo = newMojo();
         final MavenProject project = mock(MavenProject.class);
         when(project.clone()).thenReturn(project);
@@ -100,6 +100,7 @@ public class OpearPackageMojoTest {
 
     @Test
     public void testExecute_asJar() throws Exception {
+        final File preInstallPackage = TestPackageUtil.prepareTestPackage("tmp_foo_bar.zip");
         final File testOutDir = new File(testOutBaseDir, "testExecute_asJar");
         FileUtils.deleteDirectory(testOutDir);
         testOutDir.mkdirs();
@@ -297,6 +298,7 @@ public class OpearPackageMojoTest {
 
     @Test
     public void testAssembleOpear_asOpear() throws Exception {
+        final File preInstallPackage = TestPackageUtil.prepareTestPackage("tmp_foo_bar.zip");
         final File testOutDir = new File(testOutBaseDir, "testAssembleOpear_asOpear");
         FileUtils.deleteDirectory(testOutDir);
         testOutDir.mkdirs();
@@ -418,6 +420,7 @@ public class OpearPackageMojoTest {
 
     @Test
     public void testAssembleOpear_asJar() throws Exception {
+        final File preInstallPackage = TestPackageUtil.prepareTestPackage("tmp_foo_bar.zip");
         final File testOutDir = new File(testOutBaseDir, "testAssembleOpear_asJar");
         FileUtils.deleteDirectory(testOutDir);
         testOutDir.mkdirs();
