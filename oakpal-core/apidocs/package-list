@@ -5,6 +5,7 @@ net.adamcin.oakpal.core.jcrfacade.lock
 net.adamcin.oakpal.core.jcrfacade.nodetype
 net.adamcin.oakpal.core.jcrfacade.observation
 net.adamcin.oakpal.core.jcrfacade.query
+net.adamcin.oakpal.core.jcrfacade.query.qom
 net.adamcin.oakpal.core.jcrfacade.retention
 net.adamcin.oakpal.core.jcrfacade.security
 net.adamcin.oakpal.core.jcrfacade.security.authorization

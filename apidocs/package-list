@@ -1,3 +1,4 @@
+net.adamcin.oakpal.cli
 net.adamcin.oakpal.core
 net.adamcin.oakpal.core.checks
 net.adamcin.oakpal.core.jcrfacade
@@ -5,17 +6,16 @@ net.adamcin.oakpal.core.jcrfacade.lock
 net.adamcin.oakpal.core.jcrfacade.nodetype
 net.adamcin.oakpal.core.jcrfacade.observation
 net.adamcin.oakpal.core.jcrfacade.query
+net.adamcin.oakpal.core.jcrfacade.query.qom
 net.adamcin.oakpal.core.jcrfacade.retention
 net.adamcin.oakpal.core.jcrfacade.security
 net.adamcin.oakpal.core.jcrfacade.security.authorization
 net.adamcin.oakpal.core.jcrfacade.security.user
 net.adamcin.oakpal.core.jcrfacade.version
-net.adamcin.oakpal.interactive
-net.adamcin.oakpal.interactive.impl
-net.adamcin.oakpal.interactive.models
 net.adamcin.oakpal.maven.component
 net.adamcin.oakpal.maven.mojo
 net.adamcin.oakpal.shaded
 net.adamcin.oakpal.testing
+net.adamcin.oakpal.testing.oakpaltest
 net.adamcin.oakpal.webster
 net.adamcin.oakpal.webster.targets
