@@ -30,7 +30,6 @@ import org.slf4j.LoggerFactory;
  */
 @Component(role = ComponentConfigurator.class, hint = HINT)
 public class OakpalComponentConfigurator extends BasicComponentConfigurator {
-    private static final Logger LOGGER = LoggerFactory.getLogger(OakpalComponentConfigurator.class);
     public static final String HINT = "oakpal";
 
     public OakpalComponentConfigurator() {
