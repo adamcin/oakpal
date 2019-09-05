@@ -15,6 +15,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com)
 - CLI and maven plugin no longer cache blobs by default.
 - Module README.md files now used as source for about / index.html for maven-site-plugin.
 
+### Fixed
+- GH16 relocated default target files under single oakpal-plugin folder
+
 ## [1.4.0] - 2019-09-03
 
 ### Added
