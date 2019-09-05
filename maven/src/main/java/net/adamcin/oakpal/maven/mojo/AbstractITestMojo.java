@@ -49,7 +49,7 @@ abstract class AbstractITestMojo extends AbstractCommonMojo {
     /**
      * The summary file to read integration test results from.
      */
-    @Parameter(defaultValue = "${project.build.directory}/oakpal-reports/oakpal-summary.json", required = true)
+    @Parameter(defaultValue = "${project.build.directory}/oakpal-plugin/reports/oakpal-summary.json", required = true)
     protected File summaryFile;
 
     /**

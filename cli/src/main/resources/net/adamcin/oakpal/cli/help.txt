@@ -9,14 +9,15 @@ oakpal [ <options> ] <scanFile> ...
   -o | --outfile <outFile>          : Write check reports to the specified <outFile>
                                       instead of writing to stdout.
   -c | --cache <directory>          : Specify a cache directory for oakpal (default: ${CWD}/.oakpal-cache)
+  -b | --store-blobs                : Use a blob store so that binary properties are not stored in the MemoryNodeStore.
+                                      This will significantly increase I/O activity, but larger package scans will be
+                                      much less likely to exhaust heap. The blob store will be created in the specified
+                                      cache directory (--cache). (since 1.4.1)
   -f | --file <opearFile>           : Specify an OPEAR file to use (overrides $OAKPAL_OPEAR).
   -p | --plan <planName>            : Specify a different plan name to lookup in the specified opear.
                                       By default, the first plan exported by a specified opear will be used,
                                       or if no opear is specified, the basic oakpal plan will be used.
-       --no-blobs                   : Disable the blob store so that binary properties are stored in the MemoryNodeStore.
-                                      This will significantly reduce I/O overhead, but larger package scans will be
-                                      more likely to exhaust heap. (since 1.4.1)
-       --no-plan                    : Use no plan for the scan. Overrides the default behavior, which otherwise
+  +p | --no-plan                    : Use no plan for the scan. Overrides the default behavior, which otherwise
                                       uses the oakpal core "basic-plan.json".
   -s | --severity-fail <severity>   : Exit with a non-zero code if any violations are
                                       reported with a severity level equal to or higher

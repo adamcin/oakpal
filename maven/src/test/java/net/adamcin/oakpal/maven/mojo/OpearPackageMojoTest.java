@@ -231,6 +231,8 @@ public class OpearPackageMojoTest {
             final Manifest manifest = jarFile.getManifest();
             assertEquals("expect bsn", Collections.singletonList(expectArtifactId + "-" + OPEAR),
                     Util.getManifestHeaderValues(manifest, "Bundle-SymbolicName"));
+            assertEquals("expect bcp", Arrays.asList("lib/" + fakeJar.getName(), "lib/" + compileDepFile.getName()),
+                    Util.getManifestHeaderValues(manifest, "Bundle-ClassPath"));
             assertEquals("expect oakpal version", Collections.singletonList(expectOakpalVersion),
                     Util.getManifestHeaderValues(manifest, "Oakpal-Version"));
             assertEquals("expect oakpal plan", Collections.singletonList(expectFilename),
@@ -411,6 +413,8 @@ public class OpearPackageMojoTest {
             final Manifest manifest = jarFile.getManifest();
             assertEquals("expect bsn", Collections.singletonList(expectArtifactId),
                     Util.getManifestHeaderValues(manifest, "Bundle-SymbolicName"));
+            assertEquals("expect bcp", Arrays.asList("lib/classes", "lib/" + compileDepFile.getName()),
+                    Util.getManifestHeaderValues(manifest, "Bundle-ClassPath"));
             assertEquals("expect oakpal version", Collections.singletonList(expectOakpalVersion),
                     Util.getManifestHeaderValues(manifest, "Oakpal-Version"));
             assertEquals("expect oakpal plan", Collections.singletonList(expectFilename),
@@ -538,6 +542,8 @@ public class OpearPackageMojoTest {
             final Manifest manifest = jarFile.getManifest();
             assertEquals("expect bsn", Collections.singletonList(expectArtifactId + "-" + OPEAR),
                     Util.getManifestHeaderValues(manifest, "Bundle-SymbolicName"));
+            assertEquals("expect bcp", Arrays.asList("lib/" + fakeJar.getName(), "lib/" + compileDepFile.getName()),
+                    Util.getManifestHeaderValues(manifest, "Bundle-ClassPath"));
             assertEquals("expect oakpal version", Collections.singletonList(expectOakpalVersion),
                     Util.getManifestHeaderValues(manifest, "Oakpal-Version"));
             assertEquals("expect oakpal plan", Collections.singletonList(expectFilename),

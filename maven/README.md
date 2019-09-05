@@ -8,7 +8,7 @@ _TL;DR:_ Paste the following into a content-package pom.xml and get started with
     <plugin>
       <groupId>net.adamcin.oakpal</groupId>
       <artifactId>oakpal-maven-plugin</artifactId>
-      <version>0.9.0</version>
+      <version>1.4.0</version>
       <executions>
         <execution>
           <goals>

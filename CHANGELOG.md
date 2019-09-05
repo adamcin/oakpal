@@ -8,10 +8,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com)
 
 ### Added
 - bnd-baseline-maven-plugin has been added to core and webster modules to enforce semantic versioning of the API.
-- Added runtime options to cli (--no-blobs) and maven plugin (-DnoBlobStore) to trade higher memory usage for lower I/O overhead.
+- Added runtime options to cli (--store-blobs) and maven plugin (-DstoreBlobs) to trade higher memory usage for lower I/O overhead.
 
 ### Changed
 - CLI now redirects System.out to System.err before loading progress checks.
+- CLI and maven plugin no longer cache blobs by default.
+- Module README.md files now used as source for about / index.html for maven-site-plugin.
 
 ## [1.4.0] - 2019-09-03
 

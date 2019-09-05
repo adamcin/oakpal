@@ -34,9 +34,15 @@ import org.jetbrains.annotations.NotNull;
         defaultPhase = LifecyclePhase.PREPARE_PACKAGE)
 public class OpearPlanMojo extends AbstractCommonMojo implements MojoWithPlanParams {
 
-    @Parameter(name = "planFile", defaultValue = "${project.build.directory}/opear-plans/plan.json", required = true)
+    /**
+     * Specify the output file for the serialized opear plan.
+     */
+    @Parameter(name = "planFile", defaultValue = "${project.build.directory}/oakpal-plugin/opear-plans/plan.json", required = true)
     File planFile;
 
+    /**
+     * Specify the plan parameters.
+     */
     @Parameter(name = "planParams")
     PlanParams planParams;
 

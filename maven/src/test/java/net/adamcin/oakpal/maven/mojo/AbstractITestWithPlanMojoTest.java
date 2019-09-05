@@ -225,6 +225,10 @@ public class AbstractITestWithPlanMojoTest {
         scanWithViolations(mojo, summaryFile);
         MockMojoLog log = (MockMojoLog) mojo.getLog();
         assertTrue("last message matches", log.last().filter(entry -> entry.message.startsWith("Evaluation of check reports")).isPresent());
+        final File[] preChildren = blobStore.listFiles();
+        assertNull("blobStore file is not yet a directory", preChildren);
+        mojo.storeBlobs = true;
+        scanWithViolations(mojo, summaryFile);
         final File[] children = blobStore.listFiles();
         assertNotNull("blobStore file is directory", children);
         assertTrue("blobStore has children", children.length > 0);

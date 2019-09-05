@@ -12,31 +12,22 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doCallRealMethod;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Queue;
 import java.util.Stack;
-import java.util.concurrent.CompletableFuture;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import javax.json.Json;
 import javax.json.JsonObject;
-import javax.swing.text.html.Option;
 
 import net.adamcin.oakpal.core.CheckReport;
 import net.adamcin.oakpal.core.FileBlobMemoryNodeStore;
@@ -44,14 +35,12 @@ import net.adamcin.oakpal.core.Nothing;
 import net.adamcin.oakpal.core.ReportCollector;
 import net.adamcin.oakpal.core.ReportMapper;
 import net.adamcin.oakpal.core.Result;
-import net.adamcin.oakpal.core.SimpleProgressCheck;
 import net.adamcin.oakpal.core.SimpleReport;
 import net.adamcin.oakpal.core.SimpleViolation;
 import net.adamcin.oakpal.core.Violation;
 import net.adamcin.oakpal.testing.TestPackageUtil;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
@@ -90,12 +79,12 @@ public class CommandTest {
         assertTrue("is FileBlobMemoryNodeStore",
                 command.getNodeStoreSupplier(
                         new Options.Builder()
+                                .setStoreBlobs(true)
                                 .build(console)
                                 .getOrDefault(null)).get() instanceof FileBlobMemoryNodeStore);
         assertTrue("is MemoryNodeStore",
                 command.getNodeStoreSupplier(
                         new Options.Builder()
-                                .setNoCacheBlobs(true)
                                 .build(console)
                                 .getOrDefault(null)).get() instanceof MemoryNodeStore);
     }
@@ -261,15 +250,19 @@ public class CommandTest {
                 options -> assertTrue("is just version", options.isJustVersion()));
 
         validator.expectSuccess(args(),
-                options -> assertFalse("is not noCacheBlobs", options.isNoCacheBlobs()));
-        validator.expectSuccess(args("--blobs"),
-                options -> assertFalse("is not noCacheBlobs", options.isNoCacheBlobs()));
-        validator.expectSuccess(args("--no-blobs"),
-                options -> assertTrue("is noCacheBlobs", options.isNoCacheBlobs()));
-        validator.expectSuccess(args("--no-blobs", "--blobs"),
-                options -> assertFalse("is not noCacheBlobs", options.isNoCacheBlobs()));
-        validator.expectSuccess(args("--no-blobs", "-b"),
-                options -> assertFalse("is not noCacheBlobs", options.isNoCacheBlobs()));
+                options -> assertFalse("is not store blobs", options.isStoreBlobs()));
+        validator.expectSuccess(args("-b"),
+                options -> assertTrue("is store blobs", options.isStoreBlobs()));
+        validator.expectSuccess(args("-b", "+b"),
+                options -> assertFalse("is not store blobs", options.isStoreBlobs()));
+        validator.expectSuccess(args("--store-blobs"),
+                options -> assertTrue("is store blobs", options.isStoreBlobs()));
+        validator.expectSuccess(args("--no-store-blobs"),
+                options -> assertFalse("is not store blobs", options.isStoreBlobs()));
+        validator.expectSuccess(args("--no-store-blobs", "--store-blobs"),
+                options -> assertTrue("is store blobs", options.isStoreBlobs()));
+        validator.expectSuccess(args("--no-store-blobs", "-b"),
+                options -> assertTrue("is store blobs", options.isStoreBlobs()));
 
         validator.expectFailure(args("-s", "extreme"));
         validator.expectSuccess(args(),
@@ -281,9 +274,15 @@ public class CommandTest {
         validator.expectSuccess(args("-s", "minor"),
                 options -> assertEquals("expect MINOR",
                         Violation.Severity.MINOR, options.getFailOnSeverity()));
+        validator.expectSuccess(args("-s", "minor", "+s"),
+                options -> assertEquals("expect MAJOR after resetting",
+                        Violation.Severity.MAJOR, options.getFailOnSeverity()));
         validator.expectSuccess(args("-s", "severe"),
                 options -> assertEquals("expect severe",
                         Violation.Severity.SEVERE, options.getFailOnSeverity()));
+        validator.expectSuccess(args("-s", "severe", "+s"),
+                options -> assertEquals("expect MAJOR after resetting",
+                        Violation.Severity.MAJOR, options.getFailOnSeverity()));
 
         validator.expectSuccess(args("--no-plan"),
                 options -> assertNull("expect no plan", options.getPlanName()));

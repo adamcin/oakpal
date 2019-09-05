@@ -86,10 +86,17 @@ public class OpearPackageMojo extends AbstractCommonMojo {
     @Component
     ArtifactHandlerManager artifactHandlerManager;
 
+    /**
+     * Specify to override the project build final name.
+     */
     @Parameter(defaultValue = "${project.build.finalName}", required = true)
     String finalName;
 
-    @Parameter(defaultValue = "${project.build.directory}/opear-plans/plan.json", required = true)
+    /**
+     * Specify the default plan file to include in the opear package. This should probably be the same file as
+     * {@code opear-plan}'s {@code planFile} parameter.
+     */
+    @Parameter(defaultValue = "${project.build.directory}/oakpal-plugin/opear-plans/plan.json", required = true)
     File planFile;
 
     @Parameter

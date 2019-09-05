@@ -294,15 +294,15 @@ abstract class AbstractITestWithPlanMojo extends AbstractITestMojo implements Pl
      *
      * @since 1.4.1
      */
-    @Parameter(property = "noBlobStore")
-    protected boolean noBlobStore;
+    @Parameter(property = "storeBlobs")
+    protected boolean storeBlobs;
 
     /**
      * Specify a different blob store path.
      *
      * @since 1.4.0
      */
-    @Parameter(defaultValue = "${project.build.directory}/oakpal-blobs")
+    @Parameter(defaultValue = "${project.build.directory}/oakpal-plugin/blobs")
     protected String blobStorePath;
 
     @Override
@@ -371,7 +371,7 @@ abstract class AbstractITestWithPlanMojo extends AbstractITestMojo implements Pl
 
             final OakMachine.Builder machineBuilder = buildPlan().toOakMachineBuilder(new DefaultErrorListener(),
                     Thread.currentThread().getContextClassLoader());
-            if (!noBlobStore && blobStorePath != null && !blobStorePath.isEmpty()) {
+            if (storeBlobs && blobStorePath != null && !blobStorePath.isEmpty()) {
                 machineBuilder.withNodeStoreSupplier(() -> new FileBlobMemoryNodeStore(blobStorePath));
             }
             final OakMachine machine = machineBuilder.build();

@@ -72,7 +72,7 @@ public class WebsterMojo extends AbstractMojo {
     /**
      * Specify a particular director for creation of temporary segment stores.
      */
-    @Parameter(property = PARAM_TMPDIR, defaultValue = "${project.build.directory}/webster-tmpdir")
+    @Parameter(property = PARAM_TMPDIR, defaultValue = "${project.build.directory}/oakpal-plugin/webster-tmpdir")
     File websterTempDirectory;
 
     /**

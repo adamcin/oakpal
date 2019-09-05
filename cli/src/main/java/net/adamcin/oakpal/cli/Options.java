@@ -24,7 +24,7 @@ class Options {
     static final Options DEFAULT_OPTIONS = new Options();
     private final boolean justHelp;
     private final boolean justVersion;
-    private final boolean noCacheBlobs;
+    private final boolean storeBlobs;
     private final URL planUrl;
     private final ClassLoader scanClassLoader;
     private final File cacheDir;
@@ -35,7 +35,7 @@ class Options {
     private final Violation.Severity failOnSeverity;
 
     Options() {
-        this(true, true, true,
+        this(true, true, false,
                 OakpalPlan.BASIC_PLAN_URL, Options.class.getClassLoader(),
                 new File(System.getProperty("java.io.tmpdir")),
                 null, null,
@@ -46,7 +46,7 @@ class Options {
 
     Options(final boolean justHelp,
             final boolean justVersion,
-            final boolean noCacheBlobs,
+            final boolean storeBlobs,
             final @NotNull URL planUrl,
             final @NotNull ClassLoader scanClassLoader,
             final @NotNull File cacheDir,
@@ -57,7 +57,7 @@ class Options {
             final @NotNull Violation.Severity failOnSeverity) {
         this.justHelp = justHelp;
         this.justVersion = justVersion;
-        this.noCacheBlobs = noCacheBlobs;
+        this.storeBlobs = storeBlobs;
         this.planUrl = planUrl;
         this.scanClassLoader = scanClassLoader;
         this.cacheDir = cacheDir;
@@ -76,8 +76,8 @@ class Options {
         return justVersion;
     }
 
-    public boolean isNoCacheBlobs() {
-        return noCacheBlobs;
+    public boolean isStoreBlobs() {
+        return storeBlobs;
     }
 
     public URL getPlanUrl() {
@@ -115,7 +115,7 @@ class Options {
     static final class Builder {
         private boolean justHelp;
         private boolean justVersion;
-        private boolean noCacheBlobs;
+        private boolean storeBlobs;
         private boolean outputJson;
         private boolean noPlan;
         private String planName;
@@ -123,7 +123,7 @@ class Options {
         private File cacheDir;
         private File opearFile;
         private List<File> scanFiles = new ArrayList<>();
-        private Violation.Severity failOnSeverity = Violation.Severity.MAJOR;
+        private Violation.Severity failOnSeverity;
 
         public Builder setJustHelp(final boolean justHelp) {
             this.justHelp = justHelp;
@@ -135,8 +135,8 @@ class Options {
             return this;
         }
 
-        public Builder setNoCacheBlobs(final boolean noCacheBlobs) {
-            this.noCacheBlobs = noCacheBlobs;
+        public Builder setStoreBlobs(final boolean storeBlobs) {
+            this.storeBlobs = storeBlobs;
             return this;
         }
 
@@ -175,7 +175,7 @@ class Options {
             return this;
         }
 
-        public Builder setFailOnSeverity(final @NotNull Violation.Severity failOnSeverity) {
+        public Builder setFailOnSeverity(final @Nullable Violation.Severity failOnSeverity) {
             this.failOnSeverity = failOnSeverity;
             return this;
         }
@@ -211,10 +211,11 @@ class Options {
                             .orElse(Result.success(noPlan ? OakpalPlan.EMPTY_PLAN_URL : opear.getDefaultPlan()))
                             .flatMap(planUrl ->
                                     messageWriter(console, outputJson, outFile).map(writer ->
-                                            new Options(justHelp, justVersion, noCacheBlobs, planUrl,
+                                            new Options(justHelp, justVersion, storeBlobs, planUrl,
                                                     opear.getPlanClassLoader(getClass().getClassLoader()),
                                                     realCacheDir, opearFile,
-                                                    planName, scanFiles, writer, failOnSeverity))));
+                                                    planName, scanFiles, writer,
+                                                    Optional.ofNullable(failOnSeverity).orElse(DEFAULT_OPTIONS.failOnSeverity)))));
         }
 
     }

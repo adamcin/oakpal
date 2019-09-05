@@ -1,9 +1,9 @@
 package net.adamcin.oakpal.cli;
 
 import static net.adamcin.oakpal.core.Fun.compose;
-import static net.adamcin.oakpal.core.Fun.inferTest1;
 import static net.adamcin.oakpal.core.Fun.result0;
 import static net.adamcin.oakpal.core.Fun.result1;
+import static net.adamcin.oakpal.core.Fun.toEntry;
 import static net.adamcin.oakpal.core.Fun.uncheck0;
 
 import java.io.BufferedReader;
@@ -15,6 +15,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.function.Function;
@@ -36,7 +37,8 @@ import org.slf4j.LoggerFactory;
 
 final class Command {
     private static final Logger LOGGER = LoggerFactory.getLogger(Command.class);
-    private static final String NO_OPT_PREFIX = "--no-";
+    private static final String SHORT_NO_OPT_PREFIX = "+";
+    private static final String LONG_NO_OPT_PREFIX = "--no-";
     private static final String VERSION_PROPERTIES_NAME = "version.properties";
     private static final String COMMAND_HELP_TXT = "help.txt";
     static final Integer EXIT_GENERAL_ERROR = 1;
@@ -65,11 +67,11 @@ final class Command {
     }
 
     Supplier<NodeStore> getNodeStoreSupplier(final @NotNull Options opts) {
-        if (opts.isNoCacheBlobs()) {
-            return MemoryNodeStore::new;
-        } else {
+        if (opts.isStoreBlobs()) {
             return () -> new FileBlobMemoryNodeStore(
                     opts.getCacheDir().toPath().resolve("blobs").toFile().getAbsolutePath());
+        } else {
+            return MemoryNodeStore::new;
         }
     }
 
@@ -144,12 +146,23 @@ final class Command {
         }).get();
     }
 
+    Optional<String> flipOpt(final @NotNull String wholeOpt) {
+        if (wholeOpt.startsWith(LONG_NO_OPT_PREFIX)) {
+            return Optional.of("--" + wholeOpt.substring(LONG_NO_OPT_PREFIX.length()));
+        } else if (wholeOpt.startsWith(SHORT_NO_OPT_PREFIX)) {
+            return Optional.of("-" + wholeOpt.substring(SHORT_NO_OPT_PREFIX.length()));
+        } else {
+            return Optional.empty();
+        }
+    }
+
     @NotNull Result<Options> parseArgs(final @NotNull Console console, final @NotNull String[] args) {
         Options.Builder builder = new Options.Builder();
         for (int i = 0; i < args.length; i++) {
             final String wholeOpt = args[i];
-            final boolean isNoOpt = wholeOpt.startsWith(NO_OPT_PREFIX);
-            final String opt = isNoOpt ? "--" + wholeOpt.substring(NO_OPT_PREFIX.length()) : wholeOpt;
+            final Optional<String> flipped = flipOpt(wholeOpt);
+            final boolean isNoOpt = flipped.isPresent();
+            final String opt = flipped.orElse(wholeOpt);
 
             switch (opt) {
                 case "-h":
@@ -161,8 +174,8 @@ final class Command {
                     builder.setJustVersion(!isNoOpt);
                     break;
                 case "-b":
-                case "--blobs":
-                    builder.setNoCacheBlobs(isNoOpt);
+                case "--store-blobs":
+                    builder.setStoreBlobs(!isNoOpt);
                     break;
                 case "-f":
                 case "--file":
@@ -187,14 +200,19 @@ final class Command {
                     break;
                 case "-s":
                 case "--severity-fail":
-                    final String severityArg = args[++i];
-                    final Result<Violation.Severity> severityResult = result1(Violation.Severity::byName)
-                            .apply(severityArg);
-                    if (severityResult.isFailure()) {
-                        return Result.failure(severityResult.getError().get());
+                    if (isNoOpt) {
+                        builder.setFailOnSeverity(null);
+                        break;
+                    } else {
+                        final String severityArg = args[++i];
+                        final Result<Violation.Severity> severityResult = result1(Violation.Severity::byName)
+                                .apply(severityArg);
+                        if (severityResult.isFailure()) {
+                            return Result.failure(severityResult.getError().get());
+                        }
+                        severityResult.forEach(builder::setFailOnSeverity);
+                        break;
                     }
-                    severityResult.forEach(builder::setFailOnSeverity);
-                    break;
                 default:
                     final File scanFile = console.getCwd().toPath().resolve(wholeOpt).toFile();
                     if (!scanFile.isFile()) {
