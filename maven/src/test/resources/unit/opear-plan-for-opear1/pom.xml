@@ -34,11 +34,6 @@
                 <configuration>
                     <planParams>
                         <slingNodeTypes>true</slingNodeTypes>
-                        <preInstallArtifacts>
-                            <artifact>
-                                <artifactId>recap-graniteui</artifactId>
-                            </artifact>
-                        </preInstallArtifacts>
                         <forcedRoots>
                             <root>
                                 <path>/acme:test</path>
@@ -79,13 +74,6 @@
             <groupId>org.apache.sling</groupId>
             <artifactId>org.apache.sling.jcr.resource</artifactId>
             <version>3.0.4</version>
-        </dependency>
-        <dependency>
-            <groupId>net.adamcin.recap</groupId>
-            <artifactId>recap-graniteui</artifactId>
-            <version>1.0.1</version>
-            <type>zip</type>
-            <scope>provided</scope>
         </dependency>
     </dependencies>
 </project>

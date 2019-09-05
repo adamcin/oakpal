@@ -2,3 +2,4 @@
 target/
 *.iml
 .mvn/wrapper/maven-wrapper.jar
+.oakpal-cache/

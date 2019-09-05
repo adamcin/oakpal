@@ -245,14 +245,6 @@
             <artifactId>junit</artifactId>
             <scope>test</scope>
         </dependency>
-        <!--
-        <dependency>
-            <groupId>org.apache.maven</groupId>
-            <artifactId>maven-compat</artifactId>
-            <version>${maven.version}</version>
-            <scope>test</scope>
-        </dependency>
-        -->
 
         <dependency>
             <groupId>org.mockito</groupId>
@@ -264,13 +256,5 @@
             <artifactId>oakpal-testing</artifactId>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>net.adamcin.recap</groupId>
-            <artifactId>recap-graniteui</artifactId>
-            <version>1.0.1</version>
-            <type>zip</type>
-            <scope>test</scope>
-        </dependency>
     </dependencies>
-
 </project>
