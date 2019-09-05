@@ -39,6 +39,7 @@ import javax.json.JsonObject;
 import javax.swing.text.html.Option;
 
 import net.adamcin.oakpal.core.CheckReport;
+import net.adamcin.oakpal.core.FileBlobMemoryNodeStore;
 import net.adamcin.oakpal.core.Nothing;
 import net.adamcin.oakpal.core.ReportCollector;
 import net.adamcin.oakpal.core.ReportMapper;
@@ -49,6 +50,8 @@ import net.adamcin.oakpal.core.SimpleViolation;
 import net.adamcin.oakpal.core.Violation;
 import net.adamcin.oakpal.testing.TestPackageUtil;
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
@@ -78,6 +81,23 @@ public class CommandTest {
         final String output = captureOutput(Command::printVersion);
         LOGGER.info("version: \n{}", output);
         assertFalse("version should not be empty", output.isEmpty());
+    }
+
+    @Test
+    public void testGetNodeStoreSupplier() {
+        final Command command = new Command();
+        final Console console = getMockConsole();
+        assertTrue("is FileBlobMemoryNodeStore",
+                command.getNodeStoreSupplier(
+                        new Options.Builder()
+                                .build(console)
+                                .getOrDefault(null)).get() instanceof FileBlobMemoryNodeStore);
+        assertTrue("is MemoryNodeStore",
+                command.getNodeStoreSupplier(
+                        new Options.Builder()
+                                .setNoCacheBlobs(true)
+                                .build(console)
+                                .getOrDefault(null)).get() instanceof MemoryNodeStore);
     }
 
     @Test
@@ -239,6 +259,17 @@ public class CommandTest {
                 options -> assertFalse("is not just version", options.isJustVersion()));
         validator.expectSuccess(args("-v"),
                 options -> assertTrue("is just version", options.isJustVersion()));
+
+        validator.expectSuccess(args(),
+                options -> assertFalse("is not noCacheBlobs", options.isNoCacheBlobs()));
+        validator.expectSuccess(args("--blobs"),
+                options -> assertFalse("is not noCacheBlobs", options.isNoCacheBlobs()));
+        validator.expectSuccess(args("--no-blobs"),
+                options -> assertTrue("is noCacheBlobs", options.isNoCacheBlobs()));
+        validator.expectSuccess(args("--no-blobs", "--blobs"),
+                options -> assertFalse("is not noCacheBlobs", options.isNoCacheBlobs()));
+        validator.expectSuccess(args("--no-blobs", "-b"),
+                options -> assertFalse("is not noCacheBlobs", options.isNoCacheBlobs()));
 
         validator.expectFailure(args("-s", "extreme"));
         validator.expectSuccess(args(),

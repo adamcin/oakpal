@@ -5,7 +5,10 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.File;
+import java.io.PrintStream;
 
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 public class MainTest {
@@ -17,6 +20,20 @@ public class MainTest {
     public void setUp() throws Exception {
         testOutputBaseDir.mkdirs();
         Main.setExitFunction(status -> {});
+        Main.setSwapOutFunction(err -> System.out);
+    }
+
+    @Test
+    public void testDefaultSwapOutFunction() {
+        final PrintStream realOut = System.out;
+        final PrintStream realErr = System.err;
+
+        assertSame("same out is returned after replacing with err", realOut,
+                Main.DEFAULT_SWAP_OUT.apply(System.err));
+        assertSame("same err is returned after replacing with original out", realErr,
+                Main.DEFAULT_SWAP_OUT.apply(realOut));
+
+        assertNotSame("leave out and err as they were", System.out, System.err);
     }
 
     @Test

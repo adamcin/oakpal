@@ -59,6 +59,7 @@ public class OptionsTest {
 
         builder.setJustHelp(false);
         builder.setJustVersion(false);
+        builder.setNoCacheBlobs(false);
         builder.setFailOnSeverity(Violation.Severity.MAJOR);
         builder.setPlanName(null);
         builder.setOutputJson(false);

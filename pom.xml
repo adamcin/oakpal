@@ -174,12 +174,9 @@
                     <version>4.1.0</version>
                 </plugin>
                 <plugin>
-                    <groupId>org.apache.felix</groupId>
-                    <artifactId>maven-bundle-plugin</artifactId>
-                    <version>${maven.bundle.plugin.version}</version>
-                    <configuration>
-                        <obrRepository>false</obrRepository>
-                    </configuration>
+                    <groupId>biz.aQute.bnd</groupId>
+                    <artifactId>bnd-baseline-maven-plugin</artifactId>
+                    <version>4.1.0</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -256,6 +253,7 @@
                     <autoVersionSubmodules>true</autoVersionSubmodules>
                     <useReleaseProfile>false</useReleaseProfile>
                     <releaseProfiles>release</releaseProfiles>
+                    <tagNameFormat>v@{project.version}</tagNameFormat>
                     <goals>deploy</goals>
                 </configuration>
             </plugin>

@@ -289,6 +289,15 @@ abstract class AbstractITestWithPlanMojo extends AbstractITestMojo implements Pl
     protected boolean deferBuildFailure;
 
     /**
+     * Set to true to disable the blob store configured by {@code blobStorePath}. This forces the blobs to exist in the
+     * memory node store, which should run faster, but can more easily exhaust heap with larger packages.
+     *
+     * @since 1.4.1
+     */
+    @Parameter(property = "noBlobStore")
+    protected boolean noBlobStore;
+
+    /**
      * Specify a different blob store path.
      *
      * @since 1.4.0
@@ -362,7 +371,7 @@ abstract class AbstractITestWithPlanMojo extends AbstractITestMojo implements Pl
 
             final OakMachine.Builder machineBuilder = buildPlan().toOakMachineBuilder(new DefaultErrorListener(),
                     Thread.currentThread().getContextClassLoader());
-            if (blobStorePath != null && !blobStorePath.isEmpty()) {
+            if (!noBlobStore && blobStorePath != null && !blobStorePath.isEmpty()) {
                 machineBuilder.withNodeStoreSupplier(() -> new FileBlobMemoryNodeStore(blobStorePath));
             }
             final OakMachine machine = machineBuilder.build();

@@ -10,6 +10,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.function.Function;
 import java.util.function.IntConsumer;
 
 import net.adamcin.oakpal.core.Nothing;
@@ -107,10 +108,21 @@ final class Main implements Console {
         return exitCode;
     }
 
+    static final Function<PrintStream, PrintStream> DEFAULT_SWAP_OUT = err -> {
+        final PrintStream out = System.out;
+        System.setOut(err);
+        return out;
+    };
+
     private static @NotNull IntConsumer exitFunction = Runtime.getRuntime()::exit;
+    private static @NotNull Function<PrintStream, PrintStream> swapOutFunction = DEFAULT_SWAP_OUT;
 
     public static void setExitFunction(final @NotNull IntConsumer exitFunction) {
         Main.exitFunction = exitFunction;
+    }
+
+    public static void setSwapOutFunction(final @NotNull Function<PrintStream, PrintStream> swapOutFunction) {
+        Main.swapOutFunction = swapOutFunction;
     }
 
     /**
@@ -125,13 +137,11 @@ final class Main implements Console {
      * @param args argv yo
      */
     public static void main(final String[] args) {
-        StackTraceElement[] stack = new Exception().getStackTrace();
-        final StackTraceElement last = stack[stack.length - 1];
-
+        final PrintStream realOut = swapOutFunction.apply(System.err);
         Main main = new Main(new File(".").getAbsoluteFile(),
                 Collections.unmodifiableMap(System.getenv()),
-                System.out, System.err);
-
+                realOut, System.err);
+        swapOutFunction.apply(realOut);
         exitFunction.accept(main.doMain(args));
     }
 }

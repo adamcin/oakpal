@@ -24,6 +24,7 @@ class Options {
     static final Options DEFAULT_OPTIONS = new Options();
     private final boolean justHelp;
     private final boolean justVersion;
+    private final boolean noCacheBlobs;
     private final URL planUrl;
     private final ClassLoader scanClassLoader;
     private final File cacheDir;
@@ -34,7 +35,7 @@ class Options {
     private final Violation.Severity failOnSeverity;
 
     Options() {
-        this(true, true,
+        this(true, true, true,
                 OakpalPlan.BASIC_PLAN_URL, Options.class.getClassLoader(),
                 new File(System.getProperty("java.io.tmpdir")),
                 null, null,
@@ -45,6 +46,7 @@ class Options {
 
     Options(final boolean justHelp,
             final boolean justVersion,
+            final boolean noCacheBlobs,
             final @NotNull URL planUrl,
             final @NotNull ClassLoader scanClassLoader,
             final @NotNull File cacheDir,
@@ -55,6 +57,7 @@ class Options {
             final @NotNull Violation.Severity failOnSeverity) {
         this.justHelp = justHelp;
         this.justVersion = justVersion;
+        this.noCacheBlobs = noCacheBlobs;
         this.planUrl = planUrl;
         this.scanClassLoader = scanClassLoader;
         this.cacheDir = cacheDir;
@@ -71,6 +74,10 @@ class Options {
 
     public boolean isJustVersion() {
         return justVersion;
+    }
+
+    public boolean isNoCacheBlobs() {
+        return noCacheBlobs;
     }
 
     public URL getPlanUrl() {
@@ -108,6 +115,7 @@ class Options {
     static final class Builder {
         private boolean justHelp;
         private boolean justVersion;
+        private boolean noCacheBlobs;
         private boolean outputJson;
         private boolean noPlan;
         private String planName;
@@ -124,6 +132,11 @@ class Options {
 
         public Builder setJustVersion(final boolean justVersion) {
             this.justVersion = justVersion;
+            return this;
+        }
+
+        public Builder setNoCacheBlobs(final boolean noCacheBlobs) {
+            this.noCacheBlobs = noCacheBlobs;
             return this;
         }
 
@@ -198,7 +211,7 @@ class Options {
                             .orElse(Result.success(noPlan ? OakpalPlan.EMPTY_PLAN_URL : opear.getDefaultPlan()))
                             .flatMap(planUrl ->
                                     messageWriter(console, outputJson, outFile).map(writer ->
-                                            new Options(justHelp, justVersion, planUrl,
+                                            new Options(justHelp, justVersion, noCacheBlobs, planUrl,
                                                     opear.getPlanClassLoader(getClass().getClassLoader()),
                                                     realCacheDir, opearFile,
                                                     planName, scanFiles, writer, failOnSeverity))));

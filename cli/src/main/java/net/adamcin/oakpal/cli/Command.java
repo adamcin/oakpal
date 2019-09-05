@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import net.adamcin.oakpal.core.CheckReport;
 import net.adamcin.oakpal.core.DefaultErrorListener;
@@ -27,6 +28,8 @@ import net.adamcin.oakpal.core.OakMachine;
 import net.adamcin.oakpal.core.OakpalPlan;
 import net.adamcin.oakpal.core.Result;
 import net.adamcin.oakpal.core.Violation;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,6 +64,15 @@ final class Command {
         }
     }
 
+    Supplier<NodeStore> getNodeStoreSupplier(final @NotNull Options opts) {
+        if (opts.isNoCacheBlobs()) {
+            return MemoryNodeStore::new;
+        } else {
+            return () -> new FileBlobMemoryNodeStore(
+                    opts.getCacheDir().toPath().resolve("blobs").toFile().getAbsolutePath());
+        }
+    }
+
     IO<Integer> doScan(final @NotNull Console console, final @NotNull Options opts) {
         final ClassLoader cl = opts.getScanClassLoader();
         final URL planUrl = opts.getPlanUrl();
@@ -70,8 +82,8 @@ final class Command {
         /* ------------ */
         final Result<List<CheckReport>> scanResult = OakpalPlan.fromJson(planUrl)
                 .flatMap(result1(plan ->
-                        plan.toOakMachineBuilder(new DefaultErrorListener(), cl).withNodeStoreSupplier(() ->
-                                new FileBlobMemoryNodeStore(opts.getCacheDir().toPath().resolve("blobs").toFile().getAbsolutePath()))))
+                        plan.toOakMachineBuilder(new DefaultErrorListener(), cl)
+                                .withNodeStoreSupplier(getNodeStoreSupplier(opts))))
                 .map(OakMachine.Builder::build).flatMap(oak -> runOakScan(opts, oak));
 
         if (scanResult.isFailure()) {
@@ -147,6 +159,10 @@ final class Command {
                 case "-v":
                 case "--version":
                     builder.setJustVersion(!isNoOpt);
+                    break;
+                case "-b":
+                case "--blobs":
+                    builder.setNoCacheBlobs(isNoOpt);
                     break;
                 case "-f":
                 case "--file":
