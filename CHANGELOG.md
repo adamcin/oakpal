@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com)
 
 ### Fixed
 - GH16 relocated default target files under single oakpal-plugin folder
+- GH17 eliminated oakpal-core transitive dependencies and duplicates from embedded libraries
 
 ## [1.4.0] - 2019-09-03
 

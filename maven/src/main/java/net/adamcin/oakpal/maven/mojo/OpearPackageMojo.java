@@ -49,6 +49,7 @@ import org.apache.maven.artifact.Artifact;
 import org.apache.maven.artifact.DefaultArtifact;
 import org.apache.maven.artifact.handler.ArtifactHandler;
 import org.apache.maven.artifact.handler.manager.ArtifactHandlerManager;
+import org.apache.maven.model.Dependency;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.Component;
@@ -167,13 +168,25 @@ public class OpearPackageMojo extends AbstractCommonMojo {
     List<File> getEmbeddedLibraries() {
         final Set<String> NOT_EMBEDDABLE = new HashSet<>(
                 Arrays.asList(Artifact.SCOPE_IMPORT, Artifact.SCOPE_PROVIDED, Artifact.SCOPE_TEST));
-        return resolveArtifacts(project.getDependencies(), true).stream().filter(TEST_IS_OAKPAL_CORE.negate())
-                .filter(composeTest(Artifact::getScope, inSet(NOT_EMBEDDABLE).negate())).map(Artifact::getFile)
-                .collect(Collectors.toList());
+
+        final Set<File> embeddable = resolveArtifacts(project.getDependencies().stream()
+                .filter(composeTest(Dependency::getScope, inSet(NOT_EMBEDDABLE).negate()))
+                .collect(Collectors.toList()), true).stream().filter(TEST_IS_OAKPAL_CORE.negate())
+                .map(Artifact::getFile)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+
+        resolveArtifacts(project.getDependencies().stream()
+                .filter(new DependencyFilter().withGroupId(OAKPAL_GROUP_ID).withArtifactId(OAKPAL_CORE_ARTIFACT_ID))
+                .collect(Collectors.toList()), true).stream().map(Artifact::getFile).forEachOrdered(embeddable::remove);
+
+        return new ArrayList<>(embeddable);
     }
 
     File assembleOpear() throws Exception {
         final String prefix = "lib/";
+        if (this.outputDirectory == null) {
+            throw new IllegalStateException("outputDirectory should not be null");
+        }
         final File finalFile = new File(this.outputDirectory, this.finalName + "." + OPEAR);
 
         final File planPrep = new File(this.outputDirectory, "plans-tmp-" + this.finalName);
