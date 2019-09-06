@@ -52,21 +52,19 @@ public class Echo implements ProgressCheck {
      *
      * @return the duration of the stopped interval
      */
-    @SuppressWarnings("WeakerAccess")
-    protected final Duration stopInterval() {
+    private Duration stopInterval() {
         final long now = System.nanoTime();
         final long last = this.lastEvent.getAndSet(now);
         return Duration.ofNanos(now - last);
     }
 
     /**
-     * Override this method to change the duration formatting.
+     * Formats a duration.
      *
      * @param duration the duration
      * @return the formatted duration timestamp
      */
-    @SuppressWarnings("WeakerAccess")
-    protected String formatDuration(final @NotNull Duration duration) {
+    private String formatDuration(final @NotNull Duration duration) {
         final long seconds = duration.getSeconds();
         final int nanos = duration.getNano();
         return String.format("%d:%02d:%02d:%03d", seconds / 3600, (seconds % 3600) / 60, seconds % 60, nanos / 1000000);
