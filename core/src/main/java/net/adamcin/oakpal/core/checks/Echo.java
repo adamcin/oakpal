@@ -21,15 +21,18 @@ import net.adamcin.oakpal.core.Violation;
 import org.apache.jackrabbit.vault.fs.config.MetaInf;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.apache.jackrabbit.vault.packaging.PackageProperties;
+import org.jetbrains.annotations.NotNull;
 
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import java.io.File;
+import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.jar.Manifest;
 
 /**
@@ -37,9 +40,36 @@ import java.util.jar.Manifest;
  */
 public class Echo implements ProgressCheck {
 
+    private final AtomicLong lastEvent = new AtomicLong(System.nanoTime());
+
     @Override
     public Collection<Violation> getReportedViolations() {
         return Collections.emptyList();
+    }
+
+    /**
+     * Stops the current interval, starts a new interval, and returns the duration.
+     *
+     * @return the duration of the stopped interval
+     */
+    @SuppressWarnings("WeakerAccess")
+    protected final Duration stopInterval() {
+        final long now = System.nanoTime();
+        final long last = this.lastEvent.getAndSet(now);
+        return Duration.ofNanos(now - last);
+    }
+
+    /**
+     * Override this method to change the duration formatting.
+     *
+     * @param duration the duration
+     * @return the formatted duration timestamp
+     */
+    @SuppressWarnings("WeakerAccess")
+    protected String formatDuration(final @NotNull Duration duration) {
+        final long seconds = duration.getSeconds();
+        final int nanos = duration.getNano();
+        return String.format("%d:%02d:%02d:%03d", seconds / 3600, (seconds % 3600) / 60, seconds % 60, nanos / 1000000);
     }
 
     /**
@@ -48,13 +78,14 @@ public class Echo implements ProgressCheck {
      * @param message    message to print
      * @param formatArgs optional args to {@link String#format(String, Object...)}
      */
-    protected void echo(final String message, Object... formatArgs) {
-        System.out.println("[ECHO] " + String.format(message, formatArgs));
+    protected void echo(final String message, final @NotNull Object... formatArgs) {
+        final Duration diff = stopInterval();
+
+        System.out.println("[ECHO " + formatDuration(diff) + "] " + String.format(message, formatArgs));
     }
 
     @Override
     public String getCheckName() {
-        echo("getCheckName()");
         return "echo";
     }
 

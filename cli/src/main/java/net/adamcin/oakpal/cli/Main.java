@@ -141,7 +141,8 @@ final class Main implements Console {
         Main main = new Main(new File(".").getAbsoluteFile(),
                 Collections.unmodifiableMap(System.getenv()),
                 realOut, System.err);
+        final int exit = main.doMain(args);
         swapOutFunction.apply(realOut);
-        exitFunction.accept(main.doMain(args));
+        exitFunction.accept(exit);
     }
 }

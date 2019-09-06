@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](http://keepachangelog.com)
 
 ## [Unreleased]
 
+### Changed
+- Added timer logic to basic/echo check to assist in performance testing
+
+### Fixed
+- CLI didn't correctly redirect System.out to System.err for scan execution. 
+
+## [1.4.1] - 2019-09-05
+
 ### Added
 - bnd-baseline-maven-plugin has been added to core and webster modules to enforce semantic versioning of the API.
 - Added runtime options to cli (--store-blobs) and maven plugin (-DstoreBlobs) to trade higher memory usage for lower I/O overhead.
