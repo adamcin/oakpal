@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com)
 
 ## [Unreleased]
 
+## [1.4.2] - 2019-09-06
+
 ### Changed
 - Added timer logic to basic/echo check to assist in performance testing
 
