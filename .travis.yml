@@ -18,10 +18,10 @@ matrix:
       language: java
       jdk: oraclejdk11
     - os: windows
-      #language: bash
+      language: bash
       before_script:
        - choco install adoptopenjdk11
-       - refreshenv
+       - "export JAVA_HOME=$(dirname $(find '/Program Files/AdoptOpenJDK' -name 'javac'))"
 script:
   - ./mvnw -B -e verify site site:stage
 after_success:
