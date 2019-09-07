@@ -19,7 +19,7 @@ matrix:
       jdk: oraclejdk11
     - os: windows
       language: bash
-      before_script: choco install jdk11 -params "source=false"
+      before_script: choco install adoptopenjdk11
 script:
   - ./mvnw -B -e verify site site:stage
 after_success:
