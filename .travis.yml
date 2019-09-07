@@ -18,8 +18,10 @@ matrix:
       language: java
       jdk: oraclejdk11
     - os: windows
-      language: bash
-      before_script: choco install adoptopenjdk11
+      #language: bash
+      before_script:
+       - choco install adoptopenjdk11
+       - refreshenv
 script:
   - ./mvnw -B -e verify site site:stage
 after_success:
