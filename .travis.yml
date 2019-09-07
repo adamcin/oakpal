@@ -17,6 +17,9 @@ matrix:
       dist: trusty
       language: java
       jdk: oraclejdk11
+    - os: windows
+      language: bash
+      before_script: choco install jdk11 -params "source=false"
 script:
   - ./mvnw -B -e verify site site:stage
 after_success:
