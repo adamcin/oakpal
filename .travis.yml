@@ -1,6 +1,11 @@
 language: java
 matrix:
   include:
+    - os: windows
+      language: bash
+      before_script:
+        - choco install adoptopenjdk11
+        - "export JAVA_HOME=$(bash --login -c 'echo $JAVA_HOME')"
     - os: linux
       dist: trusty
       language: java
@@ -17,11 +22,6 @@ matrix:
       dist: trusty
       language: java
       jdk: oraclejdk11
-    - os: windows
-      language: bash
-      before_script:
-       - choco install adoptopenjdk11
-       - "export JAVA_HOME=$(dirname $(find '/Program Files/AdoptOpenJDK' -name 'javac'))"
 script:
   - ./mvnw -B -e verify site site:stage
 after_success:
