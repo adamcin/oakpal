@@ -1,8 +1,6 @@
 powershell -NonInteractive - <<\EOF
 Get-Location
-Set-ExecutionPolicy -ExecutionPolicy RemoteSigned
-Import-Module "$env:ChocolateyInstall\helpers\chocolateyProfile.psm1"
-Update-SessionEnvironment
+refreshenv
 # Round brackets in variable names cause problems with bash
 Get-ChildItem env:* | %{
   if (!($_.Name.Contains('('))) {
