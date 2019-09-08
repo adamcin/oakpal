@@ -10,7 +10,8 @@ Get-ChildItem env:* | %{
     }
     Write-Output ("export " + $_.Name + "='" + $value + "'")
   }
-} | Out-File -Encoding ascii .\refreshenv.sh
+} | Tee-Object | Out-File -Encoding ascii .\refreshenv.sh
+Get-ChildItem .\refreshenv
 EOF
 pwd
 source "./refreshenv.sh"
