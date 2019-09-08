@@ -12,6 +12,7 @@ Get-ChildItem env:* | %{
     Write-Output ("export " + $_.Name + "='" + $value + "'")
   }
 } | Out-File -Encoding ascii .\refreshenv.sh
+Get-Location
 EOF
-
+pwd
 source "./refreshenv.sh"
