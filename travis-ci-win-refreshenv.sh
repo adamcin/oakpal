@@ -1,4 +1,5 @@
 powershell -NonInteractive - <<\EOF
+Unblock-File "$env:ChocolateyInstall\helpers\chocolateyProfile.psm1"
 Import-Module "$env:ChocolateyInstall\helpers\chocolateyProfile.psm1"
 Update-SessionEnvironment
 # Round brackets in variable names cause problems with bash
