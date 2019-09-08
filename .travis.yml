@@ -4,7 +4,7 @@ matrix:
     - os: windows
       language: bash
       before_script:
-        #- choco install adoptopenjdk11
+        - choco install adoptopenjdk11
         - source ./travis-ci-win-refreshenv.sh
     - os: linux
       dist: trusty
