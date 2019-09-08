@@ -3,11 +3,14 @@ matrix:
   include:
     - os: windows
       language: bash
+      env:
+        - MVNW_VERBOSE=true
       before_script:
         - choco install adoptopenjdk11
         - find "/c/Program Files/AdoptOpenJDK" -name 'javac.exe'
         - 'export JAVA_HOME="$(dirname "$(dirname "$(find "/c/Program Files/AdoptOpenJDK" -name javac.exe)")")" && echo $JAVA_HOME'
         - echo "$JAVA_HOME"
+      #script: ./mvnw -B -e verify site site:stage
     - os: linux
       dist: trusty
       language: java
