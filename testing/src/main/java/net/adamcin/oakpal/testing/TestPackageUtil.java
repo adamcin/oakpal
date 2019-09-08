@@ -119,7 +119,7 @@ public final class TestPackageUtil {
         for (File file : FileUtils.listFilesAndDirs(srcDir, includedEntry, TrueFileFilter.INSTANCE)) {
             final String filePath = file.getAbsolutePath();
             final String entryName = filePath.substring(absPath.length())
-                    .replaceFirst("^/?", "")
+                    .replaceFirst("^" + File.separator + "?", "")
                     .replace(File.separator, "/");
             if (entryName.isEmpty()) {
                 continue;
