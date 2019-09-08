@@ -5,8 +5,8 @@ matrix:
       language: bash
       before_script:
         - choco install adoptopenjdk11
-        - find "/c/Program Files/AdoptOpenJDK" -name javac
-        - 'export JAVA_HOME="$(dirname "$(dirname "$(find "/c/Program Files/AdoptOpenJDK" -name javac)")")" && echo $JAVA_HOME'
+        - find "/c/Program Files/AdoptOpenJDK" -name 'javac.exe'
+        - 'export JAVA_HOME="$(dirname "$(dirname "$(find "/c/Program Files/AdoptOpenJDK" -name javac.exe)")")" && echo $JAVA_HOME'
         - echo "$JAVA_HOME"
     - os: linux
       dist: trusty
