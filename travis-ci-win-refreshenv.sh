@@ -1,6 +1,6 @@
 powershell -NonInteractive - <<\EOF
-Get-Location
 refreshenv
+Get-Location
 # Round brackets in variable names cause problems with bash
 Get-ChildItem env:* | %{
   if (!($_.Name.Contains('('))) {
@@ -11,7 +11,6 @@ Get-ChildItem env:* | %{
     Write-Output ("export " + $_.Name + "='" + $value + "'")
   }
 } | Tee-Object | Out-File -Encoding ascii .\refreshenv.sh
-Get-ChildItem .\refreshenv
+Get-ChildItem .\refreshenv.sh
 EOF
-pwd
 source "./refreshenv.sh"
