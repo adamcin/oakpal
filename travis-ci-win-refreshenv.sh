@@ -1,4 +1,5 @@
 powershell -NonInteractive - <<\EOF
+Get-Location
 Set-ExecutionPolicy -ExecutionPolicy RemoteSigned
 Import-Module "$env:ChocolateyInstall\helpers\chocolateyProfile.psm1"
 Update-SessionEnvironment
@@ -12,7 +13,6 @@ Get-ChildItem env:* | %{
     Write-Output ("export " + $_.Name + "='" + $value + "'")
   }
 } | Out-File -Encoding ascii .\refreshenv.sh
-Get-Location
 EOF
 pwd
 source "./refreshenv.sh"
