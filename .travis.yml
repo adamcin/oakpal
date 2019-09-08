@@ -5,7 +5,7 @@ matrix:
       language: bash
       before_script:
         - choco install adoptopenjdk11
-        - source ./travis-ci-win-refreshenv.sh
+        - 'export JAVA_HOME="$(dirname "$(dirname "$(find "/c/Program Files/AdoptOpenJDK" -name javac)")")"'
     - os: linux
       dist: trusty
       language: java
