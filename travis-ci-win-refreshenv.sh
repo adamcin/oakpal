@@ -2,7 +2,7 @@ powershell -NonInteractive - <<\EOF
 refreshenv
 # Round brackets in variable names cause problems with bash
 Get-Location
-Get-ChildItem env:*
+Get-ChildItem env:PATH | %{$_.Value}
 Get-ChildItem env:* | %{
   if (!($_.Name.Contains('('))) {
     $value = $_.Value
