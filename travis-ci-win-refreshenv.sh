@@ -1,4 +1,5 @@
 powershell -NonInteractive - <<\EOF
+. $profile
 refreshenv
 # Round brackets in variable names cause problems with bash
 Get-Location
