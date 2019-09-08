@@ -1,5 +1,6 @@
 powershell -NonInteractive - <<\EOF
 . $profile
+choco install adoptopenjdk11
 refreshenv
 # Round brackets in variable names cause problems with bash
 Get-Location
