@@ -11,7 +11,7 @@ Get-ChildItem env:* | %{
     }
     Write-Output ("export " + $_.Name + "='" + $value + "'")
   }
-} | Out-File -Encoding ascii $env:TEMP\refreshenv.sh
+} | Out-File -Encoding ascii .\refreshenv.sh
 EOF
 
-source "$TEMP/refreshenv.sh"
+source "./refreshenv.sh"

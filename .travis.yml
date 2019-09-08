@@ -5,7 +5,7 @@ matrix:
       language: bash
       before_script:
         - choco install adoptopenjdk11
-        - ./travis-ci-win-refreshenv.sh
+        - source ./travis-ci-win-refreshenv.sh
     - os: linux
       dist: trusty
       language: java
