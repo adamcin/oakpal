@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com)
 
 ## [Unreleased]
 
+### Added
+- GH18 Added CI builds for windows and mac osx.
+
+### Fixed
+- GH20 resolved windows test failures
+
 ## [1.4.2] - 2019-09-06
 
 ### Changed
