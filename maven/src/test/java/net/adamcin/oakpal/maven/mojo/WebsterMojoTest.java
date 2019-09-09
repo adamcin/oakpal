@@ -300,19 +300,12 @@ public class WebsterMojoTest {
         final CompletableFuture<File> globalHome = new CompletableFuture<>();
         withMockTarget(builder, session -> {
             final File tmp = tempDir.listFiles()[0];
-            final File undeletable = new File(tmp, "undeletable.txt");
-            FileUtils.touch(undeletable);
-            globalHome.complete(undeletable);
-            assertTrue("set child read only", undeletable.setReadOnly());
+            globalHome.complete(tmp);
         });
-        try {
-            mojo.executeWebsterPlan(builder);
-        } finally {
-            final File realGlobalHome = globalHome.getNow(null);
-            if (realGlobalHome != null) {
-                realGlobalHome.setWritable(true);
-            }
-        }
+        mojo.tempDirDeleter = dir -> {
+            throw new IOException("OMG I can't tho. Sorry, dir: " + dir.getAbsolutePath());
+        };
+        mojo.executeWebsterPlan(builder);
         assertTrue("expect log indicating failure to delete global home",
                 logFor(mojo).any(entry -> entry.message.startsWith("Failed to delete temp global")));
     }

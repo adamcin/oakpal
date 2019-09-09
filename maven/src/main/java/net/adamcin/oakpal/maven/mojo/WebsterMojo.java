@@ -16,14 +16,6 @@
 
 package net.adamcin.oakpal.maven.mojo;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.util.List;
-import java.util.Optional;
-import java.util.function.BiConsumer;
-import javax.json.JsonObject;
-
 import net.adamcin.oakpal.core.Fun;
 import net.adamcin.oakpal.maven.component.OakpalComponentConfigurator;
 import net.adamcin.oakpal.webster.CliArgParser;
@@ -33,12 +25,18 @@ import net.adamcin.oakpal.webster.WebsterTarget;
 import net.adamcin.oakpal.webster.targets.JsonTargetFactory;
 import org.apache.commons.io.FileUtils;
 import org.apache.maven.plugin.AbstractMojo;
-import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import javax.json.JsonObject;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.util.List;
+import java.util.function.BiConsumer;
 
 /**
  * Execute Webster targets that read from an external Oak JCR repository to update nodetypes, privileges, and checklist
@@ -101,6 +99,8 @@ public class WebsterMojo extends AbstractMojo {
     @Parameter(defaultValue = "${project.basedir}")
     File baseDir;
 
+    Fun.ThrowingConsumer<File> tempDirDeleter = FileUtils::deleteDirectory;
+
     void suppressOakLogging(final @NotNull BiConsumer<String, String> propSetter) {
         if (!revealOakLogging) {
             final String SIMPLE_LOGGER_PREFIX = "org.slf4j.simpleLogger.log.";
@@ -154,8 +154,8 @@ public class WebsterMojo extends AbstractMojo {
                 throw new MojoFailureException("Failed to execute Webster plan.", e);
             } finally {
                 try {
-                    FileUtils.deleteDirectory(globalRepositoryHome);
-                } catch (IOException e) {
+                    tempDirDeleter.tryAccept(globalRepositoryHome);
+                } catch (Exception e) {
                     getLog().error("Failed to delete temp global segment store: "
                             + globalRepositoryHome.getAbsolutePath(), e);
                 }
