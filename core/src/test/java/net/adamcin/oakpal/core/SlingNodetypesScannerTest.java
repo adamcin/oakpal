@@ -18,6 +18,7 @@ package net.adamcin.oakpal.core;
 
 import net.adamcin.oakpal.testing.TestPackageUtil;
 import org.apache.commons.io.FileUtils;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -35,6 +36,7 @@ import java.util.stream.Stream;
 
 import static net.adamcin.oakpal.core.Fun.compose;
 import static net.adamcin.oakpal.core.Fun.uncheck1;
+import static net.adamcin.oakpal.core.Fun.uncheckVoid1;
 import static org.junit.Assert.assertEquals;
 
 public class SlingNodetypesScannerTest {
@@ -42,54 +44,54 @@ public class SlingNodetypesScannerTest {
     final File baseDir = new File("src/test/resources/SlingNodetypesScannerTest");
     final File testTarget = new File("target/test-output/SlingNodetypesScannerTest");
 
-    final File alphaSrc = new File(baseDir, "has_a_src");
-    final File bravoSrc = new File(baseDir, "has_b_src");
-    final File charlieSrc = new File(baseDir, "has_c_src");
-    final File deltaSrc = new File(baseDir, "has_d_src");
-    final File echoSrc = new File(baseDir, "has_e_src");
-    final File foxtrotSrc = new File(baseDir, "has_f_src");
-    final File yankeeSrc = new File(baseDir, "has_y_src");
-    final File zuluSrc = new File(baseDir, "has_z_src");
+    final String alphaSrc = "has_a_src";
+    final String bravoSrc = "has_b_src";
+    final String charlieSrc = "has_c_src";
+    final String deltaSrc = "has_d_src";
+    final String echoSrc = "has_e_src";
+    final String foxtrotSrc = "has_f_src";
+    final String yankeeSrc = "has_y_src";
+    final String zuluSrc = "has_z_src";
 
-    final File alphaTgt = new File(testTarget, "has_a.jar");
-    final File bravoTgt = new File(testTarget, "has_b.jar");
-    final File charlieTgt = new File(testTarget, "has_c.jar");
-    final File deltaTgt = new File(testTarget, "has_d.jar");
-    final File echoTgt = new File(testTarget, "has_e.jar");
-    final File foxtrotTgt = new File(testTarget, "has_f.jar");
-    final File yankeeTgt = new File(testTarget, "has_y.jar");
-    final File zuluTgt = new File(testTarget, "has_z.jar");
-
-    private Stream<File> getDirs() {
+    private Stream<String> getSrcNames() {
         return Stream.of(alphaSrc, bravoSrc, charlieSrc, deltaSrc,
                 echoSrc, foxtrotSrc, yankeeSrc, zuluSrc);
     }
-
-    private Stream<File> getJars() {
-        return Stream.of(alphaTgt, bravoTgt, charlieTgt, deltaTgt,
-                echoTgt, foxtrotTgt, yankeeTgt, zuluTgt);
+    
+    private String getJarName(final @NotNull String srcName) {
+        return srcName.replace("_src", ".jar");
     }
 
     @Before
     public void setUp() throws Exception {
-        FileUtils.deleteDirectory(testTarget);
         testTarget.mkdirs();
-        TestPackageUtil.buildJarFromDir(alphaSrc, alphaTgt, Collections.emptyMap());
-        TestPackageUtil.buildJarFromDir(bravoSrc, bravoTgt, Collections.emptyMap());
-        TestPackageUtil.buildJarFromDir(charlieSrc, charlieTgt, Collections.emptyMap());
-        TestPackageUtil.buildJarFromDir(deltaSrc, deltaTgt, Collections.emptyMap());
-        TestPackageUtil.buildJarFromDir(echoSrc, echoTgt, Collections.emptyMap());
-        TestPackageUtil.buildJarFromDir(foxtrotSrc, foxtrotTgt, Collections.emptyMap());
-        TestPackageUtil.buildJarFromDir(yankeeSrc, yankeeTgt, Collections.emptyMap());
-        TestPackageUtil.buildJarFromDir(zuluSrc, zuluTgt, Collections.emptyMap());
+
+    }
+    
+    private void buildAllJars(final @NotNull File targetBaseDir) throws Exception {
+        getSrcNames().forEachOrdered(uncheckVoid1(name ->
+            TestPackageUtil.buildJarFromDir(new File(baseDir, name), new File(targetBaseDir, getJarName(name)), Collections.emptyMap())
+        ));
+    }
+
+    private Stream<File> getJars(final @NotNull File targetBaseDir) {
+        return getSrcNames().map(name -> new File(targetBaseDir, getJarName(name)));
+    }
+
+    private Stream<File> getDirs() {
+        return getSrcNames().map(name -> new File(baseDir, name));
     }
 
     @Test
     public void testFindNodeTypeDefinitions_classLoader() throws Exception {
+        final File testBaseDir = new File(testTarget, "testFindNodeTypeDefinitions_classLoader");
+        FileUtils.deleteDirectory(testBaseDir);
+        testBaseDir.mkdirs();
+        buildAllJars(testBaseDir);
         final ClassLoader orig = Thread.currentThread().getContextClassLoader();
         try {
             Thread.currentThread().setContextClassLoader(
-                    new URLClassLoader(getJars().map(compose(File::toURI, uncheck1(URI::toURL))).toArray(URL[]::new),
+                    new URLClassLoader(getJars(testBaseDir).map(compose(File::toURI, uncheck1(URI::toURL))).toArray(URL[]::new),
                             null));
             List<URL> urls = SlingNodetypesScanner.findNodeTypeDefinitions();
             assertEquals("urls size should be: " + urls, 8, urls.size());
@@ -105,8 +107,12 @@ public class SlingNodetypesScannerTest {
 
     @Test
     public void testFindNodeTypeDefinitions_zips() throws Exception {
+        final File testBaseDir = new File(testTarget, "testFindNodeTypeDefinitions_zips");
+        FileUtils.deleteDirectory(testBaseDir);
+        testBaseDir.mkdirs();
+        buildAllJars(testBaseDir);
         final List<URL> jarUrls = SlingNodetypesScanner
-                .findNodeTypeDefinitions(getJars().collect(Collectors.toList()));
+                .findNodeTypeDefinitions(getJars(testBaseDir).collect(Collectors.toList()));
         assertEquals("jar urls size should be: " + jarUrls, 8, jarUrls.size());
         final List<URL> dirUrls = SlingNodetypesScanner
                 .findNodeTypeDefinitions(getDirs().collect(Collectors.toList()));

@@ -20,12 +20,10 @@ import net.adamcin.oakpal.core.Fun;
 import net.adamcin.oakpal.webster.JcrFactory;
 import net.adamcin.oakpal.webster.WebsterPlan;
 import net.adamcin.oakpal.webster.WebsterTarget;
-import net.adamcin.oakpal.webster.targets.JsonTargetFactory;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.jcr.Jcr;
-import org.apache.jackrabbit.oak.run.cli.NodeStoreFixture;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
@@ -34,22 +32,22 @@ import org.apache.maven.plugin.MojoFailureException;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mock;
 
 import javax.jcr.Repository;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 import java.io.File;
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.List;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 
 import static net.adamcin.oakpal.core.JavaxJson.obj;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
@@ -121,7 +119,7 @@ public class WebsterMojoTest {
     }
 
     private static void withMockTarget(final @NotNull WebsterPlan.Builder builder,
-                                final @NotNull Fun.ThrowingConsumer<Session> performWith) throws Exception {
+                                       final @NotNull Fun.ThrowingConsumer<Session> performWith) throws Exception {
         final WebsterTarget mockTarget = mock(WebsterTarget.class);
         doAnswer(call -> {
             performWith.tryAccept(call.getArgument(0, Session.class));
@@ -302,14 +300,12 @@ public class WebsterMojoTest {
         final CompletableFuture<File> globalHome = new CompletableFuture<>();
         withMockTarget(builder, session -> {
             final File tmp = tempDir.listFiles()[0];
-            assertTrue("set child read only", tmp.setReadOnly());
             globalHome.complete(tmp);
         });
-        try {
-            mojo.executeWebsterPlan(builder);
-        } finally {
-            globalHome.getNow(null).setWritable(true);
-        }
+        mojo.tempDirDeleter = dir -> {
+            throw new IOException("OMG I can't tho. Sorry, dir: " + dir.getAbsolutePath());
+        };
+        mojo.executeWebsterPlan(builder);
         assertTrue("expect log indicating failure to delete global home",
                 logFor(mojo).any(entry -> entry.message.startsWith("Failed to delete temp global")));
     }

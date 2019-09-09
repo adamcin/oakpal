@@ -38,6 +38,7 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.jar.JarOutputStream;
 import java.util.jar.Manifest;
+import java.util.regex.Pattern;
 
 /**
  * FileVault Test Package Factory
@@ -119,7 +120,7 @@ public final class TestPackageUtil {
         for (File file : FileUtils.listFilesAndDirs(srcDir, includedEntry, TrueFileFilter.INSTANCE)) {
             final String filePath = file.getAbsolutePath();
             final String entryName = filePath.substring(absPath.length())
-                    .replaceFirst("^" + File.separator + "?", "")
+                    .replaceFirst("^" + Pattern.quote(File.separator) + "?", "")
                     .replace(File.separator, "/");
             if (entryName.isEmpty()) {
                 continue;

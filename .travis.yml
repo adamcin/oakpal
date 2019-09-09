@@ -6,6 +6,8 @@ matrix:
       before_script:
         - choco install adoptopenjdk11
         - export JAVA_HOME="$(dirname "$(dirname "$(find "/c/Program Files/AdoptOpenJDK" -name javac.exe)")")"
+      # no site gen on windows
+      script: ./mvnw -B -e verify
     - os: linux
       dist: trusty
       language: java
