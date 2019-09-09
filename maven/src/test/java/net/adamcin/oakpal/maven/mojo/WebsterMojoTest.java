@@ -300,8 +300,10 @@ public class WebsterMojoTest {
         final CompletableFuture<File> globalHome = new CompletableFuture<>();
         withMockTarget(builder, session -> {
             final File tmp = tempDir.listFiles()[0];
-            globalHome.complete(tmp);
-            assertTrue("set child read only", tmp.setReadOnly());
+            final File undeletable = new File(tmp, "undeletable.txt");
+            FileUtils.touch(undeletable);
+            globalHome.complete(undeletable);
+            assertTrue("set child read only", undeletable.setReadOnly());
         });
         try {
             mojo.executeWebsterPlan(builder);
