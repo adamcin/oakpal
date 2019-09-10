@@ -39,6 +39,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.File;
+import java.io.FilenameFilter;
 import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;
@@ -830,6 +831,9 @@ public class OpearPackageMojoTest {
                 expectedPlanNames,
                 planNamesResult.getOrDefault(Collections.emptyList()));
         assertTrue("preinstall is file", new File(copyTarget, preInstallFilename).isFile());
+        File[] otherZips = copyTarget.listFiles((dir, name) -> !preInstallFilename.equals(name) && name.endsWith(".zip"));
+        assertNotNull("other zips should not be null", otherZips);
+        assertEquals("other zips should be empty", 0, otherZips.length);
     }
 
     @Test
