@@ -489,6 +489,7 @@
                 <artifactId>oak-commons</artifactId>
                 <version>${oak.version}</version>
             </dependency>
+            <!-- upgrade oak-store-composite for oakpal-webster to get OAK-7923 -->
             <dependency>
                 <groupId>org.apache.jackrabbit</groupId>
                 <artifactId>oak-store-composite</artifactId>
@@ -503,6 +504,12 @@
                 <groupId>org.apache.jackrabbit</groupId>
                 <artifactId>oak-run-commons</artifactId>
                 <version>${oak.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>ch.qos.logback</groupId>
+                        <artifactId>logback-classic</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>org.apache.jackrabbit</groupId>

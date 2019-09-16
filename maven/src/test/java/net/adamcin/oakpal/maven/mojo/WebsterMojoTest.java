@@ -226,6 +226,7 @@ public class WebsterMojoTest {
         final File projectRoot = new File(testOutDir, "content-package");
         FileUtils.copyDirectory(new File(srcDir, "content-package"), projectRoot);
         WebsterMojo mojo = newMojo();
+        mojo.baseDir = projectRoot;
         mojo.websterArchiveRoot = new File(projectRoot, "src/main/resources");
         mojo.websterTargets = obj().key("nodetypes", obj()).key("privileges", obj()).get();
         mojo.execute();
@@ -244,6 +245,7 @@ public class WebsterMojoTest {
         WebsterMojo mojo = newMojo();
         final File archiveRoot = new File(projectRoot, "src/main/content");
         final File tempDir = new File(testOutDir, "webster-tmp");
+        mojo.baseDir = projectRoot;
         mojo.websterTempDirectory = tempDir;
         mojo.websterArchiveRoot = archiveRoot;
         mojo.websterTargets = obj().key("nodetypes", obj()).key("privileges", obj()).get();
