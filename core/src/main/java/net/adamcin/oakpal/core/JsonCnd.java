@@ -21,9 +21,13 @@ import org.apache.jackrabbit.commons.cnd.Lexer;
 import org.apache.jackrabbit.commons.query.qom.Operator;
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.core.ImmutableRoot;
+import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
+import org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState;
 import org.apache.jackrabbit.oak.plugins.name.ReadOnlyNamespaceRegistry;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.spi.Name;
 import org.apache.jackrabbit.spi.NameFactory;
 import org.apache.jackrabbit.spi.PrivilegeDefinition;
@@ -125,14 +129,22 @@ import static net.adamcin.oakpal.core.JavaxJson.wrap;
  */
 public final class JsonCnd {
     private static final Logger LOGGER = LoggerFactory.getLogger(JsonCnd.class);
+
+    private static NodeState createInitialContent() {
+        NodeBuilder builder = EmptyNodeState.EMPTY_NODE.builder();
+        new InitialContent().initialize(builder);
+        return ModifiedNodeState.squeeze(builder.getNodeState());
+    }
+
+    static final NodeState INITIAL_CONTENT = createInitialContent();
     public static final NamespaceMapping BUILTIN_MAPPINGS = new NamespaceMapping(
             new RegistryNamespaceResolver(
                     new ReadOnlyNamespaceRegistry(
-                            new ImmutableRoot(InitialContent.INITIAL_CONTENT))));
+                            new ImmutableRoot(INITIAL_CONTENT))));
 
     static final NamePathResolver BUILTIN_RESOLVER = new DefaultNamePathResolver(BUILTIN_MAPPINGS);
     public static final List<String> BUILTIN_NODETYPES = Collections.unmodifiableList(
-            StreamSupport.stream(InitialContent.INITIAL_CONTENT
+            StreamSupport.stream(INITIAL_CONTENT
                     .getChildNode(JcrConstants.JCR_SYSTEM)
                     .getChildNode(NodeTypeConstants.JCR_NODE_TYPES)
                     .getChildNodeNames().spliterator(), false)
