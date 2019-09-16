@@ -31,7 +31,7 @@
 
     <groupId>net.adamcin.oakpal</groupId>
     <artifactId>oakpal</artifactId>
-    <version>1.4.3-SNAPSHOT</version>
+    <version>1.5.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <inceptionYear>2017</inceptionYear>
@@ -75,7 +75,8 @@
         <jackrabbit.version>2.14.0</jackrabbit.version>
         <!-- it is probably a good habit to stay at the latest even (not odd) minor release version of oak,
         So if latest version is 1.9.x try to stay at 1.8.max -->
-        <oak.version>1.8.9</oak.version>
+        <!--<oak.version>1.8.9</oak.version>-->
+        <oak.version>1.16.0</oak.version>
         <maven.bundle.plugin.version>3.3.0</maven.bundle.plugin.version>
         <!-- override this to set debugForkedProcess for oakpal-maven-plugin -->
         <debug.oakpal-maven-plugin />
@@ -440,17 +441,17 @@
             <dependency>
                 <groupId>net.adamcin.oakpal</groupId>
                 <artifactId>oakpal-testing</artifactId>
-                <version>1.4.3-SNAPSHOT</version>
+                <version>1.5.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>net.adamcin.oakpal</groupId>
                 <artifactId>oakpal-core</artifactId>
-                <version>1.4.3-SNAPSHOT</version>
+                <version>1.5.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>net.adamcin.oakpal</groupId>
                 <artifactId>oakpal-webster</artifactId>
-                <version>1.4.3-SNAPSHOT</version>
+                <version>1.5.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.jetbrains</groupId>
@@ -492,7 +493,7 @@
             <dependency>
                 <groupId>org.apache.jackrabbit</groupId>
                 <artifactId>oak-store-composite</artifactId>
-                <version>1.9.13</version>
+                <version>${oak.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.jackrabbit</groupId>
@@ -504,10 +505,9 @@
                 <artifactId>oak-run-commons</artifactId>
                 <version>${oak.version}</version>
                 <exclusions>
-                    <!-- exclude transitive oak-store-composite for oakpal-webster to get OAK-7923 -->
                     <exclusion>
-                        <groupId>org.apache.jackrabbit</groupId>
-                        <artifactId>oak-store-composite</artifactId>
+                        <groupId>ch.qos.logback</groupId>
+                        <artifactId>logback-classic</artifactId>
                     </exclusion>
                 </exclusions>
             </dependency>

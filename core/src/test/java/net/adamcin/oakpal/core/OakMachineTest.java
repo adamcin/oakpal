@@ -82,6 +82,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.anyBoolean;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doCallRealMethod;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.nullable;
@@ -385,6 +386,12 @@ public class OakMachineTest {
         final InitStage stage = new InitStage.Builder().withNs("foo", "http://foo.com").build();
         final CompletableFuture<String> fooUrlLatch = new CompletableFuture<>();
         final ProgressCheck check = mock(ProgressCheck.class);
+        doCallRealMethod().when(check).beforeExtract(
+                any(PackageId.class),
+                any(Session.class),
+                any(ArchiveInf.class),
+                any(List.class)
+        );
         doAnswer(call -> {
             fooUrlLatch.complete(call.getArgument(1, Session.class).getNamespaceURI("foo"));
             return true;
@@ -424,6 +431,13 @@ public class OakMachineTest {
         final InitStage stage = new InitStage.Builder().withNs("foo", "http://foo.com").build();
         final CompletableFuture<Boolean> fooUrlLatch = new CompletableFuture<>();
         final ProgressCheck check = mock(ProgressCheck.class);
+        doCallRealMethod().when(check)
+                .beforeExtract(
+                        any(PackageId.class),
+                        any(Session.class),
+                        any(ArchiveInf.class),
+                        any(List.class)
+                );
         doAnswer(call -> {
             fooUrlLatch.complete(call.getArgument(1, Session.class).nodeExists("/tmp/foo/bar"));
             return true;
@@ -453,6 +467,12 @@ public class OakMachineTest {
         final File testPackage = TestPackageUtil.prepareTestPackage("tmp_foo_bar.zip");
         final ProgressCheck check = mock(ProgressCheck.class);
         final ErrorListener errorListener = mock(ErrorListener.class);
+        doCallRealMethod().when(check).beforeExtract(
+                any(PackageId.class),
+                any(Session.class),
+                any(ArchiveInf.class),
+                any(List.class)
+        );
         doThrow(RepositoryException.class).when(check).beforeExtract(
                 any(PackageId.class),
                 any(Session.class),
