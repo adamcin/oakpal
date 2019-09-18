@@ -6,6 +6,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com)
 
 ## [Unreleased]
 
+### Changed 
+- Upgraded oak dependencies to 1.16.0.
+
 ### Added
 - GH18 Added CI builds for windows and mac osx.
 
