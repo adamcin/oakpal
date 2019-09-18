@@ -90,29 +90,12 @@ public interface ProgressCheck extends ScanListener, ViolationReporter {
     /**
      * Called for each package before it is extracted.
      *
-     * @param packageId      the package ID of the newly opened package
-     * @param inspectSession session providing access to repository state
-     * @param archiveInf     the package archive information
-     * @param subpackages    extracted subpackages
-     * @throws RepositoryException because of access to a {@link Session}
-     * @since 1.5.0
-     */
-    default void beforeExtract(PackageId packageId, Session inspectSession,
-                               ArchiveInf archiveInf, List<PackageId> subpackages) throws RepositoryException {
-        this.beforeExtract(packageId, inspectSession, archiveInf, archiveInf.getMetaInf(), subpackages);
-    }
-
-    /**
-     * Called for each package before it is extracted.
-     *
      * @param packageId         the package ID of the newly opened package
      * @param inspectSession    session providing access to repository state
      * @param packageProperties the package properties
      * @param metaInf           the package meta information
      * @param subpackages       extracted subpackages
      * @throws RepositoryException because of access to a {@link Session}
-     * @deprecated 1.5.0 this is no longer called directly by OakMachine. Implement
-     * {@link #beforeExtract(PackageId, Session, ArchiveInf, List)} instead.
      */
     default void beforeExtract(PackageId packageId, Session inspectSession, PackageProperties packageProperties,
                                MetaInf metaInf, List<PackageId> subpackages) throws RepositoryException {

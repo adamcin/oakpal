@@ -217,14 +217,6 @@ public final class ScriptProgressCheck implements ProgressCheck {
 
     @Override
     public void beforeExtract(final PackageId packageId, final Session inspectSession,
-                              final ArchiveInf archiveInf, final List<PackageId> subpackages)
-            throws RepositoryException {
-        guardSessionHandler(INVOKE_ON_BEFORE_EXTRACT, handle -> handle.apply(packageId, inspectSession, archiveInf,
-                archiveInf.getMetaInf(), subpackages.toArray(new PackageId[0])));
-    }
-
-    @Override
-    public void beforeExtract(final PackageId packageId, final Session inspectSession,
                               final PackageProperties packageProperties, final MetaInf metaInf,
                               final List<PackageId> subpackages) throws RepositoryException {
         guardSessionHandler(INVOKE_ON_BEFORE_EXTRACT, handle -> handle.apply(packageId, inspectSession, packageProperties,

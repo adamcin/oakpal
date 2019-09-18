@@ -675,12 +675,15 @@ public final class OakMachine {
         List<PackageId> subpacks = Arrays.asList(jcrPackage.extractSubpackages(options));
 
         final VaultPackage vaultPackage = jcrPackage.getPackage();
-        final ArchiveInf archiveInf = ArchiveInfImpl.readInf(packageId, vaultPackage);
+        if (!vaultPackage.isValid()) {
+            throw new PackageException("Package is not valid: " + packageId);
+        }
 
         if (!preInstall) {
             progressChecks.forEach(handler -> {
                 try {
-                    handler.beforeExtract(packageId, inspectSession, archiveInf, subpacks);
+                    handler.beforeExtract(packageId, inspectSession,
+                            vaultPackage.getProperties(), vaultPackage.getMetaInf(), subpacks);
                 } catch (final Exception e) {
                     getErrorListener().onListenerException(e, handler, packageId);
                 }
