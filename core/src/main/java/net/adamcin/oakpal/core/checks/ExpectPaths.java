@@ -36,6 +36,7 @@ import static net.adamcin.oakpal.core.JavaxJson.arrayOrEmpty;
 import static net.adamcin.oakpal.core.JavaxJson.optArray;
 
 /**
+ * ExpectPaths: assert the existence or non-existence of specific repository item paths after extracting a package.
  * {@code config} options:
  * <dl>
  * <dt>{@code expectedPaths}</dt>
