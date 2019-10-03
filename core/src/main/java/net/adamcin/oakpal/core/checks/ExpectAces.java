@@ -106,9 +106,9 @@ import static net.adamcin.oakpal.core.Fun.zipKeysWithValueFunc;
  *     <li>path = absolute path (must exist in JCR). If not specified, or the empty string, the ace criteria are evaluated against {@code /rep:repoPolicy}.</li>
  * </ul>
  * <p>
- * OPTIONAL Restrictions - restrictions with comma-separated values are evaluated as multivalued when the restriction
- * definition so indicates. Otherwise the comma-separated values are treated as an opaque string.
+ * OPTIONAL
  * <ul>
+ *     <li>principal = overrides the check config {@code principal} parameter for this particular ACE</li>
  *     <li>rep:glob = rep glob expression</li>
  *     <li>rep:ntNames = ntNames expression</li>
  *     <li>rep:nodePath = for system users, aces defined in the user home can reference applicable repo path using this
@@ -116,16 +116,19 @@ import static net.adamcin.oakpal.core.Fun.zipKeysWithValueFunc;
  *     <li>anyOtherRestriction = any name can be used as a restriction constraint. if the restriction is not allowed for
  *     use at a particular path, it will be ignored.</li>
  * </ul>
+ * <p>
+ * Note - restrictions with comma-separated values are evaluated as multivalued when the restriction
+ * definition so indicates. Otherwise the comma-separated values are treated as an opaque string.
  */
 public final class ExpectAces implements ProgressCheckFactory {
     private static final Logger LOGGER = LoggerFactory.getLogger(ExpectAces.class);
     public static final String CONFIG_PRINCIPAL = "principal";
-    public static final String CONFIG_PRINCIPALS = "principals";
+    static final String CONFIG_PRINCIPALS = "principals";
     public static final String CONFIG_EXPECTED_ACES = "expectedAces";
     public static final String CONFIG_NOT_EXPECTED_ACES = "notExpectedAces";
     public static final String CONFIG_AFTER_PACKAGE_ID_RULES = "afterPackageIdRules";
-    public static final String CONFIG_SEVERITY = "severity";
-    public static final Violation.Severity DEFAULT_SEVERITY = Violation.Severity.MAJOR;
+    static final String CONFIG_SEVERITY = "severity";
+    static final Violation.Severity DEFAULT_SEVERITY = Violation.Severity.MAJOR;
     public static final String ACE_PARAM_TYPE = "type";
     public static final String ACE_PARAM_PRIVILEGES = "privileges";
     public static final String ACE_PARAM_PATH = "path";
@@ -138,9 +141,6 @@ public final class ExpectAces implements ProgressCheckFactory {
         final String principal = config.getString(CONFIG_PRINCIPAL, "").trim();
         final String[] principals = JavaxJson.mapArrayOfStrings(JavaxJson.arrayOrEmpty(config, CONFIG_PRINCIPALS))
                 .stream().map(String::trim).filter(inferTest1(String::isEmpty).negate()).toArray(String[]::new);
-        if (principal.isEmpty() && principals.length == 0) {
-            throw new Exception("principal or principals must be non-empty");
-        }
 
         final String[] precedingPrincipals = principal.isEmpty() ? principals : new String[]{principal};
 
@@ -152,21 +152,44 @@ public final class ExpectAces implements ProgressCheckFactory {
                 Rule.fromJsonArray(JavaxJson.arrayOrEmpty(config, CONFIG_AFTER_PACKAGE_ID_RULES)), severity);
     }
 
+    static boolean isPrincipalSpec(final @NotNull String spec) {
+        return spec.contains(CONFIG_PRINCIPAL + "=");
+    }
+
+    static boolean isGeneralSpec(final @NotNull String spec) {
+        return !isPrincipalSpec(spec);
+    }
+
     static List<AceCriteria> parseAceCriteria(final @NotNull JsonObject config,
                                               final @NotNull String[] principals,
                                               final @NotNull String key) throws Exception {
-        List<AceCriteria> allCriterias = new ArrayList<>();
-        for (String principal : principals) {
-            final Result<List<AceCriteria>> expectedAceResults = JavaxJson
-                    .mapArrayOfStrings(JavaxJson.arrayOrEmpty(config, key),
-                            spec -> AceCriteria.parse(principal, spec)).stream()
-                    .collect(Result.tryCollect(Collectors.toList()));
-            if (expectedAceResults.getError().isPresent()) {
-                throw new Exception("invalid criteria in " + key + ". " + expectedAceResults.getError()
-                        .map(Throwable::getMessage).orElse(""));
+        final List<AceCriteria> allCriterias = new ArrayList<>();
+        final List<String> specs = JavaxJson.mapArrayOfStrings(JavaxJson.arrayOrEmpty(config, key));
+        final List<String> generalSpecs = specs.stream().filter(ExpectAces::isGeneralSpec).collect(Collectors.toList());
+        if (!generalSpecs.isEmpty() && principals.length == 0) {
+            throw new Exception("principal or principals check config param must be non-empty if general ACE criteria are specified");
+        } else {
+            for (String principal : principals) {
+                final Result<List<AceCriteria>> expectedAceResults = generalSpecs.stream()
+                        .map(spec -> AceCriteria.parse(principal, spec))
+                        .collect(Result.tryCollect(Collectors.toList()));
+                if (expectedAceResults.getError().isPresent()) {
+                    throw new Exception("invalid criteria in " + key + ". " + expectedAceResults.getError()
+                            .map(Throwable::getMessage).orElse(""));
+                }
+                expectedAceResults.forEach(allCriterias::addAll);
             }
-            expectedAceResults.forEach(allCriterias::addAll);
         }
+        final Result<List<AceCriteria>> principalAceResults = specs.stream()
+                .filter(ExpectAces::isPrincipalSpec)
+                .map(spec -> AceCriteria.parse("", spec))
+                .collect(Result.tryCollect(Collectors.toList()));
+        if (principalAceResults.getError().isPresent()) {
+            throw new Exception("invalid criteria in " + key + ". " + principalAceResults.getError()
+                    .map(Throwable::getMessage).orElse(""));
+        }
+        principalAceResults.forEach(allCriterias::addAll);
+
         return allCriterias;
     }
 
@@ -376,11 +399,7 @@ public final class ExpectAces implements ProgressCheckFactory {
         }
 
         static Result<AceCriteria> parse(final @NotNull String principal, final @NotNull String spec) {
-            if (principal.isEmpty()) {
-                return Result.failure("principal must be non-empty: " + spec);
-            }
-
-            final List<Map.Entry<String, Optional<String>>> pairs = Stream.of(spec.trim().split(DELIM_PARAM))
+           final List<Map.Entry<String, Optional<String>>> pairs = Stream.of(spec.trim().split(DELIM_PARAM))
                     .map(param -> {
                         String[] parts = param.split(DELIM_VALUE, 2);
                         final String trimmedValue = parts.length > 1 ? parts[1].trim() : "";
@@ -395,6 +414,12 @@ public final class ExpectAces implements ProgressCheckFactory {
                     .filter(Fun.testValue(Optional::isPresent))
                     .map(Fun.mapValue(Optional::get))
                     .collect(Fun.entriesToMap());
+
+            final String effectivePrincipal = valueMap.getOrDefault(CONFIG_PRINCIPAL, principal).trim();
+            if (effectivePrincipal.isEmpty()) {
+                return Result.failure("principal must be non-empty: " + spec);
+            }
+            keys.remove(CONFIG_PRINCIPAL);
 
             if (!valueMap.containsKey(ACE_PARAM_TYPE)) {
                 return Result.failure(ACE_PARAM_TYPE + " is a required ace parameter: " + spec);
@@ -431,7 +456,8 @@ public final class ExpectAces implements ProgressCheckFactory {
                     .map(mapEntry(RestrictionCriteria::new))
                     .toArray(RestrictionCriteria[]::new);
 
-            return Result.success(new AceCriteria(principal, type == Type.ALLOW, path, privileges, restrictions, spec));
+            return Result.success(new AceCriteria(effectivePrincipal,
+                    type == Type.ALLOW, path, privileges, restrictions, spec));
         }
 
         String getSpec() {

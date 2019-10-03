@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com)
 ### Added
 - Added `severity` config parameter to ExpectPaths and ExpectAces checks
 - Added `principals` config parameter to ExpectAces check as multi-valued alternative to single-value `principal` param.
+- Added `principal=` key to allowed ACE criteria syntax in the ExpectAces check to allow per-ACE override of `principal` config parameter.
 
 ## [1.5.0] - 2019-10-02
 

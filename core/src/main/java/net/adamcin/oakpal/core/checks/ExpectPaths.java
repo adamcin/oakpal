@@ -55,8 +55,8 @@ public final class ExpectPaths implements ProgressCheckFactory {
     public static final String CONFIG_EXPECTED_PATHS = "expectedPaths";
     public static final String CONFIG_NOT_EXPECTED_PATHS = "notExpectedPaths";
     public static final String CONFIG_AFTER_PACKAGE_ID_RULES = "afterPackageIdRules";
-    public static final String CONFIG_SEVERITY = "severity";
-    public static final Violation.Severity DEFAULT_SEVERITY = Violation.Severity.MAJOR;
+    static final String CONFIG_SEVERITY = "severity";
+    static final Violation.Severity DEFAULT_SEVERITY = Violation.Severity.MAJOR;
 
     @Override
     public ProgressCheck newInstance(final JsonObject config) {

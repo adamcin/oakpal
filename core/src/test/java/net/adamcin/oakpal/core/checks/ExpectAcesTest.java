@@ -76,12 +76,23 @@ public class ExpectAcesTest {
 
     @Test(expected = Exception.class)
     public void testNewInstance_missingPrincipal() throws Exception {
-        checkFor(key("principal", "").get());
+        checkFor(key("principal", "").key("expectedAces", arr("type=allow;path=/;privileges=jcr:read")).get());
     }
 
     @Test(expected = Exception.class)
     public void testNewInstance_missingPrincipals() throws Exception {
-        checkFor(key("principal", "").key("principals", arr("", "")).get());
+        checkFor(key("principal", "").key("principals", arr("", ""))
+                .key("expectedAces", arr("type=allow;path=/;privileges=jcr:read")).get());
+    }
+
+    @Test(expected = Exception.class)
+    public void testNewInstance_principalAceFail() throws Exception {
+        checkFor(key("expectedAces", arr("principal=nouser;type=foobar;path=/;privileges=jcr:read")).get());
+    }
+
+    @Test
+    public void testNewInstance_principalAce() throws Exception {
+        checkFor(key("expectedAces", arr("principal=nouser;type=allow;path=/;privileges=jcr:read")).get());
     }
 
     @Test
