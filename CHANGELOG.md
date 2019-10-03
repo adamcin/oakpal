@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com)
 
 ## [Unreleased]
 
+## [1.5.1] - 2019-10-03
+
+### Added
+- Added `severity` config parameter to ExpectPaths and ExpectAces checks
+- Added `principals` config parameter to ExpectAces check as multi-valued alternative to single-value `principal` param.
+
 ## [1.5.0] - 2019-10-02
 
 ### Changed 

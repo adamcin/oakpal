@@ -22,6 +22,7 @@ import net.adamcin.oakpal.core.ProgressCheck;
 import net.adamcin.oakpal.core.ProgressCheckFactory;
 import net.adamcin.oakpal.core.Result;
 import net.adamcin.oakpal.core.SimpleProgressCheck;
+import net.adamcin.oakpal.core.Violation;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
@@ -37,6 +38,7 @@ import javax.jcr.Value;
 import javax.jcr.security.AccessControlEntry;
 import javax.jcr.security.Privilege;
 import javax.json.JsonObject;
+import javax.json.JsonValue;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -67,7 +69,12 @@ import static net.adamcin.oakpal.core.Fun.zipKeysWithValueFunc;
  * {@code config} options:
  * <dl>
  * <dt>{@code principal}</dt>
- * <dd>REQUIRED: The expected principal name (userId or groupId) associated with all the ace criteria.</dd>
+ * <dd>({@code String}) REQUIRED (or {@code principals}): The expected principal name (userId or groupId) associated with
+ * all the ace criteria. Takes precendence over {@code principals} unless set to the empty string.</dd>
+ * <dt>{@code principals}</dt>
+ * <dd>({@code String[]}) REQUIRED (or {@code principal}): The expected principal names (userId or groupId) associated
+ * with all the ace criteria. This is essentially shorthand for cases where the same aces policies apply to multiple
+ * principals.</dd>
  * <dt>{@code expectedAces}</dt>
  * <dd>({@code String[]}) A list of expected ACE criteria including type, privileges, and path, as well as restriction
  * constraints. See below for syntax.</dd>
@@ -77,6 +84,8 @@ import static net.adamcin.oakpal.core.Fun.zipKeysWithValueFunc;
  * <dt>{@code afterPackageIdRules}</dt>
  * <dd>({@code Rule[]}) An optional list of patterns describing the scope of package IDs that should trigger evaluation
  * of ACLs after extraction. By default, the expectations will be evaluated after every package is installed.</dd>
+ * <dt>{@code severity}</dt>
+ * <dd>By default, the severity of violations created by this check is MAJOR, but can be set to MINOR or SEVERE.</dd>
  * </dl>
  * <p>
  * rep:policy nodes are imported differently from normal DocView content. Instead of having a predictable path, they are
@@ -91,24 +100,32 @@ import static net.adamcin.oakpal.core.Fun.zipKeysWithValueFunc;
  * type=allow;privileges=jcr:read,rep:write;path=/content/foo;rep:glob=/jcr:content/*
  * <p>
  * REQUIRED
- * - type = allow | deny
- * - privileges = privilegeNames comma separated
- * - path = absolute path (must exist in JCR). If not specified, or the empty string, the ace criteria are evaluated against {@code /rep:repoPolicy}.
+ * <ul>
+ *     <li>type = allow | deny</li>
+ *     <li>privileges = privilegeNames comma separated</li>
+ *     <li>path = absolute path (must exist in JCR). If not specified, or the empty string, the ace criteria are evaluated against {@code /rep:repoPolicy}.</li>
+ * </ul>
  * <p>
- * OPTIONAL
- * - rep:glob = rep glob expression
- * - rep:ntNames = ntNames expression
- * - rep:nodePath = for system users, aces defined in the user home can reference applicable repo path using this
- * restriction
- * - anyOtherRestriction = any name can be used as a restriction constraint. if the restriction is not allowed for use
- * at a particular path, it will be ignored.
+ * OPTIONAL Restrictions - restrictions with comma-separated values are evaluated as multivalued when the restriction
+ * definition so indicates. Otherwise the comma-separated values are treated as an opaque string.
+ * <ul>
+ *     <li>rep:glob = rep glob expression</li>
+ *     <li>rep:ntNames = ntNames expression</li>
+ *     <li>rep:nodePath = for system users, aces defined in the user home can reference applicable repo path using this
+ *     restriction</li>
+ *     <li>anyOtherRestriction = any name can be used as a restriction constraint. if the restriction is not allowed for
+ *     use at a particular path, it will be ignored.</li>
+ * </ul>
  */
 public final class ExpectAces implements ProgressCheckFactory {
     private static final Logger LOGGER = LoggerFactory.getLogger(ExpectAces.class);
     public static final String CONFIG_PRINCIPAL = "principal";
+    public static final String CONFIG_PRINCIPALS = "principals";
     public static final String CONFIG_EXPECTED_ACES = "expectedAces";
     public static final String CONFIG_NOT_EXPECTED_ACES = "notExpectedAces";
     public static final String CONFIG_AFTER_PACKAGE_ID_RULES = "afterPackageIdRules";
+    public static final String CONFIG_SEVERITY = "severity";
+    public static final Violation.Severity DEFAULT_SEVERITY = Violation.Severity.MAJOR;
     public static final String ACE_PARAM_TYPE = "type";
     public static final String ACE_PARAM_PRIVILEGES = "privileges";
     public static final String ACE_PARAM_PATH = "path";
@@ -119,28 +136,38 @@ public final class ExpectAces implements ProgressCheckFactory {
     @Override
     public ProgressCheck newInstance(final JsonObject config) throws Exception {
         final String principal = config.getString(CONFIG_PRINCIPAL, "").trim();
-        if (principal.isEmpty()) {
-            throw new Exception("principal must be non-empty");
+        final String[] principals = JavaxJson.mapArrayOfStrings(JavaxJson.arrayOrEmpty(config, CONFIG_PRINCIPALS))
+                .stream().map(String::trim).filter(inferTest1(String::isEmpty).negate()).toArray(String[]::new);
+        if (principal.isEmpty() && principals.length == 0) {
+            throw new Exception("principal or principals must be non-empty");
         }
 
-        final List<AceCriteria> expectedAces = parseAceCriteria(config, principal, CONFIG_EXPECTED_ACES);
-        final List<AceCriteria> notExpectedAces = parseAceCriteria(config, principal, CONFIG_NOT_EXPECTED_ACES);
+        final String[] precedingPrincipals = principal.isEmpty() ? principals : new String[]{principal};
+
+        final List<AceCriteria> expectedAces = parseAceCriteria(config, precedingPrincipals, CONFIG_EXPECTED_ACES);
+        final List<AceCriteria> notExpectedAces = parseAceCriteria(config, precedingPrincipals, CONFIG_NOT_EXPECTED_ACES);
+        final Violation.Severity severity = Violation.Severity.valueOf(
+                config.getString(CONFIG_SEVERITY, DEFAULT_SEVERITY.name()).toUpperCase());
         return new Check(expectedAces, notExpectedAces,
-                Rule.fromJsonArray(JavaxJson.arrayOrEmpty(config, CONFIG_AFTER_PACKAGE_ID_RULES)));
+                Rule.fromJsonArray(JavaxJson.arrayOrEmpty(config, CONFIG_AFTER_PACKAGE_ID_RULES)), severity);
     }
 
     static List<AceCriteria> parseAceCriteria(final @NotNull JsonObject config,
-                                              final @NotNull String principal,
+                                              final @NotNull String[] principals,
                                               final @NotNull String key) throws Exception {
-        final Result<List<AceCriteria>> expectedAceResults = JavaxJson
-                .mapArrayOfStrings(JavaxJson.arrayOrEmpty(config, key),
-                        spec -> AceCriteria.parse(principal, spec)).stream()
-                .collect(Result.tryCollect(Collectors.toList()));
-        if (expectedAceResults.getError().isPresent()) {
-            throw new Exception("invalid criteria in " + key + ". " + expectedAceResults.getError()
-                    .map(Throwable::getMessage).orElse(""));
+        List<AceCriteria> allCriterias = new ArrayList<>();
+        for (String principal : principals) {
+            final Result<List<AceCriteria>> expectedAceResults = JavaxJson
+                    .mapArrayOfStrings(JavaxJson.arrayOrEmpty(config, key),
+                            spec -> AceCriteria.parse(principal, spec)).stream()
+                    .collect(Result.tryCollect(Collectors.toList()));
+            if (expectedAceResults.getError().isPresent()) {
+                throw new Exception("invalid criteria in " + key + ". " + expectedAceResults.getError()
+                        .map(Throwable::getMessage).orElse(""));
+            }
+            expectedAceResults.forEach(allCriterias::addAll);
         }
-        return expectedAceResults.getOrDefault(Collections.emptyList());
+        return allCriterias;
     }
 
     static final class Check extends SimpleProgressCheck {
@@ -149,13 +176,16 @@ public final class ExpectAces implements ProgressCheckFactory {
         final Map<AceCriteria, List<PackageId>> expectedViolators = new LinkedHashMap<>();
         final Map<AceCriteria, List<PackageId>> notExpectedViolators = new LinkedHashMap<>();
         final List<Rule> afterPackageIdRules;
+        final Violation.Severity severity;
 
         Check(final @NotNull List<AceCriteria> expectedAces,
               final @NotNull List<AceCriteria> notExpectedAces,
-              final @NotNull List<Rule> afterPackageIdRules) {
+              final @NotNull List<Rule> afterPackageIdRules,
+              final @NotNull Violation.Severity severity) {
             this.expectedAces = expectedAces;
             this.notExpectedAces = notExpectedAces;
             this.afterPackageIdRules = afterPackageIdRules;
+            this.severity = severity;
         }
 
         @Override
@@ -221,14 +251,14 @@ public final class ExpectAces implements ProgressCheckFactory {
         public void finishedScan() {
             for (Map.Entry<AceCriteria, List<PackageId>> violatorsEntry : expectedViolators.entrySet()) {
                 if (!violatorsEntry.getValue().isEmpty()) {
-                    majorViolation("expected: " + violatorsEntry.getKey().toString(),
+                    this.reportViolation(severity, "expected: " + violatorsEntry.getKey().toString(),
                             violatorsEntry.getValue().toArray(new PackageId[0]));
                 }
             }
             expectedViolators.clear();
             for (Map.Entry<AceCriteria, List<PackageId>> violatorsEntry : notExpectedViolators.entrySet()) {
                 if (!violatorsEntry.getValue().isEmpty()) {
-                    majorViolation("unexpected: " + violatorsEntry.getKey().toString(),
+                    this.reportViolation(severity, "unexpected: " + violatorsEntry.getKey().toString(),
                             violatorsEntry.getValue().toArray(new PackageId[0]));
                 }
             }

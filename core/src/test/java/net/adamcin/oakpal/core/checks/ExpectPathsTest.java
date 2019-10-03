@@ -80,6 +80,29 @@ public class ExpectPathsTest {
     }
 
     @Test
+    public void testNewInstance_severity() {
+        ExpectPaths.Check defaultMajorCheck = checkFor(obj()
+                .key("expectedPaths", arr("/foo"))
+                .get());
+        assertEquals("expect major (default)", Violation.Severity.MAJOR, defaultMajorCheck.severity);
+        ExpectPaths.Check minorCheck = checkFor(obj()
+                .key("severity", "minor")
+                .key("expectedPaths", arr("/foo"))
+                .get());
+        assertEquals("expect minor", Violation.Severity.MINOR, minorCheck.severity);
+        ExpectPaths.Check majorCheck = checkFor(obj()
+                .key("severity", "major")
+                .key("expectedPaths", arr("/foo"))
+                .get());
+        assertEquals("expect major", Violation.Severity.MAJOR, majorCheck.severity);
+        ExpectPaths.Check severeCheck = checkFor(obj()
+                .key("severity", "severe")
+                .key("expectedPaths", arr("/foo"))
+                .get());
+        assertEquals("expect severe", Violation.Severity.SEVERE, severeCheck.severity);
+    }
+
+    @Test
     public void testShouldExpectAfterExtract() {
         ExpectPaths.Check check1 = checkFor(obj().get());
         assertTrue("expect true for empty", check1.shouldExpectAfterExtract(PackageId.fromString("foo")));

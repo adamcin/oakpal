@@ -19,6 +19,7 @@ package net.adamcin.oakpal.core.checks;
 import net.adamcin.oakpal.core.JsonCnd;
 import net.adamcin.oakpal.core.OakMachine;
 import net.adamcin.oakpal.core.Result;
+import net.adamcin.oakpal.core.Violation;
 import org.apache.jackrabbit.api.JackrabbitWorkspace;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
@@ -78,6 +79,54 @@ public class ExpectAcesTest {
         checkFor(key("principal", "").get());
     }
 
+    @Test(expected = Exception.class)
+    public void testNewInstance_missingPrincipals() throws Exception {
+        checkFor(key("principal", "").key("principals", arr("", "")).get());
+    }
+
+    @Test
+    public void testNewInstance_multiPrincipal() throws Exception {
+        ExpectAces.Check svCheck = checkFor(obj()
+                .key("principal", " ").key("principals", arr(" ", "foo"))
+                .key("expectedAces", arr("type=allow;path=/foo;privileges=jcr:read"))
+                .get());
+        assertEquals("expect 1 ace", 1, svCheck.expectedAces.size());
+        ExpectAces.Check mvCheck = checkFor(obj()
+                .key("principal", " ").key("principals", arr("bar", "foo"))
+                .key("expectedAces", arr("type=allow;path=/foo;privileges=jcr:read"))
+                .get());
+        assertEquals("expect 2 ace", 2, mvCheck.expectedAces.size());
+        ExpectAces.Check jpCheck = checkFor(obj()
+                .key("principal", "coo").key("principals", arr("bar", "foo"))
+                .key("expectedAces", arr("type=allow;path=/foo;privileges=jcr:read"))
+                .get());
+        assertEquals("expect 1 ace", 1, jpCheck.expectedAces.size());
+    }
+
+    @Test
+    public void testNewInstance_severity() throws Exception {
+        ExpectAces.Check defaultMajorCheck = checkFor(obj()
+                .key("principal", "foo")
+                .key("expectedAces", arr("type=allow;path=/foo;privileges=jcr:read"))
+                .get());
+        assertEquals("expect major (default)", Violation.Severity.MAJOR, defaultMajorCheck.severity);
+        ExpectAces.Check minorCheck = checkFor(obj()
+                .key("principal", "foo").key("severity", "minor")
+                .key("expectedAces", arr("type=allow;path=/foo;privileges=jcr:read"))
+                .get());
+        assertEquals("expect minor", Violation.Severity.MINOR, minorCheck.severity);
+        ExpectAces.Check majorCheck = checkFor(obj()
+                .key("principal", "foo").key("severity", "major")
+                .key("expectedAces", arr("type=allow;path=/foo;privileges=jcr:read"))
+                .get());
+        assertEquals("expect major", Violation.Severity.MAJOR, majorCheck.severity);
+        ExpectAces.Check severeCheck = checkFor(obj()
+                .key("principal", "foo").key("severity", "severe")
+                .key("expectedAces", arr("type=allow;path=/foo;privileges=jcr:read"))
+                .get());
+        assertEquals("expect severe", Violation.Severity.SEVERE, severeCheck.severity);
+    }
+
     @Test
     public void testNewInstance_empty() throws Exception {
         ExpectAces.Check emptyCheck = checkFor(key("principal", "nouser").get());
@@ -126,7 +175,7 @@ public class ExpectAcesTest {
 
     @Test(expected = Exception.class)
     public void testParseAceCriteria_throws() throws Exception {
-        ExpectAces.parseAceCriteria(key("stuff", arr("type=allow")).get(), "nouser", "stuff");
+        ExpectAces.parseAceCriteria(key("stuff", arr("type=allow")).get(), new String[]{"nouser"}, "stuff");
     }
 
     @Test

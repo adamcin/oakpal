@@ -20,6 +20,7 @@ import net.adamcin.oakpal.core.JavaxJson;
 import net.adamcin.oakpal.core.ProgressCheck;
 import net.adamcin.oakpal.core.ProgressCheckFactory;
 import net.adamcin.oakpal.core.SimpleProgressCheck;
+import net.adamcin.oakpal.core.Violation;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.jetbrains.annotations.NotNull;
 
@@ -46,12 +47,16 @@ import static net.adamcin.oakpal.core.JavaxJson.optArray;
  * <dt>{@code afterPackageIdRules}</dt>
  * <dd>({@code Rule[]}) An optional list of patterns describing the scope of package IDs that should trigger evaluation
  * of path expectations after extraction. By default, the expectations will be evaluated after every package is installed.</dd>
+ * <dt>{@code severity}</dt>
+ * <dd>By default, the severity of violations created by this check is MAJOR, but can be set to MINOR or SEVERE.</dd>
  * </dl>
  */
 public final class ExpectPaths implements ProgressCheckFactory {
     public static final String CONFIG_EXPECTED_PATHS = "expectedPaths";
     public static final String CONFIG_NOT_EXPECTED_PATHS = "notExpectedPaths";
     public static final String CONFIG_AFTER_PACKAGE_ID_RULES = "afterPackageIdRules";
+    public static final String CONFIG_SEVERITY = "severity";
+    public static final Violation.Severity DEFAULT_SEVERITY = Violation.Severity.MAJOR;
 
     @Override
     public ProgressCheck newInstance(final JsonObject config) {
@@ -62,7 +67,9 @@ public final class ExpectPaths implements ProgressCheckFactory {
                 .map(JavaxJson::mapArrayOfStrings)
                 .orElse(Collections.emptyList());
         final List<Rule> afterPackageIdRules = Rule.fromJsonArray(arrayOrEmpty(config, CONFIG_AFTER_PACKAGE_ID_RULES));
-        return new Check(expectedPaths, notExpectedPaths, afterPackageIdRules);
+        final Violation.Severity severity = Violation.Severity.valueOf(
+                config.getString(CONFIG_SEVERITY, DEFAULT_SEVERITY.name()).toUpperCase());
+        return new Check(expectedPaths, notExpectedPaths, afterPackageIdRules, severity);
     }
 
     static final class Check extends SimpleProgressCheck {
@@ -70,15 +77,18 @@ public final class ExpectPaths implements ProgressCheckFactory {
         final List<String> expectedPaths;
         final List<String> notExpectedPaths;
         final List<Rule> afterPackageIdRules;
+        final Violation.Severity severity;
         final Map<String, List<PackageId>> expectedViolators = new LinkedHashMap<>();
         final Map<String, List<PackageId>> notExpectedViolators = new LinkedHashMap<>();
 
         Check(final @NotNull List<String> expectedPaths,
               final @NotNull List<String> notExpectedPaths,
-              final @NotNull List<Rule> afterPackageIdRules) {
+              final @NotNull List<Rule> afterPackageIdRules,
+              final @NotNull Violation.Severity severity) {
             this.expectedPaths = expectedPaths;
             this.notExpectedPaths = notExpectedPaths;
             this.afterPackageIdRules = afterPackageIdRules;
+            this.severity = severity;
         }
 
         @Override
@@ -125,14 +135,14 @@ public final class ExpectPaths implements ProgressCheckFactory {
         public void finishedScan() {
             for (Map.Entry<String, List<PackageId>> violatorsEntry : expectedViolators.entrySet()) {
                 if (!violatorsEntry.getValue().isEmpty()) {
-                    majorViolation("expected path missing: " + violatorsEntry.getKey(),
+                    this.reportViolation(severity, "expected path missing: " + violatorsEntry.getKey(),
                             violatorsEntry.getValue().toArray(new PackageId[0]));
                 }
             }
             expectedViolators.clear();
             for (Map.Entry<String, List<PackageId>> violatorsEntry : notExpectedViolators.entrySet()) {
                 if (!violatorsEntry.getValue().isEmpty()) {
-                    majorViolation("unexpected path present: " + violatorsEntry.getKey(),
+                    this.reportViolation(severity, "unexpected path present: " + violatorsEntry.getKey(),
                             violatorsEntry.getValue().toArray(new PackageId[0]));
                 }
             }
