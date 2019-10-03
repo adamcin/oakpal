@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com)
 ### Added
 - GH18 Added CI builds for windows and mac osx.
 - Added ExpectPaths and ExpectAces checks to core.
+- Added SubackageSilencer to OakMachine and silenceAllSubpackages param to oakpal:scan.
 
 ### Fixed
 - GH20 resolved windows test failures
