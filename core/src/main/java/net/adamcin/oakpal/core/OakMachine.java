@@ -68,6 +68,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.function.BiPredicate;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.jar.JarInputStream;
 import java.util.jar.Manifest;
@@ -107,6 +109,8 @@ public final class OakMachine {
 
     private final Supplier<NodeStore> nodeStoreSupplier;
 
+    private final SubpackageSilencer subpackageSilencer;
+
     private OakMachine(final Packaging packagingService,
                        final List<ProgressCheck> progressChecks,
                        final ErrorListener errorListener,
@@ -117,7 +121,8 @@ public final class OakMachine {
                        final ClassLoader installHookClassLoader,
                        final boolean enablePreInstallHooks,
                        final InstallHookPolicy scanInstallHookPolicy,
-                       final Supplier<NodeStore> nodeStoreSupplier) {
+                       final Supplier<NodeStore> nodeStoreSupplier,
+                       final SubpackageSilencer subpackageSilencer) {
         this.packagingService = packagingService != null ? packagingService : newOakpalPackagingService();
         this.progressChecks = progressChecks;
         this.errorListener = errorListener;
@@ -129,6 +134,7 @@ public final class OakMachine {
         this.enablePreInstallHooks = enablePreInstallHooks;
         this.scanInstallHookPolicy = scanInstallHookPolicy;
         this.nodeStoreSupplier = nodeStoreSupplier != null ? nodeStoreSupplier : MemoryNodeStore::new;
+        this.subpackageSilencer = subpackageSilencer != null ? subpackageSilencer : (packageId, parentId) -> false;
     }
 
     /**
@@ -156,6 +162,8 @@ public final class OakMachine {
         private InstallHookPolicy scanInstallHookPolicy;
 
         private Supplier<NodeStore> nodeStoreSupplier;
+
+        private SubpackageSilencer subpackageSilencer;
 
         /**
          * Provide a {@link Packaging} service for use in retrieving a {@link JcrPackageManager} for an admin session.
@@ -372,7 +380,7 @@ public final class OakMachine {
         /**
          * Specify a supplier that will produce a {@link NodeStore} for the scan. By default,
          * {@link MemoryNodeStore#MemoryNodeStore()} will be used (e.g. {@code MemoryNodeStore::new}).
-         *
+         * <p>
          * Note: OakMachine will call {@link Supplier#get} for every execution of {@link #scanPackage(File...)}.
          * Beyond the call to this supplier function, it is the client's responsibility to manage the external
          * NodeStore's state between scans when using the same {@link OakMachine} instance.
@@ -382,6 +390,21 @@ public final class OakMachine {
          */
         public Builder withNodeStoreSupplier(final Supplier<NodeStore> nodeStoreSupplier) {
             this.nodeStoreSupplier = nodeStoreSupplier;
+            return this;
+        }
+
+        /**
+         * Provide a predicate taking the subpackage PackageId as the first argument and the parent  PackageId as the
+         * second argument, returning true if events for the subpackage and any of ITS subpackages should be silenced
+         * during the scan.
+         *
+         * @param subpackageSilencer a predicate taking the subpackage PackageId as the first argument and the parent
+         *                           PackageId as the second argument, returning true if events for the subpackage and
+         *                           any of ITS subpackages should be silenced during the scan.
+         * @return my builder self
+         */
+        public Builder withSubpackageSilencer(final SubpackageSilencer subpackageSilencer) {
+            this.subpackageSilencer = subpackageSilencer;
             return this;
         }
 
@@ -401,7 +424,8 @@ public final class OakMachine {
                     installHookClassLoader != null ? installHookClassLoader : Util.getDefaultClassLoader(),
                     enablePreInstallHooks,
                     scanInstallHookPolicy,
-                    nodeStoreSupplier);
+                    nodeStoreSupplier,
+                    subpackageSilencer);
         }
     }
 
@@ -442,6 +466,14 @@ public final class OakMachine {
     @FunctionalInterface
     public interface InspectBody<E extends Throwable> {
         void tryAccept(final Session session) throws E;
+    }
+
+    /**
+     * Functional interface for {@link Builder#withSubpackageSilencer(SubpackageSilencer)}.
+     */
+    @FunctionalInterface
+    public interface SubpackageSilencer extends BiPredicate<PackageId, PackageId> {
+        boolean test(final PackageId subpackageId, final PackageId parentId);
     }
 
     /**
@@ -706,7 +738,8 @@ public final class OakMachine {
         }
 
         for (PackageId subpackId : subpacks) {
-            processSubpackage(admin, manager, subpackId, packageId, preInstall);
+            processSubpackage(admin, manager, subpackId, packageId,
+                    preInstall || subpackageSilencer.test(subpackId, packageId));
         }
     }
 

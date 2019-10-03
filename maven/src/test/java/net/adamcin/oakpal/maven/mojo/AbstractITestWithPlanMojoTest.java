@@ -17,11 +17,13 @@
 package net.adamcin.oakpal.maven.mojo;
 
 import net.adamcin.oakpal.core.AbortedScanException;
+import net.adamcin.oakpal.core.CheckReport;
 import net.adamcin.oakpal.core.CheckSpec;
 import net.adamcin.oakpal.core.ForcedRoot;
 import net.adamcin.oakpal.core.InstallHookPolicy;
 import net.adamcin.oakpal.core.JcrNs;
 import net.adamcin.oakpal.core.Nothing;
+import net.adamcin.oakpal.core.ReportMapper;
 import net.adamcin.oakpal.testing.TestPackageUtil;
 import org.apache.commons.io.FileUtils;
 import org.apache.maven.plugin.MojoFailureException;
@@ -31,10 +33,13 @@ import org.junit.Test;
 
 import java.io.File;
 import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
 
 import static net.adamcin.oakpal.core.Fun.result0;
 import static net.adamcin.oakpal.core.InstallHookPolicy.PROHIBIT;
 import static net.adamcin.oakpal.core.JavaxJson.key;
+import static net.adamcin.oakpal.core.JavaxJson.obj;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -197,6 +202,41 @@ public class AbstractITestWithPlanMojoTest {
 
         final File testPackage = TestPackageUtil.prepareTestPackage("tmp_foo_bar.zip");
         mojo.performScan(Collections.singletonList(testPackage));
+    }
+
+    static void scanWithSubpackageViolations(final @NotNull AbstractITestWithPlanMojo mojo, final @NotNull File summaryFile)
+            throws Exception {
+        mojo.summaryFile = summaryFile;
+        mojo.checks.add(CheckSpec.fromJson(obj()
+                .key("name", "subfailer")
+                .key("inlineScript", "function identifySubpackage(subpackageId, parentId){ oakpal.majorViolation(\"fail\", subpackageId);}")
+                        .get()));
+
+        final File testPackage = TestPackageUtil.prepareTestPackage("subsubtest.zip");
+        mojo.performScan(Collections.singletonList(testPackage));
+    }
+
+    @Test
+    public void testPerformScan_silenceAllSubpackages() throws Exception {
+        final File testOutDir = new File(testOutBaseDir, "testPerformScan_silenceAllSubpackages");
+        FileUtils.deleteDirectory(testOutDir);
+        testOutDir.mkdirs();
+        final File summaryWithSubsFile = new File(testOutDir, "summaryWithSubs.json");
+        AbstractITestWithPlanMojo mojo = newMojo();
+        mojo.deferBuildFailure = true;
+        scanWithSubpackageViolations(mojo, summaryWithSubsFile);
+        List<CheckReport> reportsWithSubs = ReportMapper.readReportsFromFile(summaryWithSubsFile);
+        Optional<CheckReport> checkReportWithSubs = reportsWithSubs.stream().filter(report -> "subfailer".equals(report.getCheckName())).findFirst();
+        assertTrue("subfailer is present", checkReportWithSubs.isPresent());
+        assertEquals("subfailer violations count", 3, checkReportWithSubs.get().getViolations().size());
+        final File summaryNoSubsFile = new File(testOutDir, "summaryWithSubs.json");
+        mojo.silenceAllSubpackages = true;
+        scanWithSubpackageViolations(mojo, summaryNoSubsFile);
+        List<CheckReport> reportsNoSubs = ReportMapper.readReportsFromFile(summaryWithSubsFile);
+        Optional<CheckReport> checkReportNoSubs = reportsNoSubs.stream().filter(report -> "subfailer".equals(report.getCheckName())).findFirst();
+        assertTrue("subfailer is present", checkReportNoSubs.isPresent());
+        assertEquals("subfailer violations count", 0, checkReportNoSubs.get().getViolations().size());
+
     }
 
     @Test
