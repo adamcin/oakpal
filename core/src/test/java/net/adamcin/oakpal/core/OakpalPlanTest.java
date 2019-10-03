@@ -16,6 +16,7 @@
 
 package net.adamcin.oakpal.core;
 
+import net.adamcin.oakpal.api.Result;
 import org.apache.jackrabbit.api.JackrabbitWorkspace;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.spi.PrivilegeDefinition;
@@ -42,7 +43,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import static net.adamcin.oakpal.core.JavaxJson.*;
+import static net.adamcin.oakpal.api.JavaxJson.*;
 import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;

@@ -33,8 +33,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
-import static net.adamcin.oakpal.core.JavaxJson.arr;
-import static net.adamcin.oakpal.core.JavaxJson.obj;
+import static net.adamcin.oakpal.api.JavaxJson.arr;
+import static net.adamcin.oakpal.api.JavaxJson.obj;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;

@@ -30,6 +30,8 @@ import javax.jcr.query.QueryManager;
 import javax.jcr.query.QueryResult;
 import javax.json.JsonValue;
 
+import net.adamcin.oakpal.api.ProgressCheck;
+import net.adamcin.oakpal.api.SimpleProgressCheck;
 import net.adamcin.oakpal.testing.TestPackageUtil;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.User;

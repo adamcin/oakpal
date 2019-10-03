@@ -45,6 +45,7 @@ import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.apache.jackrabbit.vault.packaging.VaultPackage;
 import org.apache.jackrabbit.vault.packaging.impl.JcrPackageDefinitionImpl;
 import org.apache.jackrabbit.vault.packaging.impl.JcrPackageManagerImpl;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 public class DefaultPackagingServiceTest {
@@ -291,6 +292,16 @@ public class DefaultPackagingServiceTest {
         @Override
         public void rewrap(final ExportOptions opts, final VaultPackage src, final OutputStream out) throws IOException {
 
+        }
+
+        @Override
+        public @NotNull VaultPackage open(@NotNull final Archive archive) throws IOException {
+            return null;
+        }
+
+        @Override
+        public @NotNull VaultPackage open(@NotNull final Archive archive, final boolean strict) throws IOException {
+            return null;
         }
     }
 }

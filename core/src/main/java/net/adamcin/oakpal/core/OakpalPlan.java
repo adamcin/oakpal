@@ -1,5 +1,9 @@
 package net.adamcin.oakpal.core;
 
+import net.adamcin.oakpal.api.JavaxJson;
+import net.adamcin.oakpal.api.JsonObjectConvertible;
+import net.adamcin.oakpal.api.ProgressCheck;
+import net.adamcin.oakpal.api.Result;
 import org.apache.jackrabbit.spi.PrivilegeDefinition;
 import org.apache.jackrabbit.spi.QNodeTypeDefinition;
 import org.apache.jackrabbit.spi.commons.namespace.NamespaceMapping;
@@ -21,11 +25,11 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import static net.adamcin.oakpal.core.Fun.compose;
-import static net.adamcin.oakpal.core.Fun.inferTest1;
-import static net.adamcin.oakpal.core.Fun.result1;
-import static net.adamcin.oakpal.core.Fun.uncheck1;
-import static net.adamcin.oakpal.core.JavaxJson.hasNonNull;
+import static net.adamcin.oakpal.api.Fun.compose;
+import static net.adamcin.oakpal.api.Fun.inferTest1;
+import static net.adamcin.oakpal.api.Fun.result1;
+import static net.adamcin.oakpal.api.Fun.uncheck1;
+import static net.adamcin.oakpal.api.JavaxJson.hasNonNull;
 
 /**
  * A plan is a reproducible execution plan, similar in design to a Checklist, but with the following differences:
@@ -34,7 +38,7 @@ import static net.adamcin.oakpal.core.JavaxJson.hasNonNull;
  * 3. Can reference pre-install packages by URL.
  * 4. Can not aggregate multiple plans per execution.
  */
-public final class OakpalPlan implements JavaxJson.ObjectConvertible {
+public final class OakpalPlan implements JsonObjectConvertible {
     private static final Logger LOGGER = LoggerFactory.getLogger(OakpalPlan.class);
     /**
      * Preferred default plan when a custom classpath is specified without specifying a plan name. This is also

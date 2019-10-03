@@ -16,7 +16,7 @@
 
 package net.adamcin.oakpal.core;
 
-import static net.adamcin.oakpal.core.JavaxJson.key;
+import static net.adamcin.oakpal.api.JavaxJson.key;
 import static org.junit.Assert.*;
 
 import javax.json.JsonObject;

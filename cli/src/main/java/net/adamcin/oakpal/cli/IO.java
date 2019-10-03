@@ -3,7 +3,7 @@ package net.adamcin.oakpal.cli;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import net.adamcin.oakpal.core.Nothing;
+import net.adamcin.oakpal.api.Nothing;
 
 /**
  * Just a simple IO monad.

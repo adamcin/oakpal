@@ -36,8 +36,8 @@ import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
-import static net.adamcin.oakpal.core.JavaxJson.arr;
-import static net.adamcin.oakpal.core.JavaxJson.key;
+import static net.adamcin.oakpal.api.JavaxJson.arr;
+import static net.adamcin.oakpal.api.JavaxJson.key;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;

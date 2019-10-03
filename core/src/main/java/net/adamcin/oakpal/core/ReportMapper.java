@@ -16,6 +16,8 @@
 
 package net.adamcin.oakpal.core;
 
+import net.adamcin.oakpal.api.SimpleViolation;
+import net.adamcin.oakpal.api.Violation;
 import org.jetbrains.annotations.NotNull;
 
 import javax.json.Json;
@@ -39,9 +41,9 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-import static net.adamcin.oakpal.core.JavaxJson.key;
-import static net.adamcin.oakpal.core.JavaxJson.mapArrayOfObjects;
-import static net.adamcin.oakpal.core.JavaxJson.optArray;
+import static net.adamcin.oakpal.api.JavaxJson.key;
+import static net.adamcin.oakpal.api.JavaxJson.mapArrayOfObjects;
+import static net.adamcin.oakpal.api.JavaxJson.optArray;
 
 /**
  * Serialize violations to/from json.
@@ -50,9 +52,9 @@ public final class ReportMapper {
     public static final String KEY_REPORTS = "reports";
     public static final String KEY_CHECK_NAME = "checkName";
     public static final String KEY_VIOLATIONS = "violations";
-    public static final String KEY_DESCRIPTION = "description";
-    public static final String KEY_SEVERITY = "severity";
-    public static final String KEY_PACKAGES = "packages";
+    public static final String KEY_DESCRIPTION = Violation.KEY_DESCRIPTION;
+    public static final String KEY_SEVERITY = Violation.KEY_SEVERITY;
+    public static final String KEY_PACKAGES = Violation.KEY_PACKAGES;
 
     private ReportMapper() {
         /* No instantiation */

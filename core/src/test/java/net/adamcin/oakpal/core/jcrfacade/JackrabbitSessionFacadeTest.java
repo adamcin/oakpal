@@ -26,7 +26,6 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
 import net.adamcin.oakpal.core.AbortedScanException;
-import net.adamcin.oakpal.core.Fun;
 import net.adamcin.oakpal.core.OakMachine;
 import net.adamcin.oakpal.core.jcrfacade.security.user.UserManagerFacade;
 import org.apache.jackrabbit.JcrConstants;

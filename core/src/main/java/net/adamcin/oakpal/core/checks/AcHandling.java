@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Mark Adamcin
+ * Copyright 2020 Mark Adamcin
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,10 +16,10 @@
 
 package net.adamcin.oakpal.core.checks;
 
-import net.adamcin.oakpal.core.ProgressCheck;
-import net.adamcin.oakpal.core.ProgressCheckFactory;
-import net.adamcin.oakpal.core.SimpleProgressCheck;
-import net.adamcin.oakpal.core.Violation;
+import net.adamcin.oakpal.api.ProgressCheck;
+import net.adamcin.oakpal.api.ProgressCheckFactory;
+import net.adamcin.oakpal.api.SimpleProgressCheck;
+import net.adamcin.oakpal.api.Violation;
 import org.apache.jackrabbit.vault.fs.config.MetaInf;
 import org.apache.jackrabbit.vault.fs.io.AccessControlHandling;
 import org.apache.jackrabbit.vault.packaging.PackageId;
@@ -33,10 +33,10 @@ import java.util.Collections;
 import java.util.List;
 
 import static java.util.Optional.ofNullable;
-import static net.adamcin.oakpal.core.Fun.compose;
-import static net.adamcin.oakpal.core.JavaxJson.arrayOrEmpty;
-import static net.adamcin.oakpal.core.JavaxJson.hasNonNull;
-import static net.adamcin.oakpal.core.JavaxJson.mapArrayOfStrings;
+import static net.adamcin.oakpal.api.Fun.compose;
+import static net.adamcin.oakpal.api.JavaxJson.arrayOrEmpty;
+import static net.adamcin.oakpal.api.JavaxJson.hasNonNull;
+import static net.adamcin.oakpal.api.JavaxJson.mapArrayOfStrings;
 import static org.apache.jackrabbit.vault.fs.io.AccessControlHandling.IGNORE;
 import static org.apache.jackrabbit.vault.fs.io.AccessControlHandling.MERGE;
 import static org.apache.jackrabbit.vault.fs.io.AccessControlHandling.MERGE_PRESERVE;

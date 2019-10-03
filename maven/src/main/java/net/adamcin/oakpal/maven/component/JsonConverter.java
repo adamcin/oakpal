@@ -16,7 +16,7 @@
 
 package net.adamcin.oakpal.maven.component;
 
-import net.adamcin.oakpal.core.JavaxJson;
+import net.adamcin.oakpal.api.JavaxJson;
 import org.codehaus.plexus.component.configurator.ComponentConfigurationException;
 import org.codehaus.plexus.component.configurator.ConfigurationListener;
 import org.codehaus.plexus.component.configurator.converters.AbstractConfigurationConverter;

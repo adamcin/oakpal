@@ -16,6 +16,10 @@
 
 package net.adamcin.oakpal.core;
 
+import net.adamcin.oakpal.api.JavaxJson;
+import net.adamcin.oakpal.api.JsonObjectConvertible;
+import net.adamcin.oakpal.api.ProgressCheck;
+import net.adamcin.oakpal.api.ProgressCheckFactory;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -25,15 +29,15 @@ import javax.json.JsonObjectBuilder;
 import java.util.Objects;
 
 import static java.util.Optional.ofNullable;
-import static net.adamcin.oakpal.core.JavaxJson.hasNonNull;
-import static net.adamcin.oakpal.core.JavaxJson.obj;
+import static net.adamcin.oakpal.api.JavaxJson.hasNonNull;
+import static net.adamcin.oakpal.api.JavaxJson.obj;
 import static net.adamcin.oakpal.core.Util.isEmpty;
 
 /**
  * DTO for full-featured check spec.
  */
 @SuppressWarnings("WeakerAccess")
-public class CheckSpec implements JavaxJson.ObjectConvertible {
+public class CheckSpec implements JsonObjectConvertible {
     static final String KEY_IMPL = "impl";
     static final String KEY_INLINE_SCRIPT = "inlineScript";
     static final String KEY_INLINE_ENGINE = "inlineEngine";

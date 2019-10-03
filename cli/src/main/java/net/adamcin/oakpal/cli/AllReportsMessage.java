@@ -24,7 +24,7 @@ import javax.json.JsonObject;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static net.adamcin.oakpal.core.Fun.compose;
+import static net.adamcin.oakpal.api.Fun.compose;
 
 class AllReportsMessage implements StructuredMessage {
 

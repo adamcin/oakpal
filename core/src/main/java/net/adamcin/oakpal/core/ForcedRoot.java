@@ -16,6 +16,7 @@
 
 package net.adamcin.oakpal.core;
 
+import net.adamcin.oakpal.api.JsonObjectConvertible;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -28,16 +29,16 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
-import static net.adamcin.oakpal.core.Fun.inferTest1;
-import static net.adamcin.oakpal.core.Fun.streamIt;
-import static net.adamcin.oakpal.core.JavaxJson.mapArrayOfStrings;
-import static net.adamcin.oakpal.core.JavaxJson.obj;
-import static net.adamcin.oakpal.core.JavaxJson.optArray;
+import static net.adamcin.oakpal.api.Fun.inferTest1;
+import static net.adamcin.oakpal.api.Fun.streamIt;
+import static net.adamcin.oakpal.api.JavaxJson.mapArrayOfStrings;
+import static net.adamcin.oakpal.api.JavaxJson.obj;
+import static net.adamcin.oakpal.api.JavaxJson.optArray;
 
 /**
  * Encapsulation of details necessary to force creation of a particular root path.
  */
-public final class ForcedRoot implements JavaxJson.ObjectConvertible, Comparable<ForcedRoot> {
+public final class ForcedRoot implements JsonObjectConvertible, Comparable<ForcedRoot> {
     static final String KEY_PATH = "path";
     static final String KEY_PRIMARY_TYPE = "primaryType";
     static final String KEY_MIXIN_TYPES = "mixinTypes";

@@ -16,8 +16,8 @@
 
 package net.adamcin.oakpal.core;
 
-import static net.adamcin.oakpal.core.JavaxJson.key;
-import static net.adamcin.oakpal.core.JavaxJson.obj;
+import static net.adamcin.oakpal.api.JavaxJson.key;
+import static net.adamcin.oakpal.api.JavaxJson.obj;
 import static org.junit.Assert.*;
 
 import java.util.Collections;

@@ -19,6 +19,7 @@ package net.adamcin.oakpal.core;
 import aQute.bnd.header.Attrs;
 import aQute.bnd.header.Parameters;
 import aQute.bnd.osgi.Domain;
+import net.adamcin.oakpal.api.Fun;
 import net.adamcin.oakpal.core.jcrfacade.SessionFacade;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;

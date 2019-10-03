@@ -18,13 +18,13 @@ package net.adamcin.oakpal.webster;
 
 import net.adamcin.oakpal.core.Checklist;
 import net.adamcin.oakpal.core.ForcedRoot;
-import net.adamcin.oakpal.core.Fun;
-import net.adamcin.oakpal.core.JavaxJson;
+import net.adamcin.oakpal.api.Fun;
+import net.adamcin.oakpal.api.JavaxJson;
 import net.adamcin.oakpal.core.JcrNs;
 import net.adamcin.oakpal.core.JsonCnd;
 import net.adamcin.oakpal.core.NamespaceMappingRequest;
-import net.adamcin.oakpal.core.Result;
-import net.adamcin.oakpal.core.checks.Rule;
+import net.adamcin.oakpal.api.Result;
+import net.adamcin.oakpal.api.Rule;
 import org.apache.jackrabbit.spi.Name;
 import org.apache.jackrabbit.spi.PrivilegeDefinition;
 import org.apache.jackrabbit.spi.QNodeTypeDefinition;
@@ -76,13 +76,11 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static net.adamcin.oakpal.core.Fun.compose;
-import static net.adamcin.oakpal.core.Fun.inferTest1;
-import static net.adamcin.oakpal.core.Fun.mapValue;
-import static net.adamcin.oakpal.core.Fun.testKey;
-import static net.adamcin.oakpal.core.Fun.testValue;
-import static net.adamcin.oakpal.core.Fun.uncheck1;
-import static net.adamcin.oakpal.core.Fun.uncheckVoid1;
+import static net.adamcin.oakpal.api.Fun.compose;
+import static net.adamcin.oakpal.api.Fun.mapValue;
+import static net.adamcin.oakpal.api.Fun.testKey;
+import static net.adamcin.oakpal.api.Fun.uncheck1;
+import static net.adamcin.oakpal.api.Fun.uncheckVoid1;
 
 /**
  * Exports namespaces, node types, and {@link ForcedRoot}s from a JCR session to assist with project checklist management.

@@ -16,6 +16,9 @@
 
 package net.adamcin.oakpal.core;
 
+import net.adamcin.oakpal.api.ProgressCheck;
+import net.adamcin.oakpal.api.ProgressCheckFactory;
+
 import javax.json.JsonObject;
 import javax.json.JsonValue;
 import java.net.URL;

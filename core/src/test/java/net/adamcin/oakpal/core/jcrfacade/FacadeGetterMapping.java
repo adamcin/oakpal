@@ -25,7 +25,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.function.Function;
 
-import net.adamcin.oakpal.core.Fun;
+import net.adamcin.oakpal.api.Fun;
 import org.jetbrains.annotations.NotNull;
 
 public class FacadeGetterMapping {

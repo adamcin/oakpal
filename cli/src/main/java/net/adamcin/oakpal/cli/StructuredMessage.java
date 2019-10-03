@@ -1,11 +1,11 @@
 package net.adamcin.oakpal.cli;
 
-import net.adamcin.oakpal.core.JavaxJson;
+import net.adamcin.oakpal.api.JsonObjectConvertible;
 
 /**
- * Extends {@link net.adamcin.oakpal.core.JavaxJson.ObjectConvertible} to ensure conformance with --output json. When
+ * Extends {@link JsonObjectConvertible} to ensure conformance with --output json. When
  * rendered with --output text,
- * {@link #toString()} will be called.
+ * {@code toString()} will be called.
  */
-public interface StructuredMessage extends JavaxJson.ObjectConvertible {
+public interface StructuredMessage extends JsonObjectConvertible {
 }

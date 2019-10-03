@@ -16,9 +16,9 @@
 
 package net.adamcin.oakpal.core;
 
-import static net.adamcin.oakpal.core.JavaxJson.arr;
-import static net.adamcin.oakpal.core.JavaxJson.key;
-import static net.adamcin.oakpal.core.JavaxJson.obj;
+import static net.adamcin.oakpal.api.JavaxJson.arr;
+import static net.adamcin.oakpal.api.JavaxJson.key;
+import static net.adamcin.oakpal.api.JavaxJson.obj;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -37,6 +37,7 @@ import javax.json.JsonArray;
 import javax.json.JsonObject;
 import javax.json.JsonReader;
 
+import net.adamcin.oakpal.api.JavaxJson;
 import org.apache.jackrabbit.spi.PrivilegeDefinition;
 import org.apache.jackrabbit.spi.QNodeTypeDefinition;
 import org.apache.jackrabbit.spi.commons.namespace.NamespaceMapping;

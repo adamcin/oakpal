@@ -16,9 +16,9 @@
 
 package net.adamcin.oakpal.maven.mojo;
 
-import net.adamcin.oakpal.core.Fun;
+import net.adamcin.oakpal.api.Fun;
 import net.adamcin.oakpal.core.OakpalPlan;
-import net.adamcin.oakpal.core.Result;
+import net.adamcin.oakpal.api.Result;
 import net.adamcin.oakpal.core.Util;
 import net.adamcin.oakpal.testing.TestPackageUtil;
 import net.adamcin.oakpal.testing.oakpaltest.Handler;
@@ -39,7 +39,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.File;
-import java.io.FilenameFilter;
 import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;

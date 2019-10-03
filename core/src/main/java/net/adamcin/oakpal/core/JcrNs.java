@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Mark Adamcin
+ * Copyright 2020 Mark Adamcin
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 
 package net.adamcin.oakpal.core;
 
+import net.adamcin.oakpal.api.JsonObjectConvertible;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -23,12 +24,12 @@ import javax.json.JsonObject;
 import java.util.Objects;
 import java.util.Optional;
 
-import static net.adamcin.oakpal.core.JavaxJson.key;
+import static net.adamcin.oakpal.api.JavaxJson.key;
 
 /**
  * Config DTO for JCR Namespace Prefix to URI Mappings.
  */
-public final class JcrNs implements JavaxJson.ObjectConvertible, Comparable<JcrNs> {
+public final class JcrNs implements JsonObjectConvertible, Comparable<JcrNs> {
     static final String KEY_PREFIX = "prefix";
     static final String KEY_URI = "uri";
 

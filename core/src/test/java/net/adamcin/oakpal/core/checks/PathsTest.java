@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Mark Adamcin
+ * Copyright 2020 Mark Adamcin
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,21 +16,22 @@
 
 package net.adamcin.oakpal.core.checks;
 
-import static java.util.Collections.singletonList;
-import static net.adamcin.oakpal.core.JavaxJson.arr;
-import static net.adamcin.oakpal.core.JavaxJson.key;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import net.adamcin.oakpal.api.ProgressCheck;
+import net.adamcin.oakpal.api.Rule;
+import net.adamcin.oakpal.api.Violation;
+import net.adamcin.oakpal.core.CheckReport;
+import net.adamcin.oakpal.testing.TestUtil;
+import org.junit.Assert;
+import org.junit.Test;
 
 import java.util.Collections;
 import java.util.regex.Pattern;
 
-import net.adamcin.oakpal.core.CheckReport;
-import net.adamcin.oakpal.core.ProgressCheck;
-import net.adamcin.oakpal.core.TestUtil;
-import net.adamcin.oakpal.core.Violation;
-import org.junit.Test;
+import static java.util.Collections.singletonList;
+import static net.adamcin.oakpal.api.JavaxJson.arr;
+import static net.adamcin.oakpal.api.JavaxJson.key;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class PathsTest extends ProgressCheckTestBase {
 
@@ -42,7 +43,7 @@ public class PathsTest extends ProgressCheckTestBase {
             ProgressCheck check = new Paths().newInstance(key("rules", arr(denyEtc)).get());
             CheckReport report = scanWithCheck(check, "test-package-with-etc.zip");
             logViolations("level_set:no_unsafe", report);
-            assertEquals("violations", 6, report.getViolations().size());
+            Assert.assertEquals("violations", 6, report.getViolations().size());
             assertTrue("all violations are MAJOR", report.getViolations().stream()
                     .allMatch(viol -> viol.getSeverity().equals(Violation.Severity.MAJOR)));
         });
@@ -54,7 +55,7 @@ public class PathsTest extends ProgressCheckTestBase {
             ProgressCheck check = new Paths().newInstance(key("severity", "SEVERE").key("rules", arr(denyEtc)).get());
             CheckReport report = scanWithCheck(check, "test-package-with-etc.zip");
             logViolations("level_set:no_unsafe", report);
-            assertEquals("violations", 6, report.getViolations().size());
+            Assert.assertEquals("violations", 6, report.getViolations().size());
             assertTrue("all violations are SEVERE", report.getViolations().stream()
                     .allMatch(viol -> viol.getSeverity().equals(Violation.Severity.SEVERE)));
         });
@@ -66,7 +67,7 @@ public class PathsTest extends ProgressCheckTestBase {
             ProgressCheck check = new Paths().newInstance(key("severity", "minor").key("rules", arr(denyEtc)).get());
             CheckReport report = scanWithCheck(check, "test-package-with-etc.zip");
             logViolations("level_set:no_unsafe", report);
-            assertEquals("violations", 6, report.getViolations().size());
+            Assert.assertEquals("violations", 6, report.getViolations().size());
             assertTrue("all violations are MINOR", report.getViolations().stream()
                     .allMatch(viol -> viol.getSeverity().equals(Violation.Severity.MINOR)));
         });

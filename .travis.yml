@@ -21,6 +21,14 @@ matrix:
       dist: trusty
       language: java
       jdk: openjdk11
+    - os: linux
+      dist: trusty
+      language: java
+      jdk: oraclejdk14
+    - os: linux
+      dist: trusty
+      language: java
+      jdk: openjdk14
     - os: windows
       language: bash
       before_script:

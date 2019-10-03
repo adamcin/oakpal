@@ -16,8 +16,8 @@
 
 package net.adamcin.oakpal.core;
 
-import static net.adamcin.oakpal.core.Fun.*;
-import static net.adamcin.oakpal.core.JavaxJson.*;
+import static net.adamcin.oakpal.api.Fun.*;
+import static net.adamcin.oakpal.api.JavaxJson.*;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
@@ -41,6 +41,9 @@ import javax.json.JsonObject;
 import javax.json.JsonValue;
 import javax.json.stream.JsonCollectors;
 
+import net.adamcin.oakpal.api.Fun;
+import net.adamcin.oakpal.api.JavaxJson;
+import net.adamcin.oakpal.api.Result;
 import org.apache.jackrabbit.commons.cnd.Lexer;
 import org.apache.jackrabbit.spi.*;
 import org.apache.jackrabbit.spi.commons.conversion.DefaultNamePathResolver;

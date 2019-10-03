@@ -18,7 +18,7 @@ package net.adamcin.oakpal.webster.targets;
 
 import net.adamcin.oakpal.core.JcrNs;
 import net.adamcin.oakpal.core.OakMachine;
-import net.adamcin.oakpal.core.checks.Rule;
+import net.adamcin.oakpal.api.Rule;
 import net.adamcin.oakpal.webster.TestUtil;
 import net.adamcin.oakpal.webster.WebsterTarget;
 import org.apache.commons.io.FileUtils;
@@ -32,9 +32,9 @@ import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.util.regex.Pattern;
 
-import static net.adamcin.oakpal.core.JavaxJson.arr;
-import static net.adamcin.oakpal.core.JavaxJson.key;
-import static net.adamcin.oakpal.core.JavaxJson.obj;
+import static net.adamcin.oakpal.api.JavaxJson.arr;
+import static net.adamcin.oakpal.api.JavaxJson.key;
+import static net.adamcin.oakpal.api.JavaxJson.obj;
 import static org.junit.Assert.*;
 
 public class WebsterNodetypesTargetTest {

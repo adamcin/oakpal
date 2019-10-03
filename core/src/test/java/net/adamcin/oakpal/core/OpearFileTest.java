@@ -1,5 +1,6 @@
 package net.adamcin.oakpal.core;
 
+import net.adamcin.oakpal.api.Result;
 import net.adamcin.oakpal.testing.TestPackageUtil;
 import org.apache.commons.io.FileUtils;
 import org.junit.Test;
@@ -25,7 +26,7 @@ import java.util.jar.JarFile;
 import java.util.jar.JarOutputStream;
 import java.util.jar.Manifest;
 
-import static net.adamcin.oakpal.core.Fun.result1;
+import static net.adamcin.oakpal.api.Fun.result1;
 import static net.adamcin.oakpal.core.OpearFile.NAME_CLASS_PATH;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;

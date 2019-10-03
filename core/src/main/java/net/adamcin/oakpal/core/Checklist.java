@@ -16,6 +16,8 @@
 
 package net.adamcin.oakpal.core;
 
+import net.adamcin.oakpal.api.JavaxJson;
+import net.adamcin.oakpal.api.JsonObjectConvertible;
 import org.apache.jackrabbit.spi.PrivilegeDefinition;
 import org.apache.jackrabbit.spi.QNodeTypeDefinition;
 import org.apache.jackrabbit.spi.commons.conversion.DefaultNamePathResolver;
@@ -39,19 +41,19 @@ import java.util.jar.JarFile;
 import java.util.stream.Collectors;
 
 import static java.util.Optional.ofNullable;
-import static net.adamcin.oakpal.core.Fun.compose;
-import static net.adamcin.oakpal.core.Fun.uncheck1;
-import static net.adamcin.oakpal.core.JavaxJson.hasNonNull;
-import static net.adamcin.oakpal.core.JavaxJson.obj;
-import static net.adamcin.oakpal.core.JavaxJson.optArray;
-import static net.adamcin.oakpal.core.JavaxJson.optObject;
-import static net.adamcin.oakpal.core.JavaxJson.parseFromArray;
+import static net.adamcin.oakpal.api.Fun.compose;
+import static net.adamcin.oakpal.api.Fun.uncheck1;
+import static net.adamcin.oakpal.api.JavaxJson.hasNonNull;
+import static net.adamcin.oakpal.api.JavaxJson.obj;
+import static net.adamcin.oakpal.api.JavaxJson.optArray;
+import static net.adamcin.oakpal.api.JavaxJson.optObject;
+import static net.adamcin.oakpal.api.JavaxJson.parseFromArray;
 
 /**
  * It's a list of checks, along with initStage properties allowing jars to share CNDs, JCR namespaces and privileges,
  * and forced roots.
  */
-public final class Checklist implements JavaxJson.ObjectConvertible {
+public final class Checklist implements JsonObjectConvertible {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Checklist.class);
 

@@ -1,19 +1,18 @@
 package net.adamcin.oakpal.maven.mojo;
 
-import static net.adamcin.oakpal.core.Fun.compose;
-import static net.adamcin.oakpal.core.Fun.composeTest;
-import static net.adamcin.oakpal.core.Fun.entriesToMap;
-import static net.adamcin.oakpal.core.Fun.inSet;
-import static net.adamcin.oakpal.core.Fun.result1;
-import static net.adamcin.oakpal.core.Fun.testValue;
-import static net.adamcin.oakpal.core.Fun.uncheck0;
-import static net.adamcin.oakpal.core.Fun.uncheck1;
-import static net.adamcin.oakpal.core.Fun.zipKeysWithValueFunc;
-import static net.adamcin.oakpal.core.Fun.zipValuesWithKeyFunc;
+import static net.adamcin.oakpal.api.Fun.compose;
+import static net.adamcin.oakpal.api.Fun.composeTest;
+import static net.adamcin.oakpal.api.Fun.entriesToMap;
+import static net.adamcin.oakpal.api.Fun.inSet;
+import static net.adamcin.oakpal.api.Fun.result1;
+import static net.adamcin.oakpal.api.Fun.testValue;
+import static net.adamcin.oakpal.api.Fun.uncheck0;
+import static net.adamcin.oakpal.api.Fun.uncheck1;
+import static net.adamcin.oakpal.api.Fun.zipKeysWithValueFunc;
+import static net.adamcin.oakpal.api.Fun.zipValuesWithKeyFunc;
 
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStreamWriter;
 import java.net.URI;
@@ -38,7 +37,7 @@ import javax.json.stream.JsonGenerator;
 
 import net.adamcin.oakpal.core.OakpalPlan;
 import net.adamcin.oakpal.core.Opear;
-import net.adamcin.oakpal.core.Result;
+import net.adamcin.oakpal.api.Result;
 import net.adamcin.oakpal.core.Util;
 import net.adamcin.oakpal.maven.component.OakpalComponentConfigurator;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
@@ -57,7 +56,6 @@ import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
-import org.apache.maven.project.MavenProject;
 import org.apache.maven.shared.utils.io.FileUtils;
 import org.codehaus.plexus.archiver.jar.JarArchiver;
 import org.codehaus.plexus.archiver.util.DefaultFileSet;

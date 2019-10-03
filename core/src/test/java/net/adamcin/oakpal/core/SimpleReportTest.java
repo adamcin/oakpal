@@ -16,15 +16,22 @@
 
 package net.adamcin.oakpal.core;
 
+import net.adamcin.oakpal.api.SimpleProgressCheck;
+import net.adamcin.oakpal.api.SimpleViolation;
+import net.adamcin.oakpal.api.Violation;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.Collections;
 
-import static net.adamcin.oakpal.core.JavaxJson.arr;
-import static net.adamcin.oakpal.core.JavaxJson.obj;
-import static org.junit.Assert.*;
+import static net.adamcin.oakpal.api.JavaxJson.arr;
+import static net.adamcin.oakpal.api.JavaxJson.obj;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 public class SimpleReportTest {
 
@@ -70,11 +77,11 @@ public class SimpleReportTest {
 
     @Test
     public void testGenerateReportFromProgressCheck() {
-        SimpleProgressCheck check = new SimpleProgressCheck();
-        check.minorViolation("minor");
+        TestProgressCheck check = new TestProgressCheck();
+        check.minor("minor");
         SimpleReport report = SimpleReport.generateReport(check);
         assertNotNull("report not null", report);
-        assertEquals("report name", SimpleProgressCheck.class.getSimpleName(), report.getCheckName());
+        assertEquals("report name", check.getClass().getSimpleName(), report.getCheckName());
         assertEquals("violations are",
                 Collections.singletonList(new SimpleViolation(Violation.Severity.MINOR, "minor")),
                 report.getViolations());
@@ -82,11 +89,11 @@ public class SimpleReportTest {
 
     @Test
     public void testGenerateReportFromErrorListener() {
-        DefaultErrorListener errorListener = new DefaultErrorListener();
+        TestErrorListener errorListener = new TestErrorListener();
         errorListener.reportViolation(new SimpleViolation(Violation.Severity.MINOR, "minor"));
         SimpleReport report = SimpleReport.generateReport(errorListener);
         assertNotNull("report not null", report);
-        assertEquals("report name", DefaultErrorListener.class.getSimpleName(), report.getCheckName());
+        assertEquals("report name", errorListener.getClass().getSimpleName(), report.getCheckName());
         assertEquals("violations are",
                 Collections.singletonList(new SimpleViolation(Violation.Severity.MINOR, "minor")),
                 report.getViolations());
@@ -108,4 +115,31 @@ public class SimpleReportTest {
         assertEquals("more report violations are ",
                 Collections.singletonList(violation), moreReport.getViolations());
     }
+
+    static class TestProgressCheck extends SimpleProgressCheck {
+        @Override
+        public void reportViolation(final Violation violation) {
+            super.reportViolation(violation);
+        }
+
+        public final void minor(final String description, final PackageId... packages) {
+            this.reportViolation(new SimpleViolation(Violation.Severity.MINOR, description, packages));
+        }
+
+        public final void major(final String description, final PackageId... packages) {
+            this.reportViolation(new SimpleViolation(Violation.Severity.MAJOR, description, packages));
+        }
+
+        public final void severe(final String description, final PackageId... packages) {
+            this.reportViolation(new SimpleViolation(Violation.Severity.SEVERE, description, packages));
+        }
+    }
+
+    static class TestErrorListener extends DefaultErrorListener {
+        @Override
+        public void reportViolation(final Violation violation) {
+            super.reportViolation(violation);
+        }
+    }
+
 }

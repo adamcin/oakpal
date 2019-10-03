@@ -6,13 +6,20 @@ The format is based on [Keep a Changelog](http://keepachangelog.com)
 
 ## [Unreleased]
 
+### Changed
+
+- API extracted for tighter dependency control
+
+## [1.5.2] - 2020-04-15
+
 ### Added
 - #38 modified pom to upload cli dist binaries to releases.
 - #39 add --no-hooks cli option
 
 ### Fixed
+- #50 Provide CLI dist with Windows binary launcher
 - ExpectAces ACE criteria now correctly trims around parameter names
-- #51 copied InstallHookPolicy details to scan goal doc
+- #35 copied InstallHookPolicy details to scan goal doc
 - #37 switched to jar checksums for opear cache folder names.
 
 ## [1.5.1] - 2019-10-03

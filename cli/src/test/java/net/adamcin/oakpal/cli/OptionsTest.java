@@ -23,10 +23,10 @@ import javax.json.JsonObject;
 import javax.json.JsonReader;
 
 import net.adamcin.oakpal.core.InstallHookPolicy;
-import net.adamcin.oakpal.core.JavaxJson;
+import net.adamcin.oakpal.api.JavaxJson;
 import net.adamcin.oakpal.core.OakpalPlan;
-import net.adamcin.oakpal.core.Result;
-import net.adamcin.oakpal.core.Violation;
+import net.adamcin.oakpal.api.Result;
+import net.adamcin.oakpal.api.Violation;
 import org.apache.commons.io.FileUtils;
 import org.junit.After;
 import org.junit.Before;

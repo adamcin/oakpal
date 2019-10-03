@@ -16,7 +16,6 @@
 
 package net.adamcin.oakpal.webster;
 
-import net.adamcin.oakpal.core.Nothing;
 import org.apache.jackrabbit.api.JackrabbitWorkspace;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.junit.Test;
@@ -32,10 +31,7 @@ import java.net.URL;
 import java.util.Arrays;
 import java.util.Collections;
 
-import static net.adamcin.oakpal.core.Fun.result0;
-import static net.adamcin.oakpal.core.Fun.result1;
-import static net.adamcin.oakpal.core.Fun.resultNothing1;
-import static net.adamcin.oakpal.core.Fun.throwingVoidToNothing1;
+import static net.adamcin.oakpal.api.Fun.resultNothing1;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;

@@ -23,9 +23,7 @@ import org.apache.jackrabbit.spi.PrivilegeDefinition;
 import org.apache.jackrabbit.spi.QNodeTypeDefinition;
 import org.apache.jackrabbit.spi.commons.conversion.DefaultNamePathResolver;
 import org.apache.jackrabbit.spi.commons.conversion.NamePathResolver;
-import org.apache.jackrabbit.spi.commons.namespace.NamespaceMapping;
 import org.apache.jackrabbit.spi.commons.nodetype.NodeTypeDefinitionFactory;
-import org.apache.jackrabbit.spi.commons.privilege.PrivilegeDefinitionImpl;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -47,15 +45,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
-import static net.adamcin.oakpal.core.Fun.compose;
-import static net.adamcin.oakpal.core.Fun.mapEntry;
-import static net.adamcin.oakpal.core.Fun.onEntry;
-import static net.adamcin.oakpal.core.Fun.result1;
-import static net.adamcin.oakpal.core.Fun.uncheck1;
-import static net.adamcin.oakpal.core.Fun.uncheckVoid1;
+import static net.adamcin.oakpal.api.Fun.onEntry;
+import static net.adamcin.oakpal.api.Fun.result1;
+import static net.adamcin.oakpal.api.Fun.uncheck1;
+import static net.adamcin.oakpal.api.Fun.uncheckVoid1;
 import static net.adamcin.oakpal.core.OakMachine.NT_UNDECLARED;
 
 /**

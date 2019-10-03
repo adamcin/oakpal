@@ -16,10 +16,10 @@
 
 package net.adamcin.oakpal.webster;
 
-import net.adamcin.oakpal.core.Fun;
+import net.adamcin.oakpal.api.Fun;
 import net.adamcin.oakpal.core.JsonCnd;
-import net.adamcin.oakpal.core.Result;
-import net.adamcin.oakpal.core.checks.Rule;
+import net.adamcin.oakpal.api.Result;
+import net.adamcin.oakpal.api.Rule;
 import org.apache.jackrabbit.commons.cnd.CompactNodeTypeDefReader;
 import org.apache.jackrabbit.commons.cnd.ParseException;
 import org.apache.jackrabbit.commons.cnd.TemplateBuilderFactory;
@@ -66,10 +66,10 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static net.adamcin.oakpal.core.Fun.compose;
-import static net.adamcin.oakpal.core.Fun.inSet;
-import static net.adamcin.oakpal.core.Fun.result1;
-import static net.adamcin.oakpal.core.Fun.uncheck1;
+import static net.adamcin.oakpal.api.Fun.compose;
+import static net.adamcin.oakpal.api.Fun.inSet;
+import static net.adamcin.oakpal.api.Fun.result1;
+import static net.adamcin.oakpal.api.Fun.uncheck1;
 
 /**
  * Interface independent logic for exporting .cnd files from a JCR session.

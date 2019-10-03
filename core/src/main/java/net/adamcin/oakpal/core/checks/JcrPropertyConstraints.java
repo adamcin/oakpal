@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Mark Adamcin
+ * Copyright 2020 Mark Adamcin
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,8 +16,9 @@
 
 package net.adamcin.oakpal.core.checks;
 
-import net.adamcin.oakpal.core.SimpleViolation;
-import net.adamcin.oakpal.core.Violation;
+import net.adamcin.oakpal.api.Rule;
+import net.adamcin.oakpal.api.SimpleViolation;
+import net.adamcin.oakpal.api.Violation;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 
 import javax.jcr.Node;
@@ -34,9 +35,9 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static net.adamcin.oakpal.core.JavaxJson.arrayOrEmpty;
-import static net.adamcin.oakpal.core.JavaxJson.hasNonNull;
-import static net.adamcin.oakpal.core.JavaxJson.mapArrayOfObjects;
+import static net.adamcin.oakpal.api.JavaxJson.arrayOrEmpty;
+import static net.adamcin.oakpal.api.JavaxJson.hasNonNull;
+import static net.adamcin.oakpal.api.JavaxJson.mapArrayOfObjects;
 
 /**
  * Encapsulation of constraints on a JCR property for the {@link JcrProperties} check.
@@ -58,7 +59,7 @@ import static net.adamcin.oakpal.core.JavaxJson.mapArrayOfObjects;
  * <dd>A list of patterns to match against string values of this property. All rules are applied in sequence to each
  * value of the property. If the type of the last rule to match any value is DENY, a violation is reported.</dd>
  * <dt>{@code severity}</dt>
- * <dd>(default: {@link net.adamcin.oakpal.core.Violation.Severity#MAJOR}) specify the severity if a violation is
+ * <dd>(default: {@link Violation.Severity#MAJOR}) specify the severity if a violation is
  * reported by this set of constraints.</dd>
  * </dl>
  */

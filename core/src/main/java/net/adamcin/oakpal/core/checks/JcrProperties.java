@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Mark Adamcin
+ * Copyright 2020 Mark Adamcin
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,9 +16,10 @@
 
 package net.adamcin.oakpal.core.checks;
 
-import net.adamcin.oakpal.core.ProgressCheck;
-import net.adamcin.oakpal.core.ProgressCheckFactory;
-import net.adamcin.oakpal.core.SimpleProgressCheck;
+import net.adamcin.oakpal.api.ProgressCheck;
+import net.adamcin.oakpal.api.ProgressCheckFactory;
+import net.adamcin.oakpal.api.Rule;
+import net.adamcin.oakpal.api.SimpleProgressCheck;
 import org.apache.jackrabbit.vault.fs.api.WorkspaceFilter;
 import org.apache.jackrabbit.vault.fs.config.MetaInf;
 import org.apache.jackrabbit.vault.packaging.PackageId;
@@ -33,8 +34,8 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static net.adamcin.oakpal.core.JavaxJson.arrayOrEmpty;
-import static net.adamcin.oakpal.core.JavaxJson.mapArrayOfStrings;
+import static net.adamcin.oakpal.api.JavaxJson.arrayOrEmpty;
+import static net.adamcin.oakpal.api.JavaxJson.mapArrayOfStrings;
 
 /**
  * A complex check for enforcing characteristics of JCR Properties of imported nodes and their descendants within the
@@ -44,7 +45,7 @@ import static net.adamcin.oakpal.core.JavaxJson.mapArrayOfStrings;
  * <dl>
  * <dt>{@code scopePaths} ({@link Rule}{@code []})</dt>
  * <dd>A list of rules, with each pattern matched against an import path, and the {@code type}
- * ({@link net.adamcin.oakpal.core.checks.Rule.RuleType}) of the last matching rule determines whether the matched
+ * ({@link Rule.RuleType}) of the last matching rule determines whether the matched
  * path is in scope for checking the properties on the node and its descendants.</dd>
  * <dt>{@code denyNodeTypes}</dt>
  * <dd>A list of nodeType strings, which specify primary or mixin types that should be disallowed. If matched, the path is

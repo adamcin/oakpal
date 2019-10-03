@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Mark Adamcin
+ * Copyright 2020 Mark Adamcin
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,10 @@
 
 package net.adamcin.oakpal.core;
 
+import net.adamcin.oakpal.api.JavaxJson;
+import net.adamcin.oakpal.api.JsonObjectConvertible;
+import net.adamcin.oakpal.api.ProgressCheck;
+import net.adamcin.oakpal.api.Violation;
 import org.jetbrains.annotations.NotNull;
 
 import javax.json.JsonObject;
@@ -23,15 +27,14 @@ import javax.json.stream.JsonCollectors;
 import java.util.Collection;
 import java.util.stream.Collectors;
 
-import static net.adamcin.oakpal.core.JavaxJson.obj;
-import static net.adamcin.oakpal.core.ReportMapper.KEY_CHECK_NAME;
-import static net.adamcin.oakpal.core.ReportMapper.KEY_VIOLATIONS;
-import static net.adamcin.oakpal.core.Util.isEmpty;
+import static net.adamcin.oakpal.api.JavaxJson.obj;
 
 /**
  * Type for collected {@link Violation}s from a particlular {@link ProgressCheck}.
  */
-public interface CheckReport extends JavaxJson.ObjectConvertible {
+public interface CheckReport extends JsonObjectConvertible {
+    String KEY_CHECK_NAME = "checkName";
+    String KEY_VIOLATIONS = "violations";
 
     /**
      * The serialized display name of the package check that created the report.
@@ -71,14 +74,10 @@ public interface CheckReport extends JavaxJson.ObjectConvertible {
     default JsonObject toJson() {
         JavaxJson.Obj jsonReport = obj();
 
-        if (!isEmpty(this.getCheckName())) {
-            jsonReport.key(KEY_CHECK_NAME, this.getCheckName());
-        }
-        if (!this.getViolations().isEmpty()) {
-            jsonReport.key(KEY_VIOLATIONS, this.getViolations().stream()
-                    .map(Violation::toJson)
-                    .collect(JsonCollectors.toJsonArray()));
-        }
+        jsonReport.key(KEY_CHECK_NAME).opt(this.getCheckName());
+        jsonReport.key(KEY_VIOLATIONS).opt(this.getViolations().stream()
+                .map(Violation::toJson)
+                .collect(JsonCollectors.toJsonArray()));
 
         return jsonReport.get();
     }

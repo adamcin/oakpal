@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Mark Adamcin
+ * Copyright 2020 Mark Adamcin
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,10 +16,10 @@
 
 package net.adamcin.oakpal.core.checks;
 
-import net.adamcin.oakpal.core.ProgressCheck;
-import net.adamcin.oakpal.core.ProgressCheckFactory;
-import net.adamcin.oakpal.core.SimpleProgressCheck;
-import net.adamcin.oakpal.core.Violation;
+import net.adamcin.oakpal.api.ProgressCheck;
+import net.adamcin.oakpal.api.ProgressCheckFactory;
+import net.adamcin.oakpal.api.SimpleProgressCheck;
+import net.adamcin.oakpal.api.Violation;
 import org.apache.jackrabbit.vault.fs.api.WorkspaceFilter;
 import org.apache.jackrabbit.vault.fs.config.MetaInf;
 import org.apache.jackrabbit.vault.packaging.PackageId;
@@ -35,13 +35,13 @@ import java.util.Map;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import static net.adamcin.oakpal.core.JavaxJson.hasNonNull;
+import static net.adamcin.oakpal.api.JavaxJson.hasNonNull;
 
 /**
  * The {@code overlaps} check keeps track of installed package workspace filters, and checks every affected path going
  * forward against previous workspace filters for overlap, using {@link WorkspaceFilter#contains(String)}. Overlapping
- * deletions are reported as {@link net.adamcin.oakpal.core.Violation.Severity#MAJOR}, whereas other affected paths are
- * reported as {@link net.adamcin.oakpal.core.Violation.Severity#MINOR}.
+ * deletions are reported as {@link Violation.Severity#MAJOR}, whereas other affected paths are
+ * reported as {@link Violation.Severity#MINOR}.
  * <p>
  * This check is sequence-dependent, in that changing the sequence of packages in the scan may result in a different
  * outcome. It is recommended to test multiple sequences if the actual process for package deployment is undefined or

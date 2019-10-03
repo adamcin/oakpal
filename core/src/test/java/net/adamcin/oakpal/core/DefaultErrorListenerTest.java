@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Mark Adamcin
+ * Copyright 2020 Mark Adamcin
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,8 @@ package net.adamcin.oakpal.core;
 
 import static org.junit.Assert.assertEquals;
 
+import net.adamcin.oakpal.api.SimpleViolation;
+import net.adamcin.oakpal.api.Violation;
 import org.junit.Test;
 
 public class DefaultErrorListenerTest {

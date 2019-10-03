@@ -16,6 +16,9 @@
 
 package net.adamcin.oakpal.core;
 
+import net.adamcin.oakpal.api.Fun;
+import net.adamcin.oakpal.api.JavaxJson;
+import net.adamcin.oakpal.api.Result;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.cnd.Lexer;
 import org.apache.jackrabbit.commons.query.qom.Operator;
@@ -98,28 +101,28 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import static java.util.Optional.ofNullable;
-import static net.adamcin.oakpal.core.Fun.compose;
-import static net.adamcin.oakpal.core.Fun.constantly1;
-import static net.adamcin.oakpal.core.Fun.inSet;
-import static net.adamcin.oakpal.core.Fun.inferTest1;
-import static net.adamcin.oakpal.core.Fun.mapEntry;
-import static net.adamcin.oakpal.core.Fun.mapKey;
-import static net.adamcin.oakpal.core.Fun.mapValue;
-import static net.adamcin.oakpal.core.Fun.onEntry;
-import static net.adamcin.oakpal.core.Fun.testKey;
-import static net.adamcin.oakpal.core.Fun.testValue;
-import static net.adamcin.oakpal.core.Fun.toEntry;
-import static net.adamcin.oakpal.core.Fun.uncheck1;
-import static net.adamcin.oakpal.core.Fun.uncheck2;
-import static net.adamcin.oakpal.core.Fun.uncheckVoid1;
-import static net.adamcin.oakpal.core.Fun.uncheckVoid2;
-import static net.adamcin.oakpal.core.Fun.zipKeysWithValueFunc;
-import static net.adamcin.oakpal.core.JavaxJson.JSON_VALUE_STRING;
-import static net.adamcin.oakpal.core.JavaxJson.mapArrayOfStrings;
-import static net.adamcin.oakpal.core.JavaxJson.obj;
-import static net.adamcin.oakpal.core.JavaxJson.optArray;
-import static net.adamcin.oakpal.core.JavaxJson.unwrap;
-import static net.adamcin.oakpal.core.JavaxJson.wrap;
+import static net.adamcin.oakpal.api.Fun.compose;
+import static net.adamcin.oakpal.api.Fun.constantly1;
+import static net.adamcin.oakpal.api.Fun.inSet;
+import static net.adamcin.oakpal.api.Fun.inferTest1;
+import static net.adamcin.oakpal.api.Fun.mapEntry;
+import static net.adamcin.oakpal.api.Fun.mapKey;
+import static net.adamcin.oakpal.api.Fun.mapValue;
+import static net.adamcin.oakpal.api.Fun.onEntry;
+import static net.adamcin.oakpal.api.Fun.testKey;
+import static net.adamcin.oakpal.api.Fun.testValue;
+import static net.adamcin.oakpal.api.Fun.toEntry;
+import static net.adamcin.oakpal.api.Fun.uncheck1;
+import static net.adamcin.oakpal.api.Fun.uncheck2;
+import static net.adamcin.oakpal.api.Fun.uncheckVoid1;
+import static net.adamcin.oakpal.api.Fun.uncheckVoid2;
+import static net.adamcin.oakpal.api.Fun.zipKeysWithValueFunc;
+import static net.adamcin.oakpal.api.JavaxJson.JSON_VALUE_STRING;
+import static net.adamcin.oakpal.api.JavaxJson.mapArrayOfStrings;
+import static net.adamcin.oakpal.api.JavaxJson.obj;
+import static net.adamcin.oakpal.api.JavaxJson.optArray;
+import static net.adamcin.oakpal.api.JavaxJson.unwrap;
+import static net.adamcin.oakpal.api.JavaxJson.wrap;
 
 /**
  * Methods and types used to encode/decode QNodeTypeDefinitions as JSON for use in checklists.

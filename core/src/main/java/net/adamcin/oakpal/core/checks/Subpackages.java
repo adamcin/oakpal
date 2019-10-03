@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Mark Adamcin
+ * Copyright 2020 Mark Adamcin
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,17 +16,18 @@
 
 package net.adamcin.oakpal.core.checks;
 
-import net.adamcin.oakpal.core.ProgressCheck;
-import net.adamcin.oakpal.core.ProgressCheckFactory;
-import net.adamcin.oakpal.core.SimpleProgressCheck;
-import net.adamcin.oakpal.core.Violation;
+import net.adamcin.oakpal.api.ProgressCheck;
+import net.adamcin.oakpal.api.ProgressCheckFactory;
+import net.adamcin.oakpal.api.Rule;
+import net.adamcin.oakpal.api.SimpleProgressCheck;
+import net.adamcin.oakpal.api.Violation;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 
 import javax.json.JsonObject;
 import java.util.List;
 
-import static net.adamcin.oakpal.core.JavaxJson.arrayOrEmpty;
-import static net.adamcin.oakpal.core.JavaxJson.hasNonNull;
+import static net.adamcin.oakpal.api.JavaxJson.arrayOrEmpty;
+import static net.adamcin.oakpal.api.JavaxJson.hasNonNull;
 
 /**
  * Check for subpackage inclusion.

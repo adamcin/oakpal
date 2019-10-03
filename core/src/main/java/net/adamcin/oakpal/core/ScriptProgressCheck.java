@@ -16,6 +16,13 @@
 
 package net.adamcin.oakpal.core;
 
+import net.adamcin.oakpal.api.JavaxJson;
+import net.adamcin.oakpal.api.ProgressCheck;
+import net.adamcin.oakpal.api.ProgressCheckFactory;
+import net.adamcin.oakpal.api.ReportCollector;
+import net.adamcin.oakpal.api.Result;
+import net.adamcin.oakpal.api.SimpleViolation;
+import net.adamcin.oakpal.api.Violation;
 import org.apache.jackrabbit.vault.fs.config.MetaInf;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.apache.jackrabbit.vault.packaging.PackageProperties;

@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Mark Adamcin
+ * Copyright 2020 Mark Adamcin
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,10 +16,10 @@
 
 package net.adamcin.oakpal.core.checks;
 
-import net.adamcin.oakpal.core.ProgressCheck;
-import net.adamcin.oakpal.core.ProgressCheckFactory;
-import net.adamcin.oakpal.core.SimpleProgressCheck;
-import net.adamcin.oakpal.core.Violation;
+import net.adamcin.oakpal.api.ProgressCheck;
+import net.adamcin.oakpal.api.ProgressCheckFactory;
+import net.adamcin.oakpal.api.SimpleProgressCheck;
+import net.adamcin.oakpal.api.Violation;
 import org.apache.jackrabbit.vault.fs.api.ImportMode;
 import org.apache.jackrabbit.vault.fs.api.PathFilterSet;
 import org.apache.jackrabbit.vault.fs.api.WorkspaceFilter;
@@ -32,7 +32,7 @@ import javax.jcr.Session;
 import javax.json.JsonObject;
 import java.util.List;
 
-import static net.adamcin.oakpal.core.JavaxJson.hasNonNull;
+import static net.adamcin.oakpal.api.JavaxJson.hasNonNull;
 
 /**
  * Sanity check for {@link WorkspaceFilter}.
@@ -40,7 +40,7 @@ import static net.adamcin.oakpal.core.JavaxJson.hasNonNull;
  * {@code config} options:
  * <dl>
  * <dt>{@code importModeSeverity}</dt>
- * <dd>(default: {@link net.adamcin.oakpal.core.Violation.Severity#MINOR}) The default {@link ImportMode} for a
+ * <dd>(default: {@link Violation.Severity#MINOR}) The default {@link ImportMode} for a
  * filter set is {@link ImportMode#REPLACE}. FileVault also supports {@link ImportMode#UPDATE} and
  * {@link ImportMode#MERGE}, but it also supports forcing the import mode for an entire package via
  * {@link org.apache.jackrabbit.vault.fs.io.ImportOptions#setImportMode(ImportMode)}, which certain platforms use to

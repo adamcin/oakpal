@@ -16,8 +16,8 @@
 
 package net.adamcin.oakpal.core;
 
-import static net.adamcin.oakpal.core.JavaxJson.key;
-import static net.adamcin.oakpal.core.JavaxJson.obj;
+import static net.adamcin.oakpal.api.JavaxJson.key;
+import static net.adamcin.oakpal.api.JavaxJson.obj;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
@@ -31,6 +31,7 @@ import java.util.Set;
 import javax.json.JsonObject;
 import javax.json.JsonValue;
 
+import net.adamcin.oakpal.api.ProgressCheck;
 import org.junit.Test;
 
 public class CheckSpecTest {

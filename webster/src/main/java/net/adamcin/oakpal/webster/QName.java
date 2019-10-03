@@ -23,7 +23,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Objects;
 
-import static net.adamcin.oakpal.core.Fun.result1;
+import static net.adamcin.oakpal.api.Fun.result1;
 
 /**
  * Representation of a Qualified Name.

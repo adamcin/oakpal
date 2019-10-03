@@ -35,7 +35,7 @@ import javax.jcr.Session;
 import javax.jcr.Workspace;
 import javax.jcr.security.Privilege;
 
-import net.adamcin.oakpal.core.Fun;
+import net.adamcin.oakpal.api.Fun;
 import net.adamcin.oakpal.core.JsonCnd;
 import org.apache.jackrabbit.api.JackrabbitWorkspace;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;

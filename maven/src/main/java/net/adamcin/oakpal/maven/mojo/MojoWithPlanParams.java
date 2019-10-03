@@ -1,25 +1,23 @@
 package net.adamcin.oakpal.maven.mojo;
 
 import net.adamcin.oakpal.core.ForcedRoot;
-import net.adamcin.oakpal.core.Fun;
+import net.adamcin.oakpal.api.Fun;
 import net.adamcin.oakpal.core.JcrNs;
 import net.adamcin.oakpal.core.JsonCnd;
 import net.adamcin.oakpal.core.NamespaceMappingRequest;
 import net.adamcin.oakpal.core.OakpalPlan;
-import net.adamcin.oakpal.core.Result;
+import net.adamcin.oakpal.api.Result;
 import net.adamcin.oakpal.core.SlingNodetypesScanner;
 import org.apache.jackrabbit.spi.QNodeTypeDefinition;
 import org.apache.jackrabbit.spi.commons.namespace.NamespaceMapping;
 import org.apache.jackrabbit.vault.fs.spi.NodeTypeSet;
 import org.apache.maven.model.Dependency;
-import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.project.MavenProject;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
-import java.io.IOException;
 import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;
@@ -28,13 +26,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static net.adamcin.oakpal.core.Fun.compose;
-import static net.adamcin.oakpal.core.Fun.uncheck1;
-import static net.adamcin.oakpal.core.JavaxJson.wrap;
+import static net.adamcin.oakpal.api.Fun.compose;
+import static net.adamcin.oakpal.api.Fun.uncheck1;
+import static net.adamcin.oakpal.api.JavaxJson.wrap;
 
 interface MojoWithPlanParams extends MojoWithCommonParams, MojoWithRepositoryParams {
 

@@ -1,6 +1,6 @@
 package net.adamcin.oakpal.cli;
 
-import static net.adamcin.oakpal.core.Fun.result1;
+import static net.adamcin.oakpal.api.Fun.result1;
 
 import java.io.File;
 import java.io.PrintStream;
@@ -9,12 +9,11 @@ import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Properties;
 import java.util.function.Function;
 import java.util.function.IntConsumer;
 
-import net.adamcin.oakpal.core.Nothing;
-import net.adamcin.oakpal.core.Result;
+import net.adamcin.oakpal.api.Nothing;
+import net.adamcin.oakpal.api.Result;
 import org.jetbrains.annotations.NotNull;
 
 /**

@@ -16,7 +16,7 @@
 
 package net.adamcin.oakpal.maven.mojo;
 
-import net.adamcin.oakpal.core.Fun;
+import net.adamcin.oakpal.api.Fun;
 import net.adamcin.oakpal.webster.JcrFactory;
 import net.adamcin.oakpal.webster.WebsterPlan;
 import net.adamcin.oakpal.webster.WebsterTarget;
@@ -43,7 +43,7 @@ import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 
-import static net.adamcin.oakpal.core.JavaxJson.obj;
+import static net.adamcin.oakpal.api.JavaxJson.obj;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;

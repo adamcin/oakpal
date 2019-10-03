@@ -16,9 +16,9 @@
 
 package net.adamcin.oakpal.webster;
 
-import net.adamcin.oakpal.core.Fun;
+import net.adamcin.oakpal.api.Fun;
 import net.adamcin.oakpal.core.JsonCnd;
-import net.adamcin.oakpal.core.Result;
+import net.adamcin.oakpal.api.Result;
 import org.apache.jackrabbit.spi.Name;
 import org.apache.jackrabbit.spi.PrivilegeDefinition;
 import org.apache.jackrabbit.spi.QNodeTypeDefinition;
@@ -65,8 +65,8 @@ import java.util.stream.Stream;
 import static javax.jcr.PropertyType.NAME;
 import static javax.jcr.PropertyType.STRING;
 import static javax.jcr.PropertyType.UNDEFINED;
-import static net.adamcin.oakpal.core.Fun.result1;
-import static net.adamcin.oakpal.core.Fun.uncheckVoid1;
+import static net.adamcin.oakpal.api.Fun.result1;
+import static net.adamcin.oakpal.api.Fun.uncheckVoid1;
 import static net.adamcin.oakpal.core.JsonCnd.BUILTIN_MAPPINGS;
 
 public final class FileVaultNameFinder {

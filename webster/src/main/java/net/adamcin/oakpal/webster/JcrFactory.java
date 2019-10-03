@@ -16,7 +16,7 @@
 
 package net.adamcin.oakpal.webster;
 
-import static net.adamcin.oakpal.core.Fun.inSet;
+import static net.adamcin.oakpal.api.Fun.inSet;
 
 import java.io.File;
 import java.io.IOException;

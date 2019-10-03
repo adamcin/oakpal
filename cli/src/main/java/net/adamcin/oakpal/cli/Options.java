@@ -1,11 +1,11 @@
 package net.adamcin.oakpal.cli;
 
 import net.adamcin.oakpal.core.InstallHookPolicy;
-import net.adamcin.oakpal.core.Nothing;
+import net.adamcin.oakpal.api.Nothing;
 import net.adamcin.oakpal.core.OakpalPlan;
 import net.adamcin.oakpal.core.OpearFile;
-import net.adamcin.oakpal.core.Result;
-import net.adamcin.oakpal.core.Violation;
+import net.adamcin.oakpal.api.Result;
+import net.adamcin.oakpal.api.Violation;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 

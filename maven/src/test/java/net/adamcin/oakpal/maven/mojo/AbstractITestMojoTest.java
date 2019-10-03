@@ -16,19 +16,14 @@
 
 package net.adamcin.oakpal.maven.mojo;
 
+import net.adamcin.oakpal.api.SimpleViolation;
+import net.adamcin.oakpal.api.Violation;
 import net.adamcin.oakpal.core.CheckReport;
 import net.adamcin.oakpal.core.SimpleReport;
-import net.adamcin.oakpal.core.SimpleViolation;
-import net.adamcin.oakpal.core.Violation;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.vault.packaging.PackageId;
-import org.apache.maven.execution.MavenSession;
-import org.apache.maven.plugin.MojoExecution;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
-import org.apache.maven.project.MavenProject;
-import org.apache.maven.repository.RepositorySystem;
-import org.apache.maven.settings.Settings;
 import org.junit.Test;
 
 import java.io.File;
@@ -43,8 +38,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.mockito.Mockito.mock;
 
 public class AbstractITestMojoTest {
     private final File testOutBaseDir = new File("target/test-out/AbstractITestMojoTest");

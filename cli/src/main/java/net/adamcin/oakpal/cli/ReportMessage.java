@@ -7,7 +7,7 @@ import java.util.stream.Collectors;
 import javax.json.JsonObject;
 
 import net.adamcin.oakpal.core.CheckReport;
-import net.adamcin.oakpal.core.Violation;
+import net.adamcin.oakpal.api.Violation;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.jetbrains.annotations.NotNull;
 

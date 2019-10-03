@@ -26,6 +26,8 @@ import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.List;
 
+import net.adamcin.oakpal.api.SimpleViolation;
+import net.adamcin.oakpal.api.Violation;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.junit.Before;
 import org.junit.Test;

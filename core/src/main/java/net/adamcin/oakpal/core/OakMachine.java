@@ -16,6 +16,8 @@
 
 package net.adamcin.oakpal.core;
 
+import net.adamcin.oakpal.api.Fun;
+import net.adamcin.oakpal.api.ProgressCheck;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.commons.cnd.DefinitionBuilderFactory;
@@ -74,8 +76,8 @@ import java.util.jar.JarInputStream;
 import java.util.jar.Manifest;
 import java.util.stream.Collectors;
 
-import static net.adamcin.oakpal.core.Fun.uncheck1;
-import static net.adamcin.oakpal.core.Fun.uncheckVoid1;
+import static net.adamcin.oakpal.api.Fun.uncheck1;
+import static net.adamcin.oakpal.api.Fun.uncheckVoid1;
 
 /**
  * Entry point for OakPAL Acceptance Library. See {@link ProgressCheck} for the event listener interface.
@@ -468,7 +470,7 @@ public final class OakMachine {
     }
 
     /**
-     * Functional interface for {@link Builder#withSubpackageSilencer(SubpackageSilencer)}.
+     * Functional interface for {@code Builder.withSubpackageSilencer(SubpackageSilencer)}.
      */
     @FunctionalInterface
     public interface SubpackageSilencer extends BiPredicate<PackageId, PackageId> {

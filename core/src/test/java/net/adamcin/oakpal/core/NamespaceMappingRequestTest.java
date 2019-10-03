@@ -16,7 +16,7 @@
 
 package net.adamcin.oakpal.core;
 
-import org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants;
+import net.adamcin.oakpal.api.Result;
 import org.apache.jackrabbit.spi.commons.conversion.DefaultNamePathResolver;
 import org.apache.jackrabbit.spi.commons.conversion.NamePathResolver;
 import org.apache.jackrabbit.spi.commons.namespace.NamespaceMapping;
@@ -26,7 +26,7 @@ import javax.jcr.NamespaceRegistry;
 import java.util.Arrays;
 import java.util.List;
 
-import static net.adamcin.oakpal.core.Fun.inferTest1;
+import static net.adamcin.oakpal.api.Fun.inferTest1;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 

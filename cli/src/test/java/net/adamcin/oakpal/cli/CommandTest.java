@@ -1,7 +1,7 @@
 package net.adamcin.oakpal.cli;
 
-import static net.adamcin.oakpal.core.Fun.uncheck0;
-import static net.adamcin.oakpal.core.JavaxJson.key;
+import static net.adamcin.oakpal.api.Fun.uncheck0;
+import static net.adamcin.oakpal.api.JavaxJson.key;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -31,13 +31,13 @@ import javax.json.JsonObject;
 
 import net.adamcin.oakpal.core.CheckReport;
 import net.adamcin.oakpal.core.FileBlobMemoryNodeStore;
-import net.adamcin.oakpal.core.Nothing;
-import net.adamcin.oakpal.core.ReportCollector;
+import net.adamcin.oakpal.api.Nothing;
+import net.adamcin.oakpal.api.ReportCollector;
 import net.adamcin.oakpal.core.ReportMapper;
-import net.adamcin.oakpal.core.Result;
+import net.adamcin.oakpal.api.Result;
 import net.adamcin.oakpal.core.SimpleReport;
-import net.adamcin.oakpal.core.SimpleViolation;
-import net.adamcin.oakpal.core.Violation;
+import net.adamcin.oakpal.api.SimpleViolation;
+import net.adamcin.oakpal.api.Violation;
 import net.adamcin.oakpal.testing.TestPackageUtil;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;

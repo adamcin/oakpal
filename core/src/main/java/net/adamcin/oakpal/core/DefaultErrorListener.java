@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Mark Adamcin
+ * Copyright 2020 Mark Adamcin
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,10 @@
 
 package net.adamcin.oakpal.core;
 
+import net.adamcin.oakpal.api.ProgressCheck;
+import net.adamcin.oakpal.api.ReportCollector;
+import net.adamcin.oakpal.api.SimpleViolation;
+import net.adamcin.oakpal.api.Violation;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

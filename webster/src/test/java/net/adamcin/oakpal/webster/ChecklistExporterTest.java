@@ -16,9 +16,9 @@
 
 package net.adamcin.oakpal.webster;
 
-import static net.adamcin.oakpal.core.JavaxJson.arr;
-import static net.adamcin.oakpal.core.JavaxJson.key;
-import static net.adamcin.oakpal.core.JavaxJson.obj;
+import static net.adamcin.oakpal.api.JavaxJson.arr;
+import static net.adamcin.oakpal.api.JavaxJson.key;
+import static net.adamcin.oakpal.api.JavaxJson.obj;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -49,13 +49,13 @@ import javax.json.JsonReader;
 
 import net.adamcin.oakpal.core.Checklist;
 import net.adamcin.oakpal.core.ForcedRoot;
-import net.adamcin.oakpal.core.Fun;
+import net.adamcin.oakpal.api.Fun;
 import net.adamcin.oakpal.core.InitStage;
-import net.adamcin.oakpal.core.JavaxJson;
+import net.adamcin.oakpal.api.JavaxJson;
 import net.adamcin.oakpal.core.JcrNs;
 import net.adamcin.oakpal.core.JsonCnd;
 import net.adamcin.oakpal.core.OakMachine;
-import net.adamcin.oakpal.core.checks.Rule;
+import net.adamcin.oakpal.api.Rule;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.commons.NamespaceHelper;
 import org.apache.jackrabbit.spi.commons.namespace.NamespaceMapping;

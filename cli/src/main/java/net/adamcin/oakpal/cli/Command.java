@@ -1,10 +1,9 @@
 package net.adamcin.oakpal.cli;
 
-import static net.adamcin.oakpal.core.Fun.compose;
-import static net.adamcin.oakpal.core.Fun.result0;
-import static net.adamcin.oakpal.core.Fun.result1;
-import static net.adamcin.oakpal.core.Fun.toEntry;
-import static net.adamcin.oakpal.core.Fun.uncheck0;
+import static net.adamcin.oakpal.api.Fun.compose;
+import static net.adamcin.oakpal.api.Fun.result0;
+import static net.adamcin.oakpal.api.Fun.result1;
+import static net.adamcin.oakpal.api.Fun.uncheck0;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -15,7 +14,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.function.Function;
@@ -24,11 +22,11 @@ import java.util.function.Supplier;
 import net.adamcin.oakpal.core.CheckReport;
 import net.adamcin.oakpal.core.DefaultErrorListener;
 import net.adamcin.oakpal.core.FileBlobMemoryNodeStore;
-import net.adamcin.oakpal.core.Nothing;
+import net.adamcin.oakpal.api.Nothing;
 import net.adamcin.oakpal.core.OakMachine;
 import net.adamcin.oakpal.core.OakpalPlan;
-import net.adamcin.oakpal.core.Result;
-import net.adamcin.oakpal.core.Violation;
+import net.adamcin.oakpal.api.Result;
+import net.adamcin.oakpal.api.Violation;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.jetbrains.annotations.NotNull;

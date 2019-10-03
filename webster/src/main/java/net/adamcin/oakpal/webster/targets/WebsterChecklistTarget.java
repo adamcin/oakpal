@@ -16,7 +16,7 @@
 
 package net.adamcin.oakpal.webster.targets;
 
-import static net.adamcin.oakpal.core.JavaxJson.obj;
+import static net.adamcin.oakpal.api.JavaxJson.obj;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -35,9 +35,9 @@ import javax.json.JsonObject;
 import javax.json.JsonReader;
 
 import net.adamcin.oakpal.core.Checklist;
-import net.adamcin.oakpal.core.JavaxJson;
+import net.adamcin.oakpal.api.JavaxJson;
 import net.adamcin.oakpal.core.JcrNs;
-import net.adamcin.oakpal.core.checks.Rule;
+import net.adamcin.oakpal.api.Rule;
 import net.adamcin.oakpal.webster.ChecklistExporter;
 import net.adamcin.oakpal.webster.WebsterTarget;
 import org.slf4j.Logger;

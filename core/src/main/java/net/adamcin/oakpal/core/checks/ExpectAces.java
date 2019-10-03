@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Mark Adamcin
+ * Copyright 2020 Mark Adamcin
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,13 +16,14 @@
 
 package net.adamcin.oakpal.core.checks;
 
-import net.adamcin.oakpal.core.Fun;
-import net.adamcin.oakpal.core.JavaxJson;
-import net.adamcin.oakpal.core.ProgressCheck;
-import net.adamcin.oakpal.core.ProgressCheckFactory;
-import net.adamcin.oakpal.core.Result;
-import net.adamcin.oakpal.core.SimpleProgressCheck;
-import net.adamcin.oakpal.core.Violation;
+import net.adamcin.oakpal.api.Fun;
+import net.adamcin.oakpal.api.JavaxJson;
+import net.adamcin.oakpal.api.ProgressCheck;
+import net.adamcin.oakpal.api.ProgressCheckFactory;
+import net.adamcin.oakpal.api.Result;
+import net.adamcin.oakpal.api.Rule;
+import net.adamcin.oakpal.api.SimpleProgressCheck;
+import net.adamcin.oakpal.api.Violation;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
@@ -38,7 +39,6 @@ import javax.jcr.Value;
 import javax.jcr.security.AccessControlEntry;
 import javax.jcr.security.Privilege;
 import javax.json.JsonObject;
-import javax.json.JsonValue;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -54,15 +54,15 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static net.adamcin.oakpal.core.Fun.compose;
-import static net.adamcin.oakpal.core.Fun.composeTest;
-import static net.adamcin.oakpal.core.Fun.inSet;
-import static net.adamcin.oakpal.core.Fun.inferTest1;
-import static net.adamcin.oakpal.core.Fun.mapEntry;
-import static net.adamcin.oakpal.core.Fun.result0;
-import static net.adamcin.oakpal.core.Fun.uncheck0;
-import static net.adamcin.oakpal.core.Fun.uncheck1;
-import static net.adamcin.oakpal.core.Fun.zipKeysWithValueFunc;
+import static net.adamcin.oakpal.api.Fun.compose;
+import static net.adamcin.oakpal.api.Fun.composeTest;
+import static net.adamcin.oakpal.api.Fun.inSet;
+import static net.adamcin.oakpal.api.Fun.inferTest1;
+import static net.adamcin.oakpal.api.Fun.mapEntry;
+import static net.adamcin.oakpal.api.Fun.result0;
+import static net.adamcin.oakpal.api.Fun.uncheck0;
+import static net.adamcin.oakpal.api.Fun.uncheck1;
+import static net.adamcin.oakpal.api.Fun.zipKeysWithValueFunc;
 
 /**
  * ExpectAces: assert the existence or non-existence of specific access control entries after extracting a package.

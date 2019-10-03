@@ -43,8 +43,8 @@ OakPAL was designed to fill this gap, by providing:
 2. An OakMachine class with a fluent Builder API that encapsulates the creation of a fresh Oak
 repository, state initialization, and package installation for every set of package files.
 
-3. A pluggable listener API with classpath discovery of third-party [Checklists](https://github.com/adamcin/oakpal/blob/master/core/src/main/resources/OAKPAL-INF/checklists/basic.json), 
-[ProgressChecks](oakpal-core/apidocs/net/adamcin/oakpal/core/ProgressCheck.html), and [ScriptProgressChecks](oakpal-maven-plugin/writing-a-script-check.html), 
+3. A pluggable listener API with classpath discovery of third-party [Checklists](https://github.com/adamcin/oakpal/blob/master/checks/src/main/resources/OAKPAL-INF/checklists/basic.json), 
+[ProgressChecks](net.adamcin.oakpal.api/apidocs/net/adamcin/oakpal/api/ProgressCheck.html), and [ScriptProgressChecks](oakpal-maven-plugin/writing-a-script-check.html), 
 which receive progress tracker events along with read-only access to incremental repository state, and which can report Violations at the end of a scan.
 
 

@@ -1,5 +1,6 @@
 package net.adamcin.oakpal.core;
 
+import net.adamcin.oakpal.api.Result;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -26,8 +27,8 @@ import java.util.stream.Stream;
 
 import static java.lang.String.format;
 import static java.util.Optional.ofNullable;
-import static net.adamcin.oakpal.core.Fun.compose;
-import static net.adamcin.oakpal.core.Fun.result1;
+import static net.adamcin.oakpal.api.Fun.compose;
+import static net.adamcin.oakpal.api.Fun.result1;
 
 /**
  * The default implemenation of {@link Opear}. This is backed by an extracted JAR directory, including

@@ -16,19 +16,20 @@
 
 package net.adamcin.oakpal.core;
 
-import static net.adamcin.oakpal.core.JavaxJson.key;
-import static net.adamcin.oakpal.core.JavaxJson.obj;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-
 import net.adamcin.oakpal.core.checks.Echo;
-import net.adamcin.oakpal.core.checks.Paths;
+import net.adamcin.oakpal.api.ProgressCheck;
+import net.adamcin.oakpal.api.Violation;
 import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+
+import static net.adamcin.oakpal.api.JavaxJson.key;
+import static net.adamcin.oakpal.api.JavaxJson.obj;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 public class LocatorTest {
 
@@ -60,9 +61,6 @@ public class LocatorTest {
                 Locator.loadProgressCheck(Echo.class.getName(), obj().get()));
         assertNotNull("echo should load by class name, with config, with cl",
                 Locator.loadProgressCheck(Echo.class.getName(), obj().get(), getClass().getClassLoader()));
-
-        assertNotNull("paths should load by class name, with config, with cl",
-                Locator.loadProgressCheck(Paths.class.getName(), obj().get(), getClass().getClassLoader()));
 
         assertNotNull("simpleHandler.js should load by resource name, with config, with cl",
                 Locator.loadProgressCheck("simpleHandler.js", obj().get(), getClass().getClassLoader()));

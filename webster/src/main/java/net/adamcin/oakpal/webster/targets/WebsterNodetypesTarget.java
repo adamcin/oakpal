@@ -23,7 +23,7 @@ import java.util.Set;
 import javax.jcr.Session;
 import javax.json.JsonObject;
 
-import net.adamcin.oakpal.core.checks.Rule;
+import net.adamcin.oakpal.api.Rule;
 import net.adamcin.oakpal.webster.ArchiveAware;
 import net.adamcin.oakpal.webster.CndExporter;
 import net.adamcin.oakpal.webster.FileVaultNameFinder;
