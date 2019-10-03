@@ -6,6 +6,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com)
 
 ## [Unreleased]
 
+### Fixed
+- ExpectAces ACE criteria now correctly trims around parameter names
+
 ## [1.5.1] - 2019-10-03
 
 ### Added

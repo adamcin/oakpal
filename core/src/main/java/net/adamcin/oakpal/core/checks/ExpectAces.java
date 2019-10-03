@@ -399,11 +399,11 @@ public final class ExpectAces implements ProgressCheckFactory {
         }
 
         static Result<AceCriteria> parse(final @NotNull String principal, final @NotNull String spec) {
-           final List<Map.Entry<String, Optional<String>>> pairs = Stream.of(spec.trim().split(DELIM_PARAM))
+            final List<Map.Entry<String, Optional<String>>> pairs = Stream.of(spec.trim().split(DELIM_PARAM))
                     .map(param -> {
                         String[] parts = param.split(DELIM_VALUE, 2);
                         final String trimmedValue = parts.length > 1 ? parts[1].trim() : "";
-                        return Fun.toEntry(parts[0],
+                        return Fun.toEntry(parts[0].trim(),
                                 trimmedValue.isEmpty()
                                         ? Optional.<String>empty()
                                         : Optional.of(trimmedValue));
