@@ -54,6 +54,16 @@
       "name": "jcrProperties",
       "impl": "net.adamcin.oakpal.core.checks.JcrProperties",
       "skip": true
+    },
+    {
+      "name": "expectPaths",
+      "impl": "net.adamcin.oakpal.core.checks.ExpectPaths",
+      "skip": true
+    },
+    {
+      "name": "expectAces",
+      "impl": "net.adamcin.oakpal.core.checks.ExpectAces",
+      "skip": true
     }
   ]
 }
@@ -77,10 +87,10 @@
                 <dd>(skipped, template-only) see <a href="apidocs/net/adamcin/oakpal/core/checks/Echo.html">net.adamcin.oakpal.core.checks.Echo</a></dd>
                 <dt><code>jcrProperties</code> (<code>net.adamcin.oakpal.core/basic/jcrProperties</code>)</dt>
                 <dd>(skipped, template-only) see <a href="apidocs/net/adamcin/oakpal/core/checks/JcrProperties.html">net.adamcin.oakpal.core.checks.JcrProperties</a></dd>
-                <dt><code>ExpectPaths</code></dt>
-                <dd>(by impl-only) see <a href="apidocs/net/adamcin/oakpal/core/checks/ExpectPaths.html">net.adamcin.oakpal.core.checks.ExpectPaths</a></dd>
-                <dt><code>ExpectAces</code></dt>
-                <dd>(by impl-only) see <a href="apidocs/net/adamcin/oakpal/core/checks/ExpectAces.html">net.adamcin.oakpal.core.checks.ExpectAces</a></dd>
+                <dt><code>expectPaths</code></dt>
+                <dd>(skipped, template-only) see <a href="apidocs/net/adamcin/oakpal/core/checks/ExpectPaths.html">net.adamcin.oakpal.core.checks.ExpectPaths</a></dd>
+                <dt><code>expectAces</code></dt>
+                <dd>(skipped, template-only) see <a href="apidocs/net/adamcin/oakpal/core/checks/ExpectAces.html">net.adamcin.oakpal.core.checks.ExpectAces</a></dd>
             </dl>
         </section>
     </body>

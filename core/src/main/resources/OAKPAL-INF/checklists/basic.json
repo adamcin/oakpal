@@ -39,6 +39,16 @@
       "name": "jcrProperties",
       "impl": "net.adamcin.oakpal.core.checks.JcrProperties",
       "skip": true
+    },
+    {
+      "name": "expectPaths",
+      "impl": "net.adamcin.oakpal.core.checks.ExpectPaths",
+      "skip": true
+    },
+    {
+      "name": "expectAces",
+      "impl": "net.adamcin.oakpal.core.checks.ExpectAces",
+      "skip": true
     }
   ]
 }
