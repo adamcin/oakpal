@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com)
 
 ## [Unreleased]
 
+## [1.5.0] - 2019-10-02
+
 ### Changed 
 - Upgraded oak dependencies to 1.18.0, Jackrabbit to 2.18.3, and FileVault to 3.4.0.
 
