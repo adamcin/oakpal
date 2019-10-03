@@ -69,7 +69,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.function.BiPredicate;
-import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.jar.JarInputStream;
 import java.util.jar.Manifest;
