@@ -7,10 +7,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com)
 ## [Unreleased]
 
 ### Changed 
-- Upgraded oak dependencies to 1.16.0.
+- Upgraded oak dependencies to 1.18.0, Jackrabbit to 2.18.3, and FileVault to 3.4.0.
 
 ### Added
 - GH18 Added CI builds for windows and mac osx.
+- Added ExpectPaths and ExpectAces checks to core.
 
 ### Fixed
 - GH20 resolved windows test failures
