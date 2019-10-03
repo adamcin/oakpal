@@ -85,6 +85,7 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doCallRealMethod;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockitoSession;
 import static org.mockito.Mockito.nullable;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
@@ -548,6 +549,29 @@ public class OakMachineTest {
         assertSame("same check", check, handlerLatch.getNow(null));
         assertEquals("package id is",
                 PackageId.fromString("my_packages:subtest"), idLatch.getNow(null));
+    }
+
+    @Test
+    public void testScanOnListenerExceptionFromIdentifySubpackage_silencedTho() throws Exception {
+        final File testPackage = TestPackageUtil.prepareTestPackage("subsubtest.zip");
+        final ProgressCheck check = mock(ProgressCheck.class, withSettings().lenient());
+        final ErrorListener errorListener = mock(ErrorListener.class, withSettings().lenient());
+        doThrow(RuntimeException.class).when(check).identifySubpackage(
+                any(PackageId.class),
+                any(PackageId.class)
+        );
+        final CompletableFuture<Exception> eLatch = new CompletableFuture<>();
+        final CompletableFuture<ProgressCheck> handlerLatch = new CompletableFuture<>();
+        final CompletableFuture<PackageId> idLatch = new CompletableFuture<>();
+        doAnswer(call -> {
+            eLatch.complete(call.getArgument(0, Exception.class));
+            handlerLatch.complete(call.getArgument(1, ProgressCheck.class));
+            idLatch.complete(call.getArgument(2, PackageId.class));
+            return true;
+        }).when(errorListener).onListenerException(any(Exception.class), any(ProgressCheck.class), any(PackageId.class));
+        builder().withProgressCheck(check).withErrorListener(errorListener)
+                .withSubpackageSilencer(((subpackageId, parentId) -> true)).build().scanPackage(testPackage);
+        assertFalse("error is not thrown", eLatch.isDone());
     }
 
     @Test
