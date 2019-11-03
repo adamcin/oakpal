@@ -268,7 +268,23 @@ abstract class AbstractITestWithPlanMojo extends AbstractITestMojo implements Pl
     protected boolean enablePreInstallHooks;
 
     /**
-     * Specify a policy for InstallHooks in scanned packages. InstallHooks are skipped by default.
+     * Specify a policy for InstallHooks in scanned packages. The possible values are:
+     * <dl>
+     * <dt>{@code PROHIBIT}</dt>
+     * <dd>Report a violation if any hook is registered successfully. Implies {@code REPORT}, and {@code SKIP},
+     * insofar as the hook will not be executed after registration. Use this level if your policy is to disallow
+     * install hooks in your content packages.</dd>
+     * <dt>{@code REPORT}</dt>
+     * <dd>Report a violation if any hook fails to register. This is likely a class loading issue, or an issue with
+     * Jar or Vault packaging. Similar to {@code ABORT}, except scan will proceed.</dd>
+     * <dt>{@code ABORT}</dt>
+     * <dd>Abort the scan if any hook fails to register. This is likely a class loading issue, or an issue with Jar
+     * or Vault packaging.</dd>
+     * <dt>{@code SKIP}</dt>
+     * <dd>Disable install hook processing for scanned packages.</dd>
+     * <dt>{@code DEFAULT} (= {@code REPORT})</dt>
+     * <dd>Explicitly request the default policy be used.</dd>
+     * </dl>
      *
      * @since 1.4.0
      */
