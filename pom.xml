@@ -358,20 +358,28 @@
                         <artifactId>github-release-maven-plugin</artifactId>
                         <version>1.0.1</version>
                         <inherited>false</inherited>
-                        <configuration>
-                            <owner>adamcin</owner>
-                            <repository>oakpal</repository>
-                            <server>github-release-oauth</server>
-                            <tagName>v${project.version}</tagName>
-                            <assets>
-                                <asset>cli/target/oakpal-cli-${project.version}-dist.zip</asset>
-                                <asset>cli/target/oakpal-cli-${project.version}-dist.zip.md5</asset>
-                                <asset>cli/target/oakpal-cli-${project.version}-dist.zip.sha1</asset>
-                                <asset>cli/target/oakpal-cli-${project.version}-dist.tar.gz</asset>
-                                <asset>cli/target/oakpal-cli-${project.version}-dist.tar.gz.md5</asset>
-                                <asset>cli/target/oakpal-cli-${project.version}-dist.tar.gz.sha1</asset>
-                            </assets>
-                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>default-github-release</id>
+                                <goals>
+                                    <goal>github-release</goal>
+                                </goals>
+                                <configuration>
+                                    <owner>adamcin</owner>
+                                    <repository>oakpal</repository>
+                                    <server>github-release-oauth</server>
+                                    <tagName>v${project.version}</tagName>
+                                    <assets>
+                                        <asset>cli/target/oakpal-cli-${project.version}-dist.zip</asset>
+                                        <asset>cli/target/oakpal-cli-${project.version}-dist.zip.md5</asset>
+                                        <asset>cli/target/oakpal-cli-${project.version}-dist.zip.sha1</asset>
+                                        <asset>cli/target/oakpal-cli-${project.version}-dist.tar.gz</asset>
+                                        <asset>cli/target/oakpal-cli-${project.version}-dist.tar.gz.md5</asset>
+                                        <asset>cli/target/oakpal-cli-${project.version}-dist.tar.gz.sha1</asset>
+                                    </assets>
+                                </configuration>
+                            </execution>
+                        </executions>
                     </plugin>
                 </plugins>
             </build>
