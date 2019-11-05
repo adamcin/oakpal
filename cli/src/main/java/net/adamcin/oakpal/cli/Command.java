@@ -84,7 +84,7 @@ final class Command {
         /* ------------ */
         final Result<List<CheckReport>> scanResult = OakpalPlan.fromJson(planUrl)
                 .flatMap(result1(plan ->
-                        plan.toOakMachineBuilder(new DefaultErrorListener(), cl)
+                        opts.applyOverrides(plan).toOakMachineBuilder(new DefaultErrorListener(), cl)
                                 .withNodeStoreSupplier(getNodeStoreSupplier(opts))))
                 .map(OakMachine.Builder::build).flatMap(oak -> runOakScan(opts, oak));
 
@@ -192,6 +192,9 @@ final class Command {
                 case "-j":
                 case "--json":
                     builder.setOutputJson(!isNoOpt);
+                    break;
+                case "--hooks":
+                    builder.setNoHooks(isNoOpt);
                     break;
                 case "-p":
                 case "--plan":

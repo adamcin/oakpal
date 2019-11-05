@@ -19,6 +19,8 @@ oakpal [ <options> ] <scanFile> ...
                                       or if no opear is specified, the basic oakpal plan will be used.
   +p | --no-plan                    : Use no plan for the scan. Overrides the default behavior, which otherwise
                                       uses the oakpal core "basic-plan.json".
+       --no-hooks                   : Disable preinstall and scan install hooks for all packages, otherwise, rely on
+                                      install hook policies configured in the selected plan.
   -s | --severity-fail <severity>   : Exit with a non-zero code if any violations are
                                       reported with a severity level equal to or higher
                                       than <severity>. Can be MINOR, MAJOR, or SEVERE.
