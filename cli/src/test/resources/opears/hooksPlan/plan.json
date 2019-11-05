@@ -1,0 +1,4 @@
+{
+  "enablePreInstallHooks": true,
+  "installHooksPolicy": "REPORT"
+}

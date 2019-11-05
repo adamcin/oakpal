@@ -1,6 +1,9 @@
 package net.adamcin.oakpal.cli;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.doCallRealMethod;
 import static org.mockito.Mockito.mock;
@@ -19,7 +22,9 @@ import javax.json.Json;
 import javax.json.JsonObject;
 import javax.json.JsonReader;
 
+import net.adamcin.oakpal.core.InstallHookPolicy;
 import net.adamcin.oakpal.core.JavaxJson;
+import net.adamcin.oakpal.core.OakpalPlan;
 import net.adamcin.oakpal.core.Result;
 import net.adamcin.oakpal.core.Violation;
 import org.apache.commons.io.FileUtils;
@@ -64,6 +69,7 @@ public class OptionsTest {
         builder.setPlanName(null);
         builder.setOutputJson(false);
         builder.setOutFile(null);
+        builder.setNoHooks(false);
 
         final Result<Options> options = builder.build(console);
         assertFalse("options build is successful", options.getError().isPresent());
@@ -103,6 +109,44 @@ public class OptionsTest {
         assertFalse("options build is successful", optionsResult.getError().isPresent());
         optionsResult.forEach(options ->
                 assertTrue("opearFile should be a directory: " + options.getOpearFile().getAbsolutePath(),
-                options.getOpearFile().isDirectory()));
+                        options.getOpearFile().isDirectory()));
+    }
+
+    @Test
+    public void testNoHooks() {
+        final Console console = getMockConsole();
+        when(console.getCwd()).thenReturn(tempDir);
+        Options.Builder builder = new Options.Builder().setOpearFile(new File("src/test/resources/opears/hooksPlan"));
+        final Result<Options> defaultOptionsResult = builder.build(console);
+        assertFalse("options build is successful", defaultOptionsResult.getError().isPresent());
+        defaultOptionsResult.forEach(options -> {
+            assertFalse("isNoHooks is disabled by default", options.isNoHooks());
+            assertFalse("false hasOverrides", options.hasOverrides());
+            final OakpalPlan originalPlan = new OakpalPlan.Builder(null, null)
+                    .withEnablePreInstallHooks(true)
+                    .withInstallHookPolicy(InstallHookPolicy.REPORT)
+                    .build();
+            final OakpalPlan overriddenPlan = options.applyOverrides(originalPlan);
+            assertSame("same plan with no overrides", originalPlan, overriddenPlan);
+            assertTrue("pre install hooks enabled", overriddenPlan.isEnablePreInstallHooks());
+            assertSame("install hooks policy",
+                    InstallHookPolicy.REPORT, overriddenPlan.getInstallHookPolicy());
+        });
+        final Result<Options> noHooksOptionsResult = builder.setNoHooks(true).build(console);
+        assertFalse("options build is successful", noHooksOptionsResult.getError().isPresent());
+        noHooksOptionsResult.forEach(options -> {
+            assertTrue("isNoHooks is enabled by builder", options.isNoHooks());
+            assertTrue("true hasOverrides", options.hasOverrides());
+            final OakpalPlan originalPlan = new OakpalPlan.Builder(null, null)
+                    .withEnablePreInstallHooks(true)
+                    .withInstallHookPolicy(InstallHookPolicy.REPORT)
+                    .build();
+            final OakpalPlan overriddenPlan = options.applyOverrides(originalPlan);
+            assertNotSame("not same plan with overrides", originalPlan, overriddenPlan);
+            assertFalse("pre install hooks disabled", overriddenPlan.isEnablePreInstallHooks());
+            assertSame("install hooks policy",
+                    InstallHookPolicy.SKIP, overriddenPlan.getInstallHookPolicy());
+        });
+
     }
 }

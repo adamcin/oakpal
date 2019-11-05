@@ -286,6 +286,17 @@ public class CommandTest {
 
         validator.expectSuccess(args("--no-plan"),
                 options -> assertNull("expect no plan", options.getPlanName()));
+
+        validator.expectSuccess(args(),
+                options -> assertFalse("expect no isNoHooks", options.isNoHooks()));
+        validator.expectSuccess(args("--hooks"),
+                options -> assertFalse("expect no isNoHooks", options.isNoHooks()));
+        validator.expectSuccess(args("--no-hooks"),
+                options -> assertTrue("expect isNoHooks", options.isNoHooks()));
+        validator.expectSuccess(args("--no-hooks", "--hooks"),
+                options -> assertFalse("expect no isNoHooks", options.isNoHooks()));
+        validator.expectSuccess(args("--hooks", "--no-hooks"),
+                options -> assertTrue("expect isNoHooks", options.isNoHooks()));
     }
 
     @Test

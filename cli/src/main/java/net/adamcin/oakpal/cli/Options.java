@@ -1,5 +1,6 @@
 package net.adamcin.oakpal.cli;
 
+import net.adamcin.oakpal.core.InstallHookPolicy;
 import net.adamcin.oakpal.core.Nothing;
 import net.adamcin.oakpal.core.OakpalPlan;
 import net.adamcin.oakpal.core.OpearFile;
@@ -18,7 +19,7 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.jar.JarFile;
 
-class Options {
+final class Options {
     static final String CACHE_DIR_NAME = ".oakpal-cache";
     static final Function<StructuredMessage, IO<Nothing>> EMPTY_PRINTER = message -> IO.empty;
     static final Options DEFAULT_OPTIONS = new Options();
@@ -30,6 +31,7 @@ class Options {
     private final File cacheDir;
     private final File opearFile;
     private final String planName;
+    private final boolean noHooks;
     private final List<File> scanFiles;
     private final Function<StructuredMessage, IO<Nothing>> printer;
     private final Violation.Severity failOnSeverity;
@@ -38,7 +40,7 @@ class Options {
         this(true, true, false,
                 OakpalPlan.BASIC_PLAN_URL, Options.class.getClassLoader(),
                 new File(System.getProperty("java.io.tmpdir")),
-                null, null,
+                null, null, false,
                 Collections.emptyList(),
                 EMPTY_PRINTER,
                 Violation.Severity.MAJOR);
@@ -52,6 +54,7 @@ class Options {
             final @NotNull File cacheDir,
             final @Nullable File opearFile,
             final @Nullable String planName,
+            final boolean noHooks,
             final @NotNull List<File> scanFiles,
             final @NotNull Function<StructuredMessage, IO<Nothing>> printer,
             final @NotNull Violation.Severity failOnSeverity) {
@@ -63,6 +66,7 @@ class Options {
         this.cacheDir = cacheDir;
         this.opearFile = opearFile;
         this.planName = planName;
+        this.noHooks = noHooks;
         this.scanFiles = scanFiles;
         this.printer = printer;
         this.failOnSeverity = failOnSeverity;
@@ -78,6 +82,10 @@ class Options {
 
     public boolean isStoreBlobs() {
         return storeBlobs;
+    }
+
+    public boolean isNoHooks() {
+        return noHooks;
     }
 
     public URL getPlanUrl() {
@@ -112,12 +120,31 @@ class Options {
         return failOnSeverity;
     }
 
+    boolean hasOverrides() {
+        return noHooks;
+    }
+
+    public OakpalPlan applyOverrides(final @NotNull OakpalPlan basePlan) {
+        if (hasOverrides()) {
+            final OakpalPlan.Builder overridePlan = new OakpalPlan.Builder(basePlan.getBase(), basePlan.getName())
+                    .startingWithPlan(basePlan);
+            if (isNoHooks()) {
+                overridePlan.withInstallHookPolicy(InstallHookPolicy.SKIP);
+                overridePlan.withEnablePreInstallHooks(false);
+            }
+            return overridePlan.build();
+        } else {
+            return basePlan;
+        }
+    }
+
     static final class Builder {
         private boolean justHelp;
         private boolean justVersion;
         private boolean storeBlobs;
         private boolean outputJson;
         private boolean noPlan;
+        private boolean noHooks;
         private String planName;
         private File outFile;
         private File cacheDir;
@@ -147,6 +174,11 @@ class Options {
 
         public Builder setNoPlan(final boolean noPlan) {
             this.noPlan = noPlan;
+            return this;
+        }
+
+        public Builder setNoHooks(final boolean noHooks) {
+            this.noHooks = noHooks;
             return this;
         }
 
@@ -214,7 +246,7 @@ class Options {
                                             new Options(justHelp, justVersion, storeBlobs, planUrl,
                                                     opear.getPlanClassLoader(getClass().getClassLoader()),
                                                     realCacheDir, opearFile,
-                                                    planName, scanFiles, writer,
+                                                    planName, noHooks, scanFiles, writer,
                                                     Optional.ofNullable(failOnSeverity).orElse(DEFAULT_OPTIONS.failOnSeverity)))));
         }
 
