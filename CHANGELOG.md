@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com)
 ### Fixed
 - ExpectAces ACE criteria now correctly trims around parameter names
 - #51 copied InstallHookPolicy details to scan goal doc
+- #37 switched to jar checksums for opear cache folder names.
 
 ## [1.5.1] - 2019-10-03
 
