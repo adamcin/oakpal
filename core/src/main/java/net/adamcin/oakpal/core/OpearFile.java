@@ -13,7 +13,9 @@ import java.io.InputStream;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.security.MessageDigest;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
 import java.util.jar.Attributes;
@@ -35,23 +37,16 @@ public final class OpearFile implements Opear {
     private static final Logger LOGGER = LoggerFactory.getLogger(OpearFile.class);
 
     static final class OpearMetadata {
-        private final String cacheId;
         private final String[] plans;
         private final String[] planClassPath;
         private final boolean defaultBasic;
 
-        OpearMetadata(final @NotNull String cacheId,
-                      final @NotNull String[] plans,
+        OpearMetadata(final @NotNull String[] plans,
                       final @NotNull String[] planClassPath,
                       final boolean defaultBasic) {
-            this.cacheId = cacheId;
             this.plans = plans;
             this.planClassPath = planClassPath;
             this.defaultBasic = defaultBasic;
-        }
-
-        @NotNull String getCacheId() {
-            return cacheId;
         }
 
         @NotNull String[] getPlans() {
@@ -129,7 +124,7 @@ public final class OpearFile implements Opear {
         final String[] plans = new File(directory, Opear.SIMPLE_DIR_PLAN).exists()
                 ? new String[]{Opear.SIMPLE_DIR_PLAN}
                 : new String[0];
-        return new OpearMetadata(directory.getName(), plans, new String[]{"."}, true);
+        return new OpearMetadata(plans, new String[]{"."}, true);
     }
 
     static Result<String[]> validateUriHeaderValuesWithDefaultForMissing(final @NotNull Manifest manifest,
@@ -181,7 +176,7 @@ public final class OpearFile implements Opear {
                                         validateUriHeaderValuesWithDefaultForMissing(man, NAME_CLASS_PATH, ".")
                                                 .flatMap(planClassPath ->
                                                         validateUriHeaderValues(man, NAME_OAKPAL_PLAN).flatMap(plans ->
-                                                                Result.success(new OpearMetadata(bid, plans,
+                                                                Result.success(new OpearMetadata(plans,
                                                                         planClassPath, false))
                                                         )))));
     }
@@ -201,22 +196,39 @@ public final class OpearFile implements Opear {
                 .map(meta -> new OpearFile(directory, meta));
     }
 
+    static Result<String> getHashCacheKey(final @NotNull String path) {
+        try (FileInputStream is = new FileInputStream(path)) {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            final byte[] buf = new byte[1024];
+            int nread;
+            while ((nread = is.read(buf)) != -1) {
+                digest.update(buf, 0, nread);
+            }
+            final byte[] mdbytes = digest.digest();
+            return Result.success(Base64.getUrlEncoder().withoutPadding().encodeToString(mdbytes));
+        } catch (Exception e) {
+            return Result.failure(e);
+        }
+    }
+
     public static Result<OpearFile> fromJar(final @NotNull JarFile jarFile, final @NotNull File cacheBaseDir) {
-        return result1(JarFile::getManifest).apply(jarFile)
-                .flatMap(OpearFile::validateOpearManifest)
-                .flatMap(metadata -> {
-                    final File cacheDir = new File(cacheBaseDir, metadata.getCacheId());
-                    if (cacheDir.isDirectory()) {
-                        return fromDirectory(cacheDir);
-                    } else {
-                        if (!cacheDir.mkdirs()) {
-                            return Result.failure(format("failed to create cache dir %s for specified opear file %s",
-                                    cacheDir.getPath(), jarFile.getName()));
+        return getHashCacheKey(jarFile.getName()).flatMap(cacheKey -> {
+            return result1(JarFile::getManifest).apply(jarFile)
+                    .flatMap(OpearFile::validateOpearManifest)
+                    .flatMap(metadata -> {
+                        final File cacheDir = new File(cacheBaseDir, cacheKey);
+                        if (cacheDir.isDirectory()) {
+                            return fromDirectory(cacheDir);
                         } else {
-                            return cacheJar(jarFile, cacheDir).flatMap(OpearFile::fromDirectory);
+                            if (!cacheDir.mkdirs()) {
+                                return Result.failure(format("failed to create cache dir %s for specified opear file %s",
+                                        cacheDir.getPath(), jarFile.getName()));
+                            } else {
+                                return cacheJar(jarFile, cacheDir).flatMap(OpearFile::fromDirectory);
+                            }
                         }
-                    }
-                });
+                    });
+        });
     }
 
     static Result<File> cacheJar(final @NotNull JarFile jarFile, final @NotNull File cacheDir) {

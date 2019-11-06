@@ -1,10 +1,19 @@
 package net.adamcin.oakpal.core;
 
-import static net.adamcin.oakpal.core.Fun.result1;
-import static net.adamcin.oakpal.core.OpearFile.NAME_CLASS_PATH;
-import static org.junit.Assert.*;
+import net.adamcin.oakpal.testing.TestPackageUtil;
+import org.apache.commons.io.FileUtils;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.junit.MockitoJUnitRunner;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.InputStream;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.charset.StandardCharsets;
@@ -16,13 +25,14 @@ import java.util.jar.JarFile;
 import java.util.jar.JarOutputStream;
 import java.util.jar.Manifest;
 
-import net.adamcin.oakpal.testing.TestPackageUtil;
-import org.apache.commons.io.FileUtils;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.junit.MockitoJUnitRunner;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static net.adamcin.oakpal.core.Fun.result1;
+import static net.adamcin.oakpal.core.OpearFile.NAME_CLASS_PATH;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 
 @RunWith(MockitoJUnitRunner.class)
 public class OpearFileTest {
@@ -118,13 +128,29 @@ public class OpearFileTest {
     }
 
     @Test
+    public void testGetHashCacheKey() throws Exception {
+        Result<String> cacheKeyDeletedResult = OpearFile.getHashCacheKey("/no/such/path");
+        assertTrue("cacheKey is failure", cacheKeyDeletedResult.isFailure());
+        assertTrue("cacheKey failure is FileNotFoundException",
+                cacheKeyDeletedResult.findCause(FileNotFoundException.class).isPresent());
+
+        buildDeepTestJar();
+        Result<String> cacheKeyResult = OpearFile.getHashCacheKey(deepTestTarget.getPath());
+        assertTrue("cacheKey is success", cacheKeyResult.isSuccess());
+        String cacheKey = cacheKeyResult.getOrDefault("");
+        assertEquals("cacheKey should be 43 characters long: " + cacheKey, 43, cacheKey.length());
+        final String pattern = "^[0-9A-Za-z_-]*$";
+        assertTrue(String.format("cacheKey %s matches regex %s", cacheKey, pattern), cacheKey.matches(pattern));
+    }
+
+    @Test
     public void testFromJar_mkdirsFail() throws Exception {
         buildDeepTestJar();
         final File cacheDir = new File("target/test-output/OpearFileTest/testFromJar_mkdirsFail/cache");
         if (cacheDir.exists()) {
             FileUtils.deleteDirectory(cacheDir);
         }
-        FileUtils.touch(new File(cacheDir, "deep_test"));
+        FileUtils.touch(new File(cacheDir, OpearFile.getHashCacheKey(deepTestTarget.getPath()).getOrDefault("failed_to_fail")));
         assertTrue("fail with jar when nondirectory present at cache id",
                 OpearFile.fromJar(new JarFile(deepTestTarget), cacheDir).isFailure());
     }
@@ -200,7 +226,7 @@ public class OpearFileTest {
         }
 
         OpearFile opearFile = new OpearFile(cacheDir,
-                new OpearFile.OpearMetadata("foo", new String[0], new String[0], true));
+                new OpearFile.OpearMetadata(new String[0], new String[0], true));
 
         final ClassLoader parent = new URLClassLoader(new URL[0], null);
         assertSame("same classloader with empty classpath", parent, opearFile.getPlanClassLoader(parent));
