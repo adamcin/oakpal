@@ -129,6 +129,11 @@ public class OpearFileTest {
 
     @Test
     public void testGetHashCacheKey() throws Exception {
+        Result<String> cacheKeyDeletedResult = OpearFile.getHashCacheKey("/no/such/path");
+        assertTrue("cacheKey is failure", cacheKeyDeletedResult.isFailure());
+        assertTrue("cacheKey failure is FileNotFoundException",
+                cacheKeyDeletedResult.findCause(FileNotFoundException.class).isPresent());
+
         buildDeepTestJar();
         Result<String> cacheKeyResult = OpearFile.getHashCacheKey(deepTestTarget.getPath());
         assertTrue("cacheKey is success", cacheKeyResult.isSuccess());
@@ -136,12 +141,6 @@ public class OpearFileTest {
         assertEquals("cacheKey should be 43 characters long: " + cacheKey, 43, cacheKey.length());
         final String pattern = "^[0-9A-Za-z_-]*$";
         assertTrue(String.format("cacheKey %s matches regex %s", cacheKey, pattern), cacheKey.matches(pattern));
-
-        deepTestTarget.delete();
-        Result<String> cacheKeyDeletedResult = OpearFile.getHashCacheKey(deepTestTarget.getPath());
-        assertTrue("cacheKey is failure", cacheKeyDeletedResult.isFailure());
-        assertTrue("cacheKey failure is FileNotFoundException",
-                cacheKeyDeletedResult.findCause(FileNotFoundException.class).isPresent());
     }
 
     @Test
