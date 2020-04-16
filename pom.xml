@@ -31,7 +31,7 @@
 
     <groupId>net.adamcin.oakpal</groupId>
     <artifactId>oakpal</artifactId>
-    <version>1.5.2-SNAPSHOT</version>
+    <version>1.5.2</version>
     <packaging>pom</packaging>
 
     <inceptionYear>2017</inceptionYear>
@@ -43,7 +43,7 @@
         <url>https://github.com/adamcin/oakpal</url>
         <developerConnection>scm:git:git@github.com:adamcin/oakpal.git</developerConnection>
         <connection>scm:git://github.com/adamcin/oakpal.git</connection>
-        <tag>HEAD</tag>
+        <tag>v1.5.2</tag>
     </scm>
 
     <distributionManagement>
@@ -468,17 +468,17 @@
             <dependency>
                 <groupId>net.adamcin.oakpal</groupId>
                 <artifactId>oakpal-testing</artifactId>
-                <version>1.5.2-SNAPSHOT</version>
+                <version>1.5.2</version>
             </dependency>
             <dependency>
                 <groupId>net.adamcin.oakpal</groupId>
                 <artifactId>oakpal-core</artifactId>
-                <version>1.5.2-SNAPSHOT</version>
+                <version>1.5.2</version>
             </dependency>
             <dependency>
                 <groupId>net.adamcin.oakpal</groupId>
                 <artifactId>oakpal-webster</artifactId>
-                <version>1.5.2-SNAPSHOT</version>
+                <version>1.5.2</version>
             </dependency>
             <dependency>
                 <groupId>org.jetbrains</groupId>
