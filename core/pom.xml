@@ -197,10 +197,22 @@
         <dependency>
             <groupId>org.apache.jackrabbit</groupId>
             <artifactId>oak-core</artifactId>
+<!--            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.jackrabbit</groupId>
+                    <artifactId>oak-core-spi</artifactId>
+                </exclusion>
+            </exclusions>-->
         </dependency>
         <dependency>
             <groupId>org.apache.jackrabbit</groupId>
             <artifactId>oak-jcr</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.jackrabbit</groupId>
+                    <artifactId>oak-core-spi</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <dependency>

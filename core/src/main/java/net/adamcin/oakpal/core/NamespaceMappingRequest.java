@@ -1,12 +1,13 @@
 package net.adamcin.oakpal.core;
 
-import org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants;
 import org.apache.jackrabbit.spi.Name;
 import org.apache.jackrabbit.spi.commons.namespace.NamespaceMapping;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -23,8 +24,12 @@ import static net.adamcin.oakpal.core.Fun.result1;
  * @see JsonCnd#toJcrNsList(NamespaceMapping, NamespaceMappingRequest) for how this type might be used
  */
 public final class NamespaceMappingRequest {
-    private static final Collection<String> BUILTIN_PREFIXES = NamespaceConstants.RESERVED_PREFIXES;
-    private static final Collection<String> BUILTIN_URIS = NamespaceConstants.RESERVED_URIS;
+    private static final Collection<String> BUILTIN_PREFIXES = Collections.unmodifiableList(
+            Arrays.asList("xml", "jcr", "nt", "mix", "xmlns", "rep", "sv", "oak"));
+    private static final Collection<String> BUILTIN_URIS = Collections.unmodifiableList(
+            Arrays.asList("http://www.w3.org/XML/1998/namespace", "http://www.jcp.org/jcr/1.0",
+                    "http://www.jcp.org/jcr/nt/1.0", "http://www.jcp.org/jcr/mix/1.0", "http://www.w3.org/2000/xmlns/",
+                    "internal", "http://www.jcp.org/jcr/sv/1.0", "http://jackrabbit.apache.org/oak/ns/1.0"));
     private final Set<String> retainPrefixes;
     private final Set<String> retainUris;
 

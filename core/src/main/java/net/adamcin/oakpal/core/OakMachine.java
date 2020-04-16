@@ -26,7 +26,6 @@ import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
-import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.AuthenticationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
@@ -76,6 +75,8 @@ import java.util.stream.Collectors;
 
 import static net.adamcin.oakpal.core.Fun.uncheck1;
 import static net.adamcin.oakpal.core.Fun.uncheckVoid1;
+import static org.apache.jackrabbit.JcrConstants.NT_BASE;
+import static org.apache.jackrabbit.JcrConstants.NT_FOLDER;
 
 /**
  * Entry point for OakPAL Acceptance Library. See {@link ProgressCheck} for the event listener interface.
@@ -85,6 +86,7 @@ public final class OakMachine {
     public static final String NS_PREFIX_OAKPAL = "oakpaltmp";
     public static final String LN_UNDECLARED = "Undeclared";
     public static final String NT_UNDECLARED = "{" + NS_URI_OAKPAL + "}" + LN_UNDECLARED;
+    private static final String RESIDUAL_NAME = "*";
 
     private final Packaging packagingService;
 
@@ -631,7 +633,7 @@ public final class OakMachine {
                 builderFactory.newNodeTypeDefinitionBuilder();
 
         builder.setName(NT_UNDECLARED);
-        builder.addSupertype(NodeTypeConstants.NT_FOLDER);
+        builder.addSupertype(NT_FOLDER);
 
         DefinitionBuilderFactory.AbstractPropertyDefinitionBuilder<NodeTypeTemplate> multiDef =
                 builder.newPropertyDefinitionBuilder();
@@ -639,23 +641,23 @@ public final class OakMachine {
         multiDef.setRequiredType(PropertyType.UNDEFINED);
         multiDef.setMultiple(true);
         multiDef.setOnParentVersion(OnParentVersionAction.IGNORE);
-        multiDef.setName(NodeTypeConstants.RESIDUAL_NAME);
+        multiDef.setName(RESIDUAL_NAME);
         multiDef.build();
 
         DefinitionBuilderFactory.AbstractPropertyDefinitionBuilder<NodeTypeTemplate> propDef =
                 builder.newPropertyDefinitionBuilder();
         propDef.setRequiredType(PropertyType.UNDEFINED);
         propDef.setOnParentVersion(OnParentVersionAction.IGNORE);
-        propDef.setName(NodeTypeConstants.RESIDUAL_NAME);
+        propDef.setName(RESIDUAL_NAME);
         propDef.build();
 
         DefinitionBuilderFactory.AbstractNodeDefinitionBuilder<NodeTypeTemplate> nodeDef =
                 builder.newNodeDefinitionBuilder();
 
-        nodeDef.addRequiredPrimaryType(NodeTypeConstants.NT_BASE);
+        nodeDef.addRequiredPrimaryType(NT_BASE);
         nodeDef.setDefaultPrimaryType(NT_UNDECLARED);
         nodeDef.setOnParentVersion(OnParentVersionAction.IGNORE);
-        nodeDef.setName(NodeTypeConstants.RESIDUAL_NAME);
+        nodeDef.setName(RESIDUAL_NAME);
         nodeDef.setAllowsSameNameSiblings(true);
         nodeDef.build();
 
