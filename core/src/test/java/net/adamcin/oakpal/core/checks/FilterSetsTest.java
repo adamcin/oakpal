@@ -17,7 +17,7 @@
 package net.adamcin.oakpal.core.checks;
 
 import net.adamcin.oakpal.api.ProgressCheck;
-import net.adamcin.oakpal.api.Violation;
+import net.adamcin.oakpal.api.Severity;
 import net.adamcin.oakpal.core.CheckReport;
 import net.adamcin.oakpal.testing.TestUtil;
 import org.junit.Assert;
@@ -56,7 +56,7 @@ public class FilterSetsTest extends ProgressCheckTestBase {
             CheckReport report = scanWithCheck(handler, "tmp_mode_merge.zip");
 
             Assert.assertEquals("one violation", 1, report.getViolations().size());
-            Assert.assertEquals("is severity", Violation.Severity.MINOR,
+            Assert.assertEquals("is severity", Severity.MINOR,
                     report.getViolations().iterator().next().getSeverity());
             assertTrue("all violations have packageIds", report.getViolations().stream()
                     .allMatch(viol -> !viol.getPackages().isEmpty()));
@@ -66,7 +66,7 @@ public class FilterSetsTest extends ProgressCheckTestBase {
             CheckReport report = scanWithCheck(handler, "tmp_mode_merge.zip");
 
             Assert.assertEquals("one violation", 1, report.getViolations().size());
-            Assert.assertEquals("is severity", Violation.Severity.SEVERE,
+            Assert.assertEquals("is severity", Severity.SEVERE,
                     report.getViolations().iterator().next().getSeverity());
             assertTrue("all violations have packageIds", report.getViolations().stream()
                     .allMatch(viol -> !viol.getPackages().isEmpty()));
@@ -80,7 +80,7 @@ public class FilterSetsTest extends ProgressCheckTestBase {
             CheckReport report = scanWithCheck(handler, "tmp_foo_bar_test_nofilter.zip");
 
             Assert.assertEquals("one violation", 1, report.getViolations().size());
-            Assert.assertEquals("is severity", Violation.Severity.MAJOR,
+            Assert.assertEquals("is severity", Severity.MAJOR,
                     report.getViolations().iterator().next().getSeverity());
             assertTrue("all violations have packageIds", report.getViolations().stream()
                     .allMatch(viol -> !viol.getPackages().isEmpty()));

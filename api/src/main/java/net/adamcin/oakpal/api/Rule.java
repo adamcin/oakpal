@@ -16,6 +16,8 @@
 
 package net.adamcin.oakpal.api;
 
+import org.jetbrains.annotations.NotNull;
+
 import javax.json.JsonArray;
 import javax.json.JsonObject;
 import java.util.List;
@@ -38,6 +40,29 @@ import java.util.regex.Pattern;
  * </dl>
  */
 public final class Rule implements JsonObjectConvertible {
+    public interface JsonKeys {
+        String type();
+
+        String pattern();
+    }
+
+    private static final JsonKeys KEYS = new JsonKeys() {
+        @Override
+        public String type() {
+            return "type";
+        }
+
+        @Override
+        public String pattern() {
+            return "pattern";
+        }
+    };
+
+    @NotNull
+    public static JsonKeys keys() {
+        return KEYS;
+    }
+
     static final Pattern PATTERN_MATCH_ALL = Pattern.compile(".*");
 
     /**
@@ -60,8 +85,11 @@ public final class Rule implements JsonObjectConvertible {
      */
     public static final Rule DEFAULT_DENY = new Rule(RuleType.DENY, PATTERN_MATCH_ALL);
 
-    public static final String CONFIG_TYPE = "type";
-    public static final String CONFIG_PATTERN = "pattern";
+    @Deprecated
+    public static final String CONFIG_TYPE = keys().type();
+    @Deprecated
+    public static final String CONFIG_PATTERN = keys().pattern();
+
     private final RuleType type;
     private final Pattern pattern;
 
@@ -149,7 +177,7 @@ public final class Rule implements JsonObjectConvertible {
      */
     @Override
     public JsonObject toJson() {
-        return JavaxJson.key(CONFIG_TYPE, getType().name()).key(CONFIG_PATTERN, getPattern().pattern()).get();
+        return JavaxJson.key(keys().type(), getType().name()).key(keys().pattern(), getPattern().pattern()).get();
     }
 
     @Override
@@ -203,8 +231,8 @@ public final class Rule implements JsonObjectConvertible {
      * @return a new rule
      */
     public static Rule fromJson(final JsonObject ruleJson) {
-        return new Rule(Rule.RuleType.fromName(ruleJson.getString(CONFIG_TYPE)),
-                Pattern.compile(ruleJson.getString(CONFIG_PATTERN)));
+        return new Rule(Rule.RuleType.fromName(ruleJson.getString(keys().type())),
+                Pattern.compile(ruleJson.getString(keys().pattern())));
     }
 
     /**

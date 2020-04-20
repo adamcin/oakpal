@@ -19,6 +19,7 @@ import java.util.Properties;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import net.adamcin.oakpal.api.Severity;
 import net.adamcin.oakpal.core.CheckReport;
 import net.adamcin.oakpal.core.DefaultErrorListener;
 import net.adamcin.oakpal.core.FileBlobMemoryNodeStore;
@@ -105,7 +106,7 @@ final class Command {
         return reports.stream()
                 .flatMap(compose(CheckReport::getViolations, Collection::stream))
                 .map(Violation::getSeverity)
-                .reduce(Violation.Severity::maxSeverity)
+                .reduce(Severity::maxSeverity)
                 .filter(opts.getFailOnSeverity().meetsMinimumSeverity())
                 .map(severity -> {
                     switch (severity) {
@@ -206,7 +207,7 @@ final class Command {
                         break;
                     } else {
                         final String severityArg = args[++i];
-                        final Result<Violation.Severity> severityResult = result1(Violation.Severity::byName)
+                        final Result<Severity> severityResult = result1(Severity::byName)
                                 .apply(severityArg);
                         if (severityResult.isFailure()) {
                             return Result.failure(severityResult.getError().get());

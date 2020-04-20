@@ -29,6 +29,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import javax.json.JsonObject;
 
+import net.adamcin.oakpal.api.Severity;
 import net.adamcin.oakpal.core.CheckReport;
 import net.adamcin.oakpal.core.FileBlobMemoryNodeStore;
 import net.adamcin.oakpal.api.Nothing;
@@ -37,7 +38,6 @@ import net.adamcin.oakpal.core.ReportMapper;
 import net.adamcin.oakpal.api.Result;
 import net.adamcin.oakpal.core.SimpleReport;
 import net.adamcin.oakpal.api.SimpleViolation;
-import net.adamcin.oakpal.api.Violation;
 import net.adamcin.oakpal.testing.TestPackageUtil;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
@@ -94,10 +94,10 @@ public class CommandTest {
         final List<CheckReport> reports = new ArrayList<>();
         reports.add(new SimpleReport("some check", Collections.emptyList()));
         reports.add(new SimpleReport("check with violations", Arrays.asList(
-                new SimpleViolation(Violation.Severity.MINOR, "minor violation"),
-                new SimpleViolation(Violation.Severity.SEVERE, "severe violation with one packageId",
+                new SimpleViolation(Severity.MINOR, "minor violation"),
+                new SimpleViolation(Severity.SEVERE, "severe violation with one packageId",
                         PackageId.fromString("my_packages/acme/1.0")),
-                new SimpleViolation(Violation.Severity.MAJOR, "major violation with several packageIds",
+                new SimpleViolation(Severity.MAJOR, "major violation with several packageIds",
                         PackageId.fromString("my_packages/alpha/1.0"),
                         PackageId.fromString("my_packages/beta/1.0"),
                         PackageId.fromString("my_packages/gamma/1.0"))
@@ -132,27 +132,27 @@ public class CommandTest {
     @Test
     public void testGetHighestReportSeverity() {
         ReportCollector collector1 = new ReportCollector();
-        collector1.reportViolation(new SimpleViolation(Violation.Severity.MINOR, ""));
-        collector1.reportViolation(new SimpleViolation(Violation.Severity.MAJOR, ""));
+        collector1.reportViolation(new SimpleViolation(Severity.MINOR, ""));
+        collector1.reportViolation(new SimpleViolation(Severity.MAJOR, ""));
         CheckReport hasMajor = new SimpleReport("hasMajor", collector1.getReportedViolations());
         ReportCollector collector2 = new ReportCollector();
-        collector2.reportViolation(new SimpleViolation(Violation.Severity.MINOR, ""));
-        collector2.reportViolation(new SimpleViolation(Violation.Severity.SEVERE, ""));
+        collector2.reportViolation(new SimpleViolation(Severity.MINOR, ""));
+        collector2.reportViolation(new SimpleViolation(Severity.SEVERE, ""));
         CheckReport hasSevere = new SimpleReport("hasSevere", collector2.getReportedViolations());
         ReportCollector collector3 = new ReportCollector();
-        collector3.reportViolation(new SimpleViolation(Violation.Severity.MINOR, ""));
+        collector3.reportViolation(new SimpleViolation(Severity.MINOR, ""));
         CheckReport hasMinor = new SimpleReport("hasMinor", collector3.getReportedViolations());
         final Console console = getMockConsole();
         Options optsFailDefault = new Options.Builder()
                 .build(console).getOrDefault(null);
         Options optsFailMinor = new Options.Builder()
-                .setFailOnSeverity(Violation.Severity.MINOR)
+                .setFailOnSeverity(Severity.MINOR)
                 .build(console).getOrDefault(null);
         Options optsFailMajor = new Options.Builder()
-                .setFailOnSeverity(Violation.Severity.MAJOR)
+                .setFailOnSeverity(Severity.MAJOR)
                 .build(console).getOrDefault(null);
         Options optsFailSevere = new Options.Builder()
-                .setFailOnSeverity(Violation.Severity.SEVERE)
+                .setFailOnSeverity(Severity.SEVERE)
                 .build(console).getOrDefault(null);
         final Command command = new Command();
         assertFalse("no exit minor default fail",
@@ -267,22 +267,22 @@ public class CommandTest {
         validator.expectFailure(args("-s", "extreme"));
         validator.expectSuccess(args(),
                 options -> assertEquals("expect major by default",
-                        Violation.Severity.MAJOR, options.getFailOnSeverity()));
+                        Severity.MAJOR, options.getFailOnSeverity()));
         validator.expectSuccess(args("-s", "major"),
                 options -> assertEquals("expect MAJOR",
-                        Violation.Severity.MAJOR, options.getFailOnSeverity()));
+                        Severity.MAJOR, options.getFailOnSeverity()));
         validator.expectSuccess(args("-s", "minor"),
                 options -> assertEquals("expect MINOR",
-                        Violation.Severity.MINOR, options.getFailOnSeverity()));
+                        Severity.MINOR, options.getFailOnSeverity()));
         validator.expectSuccess(args("-s", "minor", "+s"),
                 options -> assertEquals("expect MAJOR after resetting",
-                        Violation.Severity.MAJOR, options.getFailOnSeverity()));
+                        Severity.MAJOR, options.getFailOnSeverity()));
         validator.expectSuccess(args("-s", "severe"),
                 options -> assertEquals("expect severe",
-                        Violation.Severity.SEVERE, options.getFailOnSeverity()));
+                        Severity.SEVERE, options.getFailOnSeverity()));
         validator.expectSuccess(args("-s", "severe", "+s"),
                 options -> assertEquals("expect MAJOR after resetting",
-                        Violation.Severity.MAJOR, options.getFailOnSeverity()));
+                        Severity.MAJOR, options.getFailOnSeverity()));
 
         validator.expectSuccess(args("--no-plan"),
                 options -> assertNull("expect no plan", options.getPlanName()));

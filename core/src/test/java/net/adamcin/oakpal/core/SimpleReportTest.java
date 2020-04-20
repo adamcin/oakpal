@@ -16,6 +16,7 @@
 
 package net.adamcin.oakpal.core;
 
+import net.adamcin.oakpal.api.Severity;
 import net.adamcin.oakpal.api.SimpleProgressCheck;
 import net.adamcin.oakpal.api.SimpleViolation;
 import net.adamcin.oakpal.api.Violation;
@@ -42,8 +43,8 @@ public class SimpleReportTest {
         assertTrue("violations are empty", report.getViolations().isEmpty());
         final PackageId id = PackageId.fromString("my_packages:test:1.0");
         SimpleReport reportMore = new SimpleReport("moreReport", Arrays.asList(
-                new SimpleViolation(Violation.Severity.SEVERE, "severe", id),
-                new SimpleViolation(Violation.Severity.MINOR, "minor", id)));
+                new SimpleViolation(Severity.SEVERE, "severe", id),
+                new SimpleViolation(Severity.MINOR, "minor", id)));
 
         assertEquals("check name is", "moreReport", reportMore.getCheckName());
         assertEquals("violations are 2", 2, reportMore.getViolations().size());
@@ -53,8 +54,8 @@ public class SimpleReportTest {
     public void testEqualsAndHash() {
         final PackageId id = PackageId.fromString("my_packages:test:1.0");
         SimpleReport original = new SimpleReport("moreReport", Arrays.asList(
-                new SimpleViolation(Violation.Severity.SEVERE, "severe", id),
-                new SimpleViolation(Violation.Severity.MINOR, "minor", id)));
+                new SimpleViolation(Severity.SEVERE, "severe", id),
+                new SimpleViolation(Severity.MINOR, "minor", id)));
 
         assertFalse("null not equal", original.equals(null));
         assertNotEquals("other not equal", original, new Object());
@@ -65,7 +66,7 @@ public class SimpleReportTest {
         assertEquals("copy hash is equal", original.hashCode(), copy.hashCode());
 
         SimpleReport different = new SimpleReport("different", Arrays.asList(
-                new SimpleViolation(Violation.Severity.MAJOR, "major", id)));
+                new SimpleViolation(Severity.MAJOR, "major", id)));
         assertNotEquals("different is not equal", original, different);
         assertNotEquals("different hash is not equal", original.hashCode(), different.hashCode());
     }
@@ -83,19 +84,19 @@ public class SimpleReportTest {
         assertNotNull("report not null", report);
         assertEquals("report name", check.getClass().getSimpleName(), report.getCheckName());
         assertEquals("violations are",
-                Collections.singletonList(new SimpleViolation(Violation.Severity.MINOR, "minor")),
+                Collections.singletonList(new SimpleViolation(Severity.MINOR, "minor")),
                 report.getViolations());
     }
 
     @Test
     public void testGenerateReportFromErrorListener() {
         TestErrorListener errorListener = new TestErrorListener();
-        errorListener.reportViolation(new SimpleViolation(Violation.Severity.MINOR, "minor"));
+        errorListener.reportViolation(new SimpleViolation(Severity.MINOR, "minor"));
         SimpleReport report = SimpleReport.generateReport(errorListener);
         assertNotNull("report not null", report);
         assertEquals("report name", errorListener.getClass().getSimpleName(), report.getCheckName());
         assertEquals("violations are",
-                Collections.singletonList(new SimpleViolation(Violation.Severity.MINOR, "minor")),
+                Collections.singletonList(new SimpleViolation(Severity.MINOR, "minor")),
                 report.getViolations());
     }
 
@@ -105,10 +106,10 @@ public class SimpleReportTest {
         assertEquals("empty report name is empty", "", emptyReport.getCheckName());
         assertTrue("empty report violations are empty", emptyReport.getViolations().isEmpty());
 
-        SimpleViolation violation = new SimpleViolation(Violation.Severity.MINOR, "minor");
+        SimpleViolation violation = new SimpleViolation(Severity.MINOR, "minor");
         SimpleReport moreReport = SimpleReport.fromJson(obj()
-                .key(ReportMapper.KEY_CHECK_NAME, "more")
-                .key(ReportMapper.KEY_VIOLATIONS, arr().val(violation))
+                .key(ReportMapper.keys().checkName(), "more")
+                .key(ReportMapper.keys().violations(), arr().val(violation))
                 .get());
 
         assertEquals("more report name is more", "more", moreReport.getCheckName());
@@ -123,15 +124,15 @@ public class SimpleReportTest {
         }
 
         public final void minor(final String description, final PackageId... packages) {
-            this.reportViolation(new SimpleViolation(Violation.Severity.MINOR, description, packages));
+            this.reportViolation(new SimpleViolation(Severity.MINOR, description, packages));
         }
 
         public final void major(final String description, final PackageId... packages) {
-            this.reportViolation(new SimpleViolation(Violation.Severity.MAJOR, description, packages));
+            this.reportViolation(new SimpleViolation(Severity.MAJOR, description, packages));
         }
 
         public final void severe(final String description, final PackageId... packages) {
-            this.reportViolation(new SimpleViolation(Violation.Severity.SEVERE, description, packages));
+            this.reportViolation(new SimpleViolation(Severity.SEVERE, description, packages));
         }
     }
 

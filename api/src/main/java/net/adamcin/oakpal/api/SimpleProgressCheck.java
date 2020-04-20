@@ -30,22 +30,22 @@ public class SimpleProgressCheck implements ProgressCheck {
         collector.reportViolation(violation);
     }
 
-    protected final void reportViolation(final Violation.Severity severity,
+    protected final void reportViolation(final Severity severity,
                                          final String description,
                                          final PackageId... packages) {
         this.reportViolation(new SimpleViolation(severity, description, packages));
     }
 
     protected final void minorViolation(final String description, final PackageId... packages) {
-        this.reportViolation(new SimpleViolation(Violation.Severity.MINOR, description, packages));
+        this.reportViolation(new SimpleViolation(Severity.MINOR, description, packages));
     }
 
     protected final void majorViolation(final String description, final PackageId... packages) {
-        this.reportViolation(new SimpleViolation(Violation.Severity.MAJOR, description, packages));
+        this.reportViolation(new SimpleViolation(Severity.MAJOR, description, packages));
     }
 
     protected final void severeViolation(final String description, final PackageId... packages) {
-        this.reportViolation(new SimpleViolation(Violation.Severity.SEVERE, description, packages));
+        this.reportViolation(new SimpleViolation(Severity.SEVERE, description, packages));
     }
 
     @Override

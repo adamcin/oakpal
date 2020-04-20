@@ -19,9 +19,10 @@ package net.adamcin.oakpal.core.checks;
 import net.adamcin.oakpal.api.ProgressCheck;
 import net.adamcin.oakpal.api.ProgressCheckFactory;
 import net.adamcin.oakpal.api.Rule;
+import net.adamcin.oakpal.api.Severity;
 import net.adamcin.oakpal.api.SimpleProgressCheck;
-import net.adamcin.oakpal.api.Violation;
 import org.apache.jackrabbit.vault.packaging.PackageId;
+import org.jetbrains.annotations.NotNull;
 
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
@@ -66,20 +67,54 @@ import static net.adamcin.oakpal.api.JavaxJson.hasNonNull;
  * </dl>
  */
 public final class Paths implements ProgressCheckFactory {
-    public static final String CONFIG_RULES = "rules";
-    public static final String CONFIG_DENY_ALL_DELETES = "denyAllDeletes";
-    public static final String CONFIG_SEVERITY = "severity";
-    public static final Violation.Severity DEFAULT_SEVERITY = Violation.Severity.MAJOR;
+    public interface JsonKeys {
+        String rules();
+
+        String denyAllDeletes();
+
+        String severity();
+    }
+
+    private static final JsonKeys KEYS = new JsonKeys() {
+        @Override
+        public String rules() {
+            return "rules";
+        }
+
+        @Override
+        public String denyAllDeletes() {
+            return "denyAllDeletes";
+        }
+
+        @Override
+        public String severity() {
+            return "severity";
+        }
+    };
+
+    @NotNull
+    public static JsonKeys keys() {
+        return KEYS;
+    }
+
+    @Deprecated
+    public static final String CONFIG_RULES = keys().rules();
+    @Deprecated
+    public static final String CONFIG_DENY_ALL_DELETES = keys().denyAllDeletes();
+    @Deprecated
+    public static final String CONFIG_SEVERITY = keys().severity();
+
+    public static final Severity DEFAULT_SEVERITY = Severity.MAJOR;
 
     @Override
     public ProgressCheck newInstance(final JsonObject config) {
-        List<Rule> rules = Rule.fromJsonArray(arrayOrEmpty(config, CONFIG_RULES));
+        List<Rule> rules = Rule.fromJsonArray(arrayOrEmpty(config, keys().rules()));
 
-        final boolean denyAllDeletes = hasNonNull(config, CONFIG_DENY_ALL_DELETES)
-                && config.getBoolean(CONFIG_DENY_ALL_DELETES);
+        final boolean denyAllDeletes = hasNonNull(config, keys().denyAllDeletes())
+                && config.getBoolean(keys().denyAllDeletes());
 
-        final Violation.Severity severity = Violation.Severity.valueOf(
-                config.getString(CONFIG_SEVERITY, DEFAULT_SEVERITY.name()).toUpperCase());
+        final Severity severity = Severity.valueOf(
+                config.getString(keys().severity(), DEFAULT_SEVERITY.name()).toUpperCase());
 
         return new Check(rules, denyAllDeletes, severity);
     }
@@ -87,9 +122,9 @@ public final class Paths implements ProgressCheckFactory {
     static final class Check extends SimpleProgressCheck {
         private final List<Rule> rules;
         private final boolean denyAllDeletes;
-        private final Violation.Severity severity;
+        private final Severity severity;
 
-        Check(final List<Rule> rules, final boolean denyAllDeletes, final Violation.Severity severity) {
+        Check(final List<Rule> rules, final boolean denyAllDeletes, final Severity severity) {
             this.rules = rules;
             this.denyAllDeletes = denyAllDeletes;
             this.severity = severity;

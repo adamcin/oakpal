@@ -26,8 +26,8 @@ import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.List;
 
+import net.adamcin.oakpal.api.Severity;
 import net.adamcin.oakpal.api.SimpleViolation;
-import net.adamcin.oakpal.api.Violation;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.junit.Before;
 import org.junit.Test;
@@ -46,15 +46,15 @@ public class ReportMapperTest {
         final List<CheckReport> originalReports = asList(
                 new SimpleReport("test/first",
                         singletonList(
-                                new SimpleViolation(Violation.Severity.MINOR,
+                                new SimpleViolation(Severity.MINOR,
                                         "one",
                                         PackageId.fromString("test:first")))
                 ),
                 new SimpleReport("test/second",
                         asList(
-                                new SimpleViolation(Violation.Severity.MINOR,
+                                new SimpleViolation(Severity.MINOR,
                                         "one", PackageId.fromString("test:first")),
-                                new SimpleViolation(Violation.Severity.MINOR,
+                                new SimpleViolation(Severity.MINOR,
                                         "two",
                                         PackageId.fromString("test:first"),
                                         PackageId.fromString("test:second"))
@@ -75,15 +75,15 @@ public class ReportMapperTest {
         final List<CheckReport> originalReports = asList(
                 new SimpleReport("test/first",
                         singletonList(
-                                new SimpleViolation(Violation.Severity.MINOR,
+                                new SimpleViolation(Severity.MINOR,
                                         "one",
                                         PackageId.fromString("test:first")))
                 ),
                 new SimpleReport("test/second",
                         asList(
-                                new SimpleViolation(Violation.Severity.MINOR,
+                                new SimpleViolation(Severity.MINOR,
                                         "one", PackageId.fromString("test:first")),
-                                new SimpleViolation(Violation.Severity.MINOR,
+                                new SimpleViolation(Severity.MINOR,
                                         "two",
                                         PackageId.fromString("test:first"),
                                         PackageId.fromString("test:second"))

@@ -595,6 +595,18 @@ public class FunTest {
     }
 
     @Test
+    public void testComposeTry_noOnError() {
+        final Fun.ThrowingFunction<String, Class<?>> classLoader = this.getClass().getClassLoader()::loadClass;
+        final Function<String, Stream<Class<?>>> func =
+                composeTry(Stream::of, Stream::empty, classLoader, null);
+        final String notARealClassName = "net.adamcin.oakpal.core.NotARealClass";
+        final Class<?>[] loadedClasses = Stream.of("java.lang.String", notARealClassName, "java.util.Map")
+                .flatMap(func).toArray(Class<?>[]::new);
+        assertArrayEquals("loadedClasses should contain String and Map",
+                new Class<?>[]{String.class, Map.class}, loadedClasses);
+    }
+
+    @Test
     public void testComposeTry() {
         final Fun.ThrowingFunction<String, Class<?>> classLoader = this.getClass().getClassLoader()::loadClass;
         final Map<String, Exception> collectedErrors = new HashMap<>();

@@ -16,9 +16,10 @@
 
 package net.adamcin.oakpal.core;
 
-import net.adamcin.oakpal.core.checks.Echo;
 import net.adamcin.oakpal.api.ProgressCheck;
 import net.adamcin.oakpal.api.Violation;
+import net.adamcin.oakpal.core.checks.Echo;
+import net.adamcin.oakpal.core.checks.Paths;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -61,6 +62,9 @@ public class LocatorTest {
                 Locator.loadProgressCheck(Echo.class.getName(), obj().get()));
         assertNotNull("echo should load by class name, with config, with cl",
                 Locator.loadProgressCheck(Echo.class.getName(), obj().get(), getClass().getClassLoader()));
+
+        assertNotNull("paths should load by factory class name, with config, with cl",
+                Locator.loadProgressCheck(Paths.class.getName(), obj().get(), getClass().getClassLoader()));
 
         assertNotNull("simpleHandler.js should load by resource name, with config, with cl",
                 Locator.loadProgressCheck("simpleHandler.js", obj().get(), getClass().getClassLoader()));

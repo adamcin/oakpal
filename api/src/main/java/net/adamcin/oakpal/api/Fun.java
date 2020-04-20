@@ -855,8 +855,7 @@ public final class Fun {
                final @Nullable BiConsumer<? super T, ? super Exception> onError) {
         final BiConsumer<? super T, ? super Exception> consumeError = onError != null
                 ? onError
-                : (e, t) -> {
-        };
+                : (e, t) -> { /* do nothing */ };
 
         return element -> {
             try {

@@ -16,55 +16,52 @@
 
 package net.adamcin.oakpal.api;
 
-import static java.util.Arrays.asList;
-import static java.util.Collections.singletonList;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertTrue;
+import org.junit.Test;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 
-import net.adamcin.oakpal.api.Rule;
-import org.junit.Test;
+import static java.util.Arrays.asList;
+import static java.util.Collections.singletonList;
+import static net.adamcin.oakpal.api.JavaxJson.arr;
+import static net.adamcin.oakpal.api.JavaxJson.key;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 
 public class RuleTest {
 
-    @Test
-    public void testConstruct() {
-        boolean npeForRuleType = false;
-        try {
-            Rule rule = new Rule(null, Pattern.compile(".*"));
-        } catch (final NullPointerException npe) {
-            npeForRuleType = true;
-        }
+    @Test(expected = NullPointerException.class)
+    public void testConstruct_nullType() {
+        new Rule(null, Pattern.compile(".*"));
+    }
 
-        assertTrue("null ruleType should throw NPE immediately", npeForRuleType);
-
-        boolean npeForPattern = false;
-        try {
-            Rule rule = new Rule(Rule.RuleType.DENY, null);
-        } catch (final NullPointerException npe) {
-            npeForPattern = true;
-        }
-
-        assertTrue("null pattern should throw NPE immediately", npeForPattern);
+    @Test(expected = NullPointerException.class)
+    public void testConstruct_nullPattern() {
+        new Rule(Rule.RuleType.DENY, null);
     }
 
     @Test
     public void testRuleType() {
-        boolean illegalForUnknown = false;
-        try {
-            Rule.RuleType.fromName("not a thing");
-        } catch (IllegalArgumentException iae) {
-            illegalForUnknown = true;
-        }
+        assertSame("expect allow", Rule.RuleType.ALLOW, Rule.RuleType.fromName("allow"));
+        assertSame("expect allow", Rule.RuleType.ALLOW, Rule.RuleType.fromName("ALLOW"));
+        assertSame("expect deny", Rule.RuleType.DENY, Rule.RuleType.fromName("deny"));
+        assertSame("expect deny", Rule.RuleType.DENY, Rule.RuleType.fromName("DENY"));
+        assertSame("expect include", Rule.RuleType.INCLUDE, Rule.RuleType.fromName("include"));
+        assertSame("expect include", Rule.RuleType.INCLUDE, Rule.RuleType.fromName("INCLUDE"));
+        assertSame("expect exclude", Rule.RuleType.EXCLUDE, Rule.RuleType.fromName("exclude"));
+        assertSame("expect exclude", Rule.RuleType.EXCLUDE, Rule.RuleType.fromName("EXCLUDE"));
+    }
 
-        assertTrue("unknown ruletype name should throw IllegalArgumentException immediately",
-                illegalForUnknown);
+    @Test(expected = IllegalArgumentException.class)
+    public void testRuleType_throws() {
+        Rule.RuleType.fromName("not a thing");
     }
 
     @Test
@@ -91,6 +88,43 @@ public class RuleTest {
                 Rule.DEFAULT_DENY.hashCode(), newAllow.hashCode());
         assertNotEquals("hashCode(): DEFAULT_INCLUDE should not equal new ALLOW rule with same params as DEFAULT_ALLOW",
                 Rule.DEFAULT_INCLUDE.hashCode(), newAllow.hashCode());
+    }
+
+    @Test
+    public void testMatches() {
+        assertTrue("default matches all", Rule.DEFAULT_ALLOW.matches("/foo"));
+        final Rule allowsDigits = new Rule(Rule.RuleType.ALLOW, Pattern.compile("[0-9]*"));
+        assertTrue("allows digits matches digits", allowsDigits.matches("123"));
+        assertFalse("allows digits doesn't match letters", allowsDigits.matches("abc"));
+    }
+
+    @Test
+    public void testToJson() {
+        final Rule allowsDigits = new Rule(Rule.RuleType.ALLOW, Pattern.compile("[0-9]*"));
+        assertEquals("expect json", key(Rule.keys().type(), "ALLOW")
+                .key(Rule.keys().pattern(), "[0-9]*").get(), allowsDigits.toJson());
+    }
+
+    @Test
+    public void testFromJson() {
+        final Rule allowsDigits = Rule.fromJson(key(Rule.keys().type(), "ALLOW")
+                .key(Rule.keys().pattern(), "[0-9]*").get());
+        assertEquals("expect type", Rule.RuleType.ALLOW, allowsDigits.getType());
+        assertEquals("expect pattern", "[0-9]*", allowsDigits.getPattern().pattern());
+    }
+
+    @Test
+    public void testFromJsonArray() {
+        final Rule allowsDigits = Rule.fromJson(key(Rule.keys().type(), "ALLOW")
+                .key(Rule.keys().pattern(), "[0-9]*").get());
+        final Rule allowsLetters = Rule.fromJson(key(Rule.keys().type(), "ALLOW")
+                .key(Rule.keys().pattern(), "[a-z]*").get());
+
+        final List<Rule> expectRules = Arrays.asList(allowsDigits, allowsLetters);
+        assertEquals("exect same rules", expectRules, Rule.fromJsonArray(arr()
+                .val(key(Rule.keys().type(), "allow").key(Rule.keys().pattern(), "[0-9]*"))
+                .val(key(Rule.keys().type(), "allow").key(Rule.keys().pattern(), "[a-z]*"))
+                .get()));
     }
 
     @Test
@@ -169,8 +203,8 @@ public class RuleTest {
         });
 
         fuzzyDefaultExcFns.entrySet().forEach(fuzzyFnPair -> {
-                final String fuzzyFnName = fuzzyFnPair.getKey();
-                final Function<List<Rule>, Rule> fuzzyFn = fuzzyFnPair.getValue();
+            final String fuzzyFnName = fuzzyFnPair.getKey();
+            final Function<List<Rule>, Rule> fuzzyFn = fuzzyFnPair.getValue();
             defaultExcRules.forEach(rule -> {
                 final Rule defaultRule = fuzzyFn.apply(singletonList(rule));
                 assertEquals(fuzzyFnName + ": invert default exclude when first rule is exclude-like: " + rule,
@@ -182,5 +216,28 @@ public class RuleTest {
                         Rule.DEFAULT_EXCLUDE, defaultRule);
             });
         });
+    }
+
+    @Test
+    public void testLastMatch() {
+        final Rule allowsDigits = Rule.fromJson(key(Rule.keys().type(), "ALLOW")
+                .key(Rule.keys().pattern(), "[0-9]*").get());
+        final Rule deniesLetters = Rule.fromJson(key(Rule.keys().type(), "DENY")
+                .key(Rule.keys().pattern(), "[a-z]*").get());
+
+        final List<Rule> expectRules = Arrays.asList(allowsDigits, deniesLetters);
+        final Rule adHocDefault = new Rule(Rule.RuleType.ALLOW, Pattern.compile("\\.\\."));
+        final Rule matched0 = Rule.lastMatch(expectRules, "...", rules -> adHocDefault);
+        assertSame("expect specific default", adHocDefault, matched0);
+
+        final Rule matched1 = Rule.lastMatch(expectRules, "...", null);
+        assertSame("expect globbal default", Rule.DEFAULT_INCLUDE, matched1);
+
+        final Rule matchedDigits = Rule.lastMatch(expectRules, "123");
+        assertSame("expect digits rule", allowsDigits, matchedDigits);
+
+        final Rule matchedAlpha = Rule.lastMatch(expectRules, "abc");
+        assertSame("expect alpha rule", deniesLetters, matchedAlpha);
+
     }
 }

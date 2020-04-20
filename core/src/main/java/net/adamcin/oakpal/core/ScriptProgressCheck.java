@@ -21,6 +21,7 @@ import net.adamcin.oakpal.api.ProgressCheck;
 import net.adamcin.oakpal.api.ProgressCheckFactory;
 import net.adamcin.oakpal.api.ReportCollector;
 import net.adamcin.oakpal.api.Result;
+import net.adamcin.oakpal.api.Severity;
 import net.adamcin.oakpal.api.SimpleViolation;
 import net.adamcin.oakpal.api.Violation;
 import org.apache.jackrabbit.vault.fs.config.MetaInf;
@@ -264,15 +265,15 @@ public final class ScriptProgressCheck implements ProgressCheck {
         private final ReportCollector collector = new ReportCollector();
 
         public void minorViolation(String description, PackageId... packageIds) {
-            collector.reportViolation(new SimpleViolation(Violation.Severity.MINOR, description, packageIds));
+            collector.reportViolation(new SimpleViolation(Severity.MINOR, description, packageIds));
         }
 
         public void majorViolation(String description, PackageId... packageIds) {
-            collector.reportViolation(new SimpleViolation(Violation.Severity.MAJOR, description, packageIds));
+            collector.reportViolation(new SimpleViolation(Severity.MAJOR, description, packageIds));
         }
 
         public void severeViolation(String description, PackageId... packageIds) {
-            collector.reportViolation(new SimpleViolation(Violation.Severity.SEVERE, description, packageIds));
+            collector.reportViolation(new SimpleViolation(Severity.SEVERE, description, packageIds));
         }
     }
 

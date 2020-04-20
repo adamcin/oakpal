@@ -20,8 +20,8 @@ import net.adamcin.oakpal.api.JavaxJson;
 import net.adamcin.oakpal.api.ProgressCheck;
 import net.adamcin.oakpal.api.ProgressCheckFactory;
 import net.adamcin.oakpal.api.Rule;
+import net.adamcin.oakpal.api.Severity;
 import net.adamcin.oakpal.api.SimpleProgressCheck;
-import net.adamcin.oakpal.api.Violation;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.jetbrains.annotations.NotNull;
 
@@ -53,23 +53,64 @@ import static net.adamcin.oakpal.api.JavaxJson.optArray;
  * </dl>
  */
 public final class ExpectPaths implements ProgressCheckFactory {
-    public static final String CONFIG_EXPECTED_PATHS = "expectedPaths";
-    public static final String CONFIG_NOT_EXPECTED_PATHS = "notExpectedPaths";
-    public static final String CONFIG_AFTER_PACKAGE_ID_RULES = "afterPackageIdRules";
-    static final String CONFIG_SEVERITY = "severity";
-    static final Violation.Severity DEFAULT_SEVERITY = Violation.Severity.MAJOR;
+    public interface JsonKeys {
+        String expectedPaths();
+
+        String notExpectedPaths();
+
+        String afterPackageIdRules();
+
+        String severity();
+    }
+
+    private static final JsonKeys KEYS = new JsonKeys() {
+        @Override
+        public String expectedPaths() {
+            return "expectedPaths";
+        }
+
+        @Override
+        public String notExpectedPaths() {
+            return "notExpectedPaths";
+        }
+
+        @Override
+        public String afterPackageIdRules() {
+            return "afterPackageIdRules";
+        }
+
+        @Override
+        public String severity() {
+            return "severity";
+        }
+    };
+
+    @NotNull
+    public static JsonKeys keys() {
+        return KEYS;
+    }
+
+    @Deprecated
+    public static final String CONFIG_EXPECTED_PATHS = keys().expectedPaths();
+    @Deprecated
+    public static final String CONFIG_NOT_EXPECTED_PATHS = keys().notExpectedPaths();
+    @Deprecated
+    public static final String CONFIG_AFTER_PACKAGE_ID_RULES = keys().afterPackageIdRules();
+    @Deprecated
+    public static final String CONFIG_SEVERITY = keys().severity();
+    static final Severity DEFAULT_SEVERITY = Severity.MAJOR;
 
     @Override
     public ProgressCheck newInstance(final JsonObject config) {
-        final List<String> expectedPaths = optArray(config, CONFIG_EXPECTED_PATHS)
+        final List<String> expectedPaths = optArray(config, keys().expectedPaths())
                 .map(JavaxJson::mapArrayOfStrings)
                 .orElse(Collections.emptyList());
-        final List<String> notExpectedPaths = optArray(config, CONFIG_NOT_EXPECTED_PATHS)
+        final List<String> notExpectedPaths = optArray(config, keys().notExpectedPaths())
                 .map(JavaxJson::mapArrayOfStrings)
                 .orElse(Collections.emptyList());
-        final List<Rule> afterPackageIdRules = Rule.fromJsonArray(arrayOrEmpty(config, CONFIG_AFTER_PACKAGE_ID_RULES));
-        final Violation.Severity severity = Violation.Severity.valueOf(
-                config.getString(CONFIG_SEVERITY, DEFAULT_SEVERITY.name()).toUpperCase());
+        final List<Rule> afterPackageIdRules = Rule.fromJsonArray(arrayOrEmpty(config, keys().afterPackageIdRules()));
+        final Severity severity = Severity.valueOf(
+                config.getString(keys().severity(), DEFAULT_SEVERITY.name()).toUpperCase());
         return new Check(expectedPaths, notExpectedPaths, afterPackageIdRules, severity);
     }
 
@@ -78,14 +119,14 @@ public final class ExpectPaths implements ProgressCheckFactory {
         final List<String> expectedPaths;
         final List<String> notExpectedPaths;
         final List<Rule> afterPackageIdRules;
-        final Violation.Severity severity;
+        final Severity severity;
         final Map<String, List<PackageId>> expectedViolators = new LinkedHashMap<>();
         final Map<String, List<PackageId>> notExpectedViolators = new LinkedHashMap<>();
 
         Check(final @NotNull List<String> expectedPaths,
               final @NotNull List<String> notExpectedPaths,
               final @NotNull List<Rule> afterPackageIdRules,
-              final @NotNull Violation.Severity severity) {
+              final @NotNull Severity severity) {
             this.expectedPaths = expectedPaths;
             this.notExpectedPaths = notExpectedPaths;
             this.afterPackageIdRules = afterPackageIdRules;

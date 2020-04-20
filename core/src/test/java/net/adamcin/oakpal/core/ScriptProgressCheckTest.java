@@ -18,6 +18,7 @@ package net.adamcin.oakpal.core;
 
 import net.adamcin.oakpal.api.ProgressCheck;
 import net.adamcin.oakpal.api.ProgressCheckFactory;
+import net.adamcin.oakpal.api.Severity;
 import net.adamcin.oakpal.api.Violation;
 import org.apache.jackrabbit.vault.fs.config.MetaInf;
 import org.apache.jackrabbit.vault.packaging.PackageId;
@@ -100,11 +101,11 @@ public class ScriptProgressCheckTest {
         assertEquals("violations size", 3, violations.size());
 
         assertTrue("test_0 minor violation", violations.stream()
-                .anyMatch(viol -> viol.getSeverity() == Violation.Severity.MINOR && viol.getPackages().contains(id0)));
+                .anyMatch(viol -> viol.getSeverity() == Severity.MINOR && viol.getPackages().contains(id0)));
         assertTrue("test_1 major violation", violations.stream()
-                .anyMatch(viol -> viol.getSeverity() == Violation.Severity.MAJOR && viol.getPackages().contains(id1)));
+                .anyMatch(viol -> viol.getSeverity() == Severity.MAJOR && viol.getPackages().contains(id1)));
         assertTrue("test_2 severe violation", violations.stream()
-                .anyMatch(viol -> viol.getSeverity() == Violation.Severity.SEVERE && viol.getPackages().contains(id2)));
+                .anyMatch(viol -> viol.getSeverity() == Severity.SEVERE && viol.getPackages().contains(id2)));
 
         check.startedScan();
 

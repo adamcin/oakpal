@@ -95,8 +95,8 @@ public final class SimpleReport implements CheckReport {
     }
 
     public static SimpleReport fromJson(final @NotNull JsonObject jsonReport) {
-        String vCheckName = jsonReport.getString(KEY_CHECK_NAME, "");
-        List<Violation> violations = optArray(jsonReport, KEY_VIOLATIONS)
+        String vCheckName = jsonReport.getString(CoreConstants.checkReportKeys().checkName(), "");
+        List<Violation> violations = optArray(jsonReport, CoreConstants.checkReportKeys().violations())
                 .map(array -> mapArrayOfObjects(array, ReportMapper::violationFromJson))
                 .orElseGet(Collections::emptyList);
 

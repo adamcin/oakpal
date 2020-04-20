@@ -17,9 +17,11 @@
 package net.adamcin.oakpal.core.checks;
 
 import net.adamcin.oakpal.api.Rule;
+import net.adamcin.oakpal.api.Severity;
 import net.adamcin.oakpal.api.SimpleViolation;
 import net.adamcin.oakpal.api.Violation;
 import org.apache.jackrabbit.vault.packaging.PackageId;
+import org.jetbrains.annotations.NotNull;
 
 import javax.jcr.Node;
 import javax.jcr.Property;
@@ -59,32 +61,98 @@ import static net.adamcin.oakpal.api.JavaxJson.mapArrayOfObjects;
  * <dd>A list of patterns to match against string values of this property. All rules are applied in sequence to each
  * value of the property. If the type of the last rule to match any value is DENY, a violation is reported.</dd>
  * <dt>{@code severity}</dt>
- * <dd>(default: {@link Violation.Severity#MAJOR}) specify the severity if a violation is
+ * <dd>(default: {@link Severity#MAJOR}) specify the severity if a violation is
  * reported by this set of constraints.</dd>
  * </dl>
  */
 public final class JcrPropertyConstraints {
-    public static final String CONFIG_NAME = "name";
-    public static final String CONFIG_DENY_IF_ABSENT = "denyIfAbsent";
-    public static final String CONFIG_DENY_IF_PRESENT = "denyIfPresent";
-    public static final String CONFIG_DENY_IF_MULTIVALUED = "denyIfMultivalued";
-    public static final String CONFIG_REQUIRE_TYPE = "requireType";
-    public static final String CONFIG_VALUE_RULES = "valueRules";
-    public static final String CONFIG_SEVERITY = "severity";
-    public static final Violation.Severity DEFAULT_SEVERITY = Violation.Severity.MAJOR;
+    public interface JsonKeys {
+        String name();
+
+        String denyIfAbsent();
+
+        String denyIfPresent();
+
+        String denyIfMultivalued();
+
+        String requireType();
+
+        String valueRules();
+
+        String severity();
+    }
+
+    private static final JsonKeys KEYS = new JsonKeys() {
+        @Override
+        public String name() {
+            return "name";
+        }
+
+        @Override
+        public String denyIfAbsent() {
+            return "denyIfAbsent";
+        }
+
+        @Override
+        public String denyIfPresent() {
+            return "denyIfPresent";
+        }
+
+        @Override
+        public String denyIfMultivalued() {
+            return "denyIfMultivalued";
+        }
+
+        @Override
+        public String requireType() {
+            return "requireType";
+        }
+
+        @Override
+        public String valueRules() {
+            return "valueRules";
+        }
+
+        @Override
+        public String severity() {
+            return "severity";
+        }
+    };
+
+    @NotNull
+    public static JsonKeys keys() {
+        return KEYS;
+    }
+
+    @Deprecated
+    public static final String CONFIG_NAME = keys().name();
+    @Deprecated
+    public static final String CONFIG_DENY_IF_ABSENT = keys().denyIfAbsent();
+    @Deprecated
+    public static final String CONFIG_DENY_IF_PRESENT = keys().denyIfPresent();
+    @Deprecated
+    public static final String CONFIG_DENY_IF_MULTIVALUED = keys().denyIfMultivalued();
+    @Deprecated
+    public static final String CONFIG_REQUIRE_TYPE = keys().requireType();
+    @Deprecated
+    public static final String CONFIG_VALUE_RULES = keys().valueRules();
+    @Deprecated
+    public static final String CONFIG_SEVERITY = keys().severity();
+
+    public static final Severity DEFAULT_SEVERITY = Severity.MAJOR;
 
     public static JcrPropertyConstraints fromJson(final JsonObject checkJson) {
-        final String name = checkJson.getString(CONFIG_NAME);
-        final boolean denyIfAbsent = hasNonNull(checkJson, CONFIG_DENY_IF_ABSENT)
-                && checkJson.getBoolean(CONFIG_DENY_IF_ABSENT);
-        final boolean denyIfPresent = hasNonNull(checkJson, CONFIG_DENY_IF_PRESENT)
-                && checkJson.getBoolean(CONFIG_DENY_IF_PRESENT);
-        final boolean denyIfMultivalued = hasNonNull(checkJson, CONFIG_DENY_IF_MULTIVALUED)
-                && checkJson.getBoolean(CONFIG_DENY_IF_MULTIVALUED);
-        final String requireType = checkJson.getString(CONFIG_REQUIRE_TYPE, null);
-        final List<Rule> valueRules = Rule.fromJsonArray(arrayOrEmpty(checkJson, CONFIG_VALUE_RULES));
-        final Violation.Severity severity = Violation.Severity
-                .valueOf(checkJson.getString(CONFIG_SEVERITY, DEFAULT_SEVERITY.name()).toUpperCase());
+        final String name = checkJson.getString(keys().name());
+        final boolean denyIfAbsent = hasNonNull(checkJson, keys().denyIfAbsent())
+                && checkJson.getBoolean(keys().denyIfAbsent());
+        final boolean denyIfPresent = hasNonNull(checkJson, keys().denyIfPresent())
+                && checkJson.getBoolean(keys().denyIfPresent());
+        final boolean denyIfMultivalued = hasNonNull(checkJson, keys().denyIfMultivalued())
+                && checkJson.getBoolean(keys().denyIfMultivalued());
+        final String requireType = checkJson.getString(keys().requireType(), null);
+        final List<Rule> valueRules = Rule.fromJsonArray(arrayOrEmpty(checkJson, keys().valueRules()));
+        final Severity severity = Severity
+                .valueOf(checkJson.getString(keys().severity(), DEFAULT_SEVERITY.name()).toUpperCase());
 
         return new JcrPropertyConstraints(name, denyIfAbsent, denyIfPresent, denyIfMultivalued, requireType, valueRules,
                 severity);
@@ -100,7 +168,7 @@ public final class JcrPropertyConstraints {
     private final boolean denyIfMultivalued;
     private final String requireType;
     private final List<Rule> valueRules;
-    private final Violation.Severity severity;
+    private final Severity severity;
 
     public JcrPropertyConstraints(final String name,
                                   final boolean denyIfAbsent,
@@ -108,7 +176,7 @@ public final class JcrPropertyConstraints {
                                   final boolean denyIfMultivalued,
                                   final String requireType,
                                   final List<Rule> valueRules,
-                                  final Violation.Severity severity) {
+                                  final Severity severity) {
         this.name = name;
         this.denyIfAbsent = denyIfAbsent;
         this.denyIfPresent = denyIfPresent;
@@ -142,7 +210,7 @@ public final class JcrPropertyConstraints {
         return valueRules;
     }
 
-    public Violation.Severity getSeverity() {
+    public Severity getSeverity() {
         return severity;
     }
 

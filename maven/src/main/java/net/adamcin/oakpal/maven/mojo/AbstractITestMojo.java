@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import net.adamcin.oakpal.api.Severity;
 import net.adamcin.oakpal.core.CheckReport;
 import net.adamcin.oakpal.api.Violation;
 import org.apache.jackrabbit.vault.packaging.PackageId;
@@ -54,9 +55,9 @@ abstract class AbstractITestMojo extends AbstractCommonMojo {
 
     /**
      * Specify the minimum violation severity level that will trigger plugin execution failure. Valid options are
-     * {@link Violation.Severity#MINOR},
-     * {@link Violation.Severity#MAJOR}, and
-     * {@link Violation.Severity#SEVERE}.
+     * {@link Severity#MINOR},
+     * {@link Severity#MAJOR}, and
+     * {@link Severity#SEVERE}.
      * <p>
      * FYI: FileVault Importer errors are reported as MAJOR by default.
      * </p>
@@ -64,7 +65,7 @@ abstract class AbstractITestMojo extends AbstractCommonMojo {
      * @since 0.1.0
      */
     @Parameter(defaultValue = "MAJOR")
-    protected Violation.Severity failOnSeverity = Violation.Severity.MAJOR;
+    protected Severity failOnSeverity = Severity.MAJOR;
 
     protected abstract boolean isIndividuallySkipped();
 

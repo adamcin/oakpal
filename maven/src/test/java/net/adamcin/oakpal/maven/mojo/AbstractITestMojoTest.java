@@ -16,8 +16,8 @@
 
 package net.adamcin.oakpal.maven.mojo;
 
+import net.adamcin.oakpal.api.Severity;
 import net.adamcin.oakpal.api.SimpleViolation;
-import net.adamcin.oakpal.api.Violation;
 import net.adamcin.oakpal.core.CheckReport;
 import net.adamcin.oakpal.core.SimpleReport;
 import org.apache.commons.io.FileUtils;
@@ -90,10 +90,10 @@ public class AbstractITestMojoTest {
         mojo.setLog(log);
         mojo.reactToReports(Arrays.asList(
                 new SimpleReport("one", Collections
-                        .singletonList(new SimpleViolation(Violation.Severity.MINOR, "one",
+                        .singletonList(new SimpleViolation(Severity.MINOR, "one",
                                 packageId))),
                 new SimpleReport("two", Collections
-                        .singletonList(new SimpleViolation(Violation.Severity.MINOR, "two")))));
+                        .singletonList(new SimpleViolation(Severity.MINOR, "two")))));
         assertFalse("no error messages", log.any(MockMojoLog.MockMojoLogEntry::isError));
         assertTrue("expect log header", log.any(entry -> "OakPAL Check Reports".equals(entry.message)));
         assertTrue("expect report one", log.any(entry -> "  one".equals(entry.message)));
@@ -108,14 +108,14 @@ public class AbstractITestMojoTest {
         final PackageId packageId = PackageId.fromString("my_packages:example-one:1.0");
         MockMojoLog log = new MockMojoLog();
         ConcreteMojo mojo = new ConcreteMojo();
-        mojo.setFailOnSeverity(Violation.Severity.MINOR);
+        mojo.setFailOnSeverity(Severity.MINOR);
         mojo.setLog(log);
         final List<CheckReport> reports = Arrays.asList(
                 new SimpleReport("one", Collections
-                        .singletonList(new SimpleViolation(Violation.Severity.MINOR, "one",
+                        .singletonList(new SimpleViolation(Severity.MINOR, "one",
                                 packageId))),
                 new SimpleReport("two", Collections
-                        .singletonList(new SimpleViolation(Violation.Severity.MINOR, "two"))));
+                        .singletonList(new SimpleViolation(Severity.MINOR, "two"))));
         boolean failed = false;
         try {
             mojo.reactToReports(reports);
@@ -203,7 +203,7 @@ public class AbstractITestMojoTest {
             this.summaryFile = summaryFile;
         }
 
-        public void setFailOnSeverity(Violation.Severity failOnSeverity) {
+        public void setFailOnSeverity(Severity failOnSeverity) {
             this.failOnSeverity = failOnSeverity;
         }
 

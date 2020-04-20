@@ -39,6 +39,78 @@ import static net.adamcin.oakpal.api.JavaxJson.hasNonNull;
  * 4. Can not aggregate multiple plans per execution.
  */
 public final class OakpalPlan implements JsonObjectConvertible {
+    public interface JsonKeys {
+        String checklists();
+
+        String checks();
+
+        String forcedRoots();
+
+        String jcrNamespaces();
+
+        String jcrNodetypes();
+
+        String jcrPrivileges();
+
+        String preInstallUrls();
+
+        String enablePreInstallHooks();
+
+        String installHookPolicy();
+    }
+
+    private static final JsonKeys KEYS = new JsonKeys() {
+        @Override
+        public String checklists() {
+            return "checklists";
+        }
+
+        @Override
+        public String checks() {
+            return "checks";
+        }
+
+        @Override
+        public String forcedRoots() {
+            return "forcedRoots";
+        }
+
+        @Override
+        public String jcrNamespaces() {
+            return "jcrNamespaces";
+        }
+
+        @Override
+        public String jcrNodetypes() {
+            return "jcrNodetypes";
+        }
+
+        @Override
+        public String jcrPrivileges() {
+            return "jcrPrivileges";
+        }
+
+        @Override
+        public String preInstallUrls() {
+            return "preInstallUrls";
+        }
+
+        @Override
+        public String enablePreInstallHooks() {
+            return "enablePreInstallHooks";
+        }
+
+        @Override
+        public String installHookPolicy() {
+            return "installHookPolicy";
+        }
+    };
+
+    @NotNull
+    public static JsonKeys keys() {
+        return KEYS;
+    }
+
     private static final Logger LOGGER = LoggerFactory.getLogger(OakpalPlan.class);
     /**
      * Preferred default plan when a custom classpath is specified without specifying a plan name. This is also
@@ -58,16 +130,6 @@ public final class OakpalPlan implements JsonObjectConvertible {
      * When otherwise unspecified, the default name for a plan should be plan.json.
      */
     public static final String DEFAULT_PLAN_NAME = "plan.json";
-
-    public static final String KEY_CHECKLISTS = "checklists";
-    public static final String KEY_CHECKS = "checks";
-    public static final String KEY_FORCED_ROOTS = "forcedRoots";
-    public static final String KEY_JCR_NAMESPACES = "jcrNamespaces";
-    public static final String KEY_JCR_NODETYPES = "jcrNodetypes";
-    public static final String KEY_JCR_PRIVILEGES = "jcrPrivileges";
-    public static final String KEY_PREINSTALL_URLS = "preInstallUrls";
-    public static final String KEY_ENABLE_PRE_INSTALL_HOOKS = "enablePreInstallHooks";
-    public static final String KEY_INSTALL_HOOK_POLICY = "installHookPolicy";
 
     private final URL base;
     private final String name;
@@ -194,15 +256,15 @@ public final class OakpalPlan implements JsonObjectConvertible {
 
         final NamespaceMapping mapping = JsonCnd.toNamespaceMapping(jcrNamespaces);
         return JavaxJson.obj()
-                .key(KEY_PREINSTALL_URLS).opt(preInstallStrings)
-                .key(KEY_CHECKLISTS).opt(checklists)
-                .key(KEY_CHECKS).opt(checks)
-                .key(KEY_FORCED_ROOTS).opt(forcedRoots)
-                .key(KEY_JCR_NODETYPES).opt(JsonCnd.toJson(jcrNodetypes, mapping))
-                .key(KEY_JCR_PRIVILEGES).opt(JsonCnd.privilegesToJson(jcrPrivileges, mapping))
-                .key(KEY_JCR_NAMESPACES).opt(jcrNamespaces)
-                .key(KEY_ENABLE_PRE_INSTALL_HOOKS).opt(enablePreInstallHooks, false)
-                .key(KEY_INSTALL_HOOK_POLICY).opt(installHookPolicy)
+                .key(keys().preInstallUrls()).opt(preInstallStrings)
+                .key(keys().checklists()).opt(checklists)
+                .key(keys().checks()).opt(checks)
+                .key(keys().forcedRoots()).opt(forcedRoots)
+                .key(keys().jcrNodetypes()).opt(JsonCnd.toJson(jcrNodetypes, mapping))
+                .key(keys().jcrPrivileges()).opt(JsonCnd.privilegesToJson(jcrPrivileges, mapping))
+                .key(keys().jcrNamespaces()).opt(jcrNamespaces)
+                .key(keys().enablePreInstallHooks()).opt(enablePreInstallHooks, false)
+                .key(keys().installHookPolicy()).opt(installHookPolicy)
                 .get();
     }
 
@@ -254,40 +316,41 @@ public final class OakpalPlan implements JsonObjectConvertible {
 
     private static OakpalPlan fromJson(final @NotNull Builder builder,
                                        final @NotNull JsonObject json) {
-        if (hasNonNull(json, KEY_PREINSTALL_URLS) && builder.base != null) {
-            builder.withPreInstallUrls(JavaxJson.mapArrayOfStrings(json.getJsonArray(KEY_PREINSTALL_URLS),
+        if (hasNonNull(json, keys().preInstallUrls()) && builder.base != null) {
+            builder.withPreInstallUrls(JavaxJson.mapArrayOfStrings(json.getJsonArray(keys().preInstallUrls()),
                     uncheck1(url -> new URL(builder.base, url))));
         }
-        if (hasNonNull(json, KEY_CHECKLISTS)) {
-            builder.withChecklists(JavaxJson.mapArrayOfStrings(json.getJsonArray(KEY_CHECKLISTS)));
+        if (hasNonNull(json, keys().checklists())) {
+            builder.withChecklists(JavaxJson.mapArrayOfStrings(json.getJsonArray(keys().checklists())));
         }
-        if (hasNonNull(json, KEY_CHECKS)) {
-            builder.withChecks(JavaxJson.mapArrayOfObjects(json.getJsonArray(KEY_CHECKS), CheckSpec::fromJson));
+        if (hasNonNull(json, keys().checks())) {
+            builder.withChecks(JavaxJson.mapArrayOfObjects(json.getJsonArray(keys().checks()), CheckSpec::fromJson));
         }
-        if (hasNonNull(json, KEY_FORCED_ROOTS)) {
-            builder.withForcedRoots(JavaxJson.mapArrayOfObjects(json.getJsonArray(KEY_FORCED_ROOTS), ForcedRoot::fromJson));
+        if (hasNonNull(json, keys().forcedRoots())) {
+            builder.withForcedRoots(JavaxJson.mapArrayOfObjects(json.getJsonArray(keys().forcedRoots()),
+                    ForcedRoot::fromJson));
         }
         final NamespaceMapping mapping;
-        if (hasNonNull(json, KEY_JCR_NAMESPACES)) {
-            final List<JcrNs> jcrNsList = JavaxJson.mapArrayOfObjects(json.getJsonArray(KEY_JCR_NAMESPACES),
+        if (hasNonNull(json, keys().jcrNamespaces())) {
+            final List<JcrNs> jcrNsList = JavaxJson.mapArrayOfObjects(json.getJsonArray(keys().jcrNamespaces()),
                     JcrNs::fromJson);
             mapping = JsonCnd.toNamespaceMapping(jcrNsList);
             builder.withJcrNamespaces(jcrNsList);
         } else {
             mapping = JsonCnd.BUILTIN_MAPPINGS;
         }
-        if (hasNonNull(json, KEY_JCR_NODETYPES)) {
-            builder.withJcrNodetypes(JsonCnd.getQTypesFromJson(json.getJsonObject(KEY_JCR_NODETYPES), mapping));
+        if (hasNonNull(json, keys().jcrNodetypes())) {
+            builder.withJcrNodetypes(JsonCnd.getQTypesFromJson(json.getJsonObject(keys().jcrNodetypes()), mapping));
         }
-        if (hasNonNull(json, KEY_JCR_PRIVILEGES)) {
-            builder.withJcrPrivileges(JsonCnd.getPrivilegesFromJson(json.get(KEY_JCR_PRIVILEGES), mapping));
+        if (hasNonNull(json, keys().jcrPrivileges())) {
+            builder.withJcrPrivileges(JsonCnd.getPrivilegesFromJson(json.get(keys().jcrPrivileges()), mapping));
         }
-        if (hasNonNull(json, KEY_ENABLE_PRE_INSTALL_HOOKS)) {
-            builder.withEnablePreInstallHooks(json.getBoolean(KEY_ENABLE_PRE_INSTALL_HOOKS));
+        if (hasNonNull(json, keys().enablePreInstallHooks())) {
+            builder.withEnablePreInstallHooks(json.getBoolean(keys().enablePreInstallHooks()));
         }
-        if (hasNonNull(json, KEY_INSTALL_HOOK_POLICY)) {
+        if (hasNonNull(json, keys().installHookPolicy())) {
             builder.withInstallHookPolicy(InstallHookPolicy.forName(
-                    json.getString(KEY_INSTALL_HOOK_POLICY)));
+                    json.getString(keys().installHookPolicy())));
         }
         return builder.build(json);
     }

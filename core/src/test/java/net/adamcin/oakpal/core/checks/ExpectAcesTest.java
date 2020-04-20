@@ -18,7 +18,7 @@ package net.adamcin.oakpal.core.checks;
 
 import net.adamcin.oakpal.api.Result;
 import net.adamcin.oakpal.api.Rule;
-import net.adamcin.oakpal.api.Violation;
+import net.adamcin.oakpal.api.Severity;
 import net.adamcin.oakpal.core.JsonCnd;
 import net.adamcin.oakpal.core.OakMachine;
 import org.apache.jackrabbit.api.JackrabbitWorkspace;
@@ -119,22 +119,22 @@ public class ExpectAcesTest {
                 .key("principal", "foo")
                 .key("expectedAces", arr("type=allow;path=/foo;privileges=jcr:read"))
                 .get());
-        Assert.assertEquals("expect major (default)", Violation.Severity.MAJOR, defaultMajorCheck.severity);
+        Assert.assertEquals("expect major (default)", Severity.MAJOR, defaultMajorCheck.severity);
         ExpectAces.Check minorCheck = checkFor(obj()
                 .key("principal", "foo").key("severity", "minor")
                 .key("expectedAces", arr("type=allow;path=/foo;privileges=jcr:read"))
                 .get());
-        Assert.assertEquals("expect minor", Violation.Severity.MINOR, minorCheck.severity);
+        Assert.assertEquals("expect minor", Severity.MINOR, minorCheck.severity);
         ExpectAces.Check majorCheck = checkFor(obj()
                 .key("principal", "foo").key("severity", "major")
                 .key("expectedAces", arr("type=allow;path=/foo;privileges=jcr:read"))
                 .get());
-        Assert.assertEquals("expect major", Violation.Severity.MAJOR, majorCheck.severity);
+        Assert.assertEquals("expect major", Severity.MAJOR, majorCheck.severity);
         ExpectAces.Check severeCheck = checkFor(obj()
                 .key("principal", "foo").key("severity", "severe")
                 .key("expectedAces", arr("type=allow;path=/foo;privileges=jcr:read"))
                 .get());
-        Assert.assertEquals("expect severe", Violation.Severity.SEVERE, severeCheck.severity);
+        Assert.assertEquals("expect severe", Severity.SEVERE, severeCheck.severity);
     }
 
     @Test
@@ -167,7 +167,7 @@ public class ExpectAcesTest {
                 ExpectAces.AceCriteria.parse(principal, spec).getOrDefault(null)
         );
         ExpectAces.Check check1 = checkFor(key("principal", principal)
-                .key(ExpectAces.CONFIG_EXPECTED_ACES, arr(spec)).get());
+                .key(ExpectAces.keys().expectedAces(), arr(spec)).get());
         Assert.assertEquals("expect expectedAces", expectCriterias, check1.expectedAces);
     }
 
@@ -179,7 +179,7 @@ public class ExpectAcesTest {
                 ExpectAces.AceCriteria.parse(principal, spec).getOrDefault(null)
         );
         ExpectAces.Check check1 = checkFor(key("principal", principal)
-                .key(ExpectAces.CONFIG_NOT_EXPECTED_ACES, arr(spec)).get());
+                .key(ExpectAces.keys().notExpectedAces(), arr(spec)).get());
         Assert.assertEquals("expect notExpectedAces", expectCriterias, check1.notExpectedAces);
     }
 
@@ -191,12 +191,12 @@ public class ExpectAcesTest {
     @Test
     public void testCheck_startedScan() throws Exception {
         ExpectAces.Check check = checkFor(obj()
-                .key(ExpectAces.CONFIG_PRINCIPAL, "nouser")
-                .key(ExpectAces.CONFIG_EXPECTED_ACES, arr()
+                .key(ExpectAces.keys().principal(), "nouser")
+                .key(ExpectAces.keys().expectedAces(), arr()
                         .val("type=allow;path=/foo1;privileges=jcr:read")
                         .val("type=allow;path=/foo1;privileges=rep:write")
                 )
-                .key(ExpectAces.CONFIG_NOT_EXPECTED_ACES, arr()
+                .key(ExpectAces.keys().notExpectedAces(), arr()
                         .val("type=allow;path=/foo2;privileges=jcr:read")
                         .val("type=allow;path=/foo2;privileges=rep:write")
                         // foo3 is not created. a non-existent path should satisfy not-expected aces
@@ -262,7 +262,7 @@ public class ExpectAcesTest {
         assertTrue("expect true for empty", check1.shouldExpectAfterExtract(PackageId.fromString("foo")));
 
         ExpectAces.Check check2 = checkFor(key("principal", "nouser")
-                .key(ExpectAces.CONFIG_AFTER_PACKAGE_ID_RULES,
+                .key(ExpectAces.keys().afterPackageIdRules(),
                         arr().val(key("type", "include").key("pattern", "^my_packages:.*"))).get());
         assertFalse("expect false", check2.shouldExpectAfterExtract(PackageId.fromString("adamcin:test:1.0")));
         assertTrue("expect true", check2.shouldExpectAfterExtract(PackageId.fromString("my_packages:test:1.0")));

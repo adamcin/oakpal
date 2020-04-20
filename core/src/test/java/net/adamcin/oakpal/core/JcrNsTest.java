@@ -27,16 +27,17 @@ import org.junit.Test;
 public class JcrNsTest {
     final String prefix = "foo";
     final String uri = "http://foo.com";
+    private static final JcrNs.JsonKeys KEYS = JcrNs.keys();
 
     @Test
     public void testFromJson() {
         assertNull("should be null if either prefix and uri are missing",
                 JcrNs.fromJson(JsonValue.EMPTY_JSON_OBJECT));
         assertNull("should be null prefix is missing",
-                JcrNs.fromJson(key(JcrNs.KEY_PREFIX, prefix).get()));
+                JcrNs.fromJson(key(KEYS.prefix(), prefix).get()));
         assertNull("should be null if uri is missing",
-                JcrNs.fromJson(key(JcrNs.KEY_URI, uri).get()));
-        JcrNs complete = JcrNs.fromJson(key(JcrNs.KEY_PREFIX, prefix).key(JcrNs.KEY_URI, uri).get());
+                JcrNs.fromJson(key(KEYS.uri(), uri).get()));
+        JcrNs complete = JcrNs.fromJson(key(KEYS.prefix(), prefix).key(KEYS.uri(), uri).get());
         assertNotNull("complete should not be null", complete);
         assertEquals("complete prefix should be", prefix, complete.getPrefix());
         assertEquals("complete prefix should be", uri, complete.getUri());
@@ -52,14 +53,14 @@ public class JcrNsTest {
 
     @Test
     public void testToJson() {
-        JsonObject expect = key(JcrNs.KEY_PREFIX, prefix).key(JcrNs.KEY_URI, uri).get();
+        JsonObject expect = key(KEYS.prefix(), prefix).key(KEYS.uri(), uri).get();
         JcrNs complete = JcrNs.create(prefix, uri);
         assertEquals("expect json", expect, complete.toJson());
     }
 
     @Test
     public void testToString() {
-        String expect = key(JcrNs.KEY_PREFIX, prefix).key(JcrNs.KEY_URI, uri).get().toString();
+        String expect = key(KEYS.prefix(), prefix).key(KEYS.uri(), uri).get().toString();
         JcrNs complete = JcrNs.create(prefix, uri);
         assertEquals("expect json string", expect, complete.toString());
     }

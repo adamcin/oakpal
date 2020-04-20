@@ -26,7 +26,7 @@ public class SimpleProgressCheckTest {
     @Test
     public void testReportViolation() {
         SimpleProgressCheck check = new SimpleProgressCheck();
-        SimpleViolation violation = new SimpleViolation(Violation.Severity.SEVERE, "description");
+        SimpleViolation violation = new SimpleViolation(Severity.SEVERE, "description");
         check.reportViolation(violation);
         assertTrue("contains violation", check.getReportedViolations().contains(violation));
     }
@@ -36,9 +36,9 @@ public class SimpleProgressCheckTest {
         SimpleProgressCheck check = new SimpleProgressCheck();
         PackageId id0 = PackageId.fromString("my_packages:test_0:1.0");
         PackageId id1 = PackageId.fromString("my_packages:test_1:1.0");
-        check.reportViolation(Violation.Severity.MINOR, "description", id0, id1);
+        check.reportViolation(Severity.MINOR, "description", id0, id1);
         assertTrue("violation reported", check.getReportedViolations().stream()
-                .anyMatch(violation -> violation.getSeverity() == Violation.Severity.MINOR
+                .anyMatch(violation -> violation.getSeverity() == Severity.MINOR
                         && "description".equals(violation.getDescription())
                         && violation.getPackages().contains(id0)
                         && violation.getPackages().contains(id1)
@@ -50,7 +50,7 @@ public class SimpleProgressCheckTest {
         SimpleProgressCheck check = new SimpleProgressCheck();
         PackageId id0 = PackageId.fromString("my_packages:test_0:1.0");
         PackageId id1 = PackageId.fromString("my_packages:test_1:1.0");
-        check.reportViolation(Violation.Severity.MINOR, "description", id0, id1);
+        check.reportViolation(Severity.MINOR, "description", id0, id1);
         assertEquals("violation reported", 1, check.getReportedViolations().size());
         check.startedScan();
         assertTrue("violations are now empty", check.getReportedViolations().isEmpty());
@@ -63,7 +63,7 @@ public class SimpleProgressCheckTest {
         PackageId id1 = PackageId.fromString("my_packages:test_1:1.0");
         check.minorViolation("description", id0, id1);
         assertTrue("violation reported", check.getReportedViolations().stream()
-                .anyMatch(violation -> violation.getSeverity() == Violation.Severity.MINOR
+                .anyMatch(violation -> violation.getSeverity() == Severity.MINOR
                         && "description".equals(violation.getDescription())
                         && violation.getPackages().contains(id0)
                         && violation.getPackages().contains(id1)
@@ -77,7 +77,7 @@ public class SimpleProgressCheckTest {
         PackageId id1 = PackageId.fromString("my_packages:test_1:1.0");
         check.majorViolation("description", id0, id1);
         assertTrue("violation reported", check.getReportedViolations().stream()
-                .anyMatch(violation -> violation.getSeverity() == Violation.Severity.MAJOR
+                .anyMatch(violation -> violation.getSeverity() == Severity.MAJOR
                         && "description".equals(violation.getDescription())
                         && violation.getPackages().contains(id0)
                         && violation.getPackages().contains(id1)
@@ -91,7 +91,7 @@ public class SimpleProgressCheckTest {
         PackageId id1 = PackageId.fromString("my_packages:test_1:1.0");
         check.severeViolation("description", id0, id1);
         assertTrue("violation reported", check.getReportedViolations().stream()
-                .anyMatch(violation -> violation.getSeverity() == Violation.Severity.SEVERE
+                .anyMatch(violation -> violation.getSeverity() == Severity.SEVERE
                         && "description".equals(violation.getDescription())
                         && violation.getPackages().contains(id0)
                         && violation.getPackages().contains(id1)

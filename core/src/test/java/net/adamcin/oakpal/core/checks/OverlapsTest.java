@@ -53,7 +53,7 @@ public class OverlapsTest extends ProgressCheckTestBase {
                     .allMatch(viol -> !viol.getPackages().isEmpty()));
         });
         TestUtil.testBlock(() -> {
-            ProgressCheck check = new Overlaps().newInstance(obj().key(Overlaps.CONFIG_REPORT_ALL_OVERLAPS, true).get());
+            ProgressCheck check = new Overlaps().newInstance(obj().key(Overlaps.keys().reportAllOverlaps(), true).get());
             CheckReport report = scanWithCheck(check, "tmp_foo_bar_test.zip", "tmp_foo_bar.zip", "tmp_foo.zip");
             logViolations("testOverlaps:[foo_bar_test, foo_bar, foo]:reportAllOverlaps", report);
             Assert.assertEquals("three violations", 3, report.getViolations().size());

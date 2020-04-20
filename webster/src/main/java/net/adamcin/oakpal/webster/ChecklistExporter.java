@@ -449,7 +449,7 @@ public final class ChecklistExporter {
         //final Set<String> finalPrefixes = new HashSet<>();
         final NamespaceMappingRequest.Builder request = new NamespaceMappingRequest.Builder();
         if (!privileges.isEmpty()) {
-            builder.add(Checklist.KEY_JCR_PRIVILEGES, JsonCnd.privilegesToJson(privileges, origMapping));
+            builder.add(Checklist.keys().jcrPrivileges(), JsonCnd.privilegesToJson(privileges, origMapping));
             privileges.stream().flatMap(JsonCnd::namedBy).forEach(request::withQName);
         }
 
@@ -462,7 +462,7 @@ public final class ChecklistExporter {
                 .map(ForcedRoot::toJson)
                 .collect(JsonCollectors.toJsonArray());
 
-        builder.add(Checklist.KEY_FORCED_ROOTS, forcedRootsJson);
+        builder.add(Checklist.keys().forcedRoots(), forcedRootsJson);
 
         // begin nodetype handling
 
@@ -504,7 +504,7 @@ public final class ChecklistExporter {
 
             final JsonObject jcrNodetypes =
                     JsonCnd.toJson(qNodeTypes, new NamespaceMapping(new SessionNamespaceResolver(session)));
-            builder.add(Checklist.KEY_JCR_NODETYPES, jcrNodetypes);
+            builder.add(Checklist.keys().jcrNodetypes(), jcrNodetypes);
         }
 
         // begin namespace handling
@@ -519,7 +519,7 @@ public final class ChecklistExporter {
                 .flatMap(Result::stream)
                 .collect(Collectors.toList());
         if (!exportNamespaces.isEmpty()) {
-            builder.add(Checklist.KEY_JCR_NAMESPACES, JavaxJson.wrap(exportNamespaces));
+            builder.add(Checklist.keys().jcrNamespaces(), JavaxJson.wrap(exportNamespaces));
         }
 
         final JsonObject sorted = builder.build().entrySet().stream()

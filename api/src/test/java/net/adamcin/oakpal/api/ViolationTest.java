@@ -25,9 +25,9 @@ import java.util.stream.Stream;
 
 import static net.adamcin.oakpal.api.JavaxJson.arr;
 import static net.adamcin.oakpal.api.JavaxJson.obj;
-import static net.adamcin.oakpal.api.Violation.Severity.MAJOR;
-import static net.adamcin.oakpal.api.Violation.Severity.MINOR;
-import static net.adamcin.oakpal.api.Violation.Severity.SEVERE;
+import static net.adamcin.oakpal.api.Severity.MAJOR;
+import static net.adamcin.oakpal.api.Severity.MINOR;
+import static net.adamcin.oakpal.api.Severity.SEVERE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
@@ -40,17 +40,17 @@ public class ViolationTest {
 
     @Test
     public void testSeverity_byName() {
-        assertSame("severity for minor is", MINOR, Violation.Severity.byName("minor"));
-        assertSame("severity for minor is", MINOR, Violation.Severity.byName("MiNoR"));
-        assertSame("severity for major is", MAJOR, Violation.Severity.byName("major"));
-        assertSame("severity for major is", MAJOR, Violation.Severity.byName("MaJoR"));
-        assertSame("severity for severe is", SEVERE, Violation.Severity.byName("severe"));
-        assertSame("severity for severe is", SEVERE, Violation.Severity.byName("SeVeRe"));
+        assertSame("severity for minor is", MINOR, Severity.byName("minor"));
+        assertSame("severity for minor is", MINOR, Severity.byName("MiNoR"));
+        assertSame("severity for major is", MAJOR, Severity.byName("major"));
+        assertSame("severity for major is", MAJOR, Severity.byName("MaJoR"));
+        assertSame("severity for severe is", SEVERE, Severity.byName("severe"));
+        assertSame("severity for severe is", SEVERE, Severity.byName("SeVeRe"));
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testSeverity_byName_throws() {
-        Violation.Severity.byName("nothing");
+        Severity.byName("nothing");
     }
 
     @Test
@@ -101,9 +101,9 @@ public class ViolationTest {
         when(violation.getPackages()).thenReturn(Arrays.asList(id0, id1));
 
         JsonObject expected = obj()
-                .key(Violation.KEY_SEVERITY, SEVERE)
-                .key(Violation.KEY_DESCRIPTION, "some failure")
-                .key(Violation.KEY_PACKAGES, arr().val(id0.toString()).val(id1.toString()))
+                .key(ApiConstants.violationKeys().severity(), SEVERE)
+                .key(ApiConstants.violationKeys().description(), "some failure")
+                .key(ApiConstants.violationKeys().packages(), arr().val(id0.toString()).val(id1.toString()))
                 .get();
 
         assertEquals("same json", expected, violation.toJson());

@@ -38,13 +38,66 @@ import static net.adamcin.oakpal.core.Util.isEmpty;
  */
 @SuppressWarnings("WeakerAccess")
 public class CheckSpec implements JsonObjectConvertible {
-    static final String KEY_IMPL = "impl";
-    static final String KEY_INLINE_SCRIPT = "inlineScript";
-    static final String KEY_INLINE_ENGINE = "inlineEngine";
-    static final String KEY_NAME = "name";
-    static final String KEY_TEMPLATE = "template";
-    static final String KEY_SKIP = "skip";
-    static final String KEY_CONFIG = "config";
+    /**
+     * Json keys for CheckSpec. Use {@link #keys()} to access singleton.
+     */
+    public interface JsonKeys {
+        String impl();
+
+        String inlineScript();
+
+        String inlineEngine();
+
+        String name();
+
+        String template();
+
+        String skip();
+
+        String config();
+    }
+
+    private static final JsonKeys KEYS = new JsonKeys() {
+        @Override
+        public String impl() {
+            return "impl";
+        }
+
+        @Override
+        public String inlineScript() {
+            return "inlineScript";
+        }
+
+        @Override
+        public String inlineEngine() {
+            return "inlineEngine";
+        }
+
+        @Override
+        public String name() {
+            return "name";
+        }
+
+        @Override
+        public String template() {
+            return "template";
+        }
+
+        @Override
+        public String skip() {
+            return "skip";
+        }
+
+        @Override
+        public String config() {
+            return "config";
+        }
+    };
+
+    @NotNull
+    public static CheckSpec.JsonKeys keys() {
+        return KEYS;
+    }
 
     private String impl;
     private String inlineScript;
@@ -53,6 +106,7 @@ public class CheckSpec implements JsonObjectConvertible {
     private String template;
     private boolean skip;
     private JsonObject config;
+
 
     /**
      * The direct classpath lookup name for a particular check. If not provided, indicates that a check should be
@@ -376,27 +430,28 @@ public class CheckSpec implements JsonObjectConvertible {
      * @return a new CheckSpec
      */
     public static CheckSpec fromJson(final @NotNull JsonObject json) {
+        final JsonKeys keys = keys();
         final CheckSpec checkSpec = new CheckSpec();
-        if (hasNonNull(json, KEY_IMPL)) {
-            checkSpec.setImpl(json.getString(KEY_IMPL));
+        if (hasNonNull(json, keys.impl())) {
+            checkSpec.setImpl(json.getString(keys.impl()));
         }
-        if (hasNonNull(json, KEY_INLINE_SCRIPT)) {
-            checkSpec.setInlineScript(json.getString(KEY_INLINE_SCRIPT));
+        if (hasNonNull(json, keys.inlineScript())) {
+            checkSpec.setInlineScript(json.getString(keys.inlineScript()));
         }
-        if (hasNonNull(json, KEY_INLINE_ENGINE)) {
-            checkSpec.setInlineEngine(json.getString(KEY_INLINE_ENGINE));
+        if (hasNonNull(json, keys.inlineEngine())) {
+            checkSpec.setInlineEngine(json.getString(keys.inlineEngine()));
         }
-        if (hasNonNull(json, KEY_NAME)) {
-            checkSpec.setName(json.getString(KEY_NAME));
+        if (hasNonNull(json, keys.name())) {
+            checkSpec.setName(json.getString(keys.name()));
         }
-        if (hasNonNull(json, KEY_TEMPLATE)) {
-            checkSpec.setTemplate(json.getString(KEY_TEMPLATE));
+        if (hasNonNull(json, keys.template())) {
+            checkSpec.setTemplate(json.getString(keys.template()));
         }
-        if (hasNonNull(json, KEY_SKIP)) {
-            checkSpec.setSkip(json.getBoolean(KEY_SKIP));
+        if (hasNonNull(json, keys.skip())) {
+            checkSpec.setSkip(json.getBoolean(keys.skip()));
         }
-        if (hasNonNull(json, KEY_CONFIG)) {
-            checkSpec.setConfig(json.getJsonObject(KEY_CONFIG));
+        if (hasNonNull(json, keys.config())) {
+            checkSpec.setConfig(json.getJsonObject(keys.config()));
         }
 
         return checkSpec;
@@ -414,16 +469,17 @@ public class CheckSpec implements JsonObjectConvertible {
 
     @Override
     public final JsonObject toJson() {
+        final JsonKeys keys = keys();
         final JsonObjectBuilder builder = Json.createObjectBuilder();
         final JavaxJson.Obj obj = obj()
-                .key(KEY_NAME).opt(getName())
-                .key(KEY_IMPL).opt(getImpl())
-                .key(KEY_INLINE_SCRIPT).opt(getInlineScript())
-                .key(KEY_INLINE_ENGINE).opt(getInlineEngine())
-                .key(KEY_CONFIG).opt(getConfig())
-                .key(KEY_TEMPLATE).opt(getTemplate());
+                .key(keys.name()).opt(getName())
+                .key(keys.impl()).opt(getImpl())
+                .key(keys.inlineScript()).opt(getInlineScript())
+                .key(keys.inlineEngine()).opt(getInlineEngine())
+                .key(keys.config()).opt(getConfig())
+                .key(keys.template()).opt(getTemplate());
         if (isSkip()) {
-            obj.key(KEY_SKIP, true);
+            obj.key(keys.skip(), true);
         }
         final JsonObject base = obj.get();
         base.forEach(builder::add);
@@ -477,6 +533,7 @@ public class CheckSpec implements JsonObjectConvertible {
                 original.getConfig(),
                 original.isSkip());
     }
+
 
     /**
      * This is an Immutable variant of {@link CheckSpec} for composition in {@link Checklist}.

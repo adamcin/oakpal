@@ -16,15 +16,20 @@
 
 package net.adamcin.oakpal.core;
 
-import static net.adamcin.oakpal.api.JavaxJson.key;
-import static net.adamcin.oakpal.api.JavaxJson.obj;
-import static org.junit.Assert.*;
+import org.junit.Test;
 
+import javax.json.JsonValue;
 import java.util.Collections;
 import java.util.List;
-import javax.json.JsonValue;
 
-import org.junit.Test;
+import static net.adamcin.oakpal.api.JavaxJson.key;
+import static net.adamcin.oakpal.api.JavaxJson.obj;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 public class ForcedRootTest {
 
@@ -92,6 +97,7 @@ public class ForcedRootTest {
 
     @Test
     public void testFromJson() {
+        final ForcedRoot.JsonKeys keys = ForcedRoot.keys();
         final String path = "/correct/path";
         final String primaryType = "primaryType";
         final List<String> mixinTypes = Collections.singletonList("mixinType");
@@ -101,18 +107,18 @@ public class ForcedRootTest {
         assertTrue("empty root has empty mixinTypes", rootEmpty.getMixinTypes().isEmpty());
 
         final ForcedRoot rootPath = ForcedRoot.fromJson(
-                obj().key(ForcedRoot.KEY_PATH, path).get());
+                obj().key(keys.path(), path).get());
 
         assertEquals("path root has correct path", path, rootPath.getPath());
 
         final ForcedRoot rootPrimaryType = ForcedRoot.fromJson(
-                obj().key(ForcedRoot.KEY_PRIMARY_TYPE, primaryType).get());
+                obj().key(keys.primaryType(), primaryType).get());
 
         assertEquals("primaryType root has correct primaryType",
                 primaryType, rootPrimaryType.getPrimaryType());
 
         final ForcedRoot rootMixinTypes = ForcedRoot.fromJson(
-                obj().key(ForcedRoot.KEY_MIXIN_TYPES, mixinTypes).get());
+                obj().key(keys.mixinTypes(), mixinTypes).get());
 
         assertEquals("mixinTypes root has correct mixinTypes",
                 mixinTypes, rootMixinTypes.getMixinTypes());
@@ -120,6 +126,7 @@ public class ForcedRootTest {
 
     @Test
     public void testToJson() {
+        final ForcedRoot.JsonKeys keys = ForcedRoot.keys();
         final String path = "/correct/path";
         final String primaryType = "primaryType";
         final List<String> mixinTypes = Collections.singletonList("mixinType");
@@ -130,15 +137,15 @@ public class ForcedRootTest {
 
         final ForcedRoot pathRoot = new ForcedRoot().withPath(path);
         assertEquals("path root toJson should have path",
-                key(ForcedRoot.KEY_PATH, path).get(), pathRoot.toJson());
+                key(keys.path(), path).get(), pathRoot.toJson());
 
         final ForcedRoot primaryTypeRoot = new ForcedRoot().withPrimaryType(primaryType);
         assertEquals("primaryType root toJson should have primaryType",
-                key(ForcedRoot.KEY_PRIMARY_TYPE, primaryType).get(), primaryTypeRoot.toJson());
+                key(keys.primaryType(), primaryType).get(), primaryTypeRoot.toJson());
 
         final ForcedRoot mixinTypeRoot = new ForcedRoot().withMixinTypes(mixinTypes.get(0));
         assertEquals("mixinTypes root toJson should have mixinTypes",
-                key(ForcedRoot.KEY_MIXIN_TYPES, mixinTypes).get(), mixinTypeRoot.toJson());
+                key(keys.mixinTypes(), mixinTypes).get(), mixinTypeRoot.toJson());
     }
 
     @Test
@@ -151,6 +158,7 @@ public class ForcedRootTest {
 
     @Test
     public void testToString() {
+        final ForcedRoot.JsonKeys keys = ForcedRoot.keys();
         final String path = "/correct/path";
         final String primaryType = "primaryType";
         final List<String> mixinTypes = Collections.singletonList("mixinType");
@@ -159,9 +167,9 @@ public class ForcedRootTest {
                 .withPrimaryType(primaryType)
                 .withMixinTypes(mixinTypes.get(0));
         final String jsonString = root.toString();
-        final String expectString = key(ForcedRoot.KEY_PATH, path)
-                .key(ForcedRoot.KEY_PRIMARY_TYPE, primaryType)
-                .key(ForcedRoot.KEY_MIXIN_TYPES, mixinTypes)
+        final String expectString = key(keys.path(), path)
+                .key(keys.primaryType(), primaryType)
+                .key(keys.mixinTypes(), mixinTypes)
                 .get().toString();
         assertEquals("expect json string for toString", expectString, jsonString);
     }

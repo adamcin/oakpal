@@ -71,10 +71,10 @@ public final class SimpleViolation implements Violation {
     }
 
     public static SimpleViolation fromJson(final JsonObject jsonViolation) {
-        String vSeverity = jsonViolation.getString(KEY_SEVERITY, Violation.Severity.MINOR.name());
-        Violation.Severity severity = Violation.Severity.valueOf(vSeverity);
-        String description = jsonViolation.getString(KEY_DESCRIPTION, "");
-        List<PackageId> packages = optArray(jsonViolation, KEY_PACKAGES)
+        String vSeverity = jsonViolation.getString(ApiConstants.violationKeys().severity(), Severity.MINOR.name());
+        Severity severity = Severity.valueOf(vSeverity);
+        String description = jsonViolation.getString(ApiConstants.violationKeys().description(), "");
+        List<PackageId> packages = optArray(jsonViolation, ApiConstants.violationKeys().packages())
                 .map(array -> mapArrayOfStrings(array, PackageId::fromString, true))
                 .orElseGet(Collections::emptyList);
 

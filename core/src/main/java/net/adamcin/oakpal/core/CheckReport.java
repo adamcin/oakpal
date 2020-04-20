@@ -19,6 +19,7 @@ package net.adamcin.oakpal.core;
 import net.adamcin.oakpal.api.JavaxJson;
 import net.adamcin.oakpal.api.JsonObjectConvertible;
 import net.adamcin.oakpal.api.ProgressCheck;
+import net.adamcin.oakpal.api.Severity;
 import net.adamcin.oakpal.api.Violation;
 import org.jetbrains.annotations.NotNull;
 
@@ -33,9 +34,6 @@ import static net.adamcin.oakpal.api.JavaxJson.obj;
  * Type for collected {@link Violation}s from a particlular {@link ProgressCheck}.
  */
 public interface CheckReport extends JsonObjectConvertible {
-    String KEY_CHECK_NAME = "checkName";
-    String KEY_VIOLATIONS = "violations";
-
     /**
      * The serialized display name of the package check that created the report.
      *
@@ -56,7 +54,7 @@ public interface CheckReport extends JsonObjectConvertible {
      * @param atLeastAsSevere lower bound for severity
      * @return the reported violations filtered by severity
      */
-    default Collection<Violation> getViolations(Violation.Severity atLeastAsSevere) {
+    default Collection<Violation> getViolations(Severity atLeastAsSevere) {
         if (atLeastAsSevere == null) {
             return getViolations();
         }
@@ -74,8 +72,8 @@ public interface CheckReport extends JsonObjectConvertible {
     default JsonObject toJson() {
         JavaxJson.Obj jsonReport = obj();
 
-        jsonReport.key(KEY_CHECK_NAME).opt(this.getCheckName());
-        jsonReport.key(KEY_VIOLATIONS).opt(this.getViolations().stream()
+        jsonReport.key(CoreConstants.checkReportKeys().checkName()).opt(this.getCheckName());
+        jsonReport.key(CoreConstants.checkReportKeys().violations()).opt(this.getViolations().stream()
                 .map(Violation::toJson)
                 .collect(JsonCollectors.toJsonArray()));
 

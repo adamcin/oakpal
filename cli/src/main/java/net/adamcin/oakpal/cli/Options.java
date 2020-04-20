@@ -1,11 +1,11 @@
 package net.adamcin.oakpal.cli;
 
+import net.adamcin.oakpal.api.Severity;
 import net.adamcin.oakpal.core.InstallHookPolicy;
 import net.adamcin.oakpal.api.Nothing;
 import net.adamcin.oakpal.core.OakpalPlan;
 import net.adamcin.oakpal.core.OpearFile;
 import net.adamcin.oakpal.api.Result;
-import net.adamcin.oakpal.api.Violation;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -34,7 +34,7 @@ final class Options {
     private final boolean noHooks;
     private final List<File> scanFiles;
     private final Function<StructuredMessage, IO<Nothing>> printer;
-    private final Violation.Severity failOnSeverity;
+    private final Severity failOnSeverity;
 
     Options() {
         this(true, true, false,
@@ -43,7 +43,7 @@ final class Options {
                 null, null, false,
                 Collections.emptyList(),
                 EMPTY_PRINTER,
-                Violation.Severity.MAJOR);
+                Severity.MAJOR);
     }
 
     Options(final boolean justHelp,
@@ -57,7 +57,7 @@ final class Options {
             final boolean noHooks,
             final @NotNull List<File> scanFiles,
             final @NotNull Function<StructuredMessage, IO<Nothing>> printer,
-            final @NotNull Violation.Severity failOnSeverity) {
+            final @NotNull Severity failOnSeverity) {
         this.justHelp = justHelp;
         this.justVersion = justVersion;
         this.storeBlobs = storeBlobs;
@@ -116,7 +116,7 @@ final class Options {
         return printer;
     }
 
-    public Violation.Severity getFailOnSeverity() {
+    public Severity getFailOnSeverity() {
         return failOnSeverity;
     }
 
@@ -150,7 +150,7 @@ final class Options {
         private File cacheDir;
         private File opearFile;
         private List<File> scanFiles = new ArrayList<>();
-        private Violation.Severity failOnSeverity;
+        private Severity failOnSeverity;
 
         public Builder setJustHelp(final boolean justHelp) {
             this.justHelp = justHelp;
@@ -207,7 +207,7 @@ final class Options {
             return this;
         }
 
-        public Builder setFailOnSeverity(final @Nullable Violation.Severity failOnSeverity) {
+        public Builder setFailOnSeverity(final @Nullable Severity failOnSeverity) {
             this.failOnSeverity = failOnSeverity;
             return this;
         }

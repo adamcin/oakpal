@@ -16,20 +16,27 @@
 
 package net.adamcin.oakpal.testing;
 
-/**
- * Some simple utilities for scoped subtests.
- */
-public class TestUtil {
-    private TestUtil() {
-        /* no constructor */
+import org.junit.Test;
+
+import java.util.concurrent.CompletableFuture;
+
+import static org.junit.Assert.assertTrue;
+
+public class TestUtilTest {
+
+    @Test
+    public void testTestBlock() throws Exception {
+        CompletableFuture<Boolean> latch = new CompletableFuture<>();
+        TestUtil.testBlock(() -> {
+            latch.complete(true);
+        });
+        assertTrue("expect completed true", latch.getNow(false));
     }
 
-    public static void testBlock(final TestBody testBody) throws Exception {
-        testBody.apply();
-    }
-
-    @FunctionalInterface
-    public interface TestBody {
-        void apply() throws Exception;
+    @Test(expected = Exception.class)
+    public void testTestBlock_throws() throws Exception {
+        TestUtil.testBlock(() -> {
+            throw new Exception("Expected");
+        });
     }
 }

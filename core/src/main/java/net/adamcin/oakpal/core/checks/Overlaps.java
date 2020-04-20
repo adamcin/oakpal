@@ -18,12 +18,13 @@ package net.adamcin.oakpal.core.checks;
 
 import net.adamcin.oakpal.api.ProgressCheck;
 import net.adamcin.oakpal.api.ProgressCheckFactory;
+import net.adamcin.oakpal.api.Severity;
 import net.adamcin.oakpal.api.SimpleProgressCheck;
-import net.adamcin.oakpal.api.Violation;
 import org.apache.jackrabbit.vault.fs.api.WorkspaceFilter;
 import org.apache.jackrabbit.vault.fs.config.MetaInf;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.apache.jackrabbit.vault.packaging.PackageProperties;
+import org.jetbrains.annotations.NotNull;
 
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
@@ -36,12 +37,13 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static net.adamcin.oakpal.api.JavaxJson.hasNonNull;
+import static net.adamcin.oakpal.api.JavaxJson.key;
 
 /**
  * The {@code overlaps} check keeps track of installed package workspace filters, and checks every affected path going
  * forward against previous workspace filters for overlap, using {@link WorkspaceFilter#contains(String)}. Overlapping
- * deletions are reported as {@link Violation.Severity#MAJOR}, whereas other affected paths are
- * reported as {@link Violation.Severity#MINOR}.
+ * deletions are reported as {@link Severity#MAJOR}, whereas other affected paths are
+ * reported as {@link Severity#MINOR}.
  * <p>
  * This check is sequence-dependent, in that changing the sequence of packages in the scan may result in a different
  * outcome. It is recommended to test multiple sequences if the actual process for package deployment is undefined or
@@ -56,19 +58,36 @@ import static net.adamcin.oakpal.api.JavaxJson.hasNonNull;
  * </dl>
  */
 public final class Overlaps implements ProgressCheckFactory {
-    public static final String CONFIG_REPORT_ALL_OVERLAPS = "reportAllOverlaps";
+    public interface JsonKeys {
+        String reportAllOverlaps();
+    }
+
+    private static final JsonKeys KEYS = new JsonKeys() {
+        @Override
+        public String reportAllOverlaps() {
+            return "reportAllOverlaps";
+        }
+    };
+
+    @NotNull
+    public static JsonKeys keys() {
+        return KEYS;
+    }
+
+    @Deprecated
+    public static final String CONFIG_REPORT_ALL_OVERLAPS = keys().reportAllOverlaps();
 
     @Override
     public ProgressCheck newInstance(final JsonObject config) {
-        final boolean reportAllOverlaps = hasNonNull(config, CONFIG_REPORT_ALL_OVERLAPS)
-                && config.getBoolean(CONFIG_REPORT_ALL_OVERLAPS);
+        final boolean reportAllOverlaps = hasNonNull(config, keys().reportAllOverlaps())
+                && config.getBoolean(keys().reportAllOverlaps());
         return new Check(reportAllOverlaps);
     }
 
     static final class Check extends SimpleProgressCheck {
 
         final Map<PackageId, WorkspaceFilter> filters = new HashMap<>();
-        final Map<PackageId, Violation.Severity> reported = new HashMap<>();
+        final Map<PackageId, Severity> reported = new HashMap<>();
 
         final boolean reportAllOverlaps;
 
@@ -100,7 +119,7 @@ public final class Overlaps implements ProgressCheckFactory {
         }
 
         void findOverlaps(final PackageId currentPackageId, final String path,
-                          final Violation.Severity severity) {
+                          final Severity severity) {
             // fast escape! no need to belabor the point.
             if (!reportAllOverlaps
                     && reported.containsKey(currentPackageId)
@@ -131,7 +150,7 @@ public final class Overlaps implements ProgressCheckFactory {
                 throws RepositoryException {
             // don't worry about nodes outside of our own scope.
             if (filters.get(packageId).contains(path)) {
-                findOverlaps(packageId, path, Violation.Severity.MINOR);
+                findOverlaps(packageId, path, Severity.MINOR);
             }
         }
 
@@ -139,7 +158,7 @@ public final class Overlaps implements ProgressCheckFactory {
         public void deletedPath(final PackageId packageId, final String path, final Session inspectSession)
                 throws RepositoryException {
             // any deletions should be considered major overlap violations.
-            findOverlaps(packageId, path, Violation.Severity.MAJOR);
+            findOverlaps(packageId, path, Severity.MAJOR);
         }
     }
 }

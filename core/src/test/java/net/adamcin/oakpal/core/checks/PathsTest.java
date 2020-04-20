@@ -18,7 +18,7 @@ package net.adamcin.oakpal.core.checks;
 
 import net.adamcin.oakpal.api.ProgressCheck;
 import net.adamcin.oakpal.api.Rule;
-import net.adamcin.oakpal.api.Violation;
+import net.adamcin.oakpal.api.Severity;
 import net.adamcin.oakpal.core.CheckReport;
 import net.adamcin.oakpal.testing.TestUtil;
 import org.junit.Assert;
@@ -45,7 +45,7 @@ public class PathsTest extends ProgressCheckTestBase {
             logViolations("level_set:no_unsafe", report);
             Assert.assertEquals("violations", 6, report.getViolations().size());
             assertTrue("all violations are MAJOR", report.getViolations().stream()
-                    .allMatch(viol -> viol.getSeverity().equals(Violation.Severity.MAJOR)));
+                    .allMatch(viol -> viol.getSeverity().equals(Severity.MAJOR)));
         });
     }
 
@@ -57,7 +57,7 @@ public class PathsTest extends ProgressCheckTestBase {
             logViolations("level_set:no_unsafe", report);
             Assert.assertEquals("violations", 6, report.getViolations().size());
             assertTrue("all violations are SEVERE", report.getViolations().stream()
-                    .allMatch(viol -> viol.getSeverity().equals(Violation.Severity.SEVERE)));
+                    .allMatch(viol -> viol.getSeverity().equals(Severity.SEVERE)));
         });
     }
 
@@ -69,7 +69,7 @@ public class PathsTest extends ProgressCheckTestBase {
             logViolations("level_set:no_unsafe", report);
             Assert.assertEquals("violations", 6, report.getViolations().size());
             assertTrue("all violations are MINOR", report.getViolations().stream()
-                    .allMatch(viol -> viol.getSeverity().equals(Violation.Severity.MINOR)));
+                    .allMatch(viol -> viol.getSeverity().equals(Severity.MINOR)));
         });
     }
 
@@ -94,7 +94,8 @@ public class PathsTest extends ProgressCheckTestBase {
         allDeletesCheck.deletedPath(null, "/foo", null);
         assertFalse("reported violations should not be empty after deletedPath",
                 allDeletesCheck.getReportedViolations().isEmpty());
-        Paths.Check allDeletesCheckByConfig = (Paths.Check) new Paths().newInstance(key(Paths.CONFIG_DENY_ALL_DELETES, true).get());
+        Paths.Check allDeletesCheckByConfig = (Paths.Check) new Paths()
+                .newInstance(key(Paths.keys().denyAllDeletes(), true).get());
         assertTrue("reported violations should be empty before deletedPath",
                 allDeletesCheckByConfig.getReportedViolations().isEmpty());
         allDeletesCheckByConfig.deletedPath(null, "/foo", null);

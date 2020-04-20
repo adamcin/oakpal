@@ -24,6 +24,7 @@ import org.apache.jackrabbit.vault.fs.api.WorkspaceFilter;
 import org.apache.jackrabbit.vault.fs.config.MetaInf;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.apache.jackrabbit.vault.packaging.PackageProperties;
+import org.jetbrains.annotations.NotNull;
 
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
@@ -92,19 +93,60 @@ import static net.adamcin.oakpal.api.JavaxJson.mapArrayOfStrings;
  * </pre>
  */
 public final class JcrProperties implements ProgressCheckFactory {
-    public static final String CONFIG_SCOPE_PATHS = "scopePaths";
-    public static final String CONFIG_DENY_NODE_TYPES = "denyNodeTypes";
-    public static final String CONFIG_SCOPE_NODE_TYPES = "scopeNodeTypes";
-    public static final String CONFIG_PROPERTIES = "properties";
+    public interface JsonKeys {
+        String scopePaths();
+
+        String denyNodeTypes();
+
+        String scopeNodeTypes();
+
+        String properties();
+    }
+
+    private static final JsonKeys KEYS = new JsonKeys() {
+        @Override
+        public String scopePaths() {
+            return "scopePaths";
+        }
+
+        @Override
+        public String denyNodeTypes() {
+            return "denyNodeTypes";
+        }
+
+        @Override
+        public String scopeNodeTypes() {
+            return "scopeNodeTypes";
+        }
+
+        @Override
+        public String properties() {
+            return "properties";
+        }
+    };
+
+    @NotNull
+    public static JsonKeys keys() {
+        return KEYS;
+    }
+
+    @Deprecated
+    public static final String CONFIG_SCOPE_PATHS = keys().scopePaths();
+    @Deprecated
+    public static final String CONFIG_DENY_NODE_TYPES = keys().denyNodeTypes();
+    @Deprecated
+    public static final String CONFIG_SCOPE_NODE_TYPES = keys().scopeNodeTypes();
+    @Deprecated
+    public static final String CONFIG_PROPERTIES = keys().properties();
 
     @Override
     public ProgressCheck newInstance(final JsonObject config) {
-        List<Rule> pathScope = Rule.fromJsonArray(arrayOrEmpty(config, CONFIG_SCOPE_PATHS));
+        List<Rule> pathScope = Rule.fromJsonArray(arrayOrEmpty(config, keys().scopePaths()));
 
-        List<String> denyNodeTypes = mapArrayOfStrings(arrayOrEmpty(config, CONFIG_DENY_NODE_TYPES));
-        List<String> nodeTypeScope = mapArrayOfStrings(arrayOrEmpty(config, CONFIG_SCOPE_NODE_TYPES));
+        List<String> denyNodeTypes = mapArrayOfStrings(arrayOrEmpty(config, keys().denyNodeTypes()));
+        List<String> nodeTypeScope = mapArrayOfStrings(arrayOrEmpty(config, keys().scopeNodeTypes()));
         List<JcrPropertyConstraints> propertyChecks = JcrPropertyConstraints
-                .fromJsonArray(arrayOrEmpty(config, CONFIG_PROPERTIES));
+                .fromJsonArray(arrayOrEmpty(config, keys().properties()));
         return new Check(pathScope, denyNodeTypes, nodeTypeScope, propertyChecks);
     }
 

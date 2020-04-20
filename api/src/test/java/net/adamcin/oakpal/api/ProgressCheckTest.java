@@ -16,6 +16,7 @@
 
 package net.adamcin.oakpal.api;
 
+import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.Collection;
@@ -32,6 +33,7 @@ public class ProgressCheckTest {
             }
         };
 
+        Assert.assertNotNull("expect nonnull checkName", mock.getCheckName());
         mock.startedScan();
         mock.identifyPackage(null, null);
         mock.identifySubpackage(null, null);

@@ -18,8 +18,8 @@ package net.adamcin.oakpal.core;
 
 import static org.junit.Assert.assertEquals;
 
+import net.adamcin.oakpal.api.Severity;
 import net.adamcin.oakpal.api.SimpleViolation;
-import net.adamcin.oakpal.api.Violation;
 import org.junit.Test;
 
 public class DefaultErrorListenerTest {
@@ -29,9 +29,9 @@ public class DefaultErrorListenerTest {
     @Test
     public void testGetReportedViolations() {
         final DefaultErrorListener errorListener = new DefaultErrorListener();
-        errorListener.reportViolation(new SimpleViolation(Violation.Severity.MINOR, "minor"));
-        errorListener.reportViolation(new SimpleViolation(Violation.Severity.MAJOR, "major"));
-        errorListener.reportViolation(new SimpleViolation(Violation.Severity.SEVERE, "severe"));
+        errorListener.reportViolation(new SimpleViolation(Severity.MINOR, "minor"));
+        errorListener.reportViolation(new SimpleViolation(Severity.MAJOR, "major"));
+        errorListener.reportViolation(new SimpleViolation(Severity.SEVERE, "severe"));
         assertEquals("should have reported", 3, errorListener.getReportedViolations().size());
     }
 

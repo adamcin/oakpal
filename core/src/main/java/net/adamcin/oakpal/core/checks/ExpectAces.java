@@ -22,8 +22,8 @@ import net.adamcin.oakpal.api.ProgressCheck;
 import net.adamcin.oakpal.api.ProgressCheckFactory;
 import net.adamcin.oakpal.api.Result;
 import net.adamcin.oakpal.api.Rule;
+import net.adamcin.oakpal.api.Severity;
 import net.adamcin.oakpal.api.SimpleProgressCheck;
-import net.adamcin.oakpal.api.Violation;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
@@ -121,39 +121,119 @@ import static net.adamcin.oakpal.api.Fun.zipKeysWithValueFunc;
  * definition so indicates. Otherwise the comma-separated values are treated as an opaque string.
  */
 public final class ExpectAces implements ProgressCheckFactory {
+    public interface JsonKeys {
+        String principal();
+
+        String principals();
+
+        String expectedAces();
+
+        String notExpectedAces();
+
+        String afterPackageIdRules();
+
+        String severity();
+
+        String type();
+
+        String privileges();
+
+        String path();
+    }
+
+    private static final JsonKeys KEYS = new JsonKeys() {
+        @Override
+        public String principal() {
+            return "principal";
+        }
+
+        @Override
+        public String principals() {
+            return "principals";
+        }
+
+        @Override
+        public String expectedAces() {
+            return "expectedAces";
+        }
+
+        @Override
+        public String notExpectedAces() {
+            return "notExpectedAces";
+        }
+
+        @Override
+        public String afterPackageIdRules() {
+            return "afterPackageIdRules";
+        }
+
+        @Override
+        public String severity() {
+            return "severity";
+        }
+
+        @Override
+        public String type() {
+            return "type";
+        }
+
+        @Override
+        public String privileges() {
+            return "privileges";
+        }
+
+        @Override
+        public String path() {
+            return "path";
+        }
+    };
+
+    @NotNull
+    public static JsonKeys keys() {
+        return KEYS;
+    }
+
+    @Deprecated
+    public static final String CONFIG_PRINCIPAL = keys().principal();
+    @Deprecated
+    public static final String CONFIG_PRINCIPALS = keys().principals();
+    @Deprecated
+    public static final String CONFIG_EXPECTED_ACES = keys().expectedAces();
+    @Deprecated
+    public static final String CONFIG_NOT_EXPECTED_ACES = keys().notExpectedAces();
+    @Deprecated
+    public static final String CONFIG_AFTER_PACKAGE_ID_RULES = keys().afterPackageIdRules();
+    @Deprecated
+    public static final String ACE_PARAM_TYPE = keys().type();
+    @Deprecated
+    public static final String ACE_PARAM_PRIVILEGES = keys().privileges();
+    @Deprecated
+    public static final String ACE_PARAM_PATH = keys().path();
+
     private static final Logger LOGGER = LoggerFactory.getLogger(ExpectAces.class);
-    public static final String CONFIG_PRINCIPAL = "principal";
-    static final String CONFIG_PRINCIPALS = "principals";
-    public static final String CONFIG_EXPECTED_ACES = "expectedAces";
-    public static final String CONFIG_NOT_EXPECTED_ACES = "notExpectedAces";
-    public static final String CONFIG_AFTER_PACKAGE_ID_RULES = "afterPackageIdRules";
-    static final String CONFIG_SEVERITY = "severity";
-    static final Violation.Severity DEFAULT_SEVERITY = Violation.Severity.MAJOR;
-    public static final String ACE_PARAM_TYPE = "type";
-    public static final String ACE_PARAM_PRIVILEGES = "privileges";
-    public static final String ACE_PARAM_PATH = "path";
+    static final Severity DEFAULT_SEVERITY = Severity.MAJOR;
     public static final String DELIM_PARAM = ";";
     public static final String DELIM_VALUE = "=";
     public static final String DELIM_LIST = ",";
 
     @Override
     public ProgressCheck newInstance(final JsonObject config) throws Exception {
-        final String principal = config.getString(CONFIG_PRINCIPAL, "").trim();
-        final String[] principals = JavaxJson.mapArrayOfStrings(JavaxJson.arrayOrEmpty(config, CONFIG_PRINCIPALS))
+        final String principal = config.getString(keys().principal(), "").trim();
+        final String[] principals = JavaxJson.mapArrayOfStrings(JavaxJson.arrayOrEmpty(config, keys().principals()))
                 .stream().map(String::trim).filter(inferTest1(String::isEmpty).negate()).toArray(String[]::new);
 
         final String[] precedingPrincipals = principal.isEmpty() ? principals : new String[]{principal};
 
-        final List<AceCriteria> expectedAces = parseAceCriteria(config, precedingPrincipals, CONFIG_EXPECTED_ACES);
-        final List<AceCriteria> notExpectedAces = parseAceCriteria(config, precedingPrincipals, CONFIG_NOT_EXPECTED_ACES);
-        final Violation.Severity severity = Violation.Severity.valueOf(
-                config.getString(CONFIG_SEVERITY, DEFAULT_SEVERITY.name()).toUpperCase());
+        final List<AceCriteria> expectedAces = parseAceCriteria(config, precedingPrincipals, keys().expectedAces());
+        final List<AceCriteria> notExpectedAces = parseAceCriteria(config, precedingPrincipals, keys().notExpectedAces());
+        final Severity severity = Severity.valueOf(
+                config.getString(keys().severity(), DEFAULT_SEVERITY.name()).toUpperCase());
         return new Check(expectedAces, notExpectedAces,
-                Rule.fromJsonArray(JavaxJson.arrayOrEmpty(config, CONFIG_AFTER_PACKAGE_ID_RULES)), severity);
+                Rule.fromJsonArray(JavaxJson.arrayOrEmpty(config, keys().afterPackageIdRules())), severity);
     }
 
     static boolean isPrincipalSpec(final @NotNull String spec) {
-        return spec.contains(CONFIG_PRINCIPAL + "=");
+        return spec.contains(keys().principal() + "=");
     }
 
     static boolean isGeneralSpec(final @NotNull String spec) {
@@ -199,12 +279,12 @@ public final class ExpectAces implements ProgressCheckFactory {
         final Map<AceCriteria, List<PackageId>> expectedViolators = new LinkedHashMap<>();
         final Map<AceCriteria, List<PackageId>> notExpectedViolators = new LinkedHashMap<>();
         final List<Rule> afterPackageIdRules;
-        final Violation.Severity severity;
+        final Severity severity;
 
         Check(final @NotNull List<AceCriteria> expectedAces,
               final @NotNull List<AceCriteria> notExpectedAces,
               final @NotNull List<Rule> afterPackageIdRules,
-              final @NotNull Violation.Severity severity) {
+              final @NotNull Severity severity) {
             this.expectedAces = expectedAces;
             this.notExpectedAces = notExpectedAces;
             this.afterPackageIdRules = afterPackageIdRules;
@@ -415,32 +495,32 @@ public final class ExpectAces implements ProgressCheckFactory {
                     .map(Fun.mapValue(Optional::get))
                     .collect(Fun.entriesToMap());
 
-            final String effectivePrincipal = valueMap.getOrDefault(CONFIG_PRINCIPAL, principal).trim();
+            final String effectivePrincipal = valueMap.getOrDefault(keys().principal(), principal).trim();
             if (effectivePrincipal.isEmpty()) {
                 return Result.failure("principal must be non-empty: " + spec);
             }
-            keys.remove(CONFIG_PRINCIPAL);
+            keys.remove(keys().principal());
 
-            if (!valueMap.containsKey(ACE_PARAM_TYPE)) {
-                return Result.failure(ACE_PARAM_TYPE + " is a required ace parameter: " + spec);
+            if (!valueMap.containsKey(keys().type())) {
+                return Result.failure(keys().type() + " is a required ace parameter: " + spec);
             }
 
-            final Type type = Type.forName(valueMap.get(ACE_PARAM_TYPE));
+            final Type type = Type.forName(valueMap.get(keys().type()));
             if (type == null) {
-                return Result.failure(valueMap.get(ACE_PARAM_TYPE) + " is not a valid value for parameter " + ACE_PARAM_TYPE + ": " + spec);
+                return Result.failure(valueMap.get(keys().type()) + " is not a valid value for parameter " + keys().type() + ": " + spec);
             }
-            keys.remove(ACE_PARAM_TYPE);
+            keys.remove(keys().type());
 
-            if (!keys.contains(ACE_PARAM_PATH)) {
-                return Result.failure(ACE_PARAM_PATH + " parameter is required, but can be left empty to match rep:repoPolicy aces: " + spec);
+            if (!keys.contains(keys().path())) {
+                return Result.failure(keys().path() + " parameter is required, but can be left empty to match rep:repoPolicy aces: " + spec);
             }
-            final String path = Optional.ofNullable(valueMap.get(ACE_PARAM_PATH)).map(String::trim).orElse("");
+            final String path = Optional.ofNullable(valueMap.get(keys().path())).map(String::trim).orElse("");
             if (path.isEmpty()) {
                 LOGGER.debug("empty path param. spec will evaluate /rep:repoPolicy : {}", spec);
             }
-            keys.remove(ACE_PARAM_PATH);
+            keys.remove(keys().path());
 
-            final String[] privileges = Stream.of(Optional.ofNullable(valueMap.get(ACE_PARAM_PRIVILEGES))
+            final String[] privileges = Stream.of(Optional.ofNullable(valueMap.get(keys().privileges()))
                     .orElse("").split(DELIM_LIST))
                     .map(String::trim)
                     .filter(inferTest1(String::isEmpty).negate())
@@ -449,7 +529,7 @@ public final class ExpectAces implements ProgressCheckFactory {
             if (privileges.length == 0) {
                 return Result.failure("privileges must be specified with at least one element: " + spec);
             }
-            keys.remove(ACE_PARAM_PRIVILEGES);
+            keys.remove(keys().privileges());
 
             RestrictionCriteria[] restrictions = keys.stream()
                     .map(Fun.zipKeysWithValueFunc(valueMap::get))
@@ -465,9 +545,11 @@ public final class ExpectAces implements ProgressCheckFactory {
                 return spec;
             } else {
                 final StringBuilder common = new StringBuilder()
-                        .append(ACE_PARAM_TYPE + DELIM_VALUE).append(isAllow ? "allow" : "deny")
-                        .append(DELIM_PARAM + ACE_PARAM_PATH + DELIM_VALUE).append(path)
-                        .append(DELIM_PARAM + ACE_PARAM_PRIVILEGES + DELIM_VALUE).append(String.join(DELIM_LIST, privileges));
+                        .append(keys().type()).append(DELIM_VALUE).append(isAllow ? "allow" : "deny")
+                        .append(DELIM_PARAM)
+                        .append(keys().path()).append(DELIM_VALUE).append(path)
+                        .append(DELIM_PARAM)
+                        .append(keys().privileges()).append(DELIM_VALUE).append(String.join(DELIM_LIST, privileges));
                 for (RestrictionCriteria restriction : restrictions) {
                     common.append(DELIM_PARAM).append(restriction.name);
                     if (restriction.value != null) {

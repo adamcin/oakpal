@@ -22,11 +22,11 @@ import javax.json.Json;
 import javax.json.JsonObject;
 import javax.json.JsonReader;
 
+import net.adamcin.oakpal.api.Severity;
 import net.adamcin.oakpal.core.InstallHookPolicy;
 import net.adamcin.oakpal.api.JavaxJson;
 import net.adamcin.oakpal.core.OakpalPlan;
 import net.adamcin.oakpal.api.Result;
-import net.adamcin.oakpal.api.Violation;
 import org.apache.commons.io.FileUtils;
 import org.junit.After;
 import org.junit.Before;
@@ -65,7 +65,7 @@ public class OptionsTest {
         builder.setJustHelp(false);
         builder.setJustVersion(false);
         builder.setStoreBlobs(false);
-        builder.setFailOnSeverity(Violation.Severity.MAJOR);
+        builder.setFailOnSeverity(Severity.MAJOR);
         builder.setPlanName(null);
         builder.setOutputJson(false);
         builder.setOutFile(null);
