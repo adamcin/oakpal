@@ -61,7 +61,7 @@ class ProgressCheckAliasFacade implements ProgressCheck {
     }
 
     @Override
-    public @NotNull String getResourceBundleBaseName() {
+    public @Nullable String getResourceBundleBaseName() {
         return wrapped.getResourceBundleBaseName();
     }
 

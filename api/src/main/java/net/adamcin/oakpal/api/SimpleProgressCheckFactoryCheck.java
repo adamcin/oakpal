@@ -16,7 +16,7 @@
 
 package net.adamcin.oakpal.api;
 
-import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.osgi.annotation.versioning.ConsumerType;
 
 /**
@@ -44,7 +44,7 @@ public class SimpleProgressCheckFactoryCheck<FACTORY extends ProgressCheckFactor
     }
 
     @Override
-    public @NotNull String getResourceBundleBaseName() {
+    public @Nullable String getResourceBundleBaseName() {
         return factoryClass.getName();
     }
 }

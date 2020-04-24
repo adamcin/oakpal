@@ -116,15 +116,17 @@ public final class ScriptProgressCheck implements ProgressCheck {
     }
 
     @Override
-    public @NotNull String getResourceBundleBaseName() {
-        return getScriptPath()
-                .replaceAll("^/*", "")
-                .replaceAll("/", ".");
+    public @Nullable String getResourceBundleBaseName() {
+        return null;
     }
 
     @Override
     public void setResourceBundle(final ResourceBundle resourceBundle) {
         this.helper.setResourceBundle(resourceBundle);
+    }
+
+    ScriptHelper getHelper() {
+        return helper;
     }
 
     private String getScriptPath() {

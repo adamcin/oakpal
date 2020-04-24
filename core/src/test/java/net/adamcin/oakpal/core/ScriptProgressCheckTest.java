@@ -33,16 +33,22 @@ import javax.script.Invocable;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.PropertyResourceBundle;
+import java.util.ResourceBundle;
 import java.util.jar.Manifest;
 
 import static net.adamcin.oakpal.api.Fun.toEntry;
+import static net.adamcin.oakpal.api.Fun.tryOrDefault1;
 import static net.adamcin.oakpal.api.JavaxJson.key;
 import static net.adamcin.oakpal.api.JavaxJson.obj;
 import static org.junit.Assert.assertEquals;
@@ -451,11 +457,27 @@ public class ScriptProgressCheckTest {
         check.guardSessionHandler("missingFunction", handle -> handle.apply("test"));
     }
 
+    PropertyResourceBundle fromPropertiesUrl(URL propertiesUrl) {
+        try (InputStream propsStream = propertiesUrl.openStream()) {
+            return new PropertyResourceBundle(propsStream);
+        } catch (IOException e) {
+            return null;
+        }
+    }
+
     @Test
     public void testGetResourceBundleBaseName() throws Exception {
-        final ProgressCheck check = ScriptProgressCheck
+        final ScriptProgressCheck check = (ScriptProgressCheck) ScriptProgressCheck
                 .createScriptCheckFactory(testScriptUrl("checkWithResources.js")).newInstance(null);
-        assertEquals("check getResourceBundleBaseName should be", "some check", check.getResourceBundleBaseName());
 
+        assertEquals("expect testKey=testKey", "testKey", check.getHelper().getString("testKey"));
+
+        check.setResourceBundle(fromPropertiesUrl(testScriptUrl("checkWithResources.properties")));
+
+        assertEquals("expect testKey=yeKtset", "yeKtset", check.getHelper().getString("testKey"));
+
+        check.setResourceBundle(fromPropertiesUrl(testScriptUrl("overrideResourceBundle.properties")));
+
+        assertEquals("expect testKey=yeKtsettestKey", "yeKtsettestKey", check.getHelper().getString("testKey"));
     }
 }

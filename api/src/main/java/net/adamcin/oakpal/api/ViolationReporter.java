@@ -16,7 +16,7 @@
 
 package net.adamcin.oakpal.api;
 
-import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.osgi.annotation.versioning.ConsumerType;
 
 import java.util.Collection;
@@ -30,11 +30,13 @@ public interface ViolationReporter {
 
     /**
      * Get the resource bundle base name for loading the default resource bundle for this violation reporter. Returns
-     * {@code getClass().getName()} by default.
+     * {@code getClass().getName()} by default. If this method is overridden to return null, the oakpal framework will
+     * not attempt to load a parent resource bundle specific to this violation reporter when creating a resource bundle
+     * during initialization.
      *
      * @return the resource bundle base name
      */
-    @NotNull
+    @Nullable
     default String getResourceBundleBaseName() {
         return getClass().getName();
     }

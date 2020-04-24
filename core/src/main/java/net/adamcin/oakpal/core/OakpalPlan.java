@@ -325,9 +325,11 @@ public final class OakpalPlan implements JsonObjectConvertible {
     }
 
     void initResourceBundle(final ViolationReporter reporter, final Locale locale, final ClassLoader classLoader) {
-        Fun.result0(() -> ResourceBundle
-                .getBundle(reporter.getResourceBundleBaseName(), locale, classLoader)).get()
-                .forEach(reporter::setResourceBundle);
+        if (reporter.getResourceBundleBaseName() != null) {
+            Fun.result0(() -> ResourceBundle
+                    .getBundle(reporter.getResourceBundleBaseName(), locale, classLoader)).get()
+                    .forEach(reporter::setResourceBundle);
+        }
     }
 
     private static OakpalPlan fromJson(final @NotNull Builder builder,

@@ -27,6 +27,7 @@ import org.apache.jackrabbit.vault.fs.config.MetaInf;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.apache.jackrabbit.vault.packaging.PackageProperties;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.osgi.annotation.versioning.ProviderType;
 
 import javax.jcr.Node;
@@ -200,7 +201,7 @@ public final class JcrProperties implements ProgressCheckFactory {
         }
 
         @Override
-        protected @NotNull ResourceBundle getResourceBundle() throws MissingResourceException {
+        protected @Nullable ResourceBundle getResourceBundle() throws MissingResourceException {
             return super.getResourceBundle();
         }
 

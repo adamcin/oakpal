@@ -18,10 +18,12 @@ package net.adamcin.oakpal.api;
 
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.osgi.annotation.versioning.ConsumerType;
 
 import java.util.Collection;
 import java.util.MissingResourceException;
+import java.util.Optional;
 import java.util.ResourceBundle;
 import java.util.function.Consumer;
 
@@ -49,10 +51,12 @@ public class SimpleProgressCheck implements ProgressCheck {
      * @see ResourceBundle#getBundle(String)
      * @see ViolationReporter#getResourceBundleBaseName()
      */
-    @NotNull
+    @Nullable
     protected ResourceBundle getResourceBundle() throws MissingResourceException {
         if (this.resourceBundle == null) {
-            this.resourceBundle = ResourceBundle.getBundle(getResourceBundleBaseName());
+            if (getResourceBundleBaseName() != null) {
+                this.resourceBundle = ResourceBundle.getBundle(getResourceBundleBaseName());
+            }
         }
         return this.resourceBundle;
     }
@@ -66,11 +70,10 @@ public class SimpleProgressCheck implements ProgressCheck {
      */
     @NotNull
     protected String getString(@NotNull final String key) {
-        if (getResourceBundle().containsKey(key)) {
-            return getResourceBundle().getString(key);
-        } else {
-            return key;
-        }
+        return Optional.ofNullable(getResourceBundle())
+                .filter(bundle -> bundle.containsKey(key))
+                .map(bundle -> bundle.getString(key))
+                .orElse(key);
     }
 
     protected void reportViolation(final Violation violation) {
