@@ -17,6 +17,7 @@
 package net.adamcin.oakpal.core;
 
 import junitx.util.PrivateAccessor;
+import net.adamcin.oakpal.api.PathAction;
 import net.adamcin.oakpal.api.ProgressCheck;
 import net.adamcin.oakpal.api.SimpleProgressCheck;
 import net.adamcin.oakpal.testing.TestPackageUtil;
@@ -683,7 +684,7 @@ public class OakMachineTest {
         final File testPackage = TestPackageUtil.prepareTestPackage("tmp_foo_bar.zip");
         final ProgressCheck check = mock(ProgressCheck.class);
         doThrow(RepositoryException.class).when(check)
-                .importedPath(any(PackageId.class), anyString(), any(Node.class));
+                .importedPath(any(PackageId.class), anyString(), any(Node.class), any(PathAction.class));
 
         final CompletableFuture<Exception> eLatch = new CompletableFuture<>();
         final CompletableFuture<ProgressCheck> handlerLatch = new CompletableFuture<>();

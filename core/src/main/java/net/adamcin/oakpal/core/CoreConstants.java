@@ -17,6 +17,7 @@
 package net.adamcin.oakpal.core;
 
 import org.jetbrains.annotations.NotNull;
+import org.osgi.annotation.versioning.ProviderType;
 
 /**
  * Hosts constants for interface types as static singleton getter methods defined by associated interfaces.
@@ -32,6 +33,7 @@ public final class CoreConstants {
     /**
      * Json keys for CheckReport. Use {@link CoreConstants#checkReportKeys()} to access singleton.
      */
+    @ProviderType
     public interface CheckReportKeys {
         String checkName();
 

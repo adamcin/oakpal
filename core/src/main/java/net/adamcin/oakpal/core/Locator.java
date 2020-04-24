@@ -166,6 +166,5 @@ public final class Locator {
             }
         }
         return allChecks;
-
     }
 }

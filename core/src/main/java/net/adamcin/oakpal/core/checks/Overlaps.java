@@ -16,15 +16,17 @@
 
 package net.adamcin.oakpal.core.checks;
 
+import net.adamcin.oakpal.api.PathAction;
 import net.adamcin.oakpal.api.ProgressCheck;
 import net.adamcin.oakpal.api.ProgressCheckFactory;
 import net.adamcin.oakpal.api.Severity;
-import net.adamcin.oakpal.api.SimpleProgressCheck;
+import net.adamcin.oakpal.api.SimpleProgressCheckFactoryCheck;
 import org.apache.jackrabbit.vault.fs.api.WorkspaceFilter;
 import org.apache.jackrabbit.vault.fs.config.MetaInf;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.apache.jackrabbit.vault.packaging.PackageProperties;
 import org.jetbrains.annotations.NotNull;
+import org.osgi.annotation.versioning.ProviderType;
 
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
@@ -37,7 +39,6 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static net.adamcin.oakpal.api.JavaxJson.hasNonNull;
-import static net.adamcin.oakpal.api.JavaxJson.key;
 
 /**
  * The {@code overlaps} check keeps track of installed package workspace filters, and checks every affected path going
@@ -58,6 +59,7 @@ import static net.adamcin.oakpal.api.JavaxJson.key;
  * </dl>
  */
 public final class Overlaps implements ProgressCheckFactory {
+    @ProviderType
     public interface JsonKeys {
         String reportAllOverlaps();
     }
@@ -84,7 +86,7 @@ public final class Overlaps implements ProgressCheckFactory {
         return new Check(reportAllOverlaps);
     }
 
-    static final class Check extends SimpleProgressCheck {
+    static final class Check extends SimpleProgressCheckFactoryCheck<Overlaps> {
 
         final Map<PackageId, WorkspaceFilter> filters = new HashMap<>();
         final Map<PackageId, Severity> reported = new HashMap<>();
@@ -92,12 +94,8 @@ public final class Overlaps implements ProgressCheckFactory {
         final boolean reportAllOverlaps;
 
         Check(final boolean reportAllOverlaps) {
+            super(Overlaps.class);
             this.reportAllOverlaps = reportAllOverlaps;
-        }
-
-        @Override
-        public String getCheckName() {
-            return Overlaps.class.getSimpleName();
         }
 
         @Override
@@ -139,14 +137,16 @@ public final class Overlaps implements ProgressCheckFactory {
                 if (!reportAllOverlaps) {
                     reported.put(currentPackageId, severity);
                 }
-                reportViolation(severity,
-                        String.format("affected path %s overlaps %s", path, overlapping),
-                        currentPackageId);
+                reporting(violation -> violation.withSeverity(severity)
+                        .withPackage(currentPackageId)
+                        .withDescription("affected path {0} overlaps {1}")
+                        .withArgument(path, overlapping));
             }
         }
 
         @Override
-        public void importedPath(final PackageId packageId, final String path, final Node node)
+        public void importedPath(final PackageId packageId, final String path, final Node node,
+                                 final PathAction action)
                 throws RepositoryException {
             // don't worry about nodes outside of our own scope.
             if (filters.get(packageId).contains(path)) {

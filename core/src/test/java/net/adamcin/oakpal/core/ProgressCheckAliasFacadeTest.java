@@ -16,6 +16,7 @@
 
 package net.adamcin.oakpal.core;
 
+import net.adamcin.oakpal.api.PathAction;
 import net.adamcin.oakpal.api.ProgressCheck;
 import net.adamcin.oakpal.api.Violation;
 import org.apache.jackrabbit.vault.fs.config.MetaInf;
@@ -31,11 +32,13 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.ResourceBundle;
 import java.util.concurrent.CompletableFuture;
 import java.util.jar.Manifest;
 
 import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -227,15 +230,17 @@ public class ProgressCheckAliasFacadeTest {
         final PackageId arg0 = PackageId.fromString("my_packages:example:1.0");
         final String arg1 = "/correct/path";
         final Node arg2 = mock(Node.class);
+        final PathAction arg3 = PathAction.MODIFIED;
 
         final ProgressCheck delegate = mock(ProgressCheck.class);
         doThrow(RepositoryException.class).when(delegate).importedPath(
                 any(PackageId.class),
                 any(String.class),
-                any(Node.class));
+                any(Node.class),
+                any(PathAction.class));
 
         final ProgressCheckAliasFacade alias = new ProgressCheckAliasFacade(delegate, null);
-        alias.importedPath(arg0, arg1, arg2);
+        alias.importedPath(arg0, arg1, arg2, arg3);
     }
 
     @Test
@@ -243,10 +248,12 @@ public class ProgressCheckAliasFacadeTest {
         final PackageId arg0 = PackageId.fromString("my_packages:example:1.0");
         final String arg1 = "/correct/path";
         final Node arg2 = mock(Node.class);
+        final PathAction arg3 = PathAction.MODIFIED;
 
         final CompletableFuture<PackageId> slot0 = new CompletableFuture<>();
         final CompletableFuture<String> slot1 = new CompletableFuture<>();
         final CompletableFuture<Node> slot2 = new CompletableFuture<>();
+        final CompletableFuture<PathAction> slot3 = new CompletableFuture<>();
 
         final ProgressCheck delegate = mock(ProgressCheck.class);
 
@@ -254,18 +261,21 @@ public class ProgressCheckAliasFacadeTest {
             slot0.complete(call.getArgument(0, PackageId.class));
             slot1.complete(call.getArgument(1, String.class));
             slot2.complete(call.getArgument(2, Node.class));
+            slot3.complete(call.getArgument(3, PathAction.class));
             return true;
         }).when(delegate).importedPath(
                 any(PackageId.class),
                 any(String.class),
-                any(Node.class));
+                any(Node.class),
+                any(PathAction.class));
 
         final ProgressCheckAliasFacade alias = new ProgressCheckAliasFacade(delegate, null);
-        alias.importedPath(arg0, arg1, arg2);
+        alias.importedPath(arg0, arg1, arg2, arg3);
 
         assertSame("same arg0", arg0, slot0.getNow(null));
         assertSame("same arg1", arg1, slot1.getNow(null));
         assertSame("same arg2", arg2, slot2.getNow(null));
+        assertSame("same arg3", arg3, slot3.getNow(null));
     }
 
     @Test(expected = RepositoryException.class)
@@ -351,5 +361,19 @@ public class ProgressCheckAliasFacadeTest {
 
         assertSame("same arg0", arg0, slot0.getNow(null));
         assertSame("same arg1", arg1, slot1.getNow(null));
+    }
+
+    @Test
+    public void testSetResourceBundle() {
+        final ProgressCheck wrappedCheck = mock(ProgressCheck.class);
+        when(wrappedCheck.getResourceBundleBaseName()).thenReturn(getClass().getName());
+        final CompletableFuture<ResourceBundle> slot = new CompletableFuture<>();
+        doAnswer(call -> slot.complete(call.getArgument(0)))
+                .when(wrappedCheck).setResourceBundle(nullable(ResourceBundle.class));
+
+        final ProgressCheckAliasFacade facade = new ProgressCheckAliasFacade(wrappedCheck, "wrapper");
+        final ResourceBundle expected = ResourceBundle.getBundle(getClass().getName());
+        facade.setResourceBundle(ResourceBundle.getBundle(facade.getResourceBundleBaseName()));
+        assertSame("expect same resource bundle", expected, slot.getNow(null));
     }
 }

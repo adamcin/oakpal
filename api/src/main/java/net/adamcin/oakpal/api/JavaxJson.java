@@ -20,6 +20,7 @@ package net.adamcin.oakpal.api;
 import org.apache.jackrabbit.util.ISO8601;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.osgi.annotation.versioning.ProviderType;
 
 import javax.json.Json;
 import javax.json.JsonArray;
@@ -88,29 +89,10 @@ public final class JavaxJson {
     }
 
     /**
-     * Custom pojo types which should be usable within this DSL should implement this method to provide a
-     * {@link JsonObject}, which can be wrapped quickly by {@link #val(Object)}.
-     *
-     * @deprecated 1.5.0 use {@link JsonObjectConvertible} instead
-     */
-    @Deprecated
-    public interface ObjectConvertible extends JsonObjectConvertible {
-    }
-
-    /**
-     * Custom pojo types which should be usable within this DSL should implement this method to provide a
-     * {@link JsonArray}, which can be wrapped quickly by {@link #val(Object)}.
-     *
-     * @deprecated 1.5.0 use {@link JsonArrayConvertible} instead
-     */
-    @Deprecated
-    public interface ArrayConvertible extends JsonArrayConvertible {
-    }
-
-    /**
      * Defines a method toValue which coalesces the underlying value to prevent over-wrapping by the
      * {@link #val(Object)} method.
      */
+    @ProviderType
     public interface HasValue {
         Value toValue();
     }
@@ -120,6 +102,7 @@ public final class JavaxJson {
      *
      * @param <TYPE> the return type of the get method
      */
+    @ProviderType
     public interface As<TYPE> {
         TYPE get();
     }
@@ -127,6 +110,7 @@ public final class JavaxJson {
     /**
      * Type which allows a different fluent style for building keys, i.e. {@code key(String).val(obj)}.
      */
+    @ProviderType
     public interface Cursor {
         String getKey();
     }

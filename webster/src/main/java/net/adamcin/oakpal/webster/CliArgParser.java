@@ -60,7 +60,7 @@ public final class CliArgParser {
 
     }
 
-    static class Token {
+    static final class Token {
         final TokenType type;
         final String data;
 
@@ -93,7 +93,7 @@ public final class CliArgParser {
         return tokens;
     }
 
-    static class Parser {
+    static final class Parser {
         final List<String> args = new ArrayList<>();
         StringBuilder arg = new StringBuilder();
         boolean escaped;

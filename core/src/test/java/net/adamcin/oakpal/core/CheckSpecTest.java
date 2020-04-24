@@ -16,6 +16,7 @@
 
 package net.adamcin.oakpal.core;
 
+import net.adamcin.oakpal.api.PathAction;
 import net.adamcin.oakpal.api.ProgressCheck;
 import org.junit.Test;
 
@@ -314,7 +315,7 @@ public class CheckSpecTest {
         CheckSpec inline = CheckSpec.fromJson(key("inlineScript", "function importedPath(packageId, path) { print(path); }").get());
         List<ProgressCheck> checks = Locator.loadFromCheckSpecs(Collections.singletonList(inline));
 
-        checks.get(0).importedPath(null, "/foo", null);
+        checks.get(0).importedPath(null, "/foo", null, PathAction.ADDED);
     }
 
     @Test

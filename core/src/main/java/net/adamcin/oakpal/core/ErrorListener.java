@@ -20,12 +20,14 @@ import net.adamcin.oakpal.api.ProgressCheck;
 import net.adamcin.oakpal.api.ScanListener;
 import net.adamcin.oakpal.api.ViolationReporter;
 import org.apache.jackrabbit.vault.packaging.PackageId;
+import org.osgi.annotation.versioning.ConsumerType;
 
 import java.net.URL;
 
 /**
  * A single error handler is used during an OakPAL scan.
  */
+@ConsumerType
 public interface ErrorListener extends ScanListener, ViolationReporter {
 
     /**

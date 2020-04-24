@@ -22,6 +22,7 @@ import net.adamcin.oakpal.api.ProgressCheck;
 import net.adamcin.oakpal.api.ProgressCheckFactory;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.osgi.annotation.versioning.ProviderType;
 
 import javax.json.Json;
 import javax.json.JsonObject;
@@ -37,10 +38,12 @@ import static net.adamcin.oakpal.core.Util.isEmpty;
  * DTO for full-featured check spec.
  */
 @SuppressWarnings("WeakerAccess")
+@ProviderType
 public class CheckSpec implements JsonObjectConvertible {
     /**
      * Json keys for CheckSpec. Use {@link #keys()} to access singleton.
      */
+    @ProviderType
     public interface JsonKeys {
         String impl();
 

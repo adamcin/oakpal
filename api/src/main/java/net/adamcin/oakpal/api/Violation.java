@@ -17,6 +17,7 @@
 package net.adamcin.oakpal.api;
 
 import org.apache.jackrabbit.vault.packaging.PackageId;
+import org.osgi.annotation.versioning.ProviderType;
 
 import javax.json.Json;
 import javax.json.JsonArrayBuilder;
@@ -27,6 +28,7 @@ import java.util.Collection;
 /**
  * Report type for validations.
  */
+@ProviderType
 public interface Violation extends JsonObjectConvertible {
 
     /**

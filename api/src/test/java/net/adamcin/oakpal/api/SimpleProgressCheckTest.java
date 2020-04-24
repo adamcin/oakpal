@@ -19,9 +19,40 @@ package net.adamcin.oakpal.api;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.junit.Test;
 
-import static org.junit.Assert.*;
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.util.Locale;
+import java.util.ResourceBundle;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 
 public class SimpleProgressCheckTest {
+
+    @Test
+    public void testSetResourceBundle() {
+        final SimpleProgressCheck check = new SimpleProgressCheck();
+
+        ResourceBundle originalBundle = check.getResourceBundle();
+        assertSame("same object returned twice", originalBundle, check.getResourceBundle());
+        ResourceBundle newBundle = ResourceBundle.getBundle(check.getResourceBundleBaseName(),
+                Locale.getDefault(), new URLClassLoader(new URL[0], getClass().getClassLoader()));
+        assertNotSame("not same object as created externally", newBundle, check.getResourceBundle());
+        check.setResourceBundle(newBundle);
+        assertSame("same object as set", newBundle, check.getResourceBundle());
+        assertSame("same object as set, again", newBundle, check.getResourceBundle());
+    }
+
+    @Test
+    public void testGetString() {
+        final SimpleProgressCheck check = new SimpleProgressCheck();
+        assertEquals("expect passthrough", "testKey", check.getString("testKey"));
+        ResourceBundle newBundle = ResourceBundle.getBundle(getClass().getName());
+        check.setResourceBundle(newBundle);
+        assertEquals("expect from bundle", "yeKtset", check.getString("testKey"));
+    }
 
     @Test
     public void testReportViolation() {

@@ -17,6 +17,7 @@
 package net.adamcin.oakpal.core;
 
 import net.adamcin.oakpal.api.Fun;
+import net.adamcin.oakpal.api.PathAction;
 import net.adamcin.oakpal.api.ProgressCheck;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitRepository;
@@ -938,7 +939,7 @@ public final class OakMachine {
                         Node node = session.getNode(path);
                         handlers.forEach(handler -> {
                             try {
-                                handler.importedPath(packageId, path, node);
+                                handler.importedPath(packageId, path, node, PathAction.fromShortCode(action));
                             } catch (final Exception e) {
                                 OakMachine.this.getErrorListener().onListenerPathException(e, handler, packageId, path);
                             }

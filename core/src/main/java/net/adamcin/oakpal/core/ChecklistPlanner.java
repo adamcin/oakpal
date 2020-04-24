@@ -113,18 +113,18 @@ public final class ChecklistPlanner {
 
     /**
      * Compute the checklist plan for progress checks, given a list of override specs to apply.
-     *
+     * <p>
      * Intended Algorithm:
      * from selected checklists, stream specs
-     *   - apply overrides
-     *   - drop skipped specs
-     *   - collect overlaid
+     * - apply overrides
+     * - drop skipped specs
+     * - collect overlaid
      * from overrides, stream as remaining specs
-     *   - drop skipped specs
-     *   - drop if already applied as overlay
-     *   - apply as overlay to inactive checklist specs if possible
-     *   - apply inheritance from any checklist spec if necessary
-     *   - add result if not abstract
+     * - drop skipped specs
+     * - drop if already applied as overlay
+     * - apply as overlay to inactive checklist specs if possible
+     * - apply inheritance from any checklist spec if necessary
+     * - add result if not abstract
      *
      * @param checkOverrides the list of check overrides
      * @return a final list of {@link CheckSpec}s to use for a scan

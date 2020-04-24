@@ -19,12 +19,15 @@ package net.adamcin.oakpal.core.checks;
 import net.adamcin.oakpal.api.ProgressCheck;
 import net.adamcin.oakpal.api.Rule;
 import net.adamcin.oakpal.api.Severity;
+import net.adamcin.oakpal.api.Violation;
 import net.adamcin.oakpal.core.CheckReport;
 import net.adamcin.oakpal.testing.TestUtil;
 import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.Collections;
+import java.util.Locale;
+import java.util.ResourceBundle;
 import java.util.regex.Pattern;
 
 import static java.util.Collections.singletonList;
@@ -120,5 +123,19 @@ public class PathsTest extends ProgressCheckTestBase {
 
         assertFalse("reported violations should not be empty after deletedPath for /bar",
                 deletesByRuleCheck.getReportedViolations().isEmpty());
+    }
+
+    @Test
+    public void testDeletedPath_de() throws Exception {
+        Paths.Check allDeletesCheck = new Paths.Check(Collections.emptyList(), true, Paths.DEFAULT_SEVERITY);
+        allDeletesCheck.setResourceBundle(ResourceBundle.getBundle(allDeletesCheck.getResourceBundleBaseName(), Locale.GERMAN));
+
+        allDeletesCheck.deletedPath(null, "/foo", null);
+        assertFalse("reported violations should not be empty after deletedPath",
+                allDeletesCheck.getReportedViolations().isEmpty());
+        Violation violation = allDeletesCheck.getReportedViolations().iterator().next();
+        assertTrue("violation description should be in german: " + violation.getDescription(),
+                violation.getDescription().contains("gelöschte"));
+
     }
 }

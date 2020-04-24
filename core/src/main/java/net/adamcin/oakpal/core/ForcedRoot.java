@@ -19,6 +19,7 @@ package net.adamcin.oakpal.core;
 import net.adamcin.oakpal.api.JsonObjectConvertible;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.osgi.annotation.versioning.ProviderType;
 
 import javax.json.JsonObject;
 import java.util.Arrays;
@@ -42,6 +43,7 @@ public final class ForcedRoot implements JsonObjectConvertible, Comparable<Force
     /**
      * Json keys for ForcedRoot. Use {@link #keys()} to access singleton.
      */
+    @ProviderType
     public interface JsonKeys {
         String path();
 

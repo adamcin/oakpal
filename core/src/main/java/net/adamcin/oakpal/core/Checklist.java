@@ -25,6 +25,7 @@ import org.apache.jackrabbit.spi.commons.conversion.NamePathResolver;
 import org.apache.jackrabbit.spi.commons.namespace.NamespaceMapping;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.osgi.annotation.versioning.ProviderType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,6 +59,7 @@ public final class Checklist implements JsonObjectConvertible {
     /**
      * Json keys for Checklist. Use {@link #keys()} to access singleton.
      */
+    @ProviderType
     public interface JsonKeys {
         String name();
 
@@ -243,7 +245,7 @@ public final class Checklist implements JsonObjectConvertible {
         return builder.build();
     }
 
-    static class Builder {
+    static final class Builder {
         private final String moduleName;
         private String name;
         private List<QNodeTypeDefinition> jcrNodetypes = new ArrayList<>();

@@ -19,6 +19,7 @@ package net.adamcin.oakpal.api;
 import org.apache.jackrabbit.vault.fs.config.MetaInf;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.apache.jackrabbit.vault.packaging.PackageProperties;
+import org.osgi.annotation.versioning.ConsumerType;
 
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
@@ -42,6 +43,7 @@ import java.util.jar.Manifest;
  * {@link ProgressCheckFactory} in order to be loaded successfully.</li>
  * </ol>
  */
+@ConsumerType
 public interface ProgressCheck extends ScanListener, ViolationReporter {
 
     /**
@@ -103,15 +105,31 @@ public interface ProgressCheck extends ScanListener, ViolationReporter {
     }
 
     /**
-     * Notified when package importer adds, modifies, or leaves a node untouched.
+     * Notified when package importer adds, modifies, or leaves a node untouched. This method is not called if
+     * {@link #importedPath(PackageId, String, Node, PathAction)} is overridden.
      *
      * @param packageId the current package
      * @param path      the imported path
      * @param node      the imported node
      * @throws RepositoryException because of access to a {@link Node}
+     * @deprecated 2.0.0 implement {@link #importedPath(PackageId, String, Node, PathAction)} instead
      */
+    @Deprecated
     default void importedPath(PackageId packageId, String path, Node node) throws RepositoryException {
 
+    }
+
+    /**
+     * Notified when package importer adds, modifies, or leaves a node untouched.
+     *
+     * @param packageId the current package
+     * @param path      the imported path
+     * @param node      the imported node
+     * @param action    the reported path action type
+     * @throws RepositoryException because of access to a {@link Node}
+     */
+    default void importedPath(PackageId packageId, String path, Node node, PathAction action) throws RepositoryException {
+        importedPath(packageId, path, node);
     }
 
     /**

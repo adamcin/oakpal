@@ -17,14 +17,17 @@
 package net.adamcin.oakpal.api;
 
 import org.apache.jackrabbit.vault.packaging.PackageId;
+import org.jetbrains.annotations.Nullable;
 
 import javax.json.JsonObject;
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.ResourceBundle;
 
 import static net.adamcin.oakpal.api.JavaxJson.mapArrayOfStrings;
 import static net.adamcin.oakpal.api.JavaxJson.optArray;
@@ -37,15 +40,150 @@ public final class SimpleViolation implements Violation {
     private final String description;
     private final List<PackageId> packages;
 
+    /**
+     * Constructor.
+     *
+     * @param severity    the severity
+     * @param description the description
+     * @param packages    the package ids
+     */
     public SimpleViolation(final Severity severity, final String description, final PackageId... packages) {
         this(severity, description, packages != null ? Arrays.asList(packages) : null);
     }
 
+    /**
+     * Constructor.
+     *
+     * @param severity    the severity
+     * @param description the description
+     * @param packages    the package ids
+     */
     public SimpleViolation(final Severity severity, final String description, final List<PackageId> packages) {
-        this.severity = severity;
+        this.severity = severity != null ? severity : Severity.MAJOR;
         this.description = description;
-        this.packages = Collections.unmodifiableList(
-                packages != null ? new ArrayList<>(packages) : Collections.emptyList());
+        this.packages = packages == null || packages.isEmpty()
+                ? Collections.emptyList()
+                : Collections.unmodifiableList(new ArrayList<>(packages));
+    }
+
+    /**
+     * Use this builder method to more easily construct a violation with MessageFormat arguments.
+     *
+     * @return a new SimpleViolation Builder
+     */
+    public static Builder builder() {
+        return new Builder(null);
+    }
+
+    /**
+     * Use this builder method to more easily construct a violation with MessageFormat arguments.
+     *
+     * @param resourceBundle a ResourceBundle to lookup a localized message format string if available
+     * @return a new SimpleViolation Builder
+     */
+    public static Builder builder(final ResourceBundle resourceBundle) {
+        return new Builder(resourceBundle);
+    }
+
+    public static final class Builder {
+        @Nullable
+        private final ResourceBundle resourceBundle;
+        private Severity severity;
+        private String description;
+        private List<Object> arguments = new ArrayList<>();
+        private List<PackageId> packages = new ArrayList<>();
+
+        private Builder(@Nullable final ResourceBundle resourceBundle) {
+            this.resourceBundle = resourceBundle;
+        }
+
+        /**
+         * Set severity.
+         *
+         * @param severity severity value
+         * @return this builder
+         */
+        public Builder withSeverity(final Severity severity) {
+            this.severity = severity;
+            return this;
+        }
+
+        /**
+         * Set description.
+         *
+         * @param description description
+         * @return this builder
+         */
+        public Builder withDescription(final String description) {
+            this.description = description;
+            return this;
+        }
+
+        /**
+         * Set arguments.
+         *
+         * @param arguments arguments
+         * @return this builder
+         */
+        public Builder withArguments(final List<Object> arguments) {
+            this.arguments = arguments != null ? new ArrayList<>(arguments) : new ArrayList<>();
+            return this;
+        }
+
+        /**
+         * Add one or more arguments.
+         *
+         * @param argument vararg argument values
+         * @return this builder
+         */
+        public Builder withArgument(final Object... argument) {
+            if (argument != null) {
+                this.arguments.addAll(Arrays.asList(argument));
+            }
+            return this;
+        }
+
+        /**
+         * Set package ids.
+         *
+         * @param packages package ids
+         * @return this builder
+         */
+        public Builder withPackages(final List<PackageId> packages) {
+            this.packages = packages != null ? new ArrayList<>(packages) : new ArrayList<>();
+            return this;
+        }
+
+        /**
+         * Add one or more packageIds.
+         *
+         * @param packageId vararg packageId values
+         * @return this builder
+         */
+        public Builder withPackage(final PackageId... packageId) {
+            if (packageId != null) {
+                this.packages.addAll(Arrays.asList(packageId));
+            }
+            return this;
+        }
+
+        /**
+         * Build a simple violation.
+         *
+         * @return a new violation
+         */
+        public SimpleViolation build() {
+            final String localDescription =
+                    description != null && resourceBundle != null && resourceBundle.containsKey(description)
+                            ? resourceBundle.getString(description)
+                            : description;
+            if (localDescription == null || arguments == null || arguments.isEmpty()) {
+                return new SimpleViolation(severity, localDescription, packages);
+            } else {
+                return new SimpleViolation(severity, MessageFormat.format(localDescription,
+                        arguments.toArray(new Object[arguments.size()])), packages);
+            }
+        }
     }
 
     @Override

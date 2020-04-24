@@ -19,6 +19,7 @@ package net.adamcin.oakpal.core;
 import net.adamcin.oakpal.api.SimpleViolation;
 import net.adamcin.oakpal.api.Violation;
 import org.jetbrains.annotations.NotNull;
+import org.osgi.annotation.versioning.ProviderType;
 
 import javax.json.Json;
 import javax.json.JsonArray;
@@ -49,6 +50,7 @@ import static net.adamcin.oakpal.api.JavaxJson.optArray;
  * Serialize violations to/from json.
  */
 public final class ReportMapper {
+    @ProviderType
     public interface JsonKeys {
         String reports();
 
@@ -85,6 +87,7 @@ public final class ReportMapper {
     /**
      * Functional interface that indicates that the consuming method will open AND close the stream for reading.
      */
+    @ProviderType
     @FunctionalInterface
     public interface ReaderSupplier {
         Reader open() throws IOException;
@@ -93,6 +96,7 @@ public final class ReportMapper {
     /**
      * Functional interface that indicates that the consuming method will open AND close the stream for writing.
      */
+    @ProviderType
     @FunctionalInterface
     public interface WriterSupplier {
         Writer open() throws IOException;

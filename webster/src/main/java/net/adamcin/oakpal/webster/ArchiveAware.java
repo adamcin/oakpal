@@ -19,11 +19,13 @@ package net.adamcin.oakpal.webster;
 import java.io.File;
 
 import org.apache.jackrabbit.vault.fs.io.Archive;
+import org.osgi.annotation.versioning.ProviderType;
 
 /**
  * Interface that allows the {@link WebsterPlan} to provide a {@link WebsterTarget} with a fresh FileVault
  * {@link Archive} to traverse.
  */
+@ProviderType
 public interface ArchiveAware {
 
     /**

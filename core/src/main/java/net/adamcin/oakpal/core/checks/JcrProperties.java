@@ -16,15 +16,18 @@
 
 package net.adamcin.oakpal.core.checks;
 
+import net.adamcin.oakpal.api.PathAction;
 import net.adamcin.oakpal.api.ProgressCheck;
 import net.adamcin.oakpal.api.ProgressCheckFactory;
 import net.adamcin.oakpal.api.Rule;
-import net.adamcin.oakpal.api.SimpleProgressCheck;
+import net.adamcin.oakpal.api.Severity;
+import net.adamcin.oakpal.api.SimpleProgressCheckFactoryCheck;
 import org.apache.jackrabbit.vault.fs.api.WorkspaceFilter;
 import org.apache.jackrabbit.vault.fs.config.MetaInf;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.apache.jackrabbit.vault.packaging.PackageProperties;
 import org.jetbrains.annotations.NotNull;
+import org.osgi.annotation.versioning.ProviderType;
 
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
@@ -32,6 +35,8 @@ import javax.jcr.Session;
 import javax.jcr.nodetype.NodeTypeDefinition;
 import javax.json.JsonObject;
 import java.util.List;
+import java.util.MissingResourceException;
+import java.util.ResourceBundle;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -93,6 +98,7 @@ import static net.adamcin.oakpal.api.JavaxJson.mapArrayOfStrings;
  * </pre>
  */
 public final class JcrProperties implements ProgressCheckFactory {
+    @ProviderType
     public interface JsonKeys {
         String scopePaths();
 
@@ -145,31 +151,57 @@ public final class JcrProperties implements ProgressCheckFactory {
 
         List<String> denyNodeTypes = mapArrayOfStrings(arrayOrEmpty(config, keys().denyNodeTypes()));
         List<String> nodeTypeScope = mapArrayOfStrings(arrayOrEmpty(config, keys().scopeNodeTypes()));
+        final ResourceBundleHolder resourceBundleHolder = new ResourceBundleHolder();
         List<JcrPropertyConstraints> propertyChecks = JcrPropertyConstraints
-                .fromJsonArray(arrayOrEmpty(config, keys().properties()));
-        return new Check(pathScope, denyNodeTypes, nodeTypeScope, propertyChecks);
+                .fromJsonArray(resourceBundleHolder::getResourceBundle, arrayOrEmpty(config, keys().properties()));
+        return new Check(pathScope, denyNodeTypes, nodeTypeScope, propertyChecks, resourceBundleHolder);
     }
 
-    static final class Check extends SimpleProgressCheck {
+    static final class ResourceBundleHolder {
+        private ResourceBundle resourceBundle;
+
+        public ResourceBundle getResourceBundle() {
+            if (resourceBundle == null) {
+                resourceBundle = ResourceBundle.getBundle(JcrProperties.class.getName());
+            }
+            return resourceBundle;
+        }
+
+        public void setResourceBundle(final ResourceBundle resourceBundle) {
+            this.resourceBundle = resourceBundle;
+        }
+    }
+
+    static final class Check extends SimpleProgressCheckFactoryCheck<JcrProperties> {
         private final List<Rule> scopePaths;
         private final List<String> denyNodeTypes;
         private final List<String> scopeNodeTypes;
         private final List<JcrPropertyConstraints> propertyChecks;
+        private final ResourceBundleHolder resourceBundleHolder;
         private WorkspaceFilter wspFilter;
 
         Check(final List<Rule> scopePaths,
               final List<String> denyNodeTypes,
               final List<String> scopeNodeTypes,
-              final List<JcrPropertyConstraints> propertyChecks) {
+              final List<JcrPropertyConstraints> propertyChecks,
+              final ResourceBundleHolder resourceBundleHolder) {
+            super(JcrProperties.class);
             this.scopePaths = scopePaths;
             this.denyNodeTypes = denyNodeTypes;
             this.scopeNodeTypes = scopeNodeTypes;
             this.propertyChecks = propertyChecks;
+            this.resourceBundleHolder = resourceBundleHolder;
         }
 
         @Override
-        public String getCheckName() {
-            return JcrProperties.class.getSimpleName();
+        public void setResourceBundle(final ResourceBundle resourceBundle) {
+            super.setResourceBundle(resourceBundle);
+            resourceBundleHolder.setResourceBundle(resourceBundle);
+        }
+
+        @Override
+        protected @NotNull ResourceBundle getResourceBundle() throws MissingResourceException {
+            return super.getResourceBundle();
         }
 
         @Override
@@ -180,7 +212,8 @@ public final class JcrProperties implements ProgressCheckFactory {
         }
 
         @Override
-        public void importedPath(final PackageId packageId, final String path, final Node node) throws RepositoryException {
+        public void importedPath(final PackageId packageId, final String path, final Node node,
+                                 final PathAction action) throws RepositoryException {
             if (!wspFilter.contains(path)) {
                 return;
             }
@@ -194,14 +227,19 @@ public final class JcrProperties implements ProgressCheckFactory {
         void checkNode(final PackageId packageId, final Node node) throws RepositoryException {
             for (String denyNodeType : denyNodeTypes) {
                 if (node.isNodeType(denyNodeType)) {
-                    majorViolation(String.format("%s (t: %s, m: %s): denied node type %s",
+                    final Object[] arguments = new Object[]{
                             node.getPath(),
                             node.getPrimaryNodeType().getName(),
                             Stream.of(node.getMixinNodeTypes())
                                     .map(NodeTypeDefinition::getName)
                                     .collect(Collectors.toList()),
-                            denyNodeType),
-                            packageId);
+                            denyNodeType
+                    };
+                    reporting(violation -> violation
+                            .withSeverity(Severity.MAJOR)
+                            .withDescription("{0} (t: {1}, m: {2}): denied node type {3}")
+                            .withArgument(arguments)
+                            .withPackage(packageId));
                     return;
                 }
             }

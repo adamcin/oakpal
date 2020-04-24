@@ -22,6 +22,7 @@ import net.adamcin.oakpal.api.ProgressCheck;
 import net.adamcin.oakpal.api.Severity;
 import net.adamcin.oakpal.api.Violation;
 import org.jetbrains.annotations.NotNull;
+import org.osgi.annotation.versioning.ProviderType;
 
 import javax.json.JsonObject;
 import javax.json.stream.JsonCollectors;
@@ -33,6 +34,7 @@ import static net.adamcin.oakpal.api.JavaxJson.obj;
 /**
  * Type for collected {@link Violation}s from a particlular {@link ProgressCheck}.
  */
+@ProviderType
 public interface CheckReport extends JsonObjectConvertible {
     /**
      * The serialized display name of the package check that created the report.

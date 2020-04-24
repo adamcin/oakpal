@@ -195,7 +195,7 @@ public final class FileVaultNameFinder {
         parser.parse(source, handler);
     }
 
-    static class NsStack {
+    static final class NsStack {
 
         /**
          * Next NameSpace mapping for this prefix on the stack.
@@ -220,7 +220,7 @@ public final class FileVaultNameFinder {
         }
     }
 
-    class Handler extends RejectingEntityDefaultHandler implements NamespaceResolver {
+    final class Handler extends RejectingEntityDefaultHandler implements NamespaceResolver {
         boolean expectStartElement = false;
         boolean expectEndPrefixMapping = false;
         NamespaceMapping mapping = new NamespaceMapping();

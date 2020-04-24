@@ -51,7 +51,8 @@ public class ChecklistIT {
                 "subpackages",
                 "acHandling",
                 "filterSets",
-                "overlaps"
+                "overlaps",
+                "composite-store-alignment"
         ).map(name -> OAKPAL_MODULE_NAME + "/" + OAKPAL_CHECKLIST_BASIC + "/" + name)
                 .collect(Collectors.toList());
 

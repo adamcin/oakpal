@@ -16,13 +16,15 @@
 
 package net.adamcin.oakpal.core.checks;
 
+import net.adamcin.oakpal.api.PathAction;
 import net.adamcin.oakpal.api.ProgressCheck;
 import net.adamcin.oakpal.api.ProgressCheckFactory;
 import net.adamcin.oakpal.api.Rule;
 import net.adamcin.oakpal.api.Severity;
-import net.adamcin.oakpal.api.SimpleProgressCheck;
+import net.adamcin.oakpal.api.SimpleProgressCheckFactoryCheck;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.jetbrains.annotations.NotNull;
+import org.osgi.annotation.versioning.ProviderType;
 
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
@@ -67,6 +69,7 @@ import static net.adamcin.oakpal.api.JavaxJson.hasNonNull;
  * </dl>
  */
 public final class Paths implements ProgressCheckFactory {
+    @ProviderType
     public interface JsonKeys {
         String rules();
 
@@ -119,31 +122,30 @@ public final class Paths implements ProgressCheckFactory {
         return new Check(rules, denyAllDeletes, severity);
     }
 
-    static final class Check extends SimpleProgressCheck {
+    static final class Check extends SimpleProgressCheckFactoryCheck<Paths> {
         private final List<Rule> rules;
         private final boolean denyAllDeletes;
         private final Severity severity;
 
         Check(final List<Rule> rules, final boolean denyAllDeletes, final Severity severity) {
+            super(Paths.class);
             this.rules = rules;
             this.denyAllDeletes = denyAllDeletes;
             this.severity = severity;
         }
 
         @Override
-        public String getCheckName() {
-            return Paths.class.getSimpleName();
-        }
-
-        @Override
-        public void importedPath(final PackageId packageId, final String path, final Node node)
+        public void importedPath(final PackageId packageId, final String path, final Node node,
+                                 final PathAction action)
                 throws RepositoryException {
 
             Rule lastMatch = Rule.lastMatch(rules, path);
             if (lastMatch.isDeny()) {
-                reportViolation(severity,
-                        String.format("imported path %s matches deny pattern %s", path,
-                                lastMatch.getPattern().pattern()), packageId);
+                reporting(violation -> violation
+                        .withSeverity(severity)
+                        .withPackage(packageId)
+                        .withDescription("imported path {0} matches deny pattern {1}")
+                        .withArgument(path, lastMatch.getPattern().pattern()));
             }
         }
 
@@ -151,14 +153,19 @@ public final class Paths implements ProgressCheckFactory {
         public void deletedPath(final PackageId packageId, final String path, final Session inspectSession)
                 throws RepositoryException {
             if (this.denyAllDeletes) {
-                reportViolation(severity,
-                        String.format("deleted path %s. All deletions are denied.", path), packageId);
+                reporting(violation -> violation
+                        .withSeverity(severity)
+                        .withPackage(packageId)
+                        .withDescription("deleted path {0}. All deletions are denied.")
+                        .withArgument(path));
             } else {
                 final Rule lastMatch = Rule.lastMatch(rules, path);
                 if (lastMatch.isDeny()) {
-                    reportViolation(severity,
-                            String.format("deleted path %s matches deny rule %s", path,
-                                    lastMatch.getPattern().pattern()), packageId);
+                    reporting(violation -> violation
+                            .withSeverity(severity)
+                            .withPackage(packageId)
+                            .withDescription("deleted path {0} matches deny rule {1}")
+                            .withArgument(path, lastMatch.getPattern().pattern()));
                 }
             }
         }

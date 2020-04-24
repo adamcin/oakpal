@@ -22,6 +22,7 @@ import net.adamcin.oakpal.api.SimpleViolation;
 import net.adamcin.oakpal.api.Violation;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.jetbrains.annotations.NotNull;
+import org.osgi.annotation.versioning.ProviderType;
 
 import javax.jcr.Node;
 import javax.jcr.Property;
@@ -31,9 +32,13 @@ import javax.jcr.Value;
 import javax.jcr.nodetype.NodeTypeDefinition;
 import javax.json.JsonArray;
 import javax.json.JsonObject;
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.ResourceBundle;
+import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -66,6 +71,7 @@ import static net.adamcin.oakpal.api.JavaxJson.mapArrayOfObjects;
  * </dl>
  */
 public final class JcrPropertyConstraints {
+    @ProviderType
     public interface JsonKeys {
         String name();
 
@@ -141,25 +147,30 @@ public final class JcrPropertyConstraints {
 
     public static final Severity DEFAULT_SEVERITY = Severity.MAJOR;
 
-    public static JcrPropertyConstraints fromJson(final JsonObject checkJson) {
-        final String name = checkJson.getString(keys().name());
-        final boolean denyIfAbsent = hasNonNull(checkJson, keys().denyIfAbsent())
-                && checkJson.getBoolean(keys().denyIfAbsent());
-        final boolean denyIfPresent = hasNonNull(checkJson, keys().denyIfPresent())
-                && checkJson.getBoolean(keys().denyIfPresent());
-        final boolean denyIfMultivalued = hasNonNull(checkJson, keys().denyIfMultivalued())
-                && checkJson.getBoolean(keys().denyIfMultivalued());
-        final String requireType = checkJson.getString(keys().requireType(), null);
-        final List<Rule> valueRules = Rule.fromJsonArray(arrayOrEmpty(checkJson, keys().valueRules()));
-        final Severity severity = Severity
-                .valueOf(checkJson.getString(keys().severity(), DEFAULT_SEVERITY.name()).toUpperCase());
+    public static Function<JsonObject, JcrPropertyConstraints>
+    fromJson(@NotNull final Supplier<ResourceBundle> resourceBundleSupplier) {
+        return checkJson -> {
+            final String name = checkJson.getString(keys().name());
+            final boolean denyIfAbsent = hasNonNull(checkJson, keys().denyIfAbsent())
+                    && checkJson.getBoolean(keys().denyIfAbsent());
+            final boolean denyIfPresent = hasNonNull(checkJson, keys().denyIfPresent())
+                    && checkJson.getBoolean(keys().denyIfPresent());
+            final boolean denyIfMultivalued = hasNonNull(checkJson, keys().denyIfMultivalued())
+                    && checkJson.getBoolean(keys().denyIfMultivalued());
+            final String requireType = checkJson.getString(keys().requireType(), null);
+            final List<Rule> valueRules = Rule.fromJsonArray(arrayOrEmpty(checkJson, keys().valueRules()));
+            final Severity severity = Severity
+                    .valueOf(checkJson.getString(keys().severity(), DEFAULT_SEVERITY.name()).toUpperCase());
 
-        return new JcrPropertyConstraints(name, denyIfAbsent, denyIfPresent, denyIfMultivalued, requireType, valueRules,
-                severity);
+            return new JcrPropertyConstraints(name, denyIfAbsent, denyIfPresent, denyIfMultivalued, requireType, valueRules,
+                    severity, resourceBundleSupplier);
+        };
     }
 
-    public static List<JcrPropertyConstraints> fromJsonArray(final JsonArray rulesArray) {
-        return mapArrayOfObjects(rulesArray, JcrPropertyConstraints::fromJson);
+    public static List<JcrPropertyConstraints> fromJsonArray(
+            @NotNull final Supplier<ResourceBundle> resourceBundleSupplier,
+            final JsonArray rulesArray) {
+        return mapArrayOfObjects(rulesArray, fromJson(resourceBundleSupplier));
     }
 
     private final String name;
@@ -169,6 +180,7 @@ public final class JcrPropertyConstraints {
     private final String requireType;
     private final List<Rule> valueRules;
     private final Severity severity;
+    private final Supplier<ResourceBundle> resourceBundleSupplier;
 
     public JcrPropertyConstraints(final String name,
                                   final boolean denyIfAbsent,
@@ -176,7 +188,8 @@ public final class JcrPropertyConstraints {
                                   final boolean denyIfMultivalued,
                                   final String requireType,
                                   final List<Rule> valueRules,
-                                  final Severity severity) {
+                                  final Severity severity,
+                                  final Supplier<ResourceBundle> resourceBundleSupplier) {
         this.name = name;
         this.denyIfAbsent = denyIfAbsent;
         this.denyIfPresent = denyIfPresent;
@@ -184,6 +197,7 @@ public final class JcrPropertyConstraints {
         this.requireType = requireType;
         this.valueRules = valueRules;
         this.severity = severity;
+        this.resourceBundleSupplier = resourceBundleSupplier;
     }
 
     public String getName() {
@@ -214,10 +228,20 @@ public final class JcrPropertyConstraints {
         return severity;
     }
 
+    @NotNull
+    String getString(@NotNull final String key) {
+        final ResourceBundle resourceBundle = resourceBundleSupplier.get();
+        if (resourceBundle.containsKey(key)) {
+            return resourceBundle.getString(key);
+        } else {
+            return key;
+        }
+    }
+
     Violation constructViolation(final PackageId packageId, final Node node, final String reason)
             throws RepositoryException {
         return new SimpleViolation(getSeverity(),
-                String.format("%s (t: %s, m: %s): %s -> %s",
+                MessageFormat.format("{0} (t: {1}, m: {2}): {3} -> {4}",
                         node.getPath(),
                         node.getPrimaryNodeType().getName(),
                         Stream.of(node.getMixinNodeTypes())
@@ -231,23 +255,23 @@ public final class JcrPropertyConstraints {
     Optional<Violation> evaluate(final PackageId packageId, final Node node) throws RepositoryException {
         if (!node.hasProperty(getName())) {
             if (isDenyIfAbsent()) {
-                return Optional.of(constructViolation(packageId, node, "property absent"));
+                return Optional.of(constructViolation(packageId, node, getString("property absent")));
             }
         } else {
             if (isDenyIfPresent()) {
-                return Optional.of(constructViolation(packageId, node, "property present"));
+                return Optional.of(constructViolation(packageId, node, getString("property present")));
             }
 
             Property property = node.getProperty(getName());
 
             if (isDenyIfMultivalued() && property.isMultiple()) {
-                return Optional.of(constructViolation(packageId, node, "property is multivalued"));
+                return Optional.of(constructViolation(packageId, node, getString("property is multivalued")));
             }
 
             if (getRequireType() != null && !getRequireType().isEmpty()
                     && !getRequireType().equals(PropertyType.nameFromValue(property.getType()))) {
                 return Optional.of(constructViolation(packageId, node,
-                        String.format("required type mismatch: %s != %s",
+                        MessageFormat.format(getString("required type mismatch: {0} != {1}"),
                                 PropertyType.nameFromValue(property.getType()), getRequireType())));
             }
 
@@ -264,7 +288,7 @@ public final class JcrPropertyConstraints {
                 final Rule lastMatch = Rule.lastMatch(getValueRules(), value);
                 if (lastMatch.isDeny()) {
                     return Optional.of(constructViolation(packageId, node,
-                            String.format("value %s denied by pattern %s",
+                            MessageFormat.format(getString("value {0} denied by pattern {1}"),
                                     value, lastMatch.getPattern().pattern())));
                 }
             }
@@ -272,5 +296,4 @@ public final class JcrPropertyConstraints {
 
         return Optional.empty();
     }
-
 }

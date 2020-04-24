@@ -21,9 +21,10 @@ import net.adamcin.oakpal.api.ProgressCheck;
 import net.adamcin.oakpal.api.ProgressCheckFactory;
 import net.adamcin.oakpal.api.Rule;
 import net.adamcin.oakpal.api.Severity;
-import net.adamcin.oakpal.api.SimpleProgressCheck;
+import net.adamcin.oakpal.api.SimpleProgressCheckFactoryCheck;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.jetbrains.annotations.NotNull;
+import org.osgi.annotation.versioning.ProviderType;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -53,6 +54,7 @@ import static net.adamcin.oakpal.api.JavaxJson.optArray;
  * </dl>
  */
 public final class ExpectPaths implements ProgressCheckFactory {
+    @ProviderType
     public interface JsonKeys {
         String expectedPaths();
 
@@ -114,7 +116,7 @@ public final class ExpectPaths implements ProgressCheckFactory {
         return new Check(expectedPaths, notExpectedPaths, afterPackageIdRules, severity);
     }
 
-    static final class Check extends SimpleProgressCheck {
+    static final class Check extends SimpleProgressCheckFactoryCheck<ExpectPaths> {
 
         final List<String> expectedPaths;
         final List<String> notExpectedPaths;
@@ -127,15 +129,11 @@ public final class ExpectPaths implements ProgressCheckFactory {
               final @NotNull List<String> notExpectedPaths,
               final @NotNull List<Rule> afterPackageIdRules,
               final @NotNull Severity severity) {
+            super(ExpectPaths.class);
             this.expectedPaths = expectedPaths;
             this.notExpectedPaths = notExpectedPaths;
             this.afterPackageIdRules = afterPackageIdRules;
             this.severity = severity;
-        }
-
-        @Override
-        public String getCheckName() {
-            return ExpectPaths.class.getSimpleName();
         }
 
         @Override
@@ -177,15 +175,21 @@ public final class ExpectPaths implements ProgressCheckFactory {
         public void finishedScan() {
             for (Map.Entry<String, List<PackageId>> violatorsEntry : expectedViolators.entrySet()) {
                 if (!violatorsEntry.getValue().isEmpty()) {
-                    this.reportViolation(severity, "expected path missing: " + violatorsEntry.getKey(),
-                            violatorsEntry.getValue().toArray(new PackageId[0]));
+                    this.reporting(violation -> violation
+                            .withSeverity(severity)
+                            .withDescription("expected path missing: {0}")
+                            .withArgument(violatorsEntry.getKey())
+                            .withPackages(violatorsEntry.getValue()));
                 }
             }
             expectedViolators.clear();
             for (Map.Entry<String, List<PackageId>> violatorsEntry : notExpectedViolators.entrySet()) {
                 if (!violatorsEntry.getValue().isEmpty()) {
-                    this.reportViolation(severity, "unexpected path present: " + violatorsEntry.getKey(),
-                            violatorsEntry.getValue().toArray(new PackageId[0]));
+                    this.reporting(violation -> violation
+                            .withSeverity(severity)
+                            .withDescription("unexpected path present: {0}")
+                            .withArgument(violatorsEntry.getKey())
+                            .withPackages(violatorsEntry.getValue()));
                 }
             }
             notExpectedViolators.clear();

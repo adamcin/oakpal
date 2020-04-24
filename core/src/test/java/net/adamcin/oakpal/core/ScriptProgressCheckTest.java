@@ -16,6 +16,7 @@
 
 package net.adamcin.oakpal.core;
 
+import net.adamcin.oakpal.api.PathAction;
 import net.adamcin.oakpal.api.ProgressCheck;
 import net.adamcin.oakpal.api.ProgressCheckFactory;
 import net.adamcin.oakpal.api.Severity;
@@ -342,16 +343,18 @@ public class ScriptProgressCheckTest {
         final PackageId arg1 = PackageId.fromString("my_packages:example:1.0");
         final String arg2 = "/correct/path";
         final Node arg3 = mock(Node.class);
+        final PathAction arg4 = PathAction.MODIFIED;
 
-        check.importedPath(arg1, arg2, arg3);
+        check.importedPath(arg1, arg2, arg3, arg4);
 
         Map.Entry<String, Object[]> call = argRecord.stream()
-                .filter(entry -> "importedPath".equals(entry.getKey()) && entry.getValue().length == 4).findFirst()
+                .filter(entry -> "importedPath".equals(entry.getKey()) && entry.getValue().length == 5).findFirst()
                 .orElse(null);
         assertNotNull("expect call for importedPath", call);
         assertSame("same arg1", arg1, call.getValue()[1]);
         assertSame("same arg2", arg2, call.getValue()[2]);
         assertSame("same arg3", arg3, call.getValue()[3]);
+        assertSame("same arg4", arg4, call.getValue()[4]);
     }
 
     @Test
@@ -446,5 +449,13 @@ public class ScriptProgressCheckTest {
         // now throw a script exception if called after first missing
         doThrow(ScriptException.class).when(delegate).invokeFunction("missingFunction", "test");
         check.guardSessionHandler("missingFunction", handle -> handle.apply("test"));
+    }
+
+    @Test
+    public void testGetResourceBundleBaseName() throws Exception {
+        final ProgressCheck check = ScriptProgressCheck
+                .createScriptCheckFactory(testScriptUrl("checkWithResources.js")).newInstance(null);
+        assertEquals("check getResourceBundleBaseName should be", "some check", check.getResourceBundleBaseName());
+
     }
 }

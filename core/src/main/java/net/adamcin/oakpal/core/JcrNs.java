@@ -19,6 +19,7 @@ package net.adamcin.oakpal.core;
 import net.adamcin.oakpal.api.JsonObjectConvertible;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.osgi.annotation.versioning.ProviderType;
 
 import javax.json.JsonObject;
 import java.util.Objects;
@@ -33,6 +34,7 @@ public final class JcrNs implements JsonObjectConvertible, Comparable<JcrNs> {
     /**
      * Json keys for JcrNs. Use {@link #keys()} to access singleton.
      */
+    @ProviderType
     public interface JsonKeys {
         String prefix();
 

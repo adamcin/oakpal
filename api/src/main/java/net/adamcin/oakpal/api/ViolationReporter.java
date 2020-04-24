@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Mark Adamcin
+ * Copyright 2020 Mark Adamcin
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,9 +16,37 @@
 
 package net.adamcin.oakpal.api;
 
-import java.util.Collection;
+import org.jetbrains.annotations.NotNull;
+import org.osgi.annotation.versioning.ConsumerType;
 
+import java.util.Collection;
+import java.util.ResourceBundle;
+
+/**
+ * Base interface for violation reporters.
+ */
+@ConsumerType
 public interface ViolationReporter {
+
+    /**
+     * Get the resource bundle base name for loading the default resource bundle for this violation reporter. Returns
+     * {@code getClass().getName()} by default.
+     *
+     * @return the resource bundle base name
+     */
+    @NotNull
+    default String getResourceBundleBaseName() {
+        return getClass().getName();
+    }
+
+    /**
+     * Called by the framework before a scan to provide a resource bundle for immediate localization of strings.
+     *
+     * @param resourceBundle the resource bundle
+     */
+    default void setResourceBundle(ResourceBundle resourceBundle) {
+
+    }
 
     /**
      * Called at the end of execution to collect any detected violations.

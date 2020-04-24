@@ -17,6 +17,7 @@
 package net.adamcin.oakpal.api;
 
 import org.jetbrains.annotations.NotNull;
+import org.osgi.annotation.versioning.ProviderType;
 
 /**
  * Hosts constants as static singleton getter methods defined by interfaces. This reduces the impact on semantic
@@ -47,6 +48,7 @@ public final class ApiConstants {
     /**
      * Json key constant accessors for violations.
      */
+    @ProviderType
     public interface ViolationKeys {
         String description();
 

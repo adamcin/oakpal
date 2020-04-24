@@ -17,35 +17,105 @@
 package net.adamcin.oakpal.api;
 
 import org.apache.jackrabbit.vault.packaging.PackageId;
+import org.jetbrains.annotations.NotNull;
+import org.osgi.annotation.versioning.ConsumerType;
 
 import java.util.Collection;
+import java.util.MissingResourceException;
+import java.util.ResourceBundle;
+import java.util.function.Consumer;
 
 /**
  * Simple implementation of a {@link ProgressCheck} with convenient methods for reporting and collecting violations.
  */
+@ConsumerType
 public class SimpleProgressCheck implements ProgressCheck {
     protected final ReportCollector collector = new ReportCollector();
+    private ResourceBundle resourceBundle;
+
+    @Override
+    public void setResourceBundle(final ResourceBundle resourceBundle) {
+        this.resourceBundle = resourceBundle;
+    }
+
+    /**
+     * Used by {@link #getString(String)} to retrieve localized messages.
+     * NOTE: If this method is called before a non-null ResourceBundle has been injected via
+     * {@link ViolationReporter#setResourceBundle(ResourceBundle)}, it will try to get a fallback ResourceBundle
+     * by calling {@link ResourceBundle#getBundle(String)}, which invokes the default classloader and locale behavior,
+     * using {@link ViolationReporter#getResourceBundleBaseName()} as the resource bundle base name.
+     *
+     * @return the resource bundle
+     * @see ResourceBundle#getBundle(String)
+     * @see ViolationReporter#getResourceBundleBaseName()
+     */
+    @NotNull
+    protected ResourceBundle getResourceBundle() throws MissingResourceException {
+        if (this.resourceBundle == null) {
+            this.resourceBundle = ResourceBundle.getBundle(getResourceBundleBaseName());
+        }
+        return this.resourceBundle;
+    }
+
+    /**
+     * Lookup a localized string from the resource bundle.
+     *
+     * @param key the i18n key
+     * @return the localized string
+     * @throws MissingResourceException if an attempt is made to load a missing ResourceBundle
+     */
+    @NotNull
+    protected String getString(@NotNull final String key) {
+        if (getResourceBundle().containsKey(key)) {
+            return getResourceBundle().getString(key);
+        } else {
+            return key;
+        }
+    }
 
     protected void reportViolation(final Violation violation) {
         collector.reportViolation(violation);
     }
 
+    /**
+     * Report a violation with a customizing consumer function.
+     *
+     * @param customizer the customizing consumer function
+     */
+    protected final void reporting(@NotNull final Consumer<SimpleViolation.Builder> customizer) {
+        SimpleViolation.Builder builder = SimpleViolation.builder(getResourceBundle());
+        customizer.accept(builder);
+        this.reportViolation(builder.build());
+    }
+
     protected final void reportViolation(final Severity severity,
                                          final String description,
                                          final PackageId... packages) {
-        this.reportViolation(new SimpleViolation(severity, description, packages));
+        this.reporting(builder -> builder
+                .withSeverity(severity)
+                .withDescription(description)
+                .withPackage(packages));
     }
 
     protected final void minorViolation(final String description, final PackageId... packages) {
-        this.reportViolation(new SimpleViolation(Severity.MINOR, description, packages));
+        this.reporting(builder -> builder
+                .withSeverity(Severity.MINOR)
+                .withDescription(description)
+                .withPackage(packages));
     }
 
     protected final void majorViolation(final String description, final PackageId... packages) {
-        this.reportViolation(new SimpleViolation(Severity.MAJOR, description, packages));
+        this.reporting(builder -> builder
+                .withSeverity(Severity.MAJOR)
+                .withDescription(description)
+                .withPackage(packages));
     }
 
     protected final void severeViolation(final String description, final PackageId... packages) {
-        this.reportViolation(new SimpleViolation(Severity.SEVERE, description, packages));
+        this.reporting(builder -> builder
+                .withSeverity(Severity.SEVERE)
+                .withDescription(description)
+                .withPackage(packages));
     }
 
     @Override

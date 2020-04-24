@@ -18,6 +18,8 @@ package net.adamcin.oakpal.api;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.osgi.annotation.versioning.ConsumerType;
+import org.osgi.annotation.versioning.ProviderType;
 
 import java.util.AbstractMap;
 import java.util.Collection;
@@ -750,6 +752,7 @@ public final class Fun {
      *
      * @param <R> output type
      */
+    @ConsumerType
     @FunctionalInterface
     public interface ThrowingSupplier<R> {
         R tryGet() throws Exception;
@@ -760,6 +763,7 @@ public final class Fun {
      *
      * @param <T> input type
      */
+    @ConsumerType
     @FunctionalInterface
     public interface ThrowingPredicate<T> {
         boolean tryTest(T input) throws Exception;
@@ -771,6 +775,7 @@ public final class Fun {
      * @param <K> left input type
      * @param <V> right input type
      */
+    @ConsumerType
     @FunctionalInterface
     public interface ThrowingBiPredicate<K, V> {
         boolean tryTest(K inputK, V inputV) throws Exception;
@@ -782,6 +787,7 @@ public final class Fun {
      * @param <T> input type
      * @param <R> output type
      */
+    @ConsumerType
     @FunctionalInterface
     public interface ThrowingFunction<T, R> {
         R tryApply(T input) throws Exception;
@@ -794,6 +800,7 @@ public final class Fun {
      * @param <V> right input type
      * @param <R> output type
      */
+    @ConsumerType
     @FunctionalInterface
     public interface ThrowingBiFunction<K, V, R> {
         R tryApply(K inputK, V inputV) throws Exception;
@@ -804,6 +811,7 @@ public final class Fun {
      *
      * @param <T> input type
      */
+    @ConsumerType
     @FunctionalInterface
     public interface ThrowingConsumer<T> {
         void tryAccept(T input) throws Exception;
@@ -815,6 +823,7 @@ public final class Fun {
      * @param <K> left input type
      * @param <V> right input type
      */
+    @ConsumerType
     @FunctionalInterface
     public interface ThrowingBiConsumer<K, V> {
         void tryAccept(K inputK, V inputV) throws Exception;

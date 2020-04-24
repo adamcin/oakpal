@@ -16,6 +16,8 @@
 
 package net.adamcin.oakpal.api;
 
+import org.osgi.annotation.versioning.ConsumerType;
+
 import javax.json.JsonObject;
 
 /**
@@ -23,6 +25,7 @@ import javax.json.JsonObject;
  *
  * @since 0.5.0
  */
+@ConsumerType
 public interface ProgressCheckFactory {
 
     /**

@@ -16,9 +16,12 @@
 
 package net.adamcin.oakpal.webster;
 
+import org.osgi.annotation.versioning.ProviderType;
+
 import java.io.File;
 import javax.json.JsonObject;
 
+@ProviderType
 @FunctionalInterface
 public interface WebsterTargetFactory {
 

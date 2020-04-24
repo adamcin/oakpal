@@ -148,6 +148,10 @@
             <artifactId>annotations</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.osgi</groupId>
+            <artifactId>org.osgi.annotation.versioning</artifactId>
+        </dependency>
+        <dependency>
             <groupId>net.adamcin.oakpal</groupId>
             <artifactId>oakpal-core</artifactId>
         </dependency>

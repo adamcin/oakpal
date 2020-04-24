@@ -40,6 +40,7 @@ public class ProgressCheckTest {
         mock.readManifest(null, null);
         mock.beforeExtract(null, null, null, null, null);
         mock.importedPath(null, null, null);
+        mock.importedPath(null, null, null, null);
         mock.deletedPath(null, null, null);
         mock.afterExtract(null, null);
         mock.finishedScan();

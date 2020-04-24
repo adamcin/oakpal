@@ -18,12 +18,14 @@ package net.adamcin.oakpal.core;
 
 import net.adamcin.oakpal.api.Result;
 import org.jetbrains.annotations.NotNull;
+import org.osgi.annotation.versioning.ProviderType;
 
 import java.net.URL;
 
 /**
  * OPEAR stands for "OakPal Encapsulated ARchive".
  */
+@ProviderType
 public interface Opear {
 
     String MF_BUNDLE_SYMBOLICNAME = "Bundle-SymbolicName";

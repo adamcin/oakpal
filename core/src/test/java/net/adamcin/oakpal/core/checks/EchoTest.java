@@ -67,6 +67,7 @@ public class EchoTest {
     @Test
     public void testImportedPath() throws RepositoryException {
         new Echo().importedPath(null, null, null);
+        new Echo().importedPath(null, null, null, null);
     }
 
     @Test

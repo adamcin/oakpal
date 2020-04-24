@@ -134,5 +134,4 @@ public final class JcrFactory {
     public static NodeStoreFixture getReadWriteFixture(final File segmentStore, final String... args) throws Exception {
         return getNodeStoreFixture(false, segmentStore, args);
     }
-
 }

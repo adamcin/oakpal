@@ -20,9 +20,10 @@ import net.adamcin.oakpal.api.ProgressCheck;
 import net.adamcin.oakpal.api.ProgressCheckFactory;
 import net.adamcin.oakpal.api.Rule;
 import net.adamcin.oakpal.api.Severity;
-import net.adamcin.oakpal.api.SimpleProgressCheck;
+import net.adamcin.oakpal.api.SimpleProgressCheckFactoryCheck;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.jetbrains.annotations.NotNull;
+import org.osgi.annotation.versioning.ProviderType;
 
 import javax.json.JsonObject;
 import java.util.List;
@@ -61,6 +62,7 @@ import static net.adamcin.oakpal.api.JavaxJson.hasNonNull;
  * </dl>
  */
 public final class Subpackages implements ProgressCheckFactory {
+    @ProviderType
     public interface JsonKeys {
         String rules();
 
@@ -98,37 +100,34 @@ public final class Subpackages implements ProgressCheckFactory {
         return new Check(rules, denyAll);
     }
 
-    static final class Check extends SimpleProgressCheck {
+    static final class Check extends SimpleProgressCheckFactoryCheck<Subpackages> {
         private final List<Rule> rules;
         private final boolean denyAll;
 
         Check(final List<Rule> rules, final boolean denyAll) {
+            super(Subpackages.class);
             this.rules = rules;
             this.denyAll = denyAll;
         }
 
         @Override
-        public String getCheckName() {
-            return Subpackages.class.getSimpleName();
-        }
-
-        @Override
         public void identifySubpackage(final PackageId packageId, final PackageId parentId) {
             if (denyAll) {
-                reportViolation(Severity.MAJOR,
-                        String.format("subpackage %s included by %s. no subpackages are allowed.",
-                                packageId, parentId), packageId);
+                reporting(violation -> violation
+                        .withSeverity(Severity.MAJOR)
+                        .withPackage(packageId)
+                        .withDescription("subpackage {0} included by {1}. no subpackages are allowed.")
+                        .withArgument(packageId, parentId));
             } else {
                 final Rule lastMatch = Rule.lastMatch(rules, packageId.toString());
                 if (lastMatch.isDeny()) {
-                    reportViolation(Severity.MAJOR,
-                            String.format("subpackage %s included by %s matches deny pattern %s",
-                                    packageId.toString(), parentId.toString(),
-                                    lastMatch.getPattern().pattern()), packageId);
+                    reporting(violation -> violation
+                            .withSeverity(Severity.MAJOR)
+                            .withPackage(packageId)
+                            .withDescription("subpackage {0} included by {1} matches deny pattern {2}")
+                            .withArgument(packageId, parentId, lastMatch.getPattern().pattern()));
                 }
             }
         }
     }
-
-
 }

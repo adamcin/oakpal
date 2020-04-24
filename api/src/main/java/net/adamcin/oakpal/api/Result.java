@@ -18,6 +18,7 @@ package net.adamcin.oakpal.api;
 
 
 import org.jetbrains.annotations.NotNull;
+import org.osgi.annotation.versioning.ProviderType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,6 +42,7 @@ import java.util.stream.Stream;
  *
  * @param <V> The result type.
  */
+@ProviderType
 public abstract class Result<V> implements Serializable {
     private static final Logger LOGGER = LoggerFactory.getLogger(Result.class);
 

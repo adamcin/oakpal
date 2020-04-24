@@ -91,7 +91,7 @@ public final class ChecklistExporter {
     /**
      * Builder for a {@link ChecklistExporter}, which is otherwise immutable.
      */
-    public static class Builder {
+    public static final class Builder {
         private List<Op> operations = new ArrayList<>();
         private List<String> exportTypeDefs = new ArrayList<>();
         private List<Rule> pathScopes = new ArrayList<>();
@@ -223,7 +223,7 @@ public final class ChecklistExporter {
     /**
      * Represents an atomic export operation.
      */
-    static class Op {
+    static final class Op {
         private final SelectorType selectorType;
         private final List<String> args;
 
@@ -667,5 +667,4 @@ public final class ChecklistExporter {
         forcedRoot.setMixinTypes(mixinTypes);
         return Optional.of(forcedRoot);
     }
-
 }

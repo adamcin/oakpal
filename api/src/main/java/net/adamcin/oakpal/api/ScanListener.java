@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Mark Adamcin
+ * Copyright 2020 Mark Adamcin
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,10 +16,13 @@
 
 package net.adamcin.oakpal.api;
 
+import org.osgi.annotation.versioning.ConsumerType;
+
 /**
  * Defines listener notifications for beginning and end of scan common to {@link ProgressCheck} and
  * {@code ErrorListener}.
  */
+@ConsumerType
 public interface ScanListener {
 
     /**

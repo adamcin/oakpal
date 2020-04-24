@@ -17,11 +17,15 @@
 package net.adamcin.oakpal.maven.mojo;
 
 import java.io.File;
+import java.text.MessageFormat;
 import java.util.List;
+import java.util.Locale;
+import java.util.ResourceBundle;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import net.adamcin.oakpal.api.Severity;
+import net.adamcin.oakpal.api.SimpleViolation;
 import net.adamcin.oakpal.core.CheckReport;
 import net.adamcin.oakpal.api.Violation;
 import org.apache.jackrabbit.vault.packaging.PackageId;

@@ -58,7 +58,7 @@ final class WebsterChecklistTarget implements WebsterTarget {
     static final String KEY_UPDATE_POLICY = "updatePolicy";
     static final String KEY_EXPORT_NODETYPES = "exportNodeTypes";
 
-    static class Selector {
+    static final class Selector {
         private final ChecklistExporter.SelectorType type;
         private final String[] args;
 

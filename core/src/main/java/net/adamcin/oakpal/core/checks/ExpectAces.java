@@ -23,13 +23,14 @@ import net.adamcin.oakpal.api.ProgressCheckFactory;
 import net.adamcin.oakpal.api.Result;
 import net.adamcin.oakpal.api.Rule;
 import net.adamcin.oakpal.api.Severity;
-import net.adamcin.oakpal.api.SimpleProgressCheck;
+import net.adamcin.oakpal.api.SimpleProgressCheckFactoryCheck;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.osgi.annotation.versioning.ProviderType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -121,6 +122,7 @@ import static net.adamcin.oakpal.api.Fun.zipKeysWithValueFunc;
  * definition so indicates. Otherwise the comma-separated values are treated as an opaque string.
  */
 public final class ExpectAces implements ProgressCheckFactory {
+    @ProviderType
     public interface JsonKeys {
         String principal();
 
@@ -273,7 +275,7 @@ public final class ExpectAces implements ProgressCheckFactory {
         return allCriterias;
     }
 
-    static final class Check extends SimpleProgressCheck {
+    static final class Check extends SimpleProgressCheckFactoryCheck<ExpectAces> {
         final List<AceCriteria> expectedAces;
         final List<AceCriteria> notExpectedAces;
         final Map<AceCriteria, List<PackageId>> expectedViolators = new LinkedHashMap<>();
@@ -285,15 +287,11 @@ public final class ExpectAces implements ProgressCheckFactory {
               final @NotNull List<AceCriteria> notExpectedAces,
               final @NotNull List<Rule> afterPackageIdRules,
               final @NotNull Severity severity) {
+            super(ExpectAces.class);
             this.expectedAces = expectedAces;
             this.notExpectedAces = notExpectedAces;
             this.afterPackageIdRules = afterPackageIdRules;
             this.severity = severity;
-        }
-
-        @Override
-        public String getCheckName() {
-            return ExpectAces.class.getSimpleName();
         }
 
         @Override
@@ -354,15 +352,21 @@ public final class ExpectAces implements ProgressCheckFactory {
         public void finishedScan() {
             for (Map.Entry<AceCriteria, List<PackageId>> violatorsEntry : expectedViolators.entrySet()) {
                 if (!violatorsEntry.getValue().isEmpty()) {
-                    this.reportViolation(severity, "expected: " + violatorsEntry.getKey().toString(),
-                            violatorsEntry.getValue().toArray(new PackageId[0]));
+                    this.reporting(violation -> violation
+                            .withSeverity(severity)
+                            .withDescription("expected: {0}")
+                            .withArgument(violatorsEntry.getKey().toString())
+                            .withPackages(violatorsEntry.getValue()));
                 }
             }
             expectedViolators.clear();
             for (Map.Entry<AceCriteria, List<PackageId>> violatorsEntry : notExpectedViolators.entrySet()) {
                 if (!violatorsEntry.getValue().isEmpty()) {
-                    this.reportViolation(severity, "unexpected: " + violatorsEntry.getKey().toString(),
-                            violatorsEntry.getValue().toArray(new PackageId[0]));
+                    this.reporting(violation -> violation
+                            .withSeverity(severity)
+                            .withDescription("unexpected: {0}")
+                            .withArgument(violatorsEntry.getKey().toString())
+                            .withPackages(violatorsEntry.getValue()));
                 }
             }
             notExpectedViolators.clear();

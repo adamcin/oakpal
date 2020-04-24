@@ -16,15 +16,45 @@
 
 package net.adamcin.oakpal.core;
 
-import static org.junit.Assert.assertEquals;
-
 import net.adamcin.oakpal.api.Severity;
 import net.adamcin.oakpal.api.SimpleViolation;
 import org.junit.Test;
 
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.util.Locale;
+import java.util.ResourceBundle;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertSame;
+
 public class DefaultErrorListenerTest {
 
     final Exception simpleCause = new IllegalStateException(new IllegalArgumentException());
+
+    @Test
+    public void testSetResourceBundle() {
+        final DefaultErrorListener listener = new DefaultErrorListener();
+
+        ResourceBundle originalBundle = listener.getResourceBundle();
+        assertSame("same object returned twice", originalBundle, listener.getResourceBundle());
+        ResourceBundle newBundle = ResourceBundle.getBundle(listener.getResourceBundleBaseName(),
+                Locale.getDefault(), new URLClassLoader(new URL[0], getClass().getClassLoader()));
+        assertNotSame("not same object as created externally", newBundle, listener.getResourceBundle());
+        listener.setResourceBundle(newBundle);
+        assertSame("same object as set", newBundle, listener.getResourceBundle());
+        assertSame("same object as set, again", newBundle, listener.getResourceBundle());
+    }
+
+    @Test
+    public void testGetString() {
+        final DefaultErrorListener listener = new DefaultErrorListener();
+        assertEquals("expect passthrough", "testKey", listener.getString("testKey"));
+        ResourceBundle newBundle = ResourceBundle.getBundle(getClass().getName());
+        listener.setResourceBundle(newBundle);
+        assertEquals("expect from bundle", "yeKtset", listener.getString("testKey"));
+    }
 
     @Test
     public void testGetReportedViolations() {

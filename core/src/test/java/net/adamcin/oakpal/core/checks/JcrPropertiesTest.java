@@ -18,6 +18,7 @@ package net.adamcin.oakpal.core.checks;
 
 import net.adamcin.oakpal.api.ProgressCheck;
 import net.adamcin.oakpal.api.Rule;
+import net.adamcin.oakpal.api.Severity;
 import net.adamcin.oakpal.core.CheckReport;
 import net.adamcin.oakpal.testing.TestPackageUtil;
 import net.adamcin.oakpal.testing.TestUtil;
@@ -25,11 +26,15 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.File;
+import java.util.Collections;
+import java.util.ResourceBundle;
 import java.util.regex.Pattern;
 
+import static java.util.Collections.emptyList;
 import static net.adamcin.oakpal.api.JavaxJson.arr;
 import static net.adamcin.oakpal.api.JavaxJson.key;
 import static net.adamcin.oakpal.api.JavaxJson.obj;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 public class JcrPropertiesTest extends ProgressCheckTestBase {
@@ -256,5 +261,30 @@ public class JcrPropertiesTest extends ProgressCheckTestBase {
             // only /apps/acme has the incorrect singleString property
             Assert.assertEquals("one violation: " + report.getViolations(), 1, report.getViolations().size());
         });
+    }
+
+    @Test
+    public void testSetResourceBundle() {
+        final JcrProperties.ResourceBundleHolder resourceBundleHolder =
+                new JcrProperties.ResourceBundleHolder();
+        JcrPropertyConstraints constraints = new JcrPropertyConstraints("prop", false,
+                false, false, "nt:base", emptyList(), Severity.MAJOR,
+                resourceBundleHolder::getResourceBundle);
+        JcrProperties.Check check = new JcrProperties.Check(emptyList(), emptyList(), emptyList(),
+                Collections.singletonList(constraints), resourceBundleHolder);
+
+        final ResourceBundle fromHolder = resourceBundleHolder.getResourceBundle();
+        final ResourceBundle fromCheck = check.getResourceBundle();
+        assertSame("expect same resource bundle due to internal caching", fromHolder, fromCheck);
+
+        final ResourceBundle toSetForTest = ResourceBundle.getBundle(getClass().getName());
+        check.setResourceBundle(toSetForTest);
+        final ResourceBundle fromHolderAfterSet = resourceBundleHolder.getResourceBundle();
+        final ResourceBundle fromCheckAfterSet = check.getResourceBundle();
+        assertSame("expect same resource bundle after set", fromHolderAfterSet, fromCheckAfterSet);
+
+        final String milliString = String.valueOf(System.currentTimeMillis());
+        assertSame("same key returned from constraints when not in bundle",
+                milliString, constraints.getString(milliString));
     }
 }

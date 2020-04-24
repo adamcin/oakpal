@@ -17,6 +17,7 @@
 package net.adamcin.oakpal.api;
 
 import org.jetbrains.annotations.NotNull;
+import org.osgi.annotation.versioning.ProviderType;
 
 import javax.json.JsonArray;
 import javax.json.JsonObject;
@@ -40,6 +41,7 @@ import java.util.regex.Pattern;
  * </dl>
  */
 public final class Rule implements JsonObjectConvertible {
+    @ProviderType
     public interface JsonKeys {
         String type();
 

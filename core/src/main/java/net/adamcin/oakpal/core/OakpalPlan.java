@@ -1,15 +1,18 @@
 package net.adamcin.oakpal.core;
 
+import net.adamcin.oakpal.api.Fun;
 import net.adamcin.oakpal.api.JavaxJson;
 import net.adamcin.oakpal.api.JsonObjectConvertible;
 import net.adamcin.oakpal.api.ProgressCheck;
 import net.adamcin.oakpal.api.Result;
+import net.adamcin.oakpal.api.ViolationReporter;
 import org.apache.jackrabbit.spi.PrivilegeDefinition;
 import org.apache.jackrabbit.spi.QNodeTypeDefinition;
 import org.apache.jackrabbit.spi.commons.namespace.NamespaceMapping;
 import org.apache.jackrabbit.util.Text;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.osgi.annotation.versioning.ProviderType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,7 +25,9 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
+import java.util.ResourceBundle;
 import java.util.stream.Collectors;
 
 import static net.adamcin.oakpal.api.Fun.compose;
@@ -39,6 +44,7 @@ import static net.adamcin.oakpal.api.JavaxJson.hasNonNull;
  * 4. Can not aggregate multiple plans per execution.
  */
 public final class OakpalPlan implements JsonObjectConvertible {
+    @ProviderType
     public interface JsonKeys {
         String checklists();
 
@@ -302,6 +308,11 @@ public final class OakpalPlan implements JsonObjectConvertible {
             throw new Exception("Error while loading progress checks.", e);
         }
 
+        final Locale locale = Locale.getDefault();
+        for (final ProgressCheck progressCheck : allChecks) {
+            initResourceBundle(progressCheck, locale, classLoader);
+        }
+
         return new OakMachine.Builder()
                 .withErrorListener(errorListener)
                 .withProgressChecks(allChecks)
@@ -313,6 +324,11 @@ public final class OakpalPlan implements JsonObjectConvertible {
                 .withEnablePreInstallHooks(enablePreInstallHooks);
     }
 
+    void initResourceBundle(final ViolationReporter reporter, final Locale locale, final ClassLoader classLoader) {
+        Fun.result0(() -> ResourceBundle
+                .getBundle(reporter.getResourceBundleBaseName(), locale, classLoader)).get()
+                .forEach(reporter::setResourceBundle);
+    }
 
     private static OakpalPlan fromJson(final @NotNull Builder builder,
                                        final @NotNull JsonObject json) {
