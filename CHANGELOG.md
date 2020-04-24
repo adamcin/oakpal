@@ -6,9 +6,19 @@ The format is based on [Keep a Changelog](http://keepachangelog.com)
 
 ## [Unreleased]
 
+### Added
+
+- API extracted to net.adamcin.oakpal.api package in new oakpal-api module for tighter dependency control, requiring a major version bump.
+- @ProviderType and @ConsumerType annotations added to interfaces in exported packages
+- Added setResourceBundle() method to ViolationReporter interface and default implementations to support future i18n enhancements.
+- Added SimpleViolation.builder() with easy support for formatting violation description with MessageFormat.format(), using withArguments() builder method.
+- Migrated CompositeStoreAlignment check from ACS AEM Commons because of unavoidable tight-coupling to oak-core-spi classes.
+
 ### Changed
 
-- API extracted for tighter dependency control
+- Added overload with default implementation for ProgressCheck.importedPath() that accepts new PathAction enumerator type. Other signature now deprecated.
+- Moved Violation.Severity enumerator to top-level type because 1) I wanted to and 2) the API extraction made this a convenient time to do it.
+- JSON Config keys are now managed in child interface types with @ProviderType annotations to avoid major version bumps when adding config constants.
 
 ## [1.5.2] - 2020-04-15
 
