@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com)
 
 ## [Unreleased]
 
+## [2.0.0] - 2020-04-27
+
 ### Added
 
 - API extracted to net.adamcin.oakpal.api package in new oakpal-api module for tighter dependency control, requiring a major version bump.
@@ -13,6 +15,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com)
 - Added setResourceBundle() method to ViolationReporter interface and default implementations to support future i18n enhancements.
 - Added SimpleViolation.builder() with easy support for formatting violation description with MessageFormat.format(), using withArguments() builder method.
 - Migrated CompositeStoreAlignment check from ACS AEM Commons because of unavoidable tight-coupling to oak-core-spi classes.
+- Added --plan-file, --plan-file-base, and --extend-classpath CLI parameters
 
 ### Changed
 
