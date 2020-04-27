@@ -44,84 +44,84 @@ public class RuleTest {
 
     @Test(expected = NullPointerException.class)
     public void testConstruct_nullPattern() {
-        new Rule(Rule.RuleType.DENY, null);
+        new Rule(RuleType.DENY, null);
     }
 
     @Test
     public void testRuleType() {
-        assertSame("expect allow", Rule.RuleType.ALLOW, Rule.RuleType.fromName("allow"));
-        assertSame("expect allow", Rule.RuleType.ALLOW, Rule.RuleType.fromName("ALLOW"));
-        assertSame("expect deny", Rule.RuleType.DENY, Rule.RuleType.fromName("deny"));
-        assertSame("expect deny", Rule.RuleType.DENY, Rule.RuleType.fromName("DENY"));
-        assertSame("expect include", Rule.RuleType.INCLUDE, Rule.RuleType.fromName("include"));
-        assertSame("expect include", Rule.RuleType.INCLUDE, Rule.RuleType.fromName("INCLUDE"));
-        assertSame("expect exclude", Rule.RuleType.EXCLUDE, Rule.RuleType.fromName("exclude"));
-        assertSame("expect exclude", Rule.RuleType.EXCLUDE, Rule.RuleType.fromName("EXCLUDE"));
+        assertSame("expect allow", RuleType.ALLOW, RuleType.fromName("allow"));
+        assertSame("expect allow", RuleType.ALLOW, RuleType.fromName("ALLOW"));
+        assertSame("expect deny", RuleType.DENY, RuleType.fromName("deny"));
+        assertSame("expect deny", RuleType.DENY, RuleType.fromName("DENY"));
+        assertSame("expect include", RuleType.INCLUDE, RuleType.fromName("include"));
+        assertSame("expect include", RuleType.INCLUDE, RuleType.fromName("INCLUDE"));
+        assertSame("expect exclude", RuleType.EXCLUDE, RuleType.fromName("exclude"));
+        assertSame("expect exclude", RuleType.EXCLUDE, RuleType.fromName("EXCLUDE"));
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testRuleType_throws() {
-        Rule.RuleType.fromName("not a thing");
+        RuleType.fromName("not a thing");
     }
 
     @Test
     public void testEquals() {
-        final Rule newAllow = new Rule(Rule.DEFAULT_ALLOW.getType(), Rule.DEFAULT_ALLOW.getPattern());
+        final Rule newAllow = new Rule(Rules.DEFAULT_ALLOW.getType(), Rules.DEFAULT_ALLOW.getPattern());
         assertEquals("DEFAULT_ALLOW should equal new rule with same params as DEFAULT_ALLOW",
-                Rule.DEFAULT_ALLOW, newAllow);
+                Rules.DEFAULT_ALLOW, newAllow);
         assertNotEquals("DEFAULT_ALLOW should not equal new ALLOW rule with different pattern",
-                Rule.DEFAULT_ALLOW, new Rule(Rule.DEFAULT_ALLOW.getType(), Pattern.compile("foo")));
+                Rules.DEFAULT_ALLOW, new Rule(Rules.DEFAULT_ALLOW.getType(), Pattern.compile("foo")));
         assertNotEquals("DEFAULT_DENY should not equal new ALLOW rule with same params as DEFAULT_ALLOW",
-                Rule.DEFAULT_DENY, newAllow);
+                Rules.DEFAULT_DENY, newAllow);
         assertNotEquals("DEFAULT_INCLUDE should not equal new ALLOW rule with same params as DEFAULT_ALLOW",
-                Rule.DEFAULT_INCLUDE, newAllow);
+                Rules.DEFAULT_INCLUDE, newAllow);
     }
 
     @Test
     public void testHashCode() {
-        final Rule newAllow = new Rule(Rule.DEFAULT_ALLOW.getType(), Rule.DEFAULT_ALLOW.getPattern());
+        final Rule newAllow = new Rule(Rules.DEFAULT_ALLOW.getType(), Rules.DEFAULT_ALLOW.getPattern());
         assertEquals("hashCode(): DEFAULT_ALLOW should equal new rule with same params as DEFAULT_ALLOW",
-                Rule.DEFAULT_ALLOW.hashCode(), newAllow.hashCode());
+                Rules.DEFAULT_ALLOW.hashCode(), newAllow.hashCode());
         assertNotEquals("hashCode(): DEFAULT_ALLOW should not equal new ALLOW rule with different pattern",
-                Rule.DEFAULT_ALLOW.hashCode(), new Rule(Rule.DEFAULT_ALLOW.getType(), Pattern.compile("foo")).hashCode());
+                Rules.DEFAULT_ALLOW.hashCode(), new Rule(Rules.DEFAULT_ALLOW.getType(), Pattern.compile("foo")).hashCode());
         assertNotEquals("hashCode(): DEFAULT_DENY should not equal new ALLOW rule with same params as DEFAULT_ALLOW",
-                Rule.DEFAULT_DENY.hashCode(), newAllow.hashCode());
+                Rules.DEFAULT_DENY.hashCode(), newAllow.hashCode());
         assertNotEquals("hashCode(): DEFAULT_INCLUDE should not equal new ALLOW rule with same params as DEFAULT_ALLOW",
-                Rule.DEFAULT_INCLUDE.hashCode(), newAllow.hashCode());
+                Rules.DEFAULT_INCLUDE.hashCode(), newAllow.hashCode());
     }
 
     @Test
     public void testMatches() {
-        assertTrue("default matches all", Rule.DEFAULT_ALLOW.matches("/foo"));
-        final Rule allowsDigits = new Rule(Rule.RuleType.ALLOW, Pattern.compile("[0-9]*"));
+        assertTrue("default matches all", Rules.DEFAULT_ALLOW.matches("/foo"));
+        final Rule allowsDigits = new Rule(RuleType.ALLOW, Pattern.compile("[0-9]*"));
         assertTrue("allows digits matches digits", allowsDigits.matches("123"));
         assertFalse("allows digits doesn't match letters", allowsDigits.matches("abc"));
     }
 
     @Test
     public void testToJson() {
-        final Rule allowsDigits = new Rule(Rule.RuleType.ALLOW, Pattern.compile("[0-9]*"));
+        final Rule allowsDigits = new Rule(RuleType.ALLOW, Pattern.compile("[0-9]*"));
         assertEquals("expect json", key(Rule.keys().type(), "ALLOW")
                 .key(Rule.keys().pattern(), "[0-9]*").get(), allowsDigits.toJson());
     }
 
     @Test
     public void testFromJson() {
-        final Rule allowsDigits = Rule.fromJson(key(Rule.keys().type(), "ALLOW")
+        final Rule allowsDigits = Rules.fromJson(key(Rule.keys().type(), "ALLOW")
                 .key(Rule.keys().pattern(), "[0-9]*").get());
-        assertEquals("expect type", Rule.RuleType.ALLOW, allowsDigits.getType());
+        assertEquals("expect type", RuleType.ALLOW, allowsDigits.getType());
         assertEquals("expect pattern", "[0-9]*", allowsDigits.getPattern().pattern());
     }
 
     @Test
     public void testFromJsonArray() {
-        final Rule allowsDigits = Rule.fromJson(key(Rule.keys().type(), "ALLOW")
+        final Rule allowsDigits = Rules.fromJson(key(Rule.keys().type(), "ALLOW")
                 .key(Rule.keys().pattern(), "[0-9]*").get());
-        final Rule allowsLetters = Rule.fromJson(key(Rule.keys().type(), "ALLOW")
+        final Rule allowsLetters = Rules.fromJson(key(Rule.keys().type(), "ALLOW")
                 .key(Rule.keys().pattern(), "[a-z]*").get());
 
         final List<Rule> expectRules = Arrays.asList(allowsDigits, allowsLetters);
-        assertEquals("exect same rules", expectRules, Rule.fromJsonArray(arr()
+        assertEquals("exect same rules", expectRules, Rules.fromJsonArray(arr()
                 .val(key(Rule.keys().type(), "allow").key(Rule.keys().pattern(), "[0-9]*"))
                 .val(key(Rule.keys().type(), "allow").key(Rule.keys().pattern(), "[a-z]*"))
                 .get()));
@@ -129,7 +129,7 @@ public class RuleTest {
 
     @Test
     public void testRuleDefaultAllow() {
-        final Rule rule = Rule.DEFAULT_ALLOW;
+        final Rule rule = Rules.DEFAULT_ALLOW;
         assertTrue("DEFAULT_ALLOW should be true for isInclude and isAllow",
                 rule.isAllow() && rule.isInclude());
         assertTrue("DEFAULT_ALLOW should be false for isExclude and isDeny",
@@ -141,7 +141,7 @@ public class RuleTest {
 
     @Test
     public void testRuleDefaultInclude() {
-        final Rule rule = Rule.DEFAULT_INCLUDE;
+        final Rule rule = Rules.DEFAULT_INCLUDE;
         assertTrue("DEFAULT_INCLUDE should be true for isInclude and isAllow",
                 rule.isAllow() && rule.isInclude());
         assertTrue("DEFAULT_INCLUDE should be false for isExclude and isDeny",
@@ -153,7 +153,7 @@ public class RuleTest {
 
     @Test
     public void testRuleDefaultDeny() {
-        final Rule rule = Rule.DEFAULT_DENY;
+        final Rule rule = Rules.DEFAULT_DENY;
         assertTrue("DEFAULT_DENY should be false for isInclude and isAllow",
                 !rule.isAllow() && !rule.isInclude());
         assertTrue("DEFAULT_DENY should be true for isExclude and isDeny",
@@ -165,7 +165,7 @@ public class RuleTest {
 
     @Test
     public void testRuleDefaultExclude() {
-        final Rule rule = Rule.DEFAULT_EXCLUDE;
+        final Rule rule = Rules.DEFAULT_EXCLUDE;
         assertTrue("DEFAULT_EXCLUDE should be false for isInclude and isAllow",
                 !rule.isAllow() && !rule.isInclude());
         assertTrue("DEFAULT_EXCLUDE should be true for isExclude and isDeny",
@@ -178,14 +178,14 @@ public class RuleTest {
     @Test
     public void testFuzzyDefaults() {
         final Map<String, Function<List<Rule>, Rule>> fuzzyDefaultIncFns = new HashMap<>();
-        fuzzyDefaultIncFns.put("fuzzyDefaultAllow", Rule::fuzzyDefaultAllow);
-        fuzzyDefaultIncFns.put("fuzzyDefaultInclude", Rule::fuzzyDefaultInclude);
+        fuzzyDefaultIncFns.put("fuzzyDefaultAllow", Rules::fuzzyDefaultAllow);
+        fuzzyDefaultIncFns.put("fuzzyDefaultInclude", Rules::fuzzyDefaultInclude);
         final Map<String, Function<List<Rule>, Rule>> fuzzyDefaultExcFns = new HashMap<>();
-        fuzzyDefaultExcFns.put("fuzzyDefaultDeny", Rule::fuzzyDefaultDeny);
-        fuzzyDefaultExcFns.put("fuzzyDefaultExclude", Rule::fuzzyDefaultExclude);
+        fuzzyDefaultExcFns.put("fuzzyDefaultDeny", Rules::fuzzyDefaultDeny);
+        fuzzyDefaultExcFns.put("fuzzyDefaultExclude", Rules::fuzzyDefaultExclude);
 
-        final List<Rule> defaultIncRules = asList(Rule.DEFAULT_ALLOW, Rule.DEFAULT_INCLUDE);
-        final List<Rule> defaultExcRules = asList(Rule.DEFAULT_DENY, Rule.DEFAULT_EXCLUDE);
+        final List<Rule> defaultIncRules = asList(Rules.DEFAULT_ALLOW, Rules.DEFAULT_INCLUDE);
+        final List<Rule> defaultExcRules = asList(Rules.DEFAULT_DENY, Rules.DEFAULT_EXCLUDE);
 
         fuzzyDefaultIncFns.entrySet().forEach(fuzzyFnPair -> {
             final String fuzzyFnName = fuzzyFnPair.getKey();
@@ -193,12 +193,12 @@ public class RuleTest {
             defaultIncRules.forEach(rule -> {
                 final Rule defaultRule = fuzzyFn.apply(singletonList(rule));
                 assertEquals(fuzzyFnName + ": invert default include when first rule is include-like: " + rule,
-                        Rule.DEFAULT_EXCLUDE, defaultRule);
+                        Rules.DEFAULT_EXCLUDE, defaultRule);
             });
             defaultExcRules.forEach(rule -> {
                 final Rule defaultRule = fuzzyFn.apply(singletonList(rule));
                 assertEquals(fuzzyFnName + ": use default include when first rule is exclude-like: " + rule,
-                        Rule.DEFAULT_INCLUDE, defaultRule);
+                        Rules.DEFAULT_INCLUDE, defaultRule);
             });
         });
 
@@ -208,35 +208,35 @@ public class RuleTest {
             defaultExcRules.forEach(rule -> {
                 final Rule defaultRule = fuzzyFn.apply(singletonList(rule));
                 assertEquals(fuzzyFnName + ": invert default exclude when first rule is exclude-like: " + rule,
-                        Rule.DEFAULT_INCLUDE, defaultRule);
+                        Rules.DEFAULT_INCLUDE, defaultRule);
             });
             defaultIncRules.forEach(rule -> {
                 final Rule defaultRule = fuzzyFn.apply(singletonList(rule));
                 assertEquals(fuzzyFnName + ": use default exclude when first rule is include-like: " + rule,
-                        Rule.DEFAULT_EXCLUDE, defaultRule);
+                        Rules.DEFAULT_EXCLUDE, defaultRule);
             });
         });
     }
 
     @Test
     public void testLastMatch() {
-        final Rule allowsDigits = Rule.fromJson(key(Rule.keys().type(), "ALLOW")
+        final Rule allowsDigits = Rules.fromJson(key(Rule.keys().type(), "ALLOW")
                 .key(Rule.keys().pattern(), "[0-9]*").get());
-        final Rule deniesLetters = Rule.fromJson(key(Rule.keys().type(), "DENY")
+        final Rule deniesLetters = Rules.fromJson(key(Rule.keys().type(), "DENY")
                 .key(Rule.keys().pattern(), "[a-z]*").get());
 
         final List<Rule> expectRules = Arrays.asList(allowsDigits, deniesLetters);
-        final Rule adHocDefault = new Rule(Rule.RuleType.ALLOW, Pattern.compile("\\.\\."));
-        final Rule matched0 = Rule.lastMatch(expectRules, "...", rules -> adHocDefault);
+        final Rule adHocDefault = new Rule(RuleType.ALLOW, Pattern.compile("\\.\\."));
+        final Rule matched0 = Rules.lastMatch(expectRules, "...", rules -> adHocDefault);
         assertSame("expect specific default", adHocDefault, matched0);
 
-        final Rule matched1 = Rule.lastMatch(expectRules, "...", null);
-        assertSame("expect globbal default", Rule.DEFAULT_INCLUDE, matched1);
+        final Rule matched1 = Rules.lastMatch(expectRules, "...", null);
+        assertSame("expect globbal default", Rules.DEFAULT_INCLUDE, matched1);
 
-        final Rule matchedDigits = Rule.lastMatch(expectRules, "123");
+        final Rule matchedDigits = Rules.lastMatch(expectRules, "123");
         assertSame("expect digits rule", allowsDigits, matchedDigits);
 
-        final Rule matchedAlpha = Rule.lastMatch(expectRules, "abc");
+        final Rule matchedAlpha = Rules.lastMatch(expectRules, "abc");
         assertSame("expect alpha rule", deniesLetters, matchedAlpha);
 
     }

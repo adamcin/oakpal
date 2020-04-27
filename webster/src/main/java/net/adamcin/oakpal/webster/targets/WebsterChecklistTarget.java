@@ -34,6 +34,7 @@ import javax.json.JsonArray;
 import javax.json.JsonObject;
 import javax.json.JsonReader;
 
+import net.adamcin.oakpal.api.Rules;
 import net.adamcin.oakpal.core.Checklist;
 import net.adamcin.oakpal.api.JavaxJson;
 import net.adamcin.oakpal.core.JcrNs;
@@ -158,11 +159,11 @@ final class WebsterChecklistTarget implements WebsterTarget {
             selectors.forEach(selector -> selector.selectOnExporter(exporter));
         }
         if (config.containsKey(KEY_SCOPE_PATHS)) {
-            List<Rule> scopePaths = Rule.fromJsonArray(config.getJsonArray(KEY_SCOPE_PATHS));
+            List<Rule> scopePaths = Rules.fromJsonArray(config.getJsonArray(KEY_SCOPE_PATHS));
             exporter.withScopePaths(scopePaths);
         }
         if (config.containsKey(KEY_NODE_TYPE_FILTERS)) {
-            List<Rule> nodeTypeFilters = Rule.fromJsonArray(config.getJsonArray(KEY_NODE_TYPE_FILTERS));
+            List<Rule> nodeTypeFilters = Rules.fromJsonArray(config.getJsonArray(KEY_NODE_TYPE_FILTERS));
             exporter.withNodeTypeFilters(nodeTypeFilters);
         }
         if (config.containsKey(KEY_JCR_NAMESPACES)) {

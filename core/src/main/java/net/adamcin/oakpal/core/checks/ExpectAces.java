@@ -22,6 +22,7 @@ import net.adamcin.oakpal.api.ProgressCheck;
 import net.adamcin.oakpal.api.ProgressCheckFactory;
 import net.adamcin.oakpal.api.Result;
 import net.adamcin.oakpal.api.Rule;
+import net.adamcin.oakpal.api.Rules;
 import net.adamcin.oakpal.api.Severity;
 import net.adamcin.oakpal.api.SimpleProgressCheckFactoryCheck;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
@@ -55,8 +56,8 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static net.adamcin.oakpal.api.Fun.compose;
-import static net.adamcin.oakpal.api.Fun.composeTest;
+import static net.adamcin.oakpal.api.Fun.compose1;
+import static net.adamcin.oakpal.api.Fun.composeTest1;
 import static net.adamcin.oakpal.api.Fun.inSet;
 import static net.adamcin.oakpal.api.Fun.inferTest1;
 import static net.adamcin.oakpal.api.Fun.mapEntry;
@@ -231,7 +232,7 @@ public final class ExpectAces implements ProgressCheckFactory {
         final Severity severity = Severity.valueOf(
                 config.getString(keys().severity(), DEFAULT_SEVERITY.name()).toUpperCase());
         return new Check(expectedAces, notExpectedAces,
-                Rule.fromJsonArray(JavaxJson.arrayOrEmpty(config, keys().afterPackageIdRules())), severity);
+                Rules.fromJsonArray(JavaxJson.arrayOrEmpty(config, keys().afterPackageIdRules())), severity);
     }
 
     static boolean isPrincipalSpec(final @NotNull String spec) {
@@ -306,7 +307,7 @@ public final class ExpectAces implements ProgressCheckFactory {
         }
 
         boolean shouldExpectAfterExtract(final @NotNull PackageId packageId) {
-            return Rule.lastMatch(afterPackageIdRules, packageId.toString()).isInclude();
+            return Rules.lastMatch(afterPackageIdRules, packageId.toString()).isInclude();
         }
 
         static List<PackageId> getViolatorListForExpectedCriteria(final @NotNull Map<AceCriteria, List<PackageId>> violatorsMap,
@@ -413,15 +414,15 @@ public final class ExpectAces implements ProgressCheckFactory {
                             .map(String::trim)
                             .filter(inferTest1(String::isEmpty).negate())
                             .toArray(String[]::new);
-                    Value[] definedValues = compose(uncheck1(ace::getRestrictions), Optional::ofNullable).apply(getName())
+                    Value[] definedValues = compose1(uncheck1(ace::getRestrictions), Optional::ofNullable).apply(getName())
                             .orElse(new Value[0]);
                     List<String> defineds = Stream.of(definedValues)
-                            .map(compose(uncheck1(Value::getString), String::trim))
+                            .map(compose1(uncheck1(Value::getString), String::trim))
                             .collect(Collectors.toList());
                     return Stream.of(expecteds).allMatch(inSet(defineds));
                 } else {
                     String expected = getValue();
-                    String defined = compose(uncheck1(ace::getRestriction), Optional::ofNullable)
+                    String defined = compose1(uncheck1(ace::getRestriction), Optional::ofNullable)
                             .apply(getName())
                             .map(uncheck1(Value::getString))
                             .orElse(null);
@@ -440,8 +441,8 @@ public final class ExpectAces implements ProgressCheckFactory {
             final List<String> allowedRestrictions = result0(acl::getRestrictionNames).get()
                     .map(Arrays::asList).getOrDefault(Collections.emptyList());
             final List<Map.Entry<RestrictionCriteria, Boolean>> criterias = Stream.of(restrictionCriterias)
-                    .filter(composeTest(RestrictionCriteria::getName, inSet(allowedRestrictions)))
-                    .map(zipKeysWithValueFunc(compose(RestrictionCriteria::getName, uncheck1(acl::isMultiValueRestriction))))
+                    .filter(composeTest1(RestrictionCriteria::getName, inSet(allowedRestrictions)))
+                    .map(zipKeysWithValueFunc(compose1(RestrictionCriteria::getName, uncheck1(acl::isMultiValueRestriction))))
                     .collect(Collectors.toList());
             return ace -> criterias.stream().allMatch(criteria -> criteria.getKey().satisfiedBy(criteria.getValue(), ace));
         }

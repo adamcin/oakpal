@@ -184,7 +184,7 @@ public class OptionsTest {
             assertFalse("pre install urls is not empty", overriddenPlan.getPreInstallUrls().isEmpty());
             assertEquals("expect pre install file", contentPackageJar.getAbsolutePath(),
                     Fun.result1(URL::toURI).apply(overriddenPlan.getPreInstallUrls().get(0))
-                            .map(Fun.compose(File::new, File::getAbsolutePath)).getOrDefault(""));
+                            .map(Fun.compose1(File::new, File::getAbsolutePath)).getOrDefault(""));
         });
     }
 

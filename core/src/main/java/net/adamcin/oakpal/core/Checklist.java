@@ -42,7 +42,7 @@ import java.util.jar.JarFile;
 import java.util.stream.Collectors;
 
 import static java.util.Optional.ofNullable;
-import static net.adamcin.oakpal.api.Fun.compose;
+import static net.adamcin.oakpal.api.Fun.compose1;
 import static net.adamcin.oakpal.api.Fun.uncheck1;
 import static net.adamcin.oakpal.api.JavaxJson.hasNonNull;
 import static net.adamcin.oakpal.api.JavaxJson.obj;
@@ -215,7 +215,7 @@ public final class Checklist implements JsonObjectConvertible {
     public List<String> getJcrPrivilegeNames() {
         final NamePathResolver resolver = new DefaultNamePathResolver(JsonCnd.toNamespaceMapping(jcrNamespaces));
         return jcrPrivileges.stream()
-                .map(compose(PrivilegeDefinition::getName, uncheck1(resolver::getJCRName)))
+                .map(compose1(PrivilegeDefinition::getName, uncheck1(resolver::getJCRName)))
                 .collect(Collectors.toList());
     }
 

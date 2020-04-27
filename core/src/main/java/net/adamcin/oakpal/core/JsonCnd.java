@@ -101,7 +101,7 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import static java.util.Optional.ofNullable;
-import static net.adamcin.oakpal.api.Fun.compose;
+import static net.adamcin.oakpal.api.Fun.compose1;
 import static net.adamcin.oakpal.api.Fun.constantly1;
 import static net.adamcin.oakpal.api.Fun.inSet;
 import static net.adamcin.oakpal.api.Fun.inferTest1;
@@ -216,7 +216,7 @@ public final class JsonCnd {
         return ntDefs.stream()
                 .map(def -> toEntry(def, NodeTypeDefinitionKey.writeAllJson(def, resolver)))
                 .filter(testValue(JavaxJson::nonEmptyValue))
-                .map(mapKey(compose(QNodeTypeDefinition::getName, uncheck1(jcrNameOrResidual(resolver)))))
+                .map(mapKey(compose1(QNodeTypeDefinition::getName, uncheck1(jcrNameOrResidual(resolver)))))
                 .sorted(Map.Entry.comparingByKey())
                 .collect(JsonCollectors.toJsonObject());
     }
@@ -233,7 +233,7 @@ public final class JsonCnd {
         final NamePathResolver resolver = new DefaultNamePathResolver(mapping);
         if (privDefs.stream().allMatch(def -> !def.isAbstract() && def.getDeclaredAggregateNames().isEmpty())) {
             return privDefs.stream()
-                    .map(compose(PrivilegeDefinition::getName, uncheck1(jcrNameOrResidual(resolver))))
+                    .map(compose1(PrivilegeDefinition::getName, uncheck1(jcrNameOrResidual(resolver))))
                     .map(JavaxJson::wrap)
                     .sorted(Comparator.comparing(JSON_VALUE_STRING))
                     .collect(JsonCollectors.toJsonArray());
@@ -246,7 +246,7 @@ public final class JsonCnd {
                                 .map(uncheck1(jcrNameOrResidual(resolver)))
                                 .collect(Collectors.toList()))
                         .get()))
-                .map(mapKey(compose(PrivilegeDefinition::getName, uncheck1(jcrNameOrResidual(resolver)))))
+                .map(mapKey(compose1(PrivilegeDefinition::getName, uncheck1(jcrNameOrResidual(resolver)))))
                 .sorted(Map.Entry.comparingByKey())
                 .collect(JsonCollectors.toJsonObject());
     }
@@ -495,7 +495,7 @@ public final class JsonCnd {
                 .map(uncheck1(BUILTIN_RESOLVER::getQName))
                 .collect(Collectors.toSet());
         final Map<Name, List<QNodeTypeDefinition>> unfilteredTypes = nodeTypeSets.stream().flatMap(
-                compose(compose(NodeTypeSet::getNodeTypes, Map::entrySet), Set::stream))
+                compose1(compose1(NodeTypeSet::getNodeTypes, Map::entrySet), Set::stream))
                 .filter(testKey(inSet(builtinTypes).negate()))
                 .map(mapValue(Collections::singletonList))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (left, right) -> {
@@ -514,7 +514,7 @@ public final class JsonCnd {
                 ))
                 .map(mapValue(Stream::findFirst))
                 .filter(testValue(Optional::isPresent))
-                .collect(Collectors.toMap(Map.Entry::getKey, compose(Map.Entry::getValue, Optional::get)));
+                .collect(Collectors.toMap(Map.Entry::getKey, compose1(Map.Entry::getValue, Optional::get)));
 
         final Set<Name> unsatisfiedNames = unfilteredNames.stream().filter(inSet(satisfied.keySet()).negate())
                 .collect(Collectors.toSet());
@@ -751,7 +751,7 @@ public final class JsonCnd {
         PRIMARYITEM(Lexer.PRIMARYITEM,
                 // write json
                 (def, resolver) -> ofNullable(def.getPrimaryItemName())
-                        .map(compose(uncheck1(jcrNameOrResidual(resolver)), JavaxJson::wrap))
+                        .map(compose1(uncheck1(jcrNameOrResidual(resolver)), JavaxJson::wrap))
                         .orElse(null),
                 // read definition
                 resolver -> uncheckVoid2((def, value) ->
@@ -932,7 +932,7 @@ public final class JsonCnd {
             if (attributesValue.getValueType() == JsonValue.ValueType.ARRAY) {
                 JsonArray attributes = attributesValue.asJsonArray();
                 attributes.stream()
-                        .map(compose(JavaxJson.JSON_VALUE_STRING, TypeDefinitionAttribute::forToken))
+                        .map(compose1(JavaxJson.JSON_VALUE_STRING, TypeDefinitionAttribute::forToken))
                         .forEachOrdered(attr -> attr.readTo(builder));
             }
         }
@@ -1133,7 +1133,7 @@ public final class JsonCnd {
          */
         private static void readAttributes(final @NotNull QItemDefinitionBuilder builder,
                                            final @NotNull JsonArray attributes) {
-            attributes.stream().map(compose(JavaxJson.JSON_VALUE_STRING, ItemDefinitionAttribute::forToken))
+            attributes.stream().map(compose1(JavaxJson.JSON_VALUE_STRING, ItemDefinitionAttribute::forToken))
                     .filter(DefinitionToken::nonUnknown).forEachOrdered(attr -> attr.readTo(builder));
         }
 
@@ -1271,7 +1271,7 @@ public final class JsonCnd {
         QUERYOPS(Lexer.QUERYOPS,
                 // write json
                 (def, resolver) -> ofNullable(def.getAvailableQueryOperators())
-                        .map(compose(JsonCnd::normalizeQueryOperators, stream -> stream.toArray(String[]::new)))
+                        .map(compose1(JsonCnd::normalizeQueryOperators, stream -> stream.toArray(String[]::new)))
                         .filter(inferTest1(fullQueryOps::equals).negate())
                         .map(JavaxJson::wrap)
                         .orElse(null),
@@ -1531,7 +1531,7 @@ public final class JsonCnd {
         REQUIREDTYPES(new String[]{"types"},
                 // write json
                 (def, resolver) -> ofNullable(def.getRequiredPrimaryTypes()).map(Stream::of).orElse(Stream.empty())
-                        .map(compose(uncheck1(jcrNameOrResidual(resolver)), JavaxJson::wrap))
+                        .map(compose1(uncheck1(jcrNameOrResidual(resolver)), JavaxJson::wrap))
                         .sorted(Comparator.comparing(JavaxJson.JSON_VALUE_STRING))
                         .collect(JsonCollectors.toJsonArray()),
                 // read definition

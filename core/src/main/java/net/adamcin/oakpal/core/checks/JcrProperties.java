@@ -20,6 +20,8 @@ import net.adamcin.oakpal.api.PathAction;
 import net.adamcin.oakpal.api.ProgressCheck;
 import net.adamcin.oakpal.api.ProgressCheckFactory;
 import net.adamcin.oakpal.api.Rule;
+import net.adamcin.oakpal.api.RuleType;
+import net.adamcin.oakpal.api.Rules;
 import net.adamcin.oakpal.api.Severity;
 import net.adamcin.oakpal.api.SimpleProgressCheckFactoryCheck;
 import org.apache.jackrabbit.vault.fs.api.WorkspaceFilter;
@@ -52,7 +54,7 @@ import static net.adamcin.oakpal.api.JavaxJson.mapArrayOfStrings;
  * <dl>
  * <dt>{@code scopePaths} ({@link Rule}{@code []})</dt>
  * <dd>A list of rules, with each pattern matched against an import path, and the {@code type}
- * ({@link Rule.RuleType}) of the last matching rule determines whether the matched
+ * ({@link RuleType}) of the last matching rule determines whether the matched
  * path is in scope for checking the properties on the node and its descendants.</dd>
  * <dt>{@code denyNodeTypes}</dt>
  * <dd>A list of nodeType strings, which specify primary or mixin types that should be disallowed. If matched, the path is
@@ -148,7 +150,7 @@ public final class JcrProperties implements ProgressCheckFactory {
 
     @Override
     public ProgressCheck newInstance(final JsonObject config) {
-        List<Rule> pathScope = Rule.fromJsonArray(arrayOrEmpty(config, keys().scopePaths()));
+        List<Rule> pathScope = Rules.fromJsonArray(arrayOrEmpty(config, keys().scopePaths()));
 
         List<String> denyNodeTypes = mapArrayOfStrings(arrayOrEmpty(config, keys().denyNodeTypes()));
         List<String> nodeTypeScope = mapArrayOfStrings(arrayOrEmpty(config, keys().scopeNodeTypes()));
@@ -219,7 +221,7 @@ public final class JcrProperties implements ProgressCheckFactory {
                 return;
             }
 
-            final Rule lastMatch = Rule.lastMatch(scopePaths, path);
+            final Rule lastMatch = Rules.lastMatch(scopePaths, path);
             if (lastMatch.isInclude()) {
                 this.checkNode(packageId, node);
             }

@@ -1,6 +1,6 @@
 package net.adamcin.oakpal.cli;
 
-import static net.adamcin.oakpal.api.Fun.compose;
+import static net.adamcin.oakpal.api.Fun.compose1;
 import static net.adamcin.oakpal.api.Fun.result0;
 import static net.adamcin.oakpal.api.Fun.result1;
 import static net.adamcin.oakpal.api.Fun.uncheck0;
@@ -104,7 +104,7 @@ final class Command {
     Optional<Integer> getHighestReportSeverity(final @NotNull Options opts,
                                                final @NotNull List<CheckReport> reports) {
         return reports.stream()
-                .flatMap(compose(CheckReport::getViolations, Collection::stream))
+                .flatMap(compose1(CheckReport::getViolations, Collection::stream))
                 .map(Violation::getSeverity)
                 .reduce(Severity::maxSeverity)
                 .filter(opts.getFailOnSeverity().meetsMinimumSeverity())

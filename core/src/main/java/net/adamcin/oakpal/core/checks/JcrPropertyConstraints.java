@@ -17,6 +17,7 @@
 package net.adamcin.oakpal.core.checks;
 
 import net.adamcin.oakpal.api.Rule;
+import net.adamcin.oakpal.api.Rules;
 import net.adamcin.oakpal.api.Severity;
 import net.adamcin.oakpal.api.SimpleViolation;
 import net.adamcin.oakpal.api.Violation;
@@ -158,7 +159,7 @@ public final class JcrPropertyConstraints {
             final boolean denyIfMultivalued = hasNonNull(checkJson, keys().denyIfMultivalued())
                     && checkJson.getBoolean(keys().denyIfMultivalued());
             final String requireType = checkJson.getString(keys().requireType(), null);
-            final List<Rule> valueRules = Rule.fromJsonArray(arrayOrEmpty(checkJson, keys().valueRules()));
+            final List<Rule> valueRules = Rules.fromJsonArray(arrayOrEmpty(checkJson, keys().valueRules()));
             final Severity severity = Severity
                     .valueOf(checkJson.getString(keys().severity(), DEFAULT_SEVERITY.name()).toUpperCase());
 
@@ -285,7 +286,7 @@ public final class JcrPropertyConstraints {
             }
 
             for (String value : values) {
-                final Rule lastMatch = Rule.lastMatch(getValueRules(), value);
+                final Rule lastMatch = Rules.lastMatch(getValueRules(), value);
                 if (lastMatch.isDeny()) {
                     return Optional.of(constructViolation(packageId, node,
                             MessageFormat.format(getString("value {0} denied by pattern {1}"),

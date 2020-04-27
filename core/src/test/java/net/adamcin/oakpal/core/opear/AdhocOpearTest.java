@@ -49,7 +49,7 @@ public class AdhocOpearTest {
         assertEquals("expect planFile is referenced by specific plan referenced by empty plan name",
                 planFile.getAbsolutePath(), opear.getSpecificPlan("")
                         .flatMap(Fun.result1(URL::toURI))
-                        .map(Fun.compose(File::new, File::getAbsolutePath)).getOrDefault(""));
+                        .map(Fun.compose1(File::new, File::getAbsolutePath)).getOrDefault(""));
 
         final ClassLoader parent = getClass().getClassLoader();
         final ClassLoader planCl = opear.getPlanClassLoader(parent);
@@ -81,7 +81,7 @@ public class AdhocOpearTest {
         assertEquals("expect planFile is referenced by specific plan referenced by empty plan name",
                 planFile.getAbsolutePath(), opear.getSpecificPlan("")
                         .flatMap(Fun.result1(URL::toURI))
-                        .map(Fun.compose(File::new, File::getAbsolutePath)).getOrDefault(""));
+                        .map(Fun.compose1(File::new, File::getAbsolutePath)).getOrDefault(""));
 
         final ClassLoader parent = getClass().getClassLoader();
         final ClassLoader planCl = opear.getPlanClassLoader(parent);

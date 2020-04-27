@@ -47,6 +47,7 @@ import javax.json.JsonArray;
 import javax.json.JsonObject;
 import javax.json.JsonReader;
 
+import net.adamcin.oakpal.api.Rules;
 import net.adamcin.oakpal.core.Checklist;
 import net.adamcin.oakpal.core.ForcedRoot;
 import net.adamcin.oakpal.api.Fun;
@@ -55,7 +56,6 @@ import net.adamcin.oakpal.api.JavaxJson;
 import net.adamcin.oakpal.core.JcrNs;
 import net.adamcin.oakpal.core.JsonCnd;
 import net.adamcin.oakpal.core.OakMachine;
-import net.adamcin.oakpal.api.Rule;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.commons.NamespaceHelper;
 import org.apache.jackrabbit.spi.commons.namespace.NamespaceMapping;
@@ -260,8 +260,8 @@ public class ChecklistExporterTest {
         TestUtil.withReadOnlyFixture(diffRepoDir, session -> {
             ChecklistExporter diffExporter = new ChecklistExporter.Builder()
                     .byNodeType("sling:Folder")
-                    .withScopePaths(Rule.fromJsonArray(arr(key("type", "include").key("pattern", pathPrefix + "/ordered.*")).get()))
-                    .withNodeTypeFilters(Rule.fromJsonArray(arr(key("type", "exclude").key("pattern", "sling:.*")).get()))
+                    .withScopePaths(Rules.fromJsonArray(arr(key("type", "include").key("pattern", pathPrefix + "/ordered.*")).get()))
+                    .withNodeTypeFilters(Rules.fromJsonArray(arr(key("type", "exclude").key("pattern", "sling:.*")).get()))
                     .build();
 
             try (JsonReader reader = Json.createReader(new FileInputStream(fullPassChecklist))) {
@@ -499,7 +499,7 @@ public class ChecklistExporterTest {
             Node node2 = JcrUtils.getOrCreateByPath("/test_exclude/node2", "nt:folder", session);
 
             ChecklistExporter exporter = new ChecklistExporter.Builder()
-                    .withScopePaths(Rule
+                    .withScopePaths(Rules
                             .fromJsonArray(arr(key("type", "include").key("pattern", "/test_include(/.*)?"))
                                     .get())).build();
 
@@ -525,15 +525,15 @@ public class ChecklistExporterTest {
             node1.addMixin("sling:ResourceSuperType");
 
             ChecklistExporter mixExporter = new ChecklistExporter.Builder().withNodeTypeFilters(
-                    Rule.fromJsonArray(arr(key("type", "include").key("pattern", "mix:.*"))
+                    Rules.fromJsonArray(arr(key("type", "include").key("pattern", "mix:.*"))
                             .get())).build();
 
             ChecklistExporter slingExporter = new ChecklistExporter.Builder().withNodeTypeFilters(
-                    Rule.fromJsonArray(arr(key("type", "include").key("pattern", "sling:.*"))
+                    Rules.fromJsonArray(arr(key("type", "include").key("pattern", "sling:.*"))
                             .get())).build();
 
             ChecklistExporter rtExporter = new ChecklistExporter.Builder().withNodeTypeFilters(
-                    Rule.fromJsonArray(arr(key("type", "include").key("pattern", "sling:Resource"))
+                    Rules.fromJsonArray(arr(key("type", "include").key("pattern", "sling:Resource"))
                             .get())).build();
 
             ForcedRoot mixRoot = mixExporter.nodeToRoot(node1, mapping).orElse(null);

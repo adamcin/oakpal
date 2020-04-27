@@ -16,6 +16,7 @@
 
 package net.adamcin.oakpal.webster.targets;
 
+import net.adamcin.oakpal.api.RuleType;
 import net.adamcin.oakpal.core.JcrNs;
 import net.adamcin.oakpal.core.OakMachine;
 import net.adamcin.oakpal.api.Rule;
@@ -93,7 +94,7 @@ public class WebsterNodetypesTargetTest {
                                 key("extends", arr("nt:folder"))))
                 .get());
         WebsterNodetypesTarget target = WebsterNodetypesTarget.fromJson(targetFile, obj()
-                .key("scopeExportNames", arr().val(new Rule(Rule.RuleType.INCLUDE, Pattern.compile("foo:.*"))))
+                .key("scopeExportNames", arr().val(new Rule(RuleType.INCLUDE, Pattern.compile("foo:.*"))))
                 .get());
         target.setArchive(new FileArchive(new File("src/test/resources/filevault/oneNtRef")), writeBack);
         builder.build().initAndInspect(target::perform);
@@ -117,7 +118,7 @@ public class WebsterNodetypesTargetTest {
                 .key("jcrNamespaces", arr().val(JcrNs.create("foo", "http://adamcin.net/foo")))
                 .get());
         WebsterNodetypesTarget target = WebsterNodetypesTarget.fromJson(targetFile, obj()
-                .key("scopeExportNames", arr().val(new Rule(Rule.RuleType.INCLUDE, Pattern.compile("foo:.*"))))
+                .key("scopeExportNames", arr().val(new Rule(RuleType.INCLUDE, Pattern.compile("foo:.*"))))
                 .get());
         target.setArchive(new FileArchive(new File("src/test/resources/filevault/oneNtRef")), writeBack);
         builder.build().initAndInspect(target::perform);
@@ -142,7 +143,7 @@ public class WebsterNodetypesTargetTest {
                 )
                 .get());
         WebsterNodetypesTarget targetJustOrdered = WebsterNodetypesTarget.fromJson(targetFile, obj()
-                .key("scopeReplaceNames", arr().val(new Rule(Rule.RuleType.INCLUDE, Pattern.compile("sling:OrderedFolder"))))
+                .key("scopeReplaceNames", arr().val(new Rule(RuleType.INCLUDE, Pattern.compile("sling:OrderedFolder"))))
                 .get());
         targetJustOrdered.setArchive(new FileArchive(new File("src/test/resources/filevault/ntRefsSlingFolderOrderedFolder")), writeBack);
         builder.build().initAndInspect(targetJustOrdered::perform);

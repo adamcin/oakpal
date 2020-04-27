@@ -51,7 +51,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static java.util.Optional.ofNullable;
-import static net.adamcin.oakpal.api.Fun.compose;
+import static net.adamcin.oakpal.api.Fun.compose1;
 
 /**
  * Simple DSL for constructing javax.json objects for {@link ProgressCheckFactory} configs using only three-letter identifiers.
@@ -242,7 +242,7 @@ public final class JavaxJson {
      * the {@link JsonObject#getString(String)} methods.
      */
     @SuppressWarnings("WeakerAccess")
-    public static final Function<JsonValue, String> JSON_VALUE_STRING = compose(JavaxJson::unwrap, Object::toString);
+    public static final Function<JsonValue, String> JSON_VALUE_STRING = compose1(JavaxJson::unwrap, Object::toString);
 
     /**
      * Supports {@link #unwrap(JsonValue)} for typed unwrapping of JsonObject to {@code Map<String, Object>}.
@@ -864,7 +864,7 @@ public final class JavaxJson {
      * @param errorConsumer an optional error handler
      * @param <R>           the mapFunction result type
      * @return a list of parser results
-     * @see Fun#composeTry(Function, Supplier, Fun.ThrowingFunction, BiConsumer)
+     * @see Fun#composeTry1(Function, Supplier, Fun.ThrowingFunction, BiConsumer)
      */
     @SuppressWarnings("WeakerAccess")
     public static <R> List<R> parseFromArray(final @NotNull JsonArray jsonArray,
@@ -872,7 +872,7 @@ public final class JavaxJson {
                                              final @Nullable BiConsumer<String, Exception> errorConsumer) {
         return jsonArray.stream()
                 .map(JSON_VALUE_STRING)
-                .flatMap(Fun.composeTry(Stream::of, Stream::empty, parser, errorConsumer))
+                .flatMap(Fun.composeTry1(Stream::of, Stream::empty, parser, errorConsumer))
                 .collect(Collectors.toList());
     }
 

@@ -18,6 +18,7 @@ package net.adamcin.oakpal.core.checks;
 
 import net.adamcin.oakpal.api.Result;
 import net.adamcin.oakpal.api.Rule;
+import net.adamcin.oakpal.api.RuleType;
 import net.adamcin.oakpal.api.Severity;
 import net.adamcin.oakpal.core.JsonCnd;
 import net.adamcin.oakpal.core.OakMachine;
@@ -55,7 +56,7 @@ import java.util.Objects;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
-import static net.adamcin.oakpal.api.Fun.compose;
+import static net.adamcin.oakpal.api.Fun.compose1;
 import static net.adamcin.oakpal.api.Fun.uncheck1;
 import static net.adamcin.oakpal.api.JavaxJson.arr;
 import static net.adamcin.oakpal.api.JavaxJson.key;
@@ -151,8 +152,8 @@ public class ExpectAcesTest {
     @Test
     public void testNewInstance_afterPackageIdRules() throws Exception {
         final List<Rule> expectedRules = Arrays.asList(
-                new Rule(Rule.RuleType.INCLUDE, Pattern.compile("whua")),
-                new Rule(Rule.RuleType.EXCLUDE, Pattern.compile("heyy")));
+                new Rule(RuleType.INCLUDE, Pattern.compile("whua")),
+                new Rule(RuleType.EXCLUDE, Pattern.compile("heyy")));
 
         ExpectAces.Check check1 = checkFor(key("principal", "nouser")
                 .key(ExpectPaths.CONFIG_AFTER_PACKAGE_ID_RULES, expectedRules).get());
@@ -381,7 +382,7 @@ public class ExpectAcesTest {
     static final Privilege[] emptyPrivileges = new Privilege[0];
 
     final Privilege privilegeByName(final @NotNull String name) {
-        final String jcrName = compose(uncheck1(resolver::getQName), uncheck1(resolver::getJCRName)).apply(name);
+        final String jcrName = compose1(uncheck1(resolver::getQName), uncheck1(resolver::getJCRName)).apply(name);
         if (PrivilegeConstants.AGGREGATE_PRIVILEGES.containsKey(jcrName)) {
             return new MockPrivilege(jcrName, Stream.of(PrivilegeConstants.AGGREGATE_PRIVILEGES.get(jcrName))
                     .map(this::privilegeByName).toArray(Privilege[]::new));

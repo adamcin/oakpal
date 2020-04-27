@@ -16,12 +16,12 @@
 
 package net.adamcin.oakpal.api;
 
-import static net.adamcin.oakpal.api.Fun.compose;
+import static net.adamcin.oakpal.api.Fun.compose1;
 import static net.adamcin.oakpal.api.Fun.compose0;
 import static net.adamcin.oakpal.api.Fun.compose2;
-import static net.adamcin.oakpal.api.Fun.composeTest;
+import static net.adamcin.oakpal.api.Fun.composeTest1;
 import static net.adamcin.oakpal.api.Fun.composeTest2;
-import static net.adamcin.oakpal.api.Fun.composeTry;
+import static net.adamcin.oakpal.api.Fun.composeTry1;
 import static net.adamcin.oakpal.api.Fun.composeTry0;
 import static net.adamcin.oakpal.api.Fun.composeTry2;
 import static net.adamcin.oakpal.api.Fun.entriesToMap;
@@ -163,7 +163,7 @@ public class FunTest {
     @Test
     public void testCompose() {
         assertEquals("compose concat then uppercase", "SENTINELSENTINEL",
-                compose(sentinel::concat, String::toUpperCase).apply(sentinel));
+                compose1(sentinel::concat, String::toUpperCase).apply(sentinel));
     }
 
     @Test
@@ -181,7 +181,7 @@ public class FunTest {
 
     @Test
     public void testComposeTest() {
-        final Predicate<String> predicate = composeTest(sentinel::concat,
+        final Predicate<String> predicate = composeTest1(sentinel::concat,
                 string -> string.length() > sentinel.length());
         assertFalse("compose concat empty string has no more length than sentinel", predicate.test(""));
         assertTrue("compose concat empty string has more length than sentinel", predicate.test("more"));
@@ -598,7 +598,7 @@ public class FunTest {
     public void testComposeTry_noOnError() {
         final Fun.ThrowingFunction<String, Class<?>> classLoader = this.getClass().getClassLoader()::loadClass;
         final Function<String, Stream<Class<?>>> func =
-                composeTry(Stream::of, Stream::empty, classLoader, null);
+                Fun.composeTry1(Stream::of, Stream::empty, classLoader, null);
         final String notARealClassName = "net.adamcin.oakpal.core.NotARealClass";
         final Class<?>[] loadedClasses = Stream.of("java.lang.String", notARealClassName, "java.util.Map")
                 .flatMap(func).toArray(Class<?>[]::new);
@@ -611,7 +611,7 @@ public class FunTest {
         final Fun.ThrowingFunction<String, Class<?>> classLoader = this.getClass().getClassLoader()::loadClass;
         final Map<String, Exception> collectedErrors = new HashMap<>();
         final Function<String, Stream<Class<?>>> func =
-                composeTry(Stream::of, Stream::empty, classLoader, collectedErrors::put);
+                Fun.composeTry1(Stream::of, Stream::empty, classLoader, collectedErrors::put);
         final String notARealClassName = "net.adamcin.oakpal.core.NotARealClass";
         final Class<?>[] loadedClasses = Stream.of("java.lang.String", notARealClassName, "java.util.Map")
                 .flatMap(func).toArray(Class<?>[]::new);
@@ -628,7 +628,7 @@ public class FunTest {
     public void testComposeTryResult() {
         final Fun.ThrowingFunction<String, Class<?>> classLoader = this.getClass().getClassLoader()::loadClass;
         final Map<String, Exception> collectedErrors = new HashMap<>();
-        final Function<String, Result<Class<?>>> func = composeTry(Result::success, Result::failure, classLoader);
+        final Function<String, Result<Class<?>>> func = composeTry1(Result::success, Result::failure, classLoader);
         final String notARealClassName = "net.adamcin.oakpal.core.NotARealClass";
         final Map<String, Result<Class<?>>> results = Stream
                 .of("java.lang.String", notARealClassName, "java.util.Map")

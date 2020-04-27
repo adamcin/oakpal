@@ -24,7 +24,7 @@ import java.util.function.Function;
 import java.util.jar.JarFile;
 import java.util.stream.Collectors;
 
-import static net.adamcin.oakpal.api.Fun.compose;
+import static net.adamcin.oakpal.api.Fun.compose1;
 import static net.adamcin.oakpal.api.Fun.result1;
 
 final class Options {
@@ -168,7 +168,7 @@ final class Options {
                     .startingWithPlan(basePlan);
             if (!getPreInstallFiles().isEmpty()) {
                 List<URL> allUrls = new ArrayList<>(basePlan.getPreInstallUrls());
-                getPreInstallFiles().stream().map(compose(File::toURI, result1(URI::toURL)))
+                getPreInstallFiles().stream().map(compose1(File::toURI, result1(URI::toURL)))
                         .collect(Result.tryCollect(Collectors.toList())).forEach(allUrls::addAll);
                 overridePlan.withPreInstallUrls(allUrls);
             }
@@ -332,7 +332,7 @@ final class Options {
                 final URL[] urls = this.extendedClassPathFiles.stream()
                         .filter(File::exists)
                         .filter(file -> file.isDirectory() || file.getName().endsWith(".jar"))
-                        .flatMap(compose(compose(File::toURI, result1(URI::toURL)), Result::stream))
+                        .flatMap(compose1(compose1(File::toURI, result1(URI::toURL)), Result::stream))
                         .toArray(URL[]::new);
                 return Result.success(new URLClassLoader(urls, opear.getPlanClassLoader(parentClassLoader)));
             }

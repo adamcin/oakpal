@@ -30,7 +30,7 @@ import java.util.Optional;
 import java.util.ResourceBundle;
 import java.util.stream.Collectors;
 
-import static net.adamcin.oakpal.api.Fun.compose;
+import static net.adamcin.oakpal.api.Fun.compose1;
 import static net.adamcin.oakpal.api.Fun.inferTest1;
 import static net.adamcin.oakpal.api.Fun.result1;
 import static net.adamcin.oakpal.api.Fun.uncheck1;
@@ -252,7 +252,7 @@ public final class OakpalPlan implements JsonObjectConvertible {
                             preInstallUrls.stream()
                                     .map(result1(URL::toURI))
                                     .map(uriResult -> uriResult
-                                            .map(compose(uncheck1(uri -> relativizeToBaseParent(baseUri, uri)),
+                                            .map(compose1(uncheck1(uri -> relativizeToBaseParent(baseUri, uri)),
                                                     URI::toString)))
                                     .collect(Result.tryCollect(Collectors.toList()))
                     ))
@@ -410,7 +410,7 @@ public final class OakpalPlan implements JsonObjectConvertible {
             this.base = base;
             this.name = Optional.ofNullable(name)
                     .orElseGet(() -> Optional.ofNullable(base)
-                            .map(compose(URL::getPath, Text::getName))
+                            .map(compose1(URL::getPath, Text::getName))
                             .filter(inferTest1(String::isEmpty).negate())
                             .orElse(DEFAULT_PLAN_NAME));
         }

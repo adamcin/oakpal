@@ -29,7 +29,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static net.adamcin.oakpal.api.Fun.compose;
+import static net.adamcin.oakpal.api.Fun.compose1;
 import static net.adamcin.oakpal.api.Fun.uncheck1;
 import static net.adamcin.oakpal.api.JavaxJson.wrap;
 
@@ -44,9 +44,9 @@ interface MojoWithPlanParams extends MojoWithCommonParams, MojoWithRepositoryPar
      * @return the appropriate base url for the plan
      */
     default @NotNull URL getPlanBaseUrl() {
-        return compose(File::toURI, uncheck1(URI::toURL)).apply(
+        return compose1(File::toURI, uncheck1(URI::toURL)).apply(
                 getProject()
-                        .flatMap(compose(MavenProject::getBasedir, Optional::ofNullable))
+                        .flatMap(compose1(MavenProject::getBasedir, Optional::ofNullable))
                         .map(File::getAbsoluteFile)
                         .orElse(new File(".").getAbsoluteFile()));
     }
@@ -170,7 +170,7 @@ interface MojoWithPlanParams extends MojoWithCommonParams, MojoWithRepositoryPar
         // get pre-install files
         final List<File> preInstall = getPreInstallFiles(params);
         planBuilder.withPreInstallUrls(preInstall.stream()
-                .map(compose(File::toURI, uncheck1(URI::toURL))).collect(Collectors.toList()));
+                .map(compose1(File::toURI, uncheck1(URI::toURL))).collect(Collectors.toList()));
 
         final NamespaceMapping planMapping = JsonCnd.toNamespaceMapping(params.getJcrNamespaces());
         planBuilder.withJcrPrivileges(JsonCnd.getPrivilegesFromJson(wrap(params.getJcrPrivileges()), planMapping));
@@ -185,7 +185,7 @@ interface MojoWithPlanParams extends MojoWithCommonParams, MojoWithRepositoryPar
         final NamespaceMappingRequest.Builder nsRequest = new NamespaceMappingRequest.Builder();
         params.getJcrNamespaces().stream().map(JcrNs::getPrefix).forEach(nsRequest::withRetainPrefix);
         params.getJcrPrivileges().stream().flatMap(JsonCnd::streamNsPrefix).forEach(nsRequest::withJCRName);
-        params.getForcedRoots().stream().flatMap(compose(ForcedRoot::getNamespacePrefixes, Stream::of))
+        params.getForcedRoots().stream().flatMap(compose1(ForcedRoot::getNamespacePrefixes, Stream::of))
                 .forEach(nsRequest::withJCRName);
         jcrNodetypes.stream().flatMap(JsonCnd::namedBy).forEach(nsRequest::withQName);
 

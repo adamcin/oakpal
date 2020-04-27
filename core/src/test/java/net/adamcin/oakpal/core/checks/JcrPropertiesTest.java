@@ -18,6 +18,7 @@ package net.adamcin.oakpal.core.checks;
 
 import net.adamcin.oakpal.api.ProgressCheck;
 import net.adamcin.oakpal.api.Rule;
+import net.adamcin.oakpal.api.RuleType;
 import net.adamcin.oakpal.api.Severity;
 import net.adamcin.oakpal.core.CheckReport;
 import net.adamcin.oakpal.testing.TestPackageUtil;
@@ -219,11 +220,11 @@ public class JcrPropertiesTest extends ProgressCheckTestBase {
             ProgressCheck check = new JcrProperties().newInstance(obj()
                     // intend to only check /apps/acme by ensuring scopePaths excludes /apps/aperture, which has the
                     // same jcr:title value
-                    .key("scopePaths", arr(new Rule(Rule.RuleType.INCLUDE, Pattern.compile("/apps/acme"))))
+                    .key("scopePaths", arr(new Rule(RuleType.INCLUDE, Pattern.compile("/apps/acme"))))
                     .key("properties", arr()
                             .val(obj()
                                     .key("name", "jcr:title")
-                                    .key("valueRules", arr(new Rule(Rule.RuleType.DENY, Pattern.compile("Acme"))))
+                                    .key("valueRules", arr(new Rule(RuleType.DENY, Pattern.compile("Acme"))))
                             )
                     )
                     .get());
@@ -235,7 +236,7 @@ public class JcrPropertiesTest extends ProgressCheckTestBase {
                     .key("properties", arr()
                             .val(obj()
                                     .key("name", "multiString")
-                                    .key("valueRules", arr(new Rule(Rule.RuleType.DENY, Pattern.compile("two"))))
+                                    .key("valueRules", arr(new Rule(RuleType.DENY, Pattern.compile("two"))))
                             )
                     )
                     .get());

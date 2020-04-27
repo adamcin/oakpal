@@ -22,6 +22,7 @@ package net.adamcin.oakpal.core.checks;
 import net.adamcin.oakpal.api.PathAction;
 import net.adamcin.oakpal.api.ProgressCheck;
 import net.adamcin.oakpal.api.Rule;
+import net.adamcin.oakpal.api.RuleType;
 import net.adamcin.oakpal.api.Severity;
 import net.adamcin.oakpal.api.Violation;
 import net.adamcin.oakpal.core.CheckReport;
@@ -190,7 +191,7 @@ public class CompositeStoreAlignmentTest extends ProgressCheckTestBase {
     public void testIgnoredSubpackages() throws Exception {
         final List<Violation> reports = virtualSubpackageScan(obj()
                 .key(CompositeStoreAlignment.keys().scopePackageIds(), arr()
-                        .val(new Rule(Rule.RuleType.EXCLUDE, Pattern.compile(subBravo.toString()))))
+                        .val(new Rule(RuleType.EXCLUDE, Pattern.compile(subBravo.toString()))))
                 .get());
         assertFalse("reports not contains root (container): " + reports,
                 reports.stream().anyMatch(violation -> violation.getPackages().contains(root)));

@@ -21,7 +21,7 @@ import org.junit.Test;
 import java.io.File;
 import java.util.stream.Stream;
 
-import static net.adamcin.oakpal.api.Fun.compose;
+import static net.adamcin.oakpal.api.Fun.compose1;
 import static net.adamcin.oakpal.api.JavaxJson.arr;
 import static net.adamcin.oakpal.api.JavaxJson.key;
 import static net.adamcin.oakpal.api.JavaxJson.obj;
@@ -56,12 +56,12 @@ public class JsonTargetFactoryTest {
     public void testIsTargetType() {
         assertTrue("type name uppercase is target type",
                 Stream.of(JsonTargetFactory.values())
-                        .map(compose(JsonTargetFactory::name, String::toUpperCase))
+                        .map(compose1(JsonTargetFactory::name, String::toUpperCase))
                         .allMatch(JsonTargetFactory::isTargetType));
 
         assertTrue("type name lowercase is target type",
                 Stream.of(JsonTargetFactory.values())
-                        .map(compose(JsonTargetFactory::name, String::toLowerCase))
+                        .map(compose1(JsonTargetFactory::name, String::toLowerCase))
                         .allMatch(JsonTargetFactory::isTargetType));
 
         assertFalse("not a type name is not a target type", JsonTargetFactory.isTargetType(""));

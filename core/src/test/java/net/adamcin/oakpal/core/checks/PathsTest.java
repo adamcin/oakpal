@@ -18,6 +18,7 @@ package net.adamcin.oakpal.core.checks;
 
 import net.adamcin.oakpal.api.ProgressCheck;
 import net.adamcin.oakpal.api.Rule;
+import net.adamcin.oakpal.api.RuleType;
 import net.adamcin.oakpal.api.Severity;
 import net.adamcin.oakpal.api.Violation;
 import net.adamcin.oakpal.core.CheckReport;
@@ -38,7 +39,7 @@ import static org.junit.Assert.assertTrue;
 
 public class PathsTest extends ProgressCheckTestBase {
 
-    private static final Rule denyEtc = new Rule(Rule.RuleType.DENY, Pattern.compile("/etc(/.*)?"));
+    private static final Rule denyEtc = new Rule(RuleType.DENY, Pattern.compile("/etc(/.*)?"));
 
     @Test
     public void testDefaultSeverity() throws Exception {
@@ -106,7 +107,7 @@ public class PathsTest extends ProgressCheckTestBase {
                 allDeletesCheckByConfig.getReportedViolations().isEmpty());
 
         Paths.Check deletesByRuleCheck = new Paths.Check(
-                singletonList(new Rule(Rule.RuleType.ALLOW, Pattern.compile("/foo"))),
+                singletonList(new Rule(RuleType.ALLOW, Pattern.compile("/foo"))),
                 false, Paths.DEFAULT_SEVERITY);
 
         assertTrue("reported violations should be empty before deletedPath",

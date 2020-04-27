@@ -16,6 +16,7 @@
 
 package net.adamcin.oakpal.webster.targets;
 
+import net.adamcin.oakpal.api.RuleType;
 import net.adamcin.oakpal.core.Checklist;
 import net.adamcin.oakpal.core.ForcedRoot;
 import net.adamcin.oakpal.core.JcrNs;
@@ -149,8 +150,8 @@ public class WebsterChecklistTargetTest {
                 //.key("jcrNamespaces", nsList)
                 .key("selectors", arr()
                         .val(key("type", "path").key("args", arr("/foo1", "/foo2"))))
-                .key("scopePaths", arr(new Rule(Rule.RuleType.INCLUDE, Pattern.compile("/foo2"))))
-                .key("nodeTypeFilters", arr(new Rule(Rule.RuleType.EXCLUDE, Pattern.compile(OakMachine.NS_PREFIX_OAKPAL + ":.*"))))
+                .key("scopePaths", arr(new Rule(RuleType.INCLUDE, Pattern.compile("/foo2"))))
+                .key("nodeTypeFilters", arr(new Rule(RuleType.EXCLUDE, Pattern.compile(OakMachine.NS_PREFIX_OAKPAL + ":.*"))))
                 .get());
         twoRootsOak.build().adminInitAndInspect(twoRootsTarget::perform);
         assertJsonFile(targetFile, json -> {
@@ -170,8 +171,8 @@ public class WebsterChecklistTargetTest {
                 .key("jcrNamespaces", nsList)
                 .key("selectors", arr()
                         .val(key("type", "path").key("args", arr("/foo1", "/foo2"))))
-                .key("scopePaths", arr(new Rule(Rule.RuleType.INCLUDE, Pattern.compile("/foo1"))))
-                .key("nodeTypeFilters", arr(new Rule(Rule.RuleType.EXCLUDE, Pattern.compile("oakpaltmp:.*"))))
+                .key("scopePaths", arr(new Rule(RuleType.INCLUDE, Pattern.compile("/foo1"))))
+                .key("nodeTypeFilters", arr(new Rule(RuleType.EXCLUDE, Pattern.compile("oakpaltmp:.*"))))
                 .key("updatePolicy", "replace")
                 .get());
         twoTypedRootsOak.build().adminInitAndInspect(twoTypedRootsTarget::perform);
@@ -212,7 +213,7 @@ public class WebsterChecklistTargetTest {
                         .val(key("type", "nodetype").key("args", arr("mix:title")))
                         .val(key("type", "query").key("args", arr("select * from [nt:unstructured] as nun where issamenode([nun], '/foo2')"))))
                 .key("nodeTypeFilters", arr()
-                        .val(new Rule(Rule.RuleType.INCLUDE, Pattern.compile("foo:mixin.*"))))
+                        .val(new Rule(RuleType.INCLUDE, Pattern.compile("foo:mixin.*"))))
                 .key("exportNodeTypes", arr(fooMixin2))
                 .get());
         oak.build().adminInitAndInspect(target::perform);

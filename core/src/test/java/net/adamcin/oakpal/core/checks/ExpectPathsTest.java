@@ -17,6 +17,7 @@
 package net.adamcin.oakpal.core.checks;
 
 import net.adamcin.oakpal.api.Rule;
+import net.adamcin.oakpal.api.RuleType;
 import net.adamcin.oakpal.api.Severity;
 import net.adamcin.oakpal.api.Violation;
 import org.apache.jackrabbit.vault.packaging.PackageId;
@@ -75,8 +76,8 @@ public class ExpectPathsTest {
     @Test
     public void testNewInstance_afterPackageIdRules() {
         final List<Rule> expectedRules = Arrays.asList(
-                new Rule(Rule.RuleType.INCLUDE, Pattern.compile("whua")),
-                new Rule(Rule.RuleType.EXCLUDE, Pattern.compile("heyy")));
+                new Rule(RuleType.INCLUDE, Pattern.compile("whua")),
+                new Rule(RuleType.EXCLUDE, Pattern.compile("heyy")));
 
         ExpectPaths.Check check1 = checkFor(key(ExpectPaths.keys().afterPackageIdRules(), expectedRules).get());
         Assert.assertEquals("expect afterPackageIdRules", expectedRules, check1.afterPackageIdRules);

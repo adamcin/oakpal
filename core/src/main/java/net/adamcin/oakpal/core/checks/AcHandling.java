@@ -34,7 +34,7 @@ import java.util.Collections;
 import java.util.List;
 
 import static java.util.Optional.ofNullable;
-import static net.adamcin.oakpal.api.Fun.compose;
+import static net.adamcin.oakpal.api.Fun.compose1;
 import static net.adamcin.oakpal.api.JavaxJson.arrayOrEmpty;
 import static net.adamcin.oakpal.api.JavaxJson.hasNonNull;
 import static net.adamcin.oakpal.api.JavaxJson.mapArrayOfStrings;
@@ -104,7 +104,7 @@ public final class AcHandling implements ProgressCheckFactory {
     public ProgressCheck newInstance(final JsonObject config) {
         if (hasNonNull(config, keys().allowedModes())) {
             List<AccessControlHandling> allowedModes = mapArrayOfStrings(arrayOrEmpty(config, keys().allowedModes()),
-                    compose(String::toUpperCase, AccessControlHandling::valueOf), true);
+                    compose1(String::toUpperCase, AccessControlHandling::valueOf), true);
             return new Check(ACHandlingLevelSet.EXPLICIT, allowedModes);
         } else if (hasNonNull(config, keys().levelSet())) {
             ACHandlingLevelSet levelSet = ACHandlingLevelSet.valueOf(config.getString(keys().levelSet()).toUpperCase());

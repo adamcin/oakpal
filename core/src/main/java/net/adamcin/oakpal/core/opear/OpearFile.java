@@ -45,7 +45,7 @@ import java.util.stream.Stream;
 
 import static java.lang.String.format;
 import static java.util.Optional.ofNullable;
-import static net.adamcin.oakpal.api.Fun.compose;
+import static net.adamcin.oakpal.api.Fun.compose1;
 import static net.adamcin.oakpal.api.Fun.result1;
 
 /**
@@ -99,7 +99,7 @@ public final class OpearFile implements Opear {
     public URL getDefaultPlan() {
         return Stream.of(metadata.getPlans()).findFirst()
                 .map(result1((String name) -> new File(cacheDir, name).toURI().toURL()))
-                .flatMap(compose(Result::stream, Stream::findFirst))
+                .flatMap(compose1(Result::stream, Stream::findFirst))
                 .orElse(metadata.isDefaultBasic() ? OakpalPlan.BASIC_PLAN_URL : OakpalPlan.EMPTY_PLAN_URL);
     }
 
@@ -116,7 +116,7 @@ public final class OpearFile implements Opear {
         final URL[] urls = Stream.of(metadata.getPlanClassPath())
                 .map(name -> new File(cacheDir, name)).flatMap(file -> {
                     if (file.isDirectory() || file.getName().endsWith(".jar")) {
-                        return compose(File::toURI, result1(URI::toURL)).apply(file).stream();
+                        return compose1(File::toURI, result1(URI::toURL)).apply(file).stream();
                     } else {
                         return Stream.empty();
                     }

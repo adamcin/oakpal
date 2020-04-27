@@ -19,6 +19,7 @@ package net.adamcin.oakpal.core.checks;
 import net.adamcin.oakpal.api.ProgressCheck;
 import net.adamcin.oakpal.api.ProgressCheckFactory;
 import net.adamcin.oakpal.api.Rule;
+import net.adamcin.oakpal.api.Rules;
 import net.adamcin.oakpal.api.Severity;
 import net.adamcin.oakpal.api.SimpleProgressCheckFactoryCheck;
 import org.apache.jackrabbit.vault.packaging.PackageId;
@@ -93,7 +94,7 @@ public final class Subpackages implements ProgressCheckFactory {
 
     @Override
     public ProgressCheck newInstance(final JsonObject config) {
-        List<Rule> rules = Rule.fromJsonArray(arrayOrEmpty(config, keys().rules()));
+        List<Rule> rules = Rules.fromJsonArray(arrayOrEmpty(config, keys().rules()));
 
         final boolean denyAll = hasNonNull(config, keys().denyAll()) && config.getBoolean(keys().denyAll());
 
@@ -119,7 +120,7 @@ public final class Subpackages implements ProgressCheckFactory {
                         .withDescription("subpackage {0} included by {1}. no subpackages are allowed.")
                         .withArgument(packageId, parentId));
             } else {
-                final Rule lastMatch = Rule.lastMatch(rules, packageId.toString());
+                final Rule lastMatch = Rules.lastMatch(rules, packageId.toString());
                 if (lastMatch.isDeny()) {
                     reporting(violation -> violation
                             .withSeverity(Severity.MAJOR)

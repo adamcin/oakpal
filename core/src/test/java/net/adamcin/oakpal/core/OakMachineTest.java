@@ -72,7 +72,7 @@ import java.util.jar.Manifest;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static net.adamcin.oakpal.api.Fun.compose;
+import static net.adamcin.oakpal.api.Fun.compose1;
 import static net.adamcin.oakpal.api.Fun.toEntry;
 import static net.adamcin.oakpal.api.Fun.uncheck1;
 import static net.adamcin.oakpal.api.Fun.uncheckVoid1;
@@ -378,7 +378,7 @@ public class OakMachineTest {
         final OakMachine machine = builder().withPreInstallUrl(file1.toURI().toURL(), file2.toURI().toURL()).build();
         assertEquals("expect urls",
                 Stream.of(file1.getAbsoluteFile(), file2.getAbsoluteFile())
-                        .map(compose(File::toURI, uncheck1(URI::toURL))).collect(Collectors.toList()),
+                        .map(compose1(File::toURI, uncheck1(URI::toURL))).collect(Collectors.toList()),
                 machine.getPreInstallUrls());
     }
 

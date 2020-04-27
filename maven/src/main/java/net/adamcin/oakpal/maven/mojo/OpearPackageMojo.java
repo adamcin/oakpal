@@ -50,8 +50,8 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import static net.adamcin.oakpal.api.Fun.compose;
-import static net.adamcin.oakpal.api.Fun.composeTest;
+import static net.adamcin.oakpal.api.Fun.compose1;
+import static net.adamcin.oakpal.api.Fun.composeTest1;
 import static net.adamcin.oakpal.api.Fun.entriesToMap;
 import static net.adamcin.oakpal.api.Fun.inSet;
 import static net.adamcin.oakpal.api.Fun.result1;
@@ -80,12 +80,12 @@ public class OpearPackageMojo extends AbstractCommonMojo {
     static final String OAKPAL_CORE_ARTIFACT_ID = "oakpal-core";
 
     private static final Predicate<Artifact> TEST_IS_OAKPAL_API =
-            composeTest(Artifact::getGroupId, OAKPAL_GROUP_ID::equals)
-                    .and(composeTest(Artifact::getArtifactId, OAKPAL_API_ARTIFACT_ID::equals));
+            composeTest1(Artifact::getGroupId, OAKPAL_GROUP_ID::equals)
+                    .and(composeTest1(Artifact::getArtifactId, OAKPAL_API_ARTIFACT_ID::equals));
 
     private static final Predicate<Artifact> TEST_IS_OAKPAL_CORE =
-            composeTest(Artifact::getGroupId, OAKPAL_GROUP_ID::equals)
-                    .and(composeTest(Artifact::getArtifactId, OAKPAL_CORE_ARTIFACT_ID::equals));
+            composeTest1(Artifact::getGroupId, OAKPAL_GROUP_ID::equals)
+                    .and(composeTest1(Artifact::getArtifactId, OAKPAL_CORE_ARTIFACT_ID::equals));
 
     @Component
     ArtifactHandlerManager artifactHandlerManager;
@@ -174,7 +174,7 @@ public class OpearPackageMojo extends AbstractCommonMojo {
                 Arrays.asList(Artifact.SCOPE_IMPORT, Artifact.SCOPE_PROVIDED, Artifact.SCOPE_TEST));
 
         final Set<File> embeddable = resolveArtifacts(project.getDependencies().stream()
-                .filter(composeTest(Dependency::getScope, inSet(NOT_EMBEDDABLE).negate()))
+                .filter(composeTest1(Dependency::getScope, inSet(NOT_EMBEDDABLE).negate()))
                 .collect(Collectors.toList()), true).stream()
                 .filter(TEST_IS_OAKPAL_CORE.negate().and(TEST_IS_OAKPAL_API.negate()))
                 .map(Artifact::getFile)
@@ -274,13 +274,13 @@ public class OpearPackageMojo extends AbstractCommonMojo {
                 !(planFile != null && planFile.isFile())
                         ? Result.success(new ArrayList<>())
                         : Result.success(planFile)
-                        .flatMap(compose(File::toURI, result1(URI::toURL)))
+                        .flatMap(compose1(File::toURI, result1(URI::toURL)))
                         .flatMap(OakpalPlan::fromJson)
-                        .map(compose(Collections::singletonList, ArrayList::new));
+                        .map(compose1(Collections::singletonList, ArrayList::new));
 
         final Result<List<OakpalPlan>> addedResult = initialResult.flatMap(plans ->
                 additionalPlans.stream()
-                        .map(compose(File::toURI, result1(URI::toURL)))
+                        .map(compose1(File::toURI, result1(URI::toURL)))
                         .collect(Result.tryCollect(Collectors.toList()))
                         .flatMap(planUrls -> planUrls.stream()
                                 .map(OakpalPlan::fromJson)
@@ -296,7 +296,7 @@ public class OpearPackageMojo extends AbstractCommonMojo {
 
         final Result<Map<URL, String>> renamedResult = allPlansResult
                 .flatMap(plans -> copyUrlStreams(toDir, plans.stream()
-                        .flatMap(compose(OakpalPlan::getPreInstallUrls, List::stream))
+                        .flatMap(compose1(OakpalPlan::getPreInstallUrls, List::stream))
                         .collect(Collectors.toList())));
         final Result<Map<String, OakpalPlan>> rewrittenResult = renamedResult.flatMap(renamed ->
                 allPlansResult.map(allPlans -> allPlans.stream()
@@ -304,7 +304,7 @@ public class OpearPackageMojo extends AbstractCommonMojo {
                         .collect(Collectors.toList()))
                         .flatMap(allPlans -> copyPlans(toDir, allPlans)));
 
-        return rewrittenResult.map(compose(Map::keySet, ArrayList::new));
+        return rewrittenResult.map(compose1(Map::keySet, ArrayList::new));
     }
 
     static OakpalPlan rewritePlan(final @NotNull File toDir,
@@ -312,11 +312,11 @@ public class OpearPackageMojo extends AbstractCommonMojo {
                                   final @NotNull OakpalPlan plan,
                                   final @NotNull String filename) {
         return new OakpalPlan.Builder(
-                compose(File::toURI, uncheck1(URI::toURL))
+                compose1(File::toURI, uncheck1(URI::toURL))
                         .apply(new File(toDir, filename)), filename)
                 .startingWithPlan(plan)
                 .withPreInstallUrls(plan.getPreInstallUrls().stream()
-                        .map(compose(renamed::get, uncheck1(name -> new File(toDir, name).toURI().toURL())))
+                        .map(compose1(renamed::get, uncheck1(name -> new File(toDir, name).toURI().toURL())))
                         .collect(Collectors.toList()))
                 .build();
     }

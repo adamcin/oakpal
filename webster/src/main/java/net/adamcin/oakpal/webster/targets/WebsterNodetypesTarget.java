@@ -24,6 +24,7 @@ import javax.jcr.Session;
 import javax.json.JsonObject;
 
 import net.adamcin.oakpal.api.Rule;
+import net.adamcin.oakpal.api.Rules;
 import net.adamcin.oakpal.webster.ArchiveAware;
 import net.adamcin.oakpal.webster.CndExporter;
 import net.adamcin.oakpal.webster.FileVaultNameFinder;
@@ -102,12 +103,12 @@ final class WebsterNodetypesTarget implements WebsterTarget, ArchiveAware {
         CndExporter.Builder builder = new CndExporter.Builder();
 
         if (config.containsKey(KEY_SCOPE_EXPORT_NAMES)) {
-            List<Rule> scopeExportNames = Rule.fromJsonArray(config.getJsonArray(KEY_SCOPE_EXPORT_NAMES));
+            List<Rule> scopeExportNames = Rules.fromJsonArray(config.getJsonArray(KEY_SCOPE_EXPORT_NAMES));
             builder.withScopeExportNames(scopeExportNames);
         }
 
         if (config.containsKey(KEY_SCOPE_REPLACE_NAMES)) {
-            List<Rule> scopeReplaceNames = Rule.fromJsonArray(config.getJsonArray(KEY_SCOPE_REPLACE_NAMES));
+            List<Rule> scopeReplaceNames = Rules.fromJsonArray(config.getJsonArray(KEY_SCOPE_REPLACE_NAMES));
             builder.withScopeReplaceNames(scopeReplaceNames);
         }
 

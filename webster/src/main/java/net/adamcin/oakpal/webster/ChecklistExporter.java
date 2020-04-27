@@ -16,6 +16,7 @@
 
 package net.adamcin.oakpal.webster;
 
+import net.adamcin.oakpal.api.Rules;
 import net.adamcin.oakpal.core.Checklist;
 import net.adamcin.oakpal.core.ForcedRoot;
 import net.adamcin.oakpal.api.Fun;
@@ -76,7 +77,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static net.adamcin.oakpal.api.Fun.compose;
+import static net.adamcin.oakpal.api.Fun.compose1;
 import static net.adamcin.oakpal.api.Fun.mapValue;
 import static net.adamcin.oakpal.api.Fun.testKey;
 import static net.adamcin.oakpal.api.Fun.uncheck1;
@@ -148,7 +149,7 @@ public final class ChecklistExporter {
          *
          * @param scopePaths the list of include/exclude patterns
          * @return this builder
-         * @see Rule#lastMatch(List, String)
+         * @see Rules#lastMatch(List, String)
          */
         public Builder withScopePaths(final List<Rule> scopePaths) {
             this.pathScopes = Optional.ofNullable(scopePaths).orElse(Collections.emptyList());
@@ -163,7 +164,7 @@ public final class ChecklistExporter {
          *
          * @param nodeTypeFilters the list of include/exclude patterns
          * @return this builder
-         * @see Rule#lastMatch(List, String)
+         * @see Rules#lastMatch(List, String)
          */
         public Builder withNodeTypeFilters(final List<Rule> nodeTypeFilters) {
             this.nodeTypeFilters = Optional.ofNullable(nodeTypeFilters).orElse(Collections.emptyList());
@@ -370,7 +371,7 @@ public final class ChecklistExporter {
                 return root -> false;
             case REPLACE:
                 // only retain roots excluded by the path filter
-                return root -> Rule.lastMatch(pathScopes, root.getPath()).isExclude();
+                return root -> Rules.lastMatch(pathScopes, root.getPath()).isExclude();
             case MERGE:
             default:
                 // retain everything
@@ -388,7 +389,7 @@ public final class ChecklistExporter {
                 .collect(Collectors.toSet());
         return (resolver, type) -> {
             final String name = type.getName();
-            return Rule.lastMatch(nodeTypeFilters, name).isInclude()
+            return Rules.lastMatch(nodeTypeFilters, name).isInclude()
                     && (singleTypes.contains(name) || Stream.of(type.getSupertypes())
                     .map(NodeType::getName).anyMatch(superTypes::contains));
         };
@@ -649,20 +650,20 @@ public final class ChecklistExporter {
      * @throws RepositoryException when an error occurs
      */
     Optional<ForcedRoot> nodeToRoot(final Node node, final NamespaceMapping mapping) throws RepositoryException {
-        if (Rule.lastMatch(pathScopes, node.getPath()).isExclude()) {
+        if (Rules.lastMatch(pathScopes, node.getPath()).isExclude()) {
             return Optional.empty();
         }
 
         ForcedRoot forcedRoot = new ForcedRoot();
         forcedRoot.setPath(node.getPath());
         final String primaryType = node.getPrimaryNodeType().getName();
-        if (Rule.lastMatch(nodeTypeFilters, QName.parseQName(mapping, QName.Type.NODETYPE, primaryType).toString()).isInclude()) {
+        if (Rules.lastMatch(nodeTypeFilters, QName.parseQName(mapping, QName.Type.NODETYPE, primaryType).toString()).isInclude()) {
             forcedRoot.setPrimaryType(primaryType);
         }
         final List<String> mixinTypes = Stream.of(node.getMixinNodeTypes())
-                .map(compose(NodeType::getName,
+                .map(compose1(NodeType::getName,
                         qName -> QName.parseQName(mapping, QName.Type.NODETYPE, qName).toString()))
-                .filter(name -> Rule.lastMatch(nodeTypeFilters, name).isInclude())
+                .filter(name -> Rules.lastMatch(nodeTypeFilters, name).isInclude())
                 .collect(Collectors.toList());
         forcedRoot.setMixinTypes(mixinTypes);
         return Optional.of(forcedRoot);

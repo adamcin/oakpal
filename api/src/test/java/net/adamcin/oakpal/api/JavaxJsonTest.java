@@ -40,7 +40,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
-import static net.adamcin.oakpal.api.Fun.compose;
+import static net.adamcin.oakpal.api.Fun.compose1;
 import static net.adamcin.oakpal.api.Fun.mapValue;
 import static net.adamcin.oakpal.api.Fun.toEntry;
 import static net.adamcin.oakpal.api.JavaxJson.arr;
@@ -566,7 +566,7 @@ public class JavaxJsonTest {
                 toEntry("three", "eerht"));
         assertEquals("should create list of entries", expected,
                 mapArrayOfObjects(jsonInputs, jsonObject -> jsonObject.entrySet().stream()
-                        .map(compose(mapValue(JsonString.class::cast), mapValue(JsonString::getString)))
+                        .map(compose1(mapValue(JsonString.class::cast), mapValue(JsonString::getString)))
                         .findFirst().orElse(null)));
 
         final JsonArray jsonInputsWithNonObjects = arr()
@@ -577,7 +577,7 @@ public class JavaxJsonTest {
                 .val(key("three", "eerht")).get();
         assertEquals("should create list of entries", expected,
                 mapArrayOfObjects(jsonInputsWithNonObjects, jsonObject -> jsonObject.entrySet().stream()
-                        .map(compose(mapValue(JsonString.class::cast), mapValue(JsonString::getString)))
+                        .map(compose1(mapValue(JsonString.class::cast), mapValue(JsonString::getString)))
                         .findFirst().orElse(null)));
     }
 

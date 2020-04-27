@@ -1074,7 +1074,7 @@ public class OpearPackageMojoTest {
 
         final Result<Map<URL, String>> result = OpearPackageMojo.copyUrlStreams(testOutDir,
                 Stream.of(copyMe1, copyMe2)
-                        .map(Fun.compose(File::toURI, Fun.uncheck1(URI::toURL)))
+                        .map(Fun.compose1(File::toURI, Fun.uncheck1(URI::toURL)))
                         .collect(Collectors.toList())).teeLogError();
         assertTrue("result is successful: " + result.getError(), result.isSuccess());
         assertEquals("same values",

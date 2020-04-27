@@ -28,7 +28,7 @@ import java.net.URLClassLoader;
 import java.util.Optional;
 import java.util.function.Function;
 
-import static net.adamcin.oakpal.api.Fun.compose;
+import static net.adamcin.oakpal.api.Fun.compose1;
 import static net.adamcin.oakpal.api.Fun.result1;
 
 /**
@@ -59,7 +59,7 @@ public final class AdhocOpear implements Opear {
     }
 
     public static Result<AdhocOpear> fromPlanFile(final @NotNull File planFile, final @Nullable File baseDir) {
-        final Function<File, Result<URL>> fnFileUrl = compose(File::toURI, result1(URI::toURL));
+        final Function<File, Result<URL>> fnFileUrl = compose1(File::toURI, result1(URI::toURL));
         final Result<URL> planFileUrlResult = fnFileUrl.apply(planFile);
         return planFileUrlResult
                 .flatMap(planFileUrl -> fnFileUrl.apply(Optional.ofNullable(baseDir).orElse(planFile.getParentFile()))

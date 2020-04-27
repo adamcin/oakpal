@@ -20,6 +20,7 @@ import net.adamcin.oakpal.api.JavaxJson;
 import net.adamcin.oakpal.api.ProgressCheck;
 import net.adamcin.oakpal.api.ProgressCheckFactory;
 import net.adamcin.oakpal.api.Rule;
+import net.adamcin.oakpal.api.Rules;
 import net.adamcin.oakpal.api.Severity;
 import net.adamcin.oakpal.api.SimpleProgressCheckFactoryCheck;
 import org.apache.jackrabbit.vault.packaging.PackageId;
@@ -110,7 +111,7 @@ public final class ExpectPaths implements ProgressCheckFactory {
         final List<String> notExpectedPaths = optArray(config, keys().notExpectedPaths())
                 .map(JavaxJson::mapArrayOfStrings)
                 .orElse(Collections.emptyList());
-        final List<Rule> afterPackageIdRules = Rule.fromJsonArray(arrayOrEmpty(config, keys().afterPackageIdRules()));
+        final List<Rule> afterPackageIdRules = Rules.fromJsonArray(arrayOrEmpty(config, keys().afterPackageIdRules()));
         final Severity severity = Severity.valueOf(
                 config.getString(keys().severity(), DEFAULT_SEVERITY.name()).toUpperCase());
         return new Check(expectedPaths, notExpectedPaths, afterPackageIdRules, severity);
@@ -152,7 +153,7 @@ public final class ExpectPaths implements ProgressCheckFactory {
         }
 
         boolean shouldExpectAfterExtract(final @NotNull PackageId packageId) {
-            return Rule.lastMatch(afterPackageIdRules, packageId.toString()).isInclude();
+            return Rules.lastMatch(afterPackageIdRules, packageId.toString()).isInclude();
         }
 
         @Override

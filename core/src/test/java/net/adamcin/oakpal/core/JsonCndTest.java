@@ -139,7 +139,7 @@ public class JsonCndTest {
                 .get(), getMapping());
 
         final Map<String, PrivilegeDefinition> defMap = defs.stream()
-                .collect(Collectors.toMap(compose(PrivilegeDefinition::getName, uncheck1(resolver::getJCRName)),
+                .collect(Collectors.toMap(compose1(PrivilegeDefinition::getName, uncheck1(resolver::getJCRName)),
                         def -> def));
         final PrivilegeDefinition canDo = defMap.get("jcr:canDo");
         assertNotNull("canDo not null", canDo);
@@ -355,7 +355,7 @@ public class JsonCndTest {
     public void testReadNodeTypes() {
         List<URL> cnds = Stream.of("a", "b", "c", "d", "e", "f")
                 .map(letter -> new File(baseDir, letter + ".cnd"))
-                .map(compose(File::toURI, uncheck1(URI::toURL)))
+                .map(compose1(File::toURI, uncheck1(URI::toURL)))
                 .collect(Collectors.toList());
 
         final List<Result<NodeTypeSet>> sets = JsonCnd.readNodeTypes(getMapping(), cnds);
@@ -363,13 +363,13 @@ public class JsonCndTest {
         assertTrue("all are successful", sets.stream().allMatch(Result::isSuccess));
         assertTrue("all are successful", sets.stream()
                 .map(result -> result
-                        .map(compose(NodeTypeSet::getNodeTypes, Map::size))
+                        .map(compose1(NodeTypeSet::getNodeTypes, Map::size))
                         .getOrDefault(0))
                 .allMatch(size -> size == 2));
 
         List<URL> cndsWithError = Stream.of("a", "b", "c", "error", "d", "e", "f")
                 .map(letter -> new File(baseDir, letter + ".cnd"))
-                .map(compose(File::toURI, uncheck1(URI::toURL)))
+                .map(compose1(File::toURI, uncheck1(URI::toURL)))
                 .collect(Collectors.toList());
 
         final List<Result<NodeTypeSet>> setsWithError = JsonCnd.readNodeTypes(getMapping(), cndsWithError);
@@ -383,7 +383,7 @@ public class JsonCndTest {
     public void testAggregateNodeTypes() {
         final List<URL> cnds = Stream.of("a", "bb", "b", "c", "d", "e", "f")
                 .map(letter -> new File(baseDir, letter + ".cnd"))
-                .map(compose(File::toURI, uncheck1(URI::toURL)))
+                .map(compose1(File::toURI, uncheck1(URI::toURL)))
                 .collect(Collectors.toList());
 
         final List<Result<NodeTypeSet>> setsWithError = JsonCnd.readNodeTypes(getMapping(), cnds);
@@ -784,7 +784,7 @@ public class JsonCndTest {
             };
 
             final B flipBuilder = builderSupplier.get();
-            final Predicate<? super B> finishAndGet = composeTest(builderFinisher, getter);
+            final Predicate<? super B> finishAndGet = composeTest1(builderFinisher, getter);
             if (inverseValue) {
                 assertFalse("should inverse generator true, for: " + attr.getToken(),
                         attr.isWritable(generator.apply(true)));
@@ -904,7 +904,7 @@ public class JsonCndTest {
         void test() throws Exception {
             AttributeTester.Builder<QItemDefinitionBuilder, QItemDefinition, JsonCnd.ItemDefinitionAttribute> testBuilder =
                     AttributeTester.builder(infer0(concreteSupplier::get),
-                            compose(builder -> (C) builder, concreteFinisher),
+                            compose1(builder -> (C) builder, concreteFinisher),
                             JsonCnd.ItemDefinitionAttribute::forToken);
 
             testBuilder.testerFor(JsonCnd.ItemDefinitionAttribute.MANDATORY, new String[]{"mandatory", "man", "m"},

@@ -20,6 +20,7 @@ import net.adamcin.oakpal.api.PathAction;
 import net.adamcin.oakpal.api.ProgressCheck;
 import net.adamcin.oakpal.api.ProgressCheckFactory;
 import net.adamcin.oakpal.api.Rule;
+import net.adamcin.oakpal.api.Rules;
 import net.adamcin.oakpal.api.Severity;
 import net.adamcin.oakpal.api.SimpleProgressCheckFactoryCheck;
 import org.apache.jackrabbit.vault.packaging.PackageId;
@@ -111,7 +112,7 @@ public final class Paths implements ProgressCheckFactory {
 
     @Override
     public ProgressCheck newInstance(final JsonObject config) {
-        List<Rule> rules = Rule.fromJsonArray(arrayOrEmpty(config, keys().rules()));
+        List<Rule> rules = Rules.fromJsonArray(arrayOrEmpty(config, keys().rules()));
 
         final boolean denyAllDeletes = hasNonNull(config, keys().denyAllDeletes())
                 && config.getBoolean(keys().denyAllDeletes());
@@ -139,7 +140,7 @@ public final class Paths implements ProgressCheckFactory {
                                  final PathAction action)
                 throws RepositoryException {
 
-            Rule lastMatch = Rule.lastMatch(rules, path);
+            Rule lastMatch = Rules.lastMatch(rules, path);
             if (lastMatch.isDeny()) {
                 reporting(violation -> violation
                         .withSeverity(severity)
@@ -159,7 +160,7 @@ public final class Paths implements ProgressCheckFactory {
                         .withDescription("deleted path {0}. All deletions are denied.")
                         .withArgument(path));
             } else {
-                final Rule lastMatch = Rule.lastMatch(rules, path);
+                final Rule lastMatch = Rules.lastMatch(rules, path);
                 if (lastMatch.isDeny()) {
                     reporting(violation -> violation
                             .withSeverity(severity)

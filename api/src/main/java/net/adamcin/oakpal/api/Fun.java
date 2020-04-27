@@ -165,7 +165,7 @@ public final class Fun {
      * @return a composed Function
      */
     public static <T, I, R> Function<T, R>
-    compose(final @NotNull Function<T, ? extends I> before, final @NotNull Function<? super I, ? extends R> after) {
+    compose1(final @NotNull Function<T, ? extends I> before, final @NotNull Function<? super I, ? extends R> after) {
         return before.andThen(after);
     }
 
@@ -180,7 +180,7 @@ public final class Fun {
      */
     public static <R, S> Supplier<S>
     compose0(final @NotNull Supplier<? extends R> before, final @NotNull Function<? super R, ? extends S> after) {
-        final Function<Nothing, S> composed = compose(constantly1(before), after);
+        final Function<Nothing, S> composed = compose1(constantly1(before), after);
         return () -> composed.apply(Nothing.instance);
     }
 
@@ -212,8 +212,8 @@ public final class Fun {
      * @return a composed Predicate
      */
     public static <T, P> Predicate<T>
-    composeTest(final @NotNull Function<? super T, ? extends P> inputFunction,
-                final @NotNull Predicate<? super P> testResult) {
+    composeTest1(final @NotNull Function<? super T, ? extends P> inputFunction,
+                 final @NotNull Predicate<? super P> testResult) {
         return input -> testResult.test(inputFunction.apply(input));
     }
 
@@ -849,10 +849,10 @@ public final class Fun {
      * @return a function that never throws an exception.
      */
     public static <M, T, R> Function<T, M>
-    composeTry(final @NotNull Function<? super R, ? extends M> monadUnit,
-               final @NotNull Supplier<? extends M> monadZero,
-               final @NotNull ThrowingFunction<? super T, ? extends R> mayThrowOnApply,
-               final @Nullable BiConsumer<? super T, ? super Exception> onError) {
+    composeTry1(final @NotNull Function<? super R, ? extends M> monadUnit,
+                final @NotNull Supplier<? extends M> monadZero,
+                final @NotNull ThrowingFunction<? super T, ? extends R> mayThrowOnApply,
+                final @Nullable BiConsumer<? super T, ? super Exception> onError) {
         final BiConsumer<? super T, ? super Exception> consumeError = onError != null
                 ? onError
                 : (e, t) -> { /* do nothing */ };
@@ -884,9 +884,9 @@ public final class Fun {
      * @return a function that returns a union type distinguishable between a result type and an error type
      */
     public static <M, T, R> Function<T, M>
-    composeTry(final @NotNull Function<? super R, ? extends M> monoidSuccess,
-               final @NotNull Function<? super Exception, ? extends M> monoidError,
-               final @NotNull ThrowingFunction<? super T, ? extends R> mayThrowOnApply) {
+    composeTry1(final @NotNull Function<? super R, ? extends M> monoidSuccess,
+                final @NotNull Function<? super Exception, ? extends M> monoidError,
+                final @NotNull ThrowingFunction<? super T, ? extends R> mayThrowOnApply) {
         return element -> {
             try {
                 return monoidSuccess.apply(mayThrowOnApply.tryApply(element));
@@ -1093,7 +1093,7 @@ public final class Fun {
      */
     public static <T, R> Function<T, Result<R>>
     result1(final @NotNull ThrowingFunction<? super T, ? extends R> mayThrowOnApply) {
-        return composeTry(Result::success, Result::failure, mayThrowOnApply);
+        return composeTry1(Result::success, Result::failure, mayThrowOnApply);
     }
 
     /**
@@ -1248,7 +1248,7 @@ public final class Fun {
      */
     public static <T> Predicate<T>
     testOrDefault1(final @NotNull ThrowingPredicate<? super T> mayThrowOnTest, boolean defaultValue) {
-        return compose(result1(mayThrowOnTest::tryTest), result -> result.getOrDefault(defaultValue))::apply;
+        return compose1(result1(mayThrowOnTest::tryTest), result -> result.getOrDefault(defaultValue))::apply;
     }
 
     /**
@@ -1292,7 +1292,7 @@ public final class Fun {
      */
     public static <T, R> Function<T, R>
     tryOrDefault1(final @NotNull ThrowingFunction<? super T, R> mayThrowOnApply, @Nullable R defaultValue) {
-        return compose(result1(mayThrowOnApply), result -> result.getOrDefault(defaultValue));
+        return compose1(result1(mayThrowOnApply), result -> result.getOrDefault(defaultValue));
     }
 
     /**
@@ -1335,7 +1335,7 @@ public final class Fun {
      */
     public static <T, R> Function<T, Optional<R>>
     tryOrOptional1(final @NotNull ThrowingFunction<? super T, R> mayThrowOnApply) {
-        return compose(result1(mayThrowOnApply), Result::toOptional);
+        return compose1(result1(mayThrowOnApply), Result::toOptional);
     }
 
     /**
@@ -1363,7 +1363,7 @@ public final class Fun {
      */
     public static <T> Consumer<T>
     tryOrVoid1(final @NotNull ThrowingConsumer<? super T> mayThrowOnAccept) {
-        return compose(resultNothing1(mayThrowOnAccept), Result::teeLogError)::apply;
+        return compose1(resultNothing1(mayThrowOnAccept), Result::teeLogError)::apply;
     }
 
     /**

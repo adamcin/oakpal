@@ -24,6 +24,7 @@ import net.adamcin.oakpal.api.PathAction;
 import net.adamcin.oakpal.api.ProgressCheck;
 import net.adamcin.oakpal.api.ProgressCheckFactory;
 import net.adamcin.oakpal.api.Rule;
+import net.adamcin.oakpal.api.Rules;
 import net.adamcin.oakpal.api.Severity;
 import net.adamcin.oakpal.api.SimpleProgressCheckFactoryCheck;
 import org.apache.jackrabbit.oak.spi.mount.Mount;
@@ -114,7 +115,7 @@ public final class CompositeStoreAlignment implements ProgressCheckFactory {
     public ProgressCheck newInstance(final JsonObject config) throws Exception {
         final Severity severity = Severity.valueOf(config.getString(keys().severity(),
                 Severity.MAJOR.name()).toUpperCase());
-        final List<Rule> scopePackageIds = Rule.fromJsonArray(arrayOrEmpty(config, keys().scopePackageIds()));
+        final List<Rule> scopePackageIds = Rules.fromJsonArray(arrayOrEmpty(config, keys().scopePackageIds()));
         final MountInfoProvider defaultProvider = Mounts.defaultMountInfoProvider();
         final MountInfoProvider configProvider;
         if (config.containsKey(keys().mounts())) {
@@ -221,7 +222,7 @@ public final class CompositeStoreAlignment implements ProgressCheckFactory {
         @Override
         public void finishedScan() {
             for (PackageId affectingPackageId : affectedMounts.keySet()) {
-                if (Rule.lastMatch(scopePackageIds, affectingPackageId.toString()).isExclude()) {
+                if (Rules.lastMatch(scopePackageIds, affectingPackageId.toString()).isExclude()) {
                     continue;
                 }
                 final Set<Mount> affectedByPackage = getMountsAffectedByPackage(affectingPackageId);
