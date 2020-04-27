@@ -24,7 +24,12 @@ import java.io.File;
 import java.net.URL;
 import java.net.URLClassLoader;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 
 public class AdhocOpearTest {
 
@@ -36,6 +41,15 @@ public class AdhocOpearTest {
         assertFalse("opear should not be a failure", opearResult.isFailure());
         AdhocOpear opear = opearResult.getOrDefault(null);
         assertNotNull("opear is not null", opear);
+
+        assertEquals("expect planFile is referenced by default plan url",
+                planFile.getAbsolutePath(),
+                Fun.tryOrOptional0(() -> new File(opear.getDefaultPlan().toURI()).getAbsolutePath()).get().orElse(""));
+
+        assertEquals("expect planFile is referenced by specific plan referenced by empty plan name",
+                planFile.getAbsolutePath(), opear.getSpecificPlan("")
+                        .flatMap(Fun.result1(URL::toURI))
+                        .map(Fun.compose(File::new, File::getAbsolutePath)).getOrDefault(""));
 
         final ClassLoader parent = getClass().getClassLoader();
         final ClassLoader planCl = opear.getPlanClassLoader(parent);
@@ -59,6 +73,15 @@ public class AdhocOpearTest {
         assertFalse("opear should not be a failure", opearResult.isFailure());
         AdhocOpear opear = opearResult.getOrDefault(null);
         assertNotNull("opear is not null", opear);
+
+        assertEquals("expect planFile is referenced by default plan url",
+                planFile.getAbsolutePath(),
+                Fun.tryOrOptional0(() -> new File(opear.getDefaultPlan().toURI()).getAbsolutePath()).get().orElse(""));
+
+        assertEquals("expect planFile is referenced by specific plan referenced by empty plan name",
+                planFile.getAbsolutePath(), opear.getSpecificPlan("")
+                        .flatMap(Fun.result1(URL::toURI))
+                        .map(Fun.compose(File::new, File::getAbsolutePath)).getOrDefault(""));
 
         final ClassLoader parent = getClass().getClassLoader();
         final ClassLoader planCl = opear.getPlanClassLoader(parent);
