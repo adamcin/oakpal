@@ -39,11 +39,13 @@
  * import java.util.jar.Manifest
  * import javax.jcr.Node;
  * import javax.jcr.Session;
+ * import net.adamcin.oakpal.api.PathAction;
  */
 
 /***
  * Optionally implement this function to return a label for your check.
  */
+
 /*
 function getCheckName() {
     return "ACME Example Check";
@@ -103,8 +105,9 @@ function beforeExtract(packageId /* PackageId */, inspectSession /* Session */,
  * @param packageId         the current package
  * @param path              the imported path
  * @param node              the imported JCR node
+ * @param action            the import action (NOOP, ADDED, MODIFIED, or REPLACED)
  */
-function importedPath(packageId /* PackageId */, path /* String */, node /* Node */) {
+function importedPath(packageId /* PackageId */, path /* String */, node /* Node */, action /* PathAction */) {
 
 }
 

@@ -1,3 +1,4 @@
+net.adamcin.oakpal.api
 net.adamcin.oakpal.cli
 net.adamcin.oakpal.core
 net.adamcin.oakpal.core.checks
@@ -12,9 +13,9 @@ net.adamcin.oakpal.core.jcrfacade.security
 net.adamcin.oakpal.core.jcrfacade.security.authorization
 net.adamcin.oakpal.core.jcrfacade.security.user
 net.adamcin.oakpal.core.jcrfacade.version
+net.adamcin.oakpal.core.opear
 net.adamcin.oakpal.maven.component
 net.adamcin.oakpal.maven.mojo
-net.adamcin.oakpal.shaded
 net.adamcin.oakpal.testing
 net.adamcin.oakpal.testing.oakpaltest
 net.adamcin.oakpal.webster
