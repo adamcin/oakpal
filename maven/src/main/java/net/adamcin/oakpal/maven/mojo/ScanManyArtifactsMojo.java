@@ -17,25 +17,12 @@
 package net.adamcin.oakpal.maven.mojo;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
 
-import net.adamcin.oakpal.core.AbortedScanException;
-import net.adamcin.oakpal.core.CheckReport;
-import net.adamcin.oakpal.core.DefaultErrorListener;
-import net.adamcin.oakpal.core.FileBlobMemoryNodeStore;
-import net.adamcin.oakpal.core.OakMachine;
-import net.adamcin.oakpal.core.ReportMapper;
+import net.adamcin.oakpal.api.ProgressCheck;
 import net.adamcin.oakpal.maven.component.OakpalComponentConfigurator;
-import org.apache.maven.artifact.Artifact;
-import org.apache.maven.artifact.repository.DefaultRepositoryRequest;
-import org.apache.maven.artifact.repository.RepositoryRequest;
 import org.apache.maven.model.Dependency;
-import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
@@ -44,7 +31,7 @@ import org.apache.maven.plugins.annotations.ResolutionScope;
 
 /**
  * Scans a list of artifacts by simulating package installation and listening for violations reported by the
- * configured {@code checks}. This goal supports the use of {@link net.adamcin.oakpal.core.ProgressCheck}s that must
+ * configured {@code checks}. This goal supports the use of {@link ProgressCheck}s that must
  * evaluate the side effects of installing packages in combination, such as for detection of workspace filter overlap.
  * More simply, this goal can be used in a sidecar project to scan multiple artifacts produced by previous builds using
  * a common library of checklists.

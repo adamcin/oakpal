@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Mark Adamcin
+ * Copyright 2020 Mark Adamcin
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,147 +16,73 @@
 
 package net.adamcin.oakpal.core.checks;
 
-import net.adamcin.oakpal.core.JavaxJson;
+import net.adamcin.oakpal.api.JavaxJson;
+import net.adamcin.oakpal.api.Rules;
+import org.osgi.annotation.versioning.ProviderType;
 
 import javax.json.JsonArray;
 import javax.json.JsonObject;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 
 /**
- * Standard Rule tuple capturing a rule type (include/exclude or allow/deny) and a regex pattern.
- * <p>
- * {@code config} options:
- * <dl>
- * <dt>{@code type}</dt>
- * <dd>The {@link RuleType} of the rule: {@code include} or {@code exclude} (or {@code allow} or {@code deny}). The
- * meaning of this value is usually dependent on context.</dd>
- * <dt>{@code pattern}</dt>
- * <dd>A regular expression pattern matched against the full context value (start [{@code ^}] and end [{@code $}]
- * are assumed).</dd>
- * </dl>
+ * @deprecated 2.0.0 use {@link net.adamcin.oakpal.api.Rule}
  */
-public final class Rule implements JavaxJson.ObjectConvertible {
-    static final Pattern PATTERN_MATCH_ALL = Pattern.compile(".*");
-
+@Deprecated
+@ProviderType
+public class Rule extends net.adamcin.oakpal.api.Rule {
     /**
      * A default INCLUDE rule that matches everything.
+     *
+     * @deprecated 2.0.0 use {@link Rules#DEFAULT_INCLUDE}
      */
-    public static final Rule DEFAULT_INCLUDE = new Rule(RuleType.INCLUDE, PATTERN_MATCH_ALL);
+    @Deprecated
+    public static final Rule DEFAULT_INCLUDE = new Rule(RuleType.INCLUDE,
+            Rules.DEFAULT_INCLUDE.getPattern());
 
     /**
      * A default EXCLUDE rule that matches everything.
+     *
+     * @deprecated 2.0.0 use {@link Rules#DEFAULT_EXCLUDE}
      */
-    public static final Rule DEFAULT_EXCLUDE = new Rule(RuleType.EXCLUDE, PATTERN_MATCH_ALL);
+    @Deprecated
+    public static final Rule DEFAULT_EXCLUDE = new Rule(RuleType.EXCLUDE,
+            Rules.DEFAULT_INCLUDE.getPattern());
 
     /**
      * A default ALLOW rule that matches everything.
+     *
+     * @deprecated 2.0.0 use {@link Rules#DEFAULT_ALLOW}
      */
-    public static final Rule DEFAULT_ALLOW = new Rule(RuleType.ALLOW, PATTERN_MATCH_ALL);
+    @Deprecated
+    public static final Rule DEFAULT_ALLOW = new Rule(RuleType.ALLOW,
+            Rules.DEFAULT_INCLUDE.getPattern());
 
     /**
      * A default DENY rule that matches everything.
+     *
+     * @deprecated 2.0.0 use {@link Rules#DEFAULT_DENY}
      */
-    public static final Rule DEFAULT_DENY = new Rule(RuleType.DENY, PATTERN_MATCH_ALL);
-
-    public static final String CONFIG_TYPE = "type";
-    public static final String CONFIG_PATTERN = "pattern";
-    private final RuleType type;
-    private final Pattern pattern;
+    @Deprecated
+    public static final Rule DEFAULT_DENY = new Rule(RuleType.DENY,
+            Rules.DEFAULT_INCLUDE.getPattern());
 
     /**
-     * Create a new rule.
-     *
-     * @param type    {@link RuleType#INCLUDE} or {@link RuleType#EXCLUDE}
-     *                (or {@link RuleType#ALLOW} or {@link RuleType#DENY})
-     * @param pattern a compiled regular expression pattern
+     * @deprecated 2.0.0 use {@code Rule.keys().type()}
      */
+    @Deprecated
+    public static final String CONFIG_TYPE = keys().type();
+
+    /**
+     * @deprecated 2.0.0 use {@code Rule.keys().pattern()}
+     */
+    @Deprecated
+    public static final String CONFIG_PATTERN = keys().pattern();
+
     public Rule(final RuleType type, final Pattern pattern) {
-        if (type == null) {
-            throw new NullPointerException("RuleType type");
-        }
-        if (pattern == null) {
-            throw new NullPointerException("Pattern pattern");
-        }
-        this.type = type;
-        this.pattern = pattern;
-    }
-
-    public RuleType getType() {
-        return type;
-    }
-
-    public Pattern getPattern() {
-        return pattern;
-    }
-
-    /**
-     * Readability alias for {@link #isAllow()} when the rule is used in the more abstract context of scope
-     * definition.
-     *
-     * @return true if the matched value should be included.
-     */
-    public boolean isInclude() {
-        return getType() == RuleType.INCLUDE || getType() == RuleType.ALLOW;
-    }
-
-    /**
-     * Readability alias for {@link #isDeny()} when the rule is used in the more abstract context of scope
-     * definition.
-     *
-     * @return true if the matched value should be excluded.
-     */
-    public boolean isExclude() {
-        return !isInclude();
-    }
-
-    /**
-     * Readability alias for {@link #isInclude()} when the rule is used in the more abstract context of scope
-     * definition.
-     *
-     * @return true if the matched value should be allowed.
-     */
-    public boolean isAllow() {
-        return isInclude();
-    }
-
-    /**
-     * Readability alias for {@link #isExclude()} when the rule is used in the more literal context of acceptable vs
-     * unacceptable values.
-     *
-     * @return true if the matched value should be denied.
-     */
-    public boolean isDeny() {
-        return isExclude();
-    }
-
-    /**
-     * Conventional usage of the rule's {@link Pattern} to match the entirety of the provided string value. The nature
-     * of the value is not considered.
-     *
-     * @param value a string value
-     * @return true if the pattern matches
-     */
-    public boolean matches(String value) {
-        return getPattern().matcher(value).matches();
-    }
-
-    /**
-     * Serializes the rule to a {@link javax.json.JsonObject}.
-     *
-     * @return a JsonObject
-     */
-    @Override
-    public JsonObject toJson() {
-        return JavaxJson.key(CONFIG_TYPE, getType().name()).key(CONFIG_PATTERN, getPattern().pattern()).get();
-    }
-
-    @Override
-    public String toString() {
-        return getType().name() + ":" + getPattern().pattern();
+        super(type.ruleType, pattern);
     }
 
     @Override
@@ -164,21 +90,50 @@ public final class Rule implements JavaxJson.ObjectConvertible {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Rule rule = (Rule) o;
-        return type == rule.type &&
-                pattern.pattern().equals(rule.pattern.pattern());
+        return getType() == rule.getType() &&
+                getPattern().pattern().equals(rule.getPattern().pattern());
     }
 
-    @Override
-    public int hashCode() {
-        return Objects.hash(type, pattern.pattern());
-    }
-
+    /**
+     * @deprecated 2.0.0 use {@link net.adamcin.oakpal.api.RuleType}
+     */
+    @Deprecated
     public enum RuleType {
-        INCLUDE, EXCLUDE, ALLOW, DENY;
+        /**
+         * @deprecated 2.0.0 use {@link net.adamcin.oakpal.api.RuleType#INCLUDE}
+         */
+        @Deprecated
+        INCLUDE(net.adamcin.oakpal.api.RuleType.INCLUDE),
+        /**
+         * @deprecated 2.0.0 use {@link net.adamcin.oakpal.api.RuleType#EXCLUDE}
+         */
+        @Deprecated
+        EXCLUDE(net.adamcin.oakpal.api.RuleType.EXCLUDE),
+        /**
+         * @deprecated 2.0.0 use {@link net.adamcin.oakpal.api.RuleType#ALLOW}
+         */
+        @Deprecated
+        ALLOW(net.adamcin.oakpal.api.RuleType.ALLOW),
+        /**
+         * @deprecated 2.0.0 use {@link net.adamcin.oakpal.api.RuleType#DENY}
+         */
+        @Deprecated
+        DENY(net.adamcin.oakpal.api.RuleType.DENY);
 
+        private final net.adamcin.oakpal.api.RuleType ruleType;
+
+        RuleType(final net.adamcin.oakpal.api.RuleType ruleType) {
+            this.ruleType = ruleType;
+        }
+
+        /**
+         * @deprecated 2.0.0 use {@link net.adamcin.oakpal.api.RuleType#fromName(String)}
+         */
+        @Deprecated
         public static RuleType fromName(final String name) {
-            for (RuleType value : RuleType.values()) {
-                if (value.name().equalsIgnoreCase(name)) {
+            final net.adamcin.oakpal.api.RuleType ruleType = net.adamcin.oakpal.api.RuleType.fromName(name);
+            for (RuleType value : values()) {
+                if (value.ruleType == ruleType) {
                     return value;
                 }
             }
@@ -191,9 +146,11 @@ public final class Rule implements JavaxJson.ObjectConvertible {
      * JSON objects to be evaluated in sequence.
      *
      * @param rulesArray a JSON array where calling {@link #fromJson(JsonObject)} on each element will construct a
-     *                   valid {@link Rule}
+     *                   valid {@link net.adamcin.oakpal.api.Rule}
      * @return a list of rules to be evaluated in sequence.
+     * @deprecated 2.0.0 use {@link Rules#fromJsonArray(JsonArray)}
      */
+    @Deprecated
     public static List<Rule> fromJsonArray(final JsonArray rulesArray) {
         return JavaxJson.mapArrayOfObjects(rulesArray, Rule::fromJson);
     }
@@ -203,10 +160,12 @@ public final class Rule implements JavaxJson.ObjectConvertible {
      *
      * @param ruleJson a single rule config object
      * @return a new rule
+     * @deprecated 2.0.0 use {@link Rules#fromJson(JsonObject)}
      */
+    @Deprecated
     public static Rule fromJson(final JsonObject ruleJson) {
-        return new Rule(Rule.RuleType.fromName(ruleJson.getString(CONFIG_TYPE)),
-                Pattern.compile(ruleJson.getString(CONFIG_PATTERN)));
+        return new Rule(RuleType.fromName(ruleJson.getString(keys().type())),
+                Pattern.compile(ruleJson.getString(keys().pattern())));
     }
 
     /**
@@ -215,7 +174,9 @@ public final class Rule implements JavaxJson.ObjectConvertible {
      *
      * @param rules rules list
      * @return usually {@link #DEFAULT_ALLOW}, but sometimes {@link #DEFAULT_DENY}
+     * @deprecated 2.0.0 use {@link Rules#fuzzyDefaultAllow(List)}
      */
+    @Deprecated
     public static Rule fuzzyDefaultAllow(final List<Rule> rules) {
         return fuzzyDefaultInclude(rules);
     }
@@ -226,7 +187,9 @@ public final class Rule implements JavaxJson.ObjectConvertible {
      *
      * @param rules rules list
      * @return usually {@link #DEFAULT_EXCLUDE}, but sometimes {@link #DEFAULT_INCLUDE}
+     * @deprecated 2.0.0 use {@link Rules#fuzzyDefaultDeny(List)}
      */
+    @Deprecated
     public static Rule fuzzyDefaultDeny(final List<Rule> rules) {
         return fuzzyDefaultExclude(rules);
     }
@@ -237,7 +200,9 @@ public final class Rule implements JavaxJson.ObjectConvertible {
      *
      * @param rules rules list
      * @return usually {@link #DEFAULT_INCLUDE}, but sometimes {@link #DEFAULT_EXCLUDE}
+     * @deprecated 2.0.0 use {@link Rules#fuzzyDefaultInclude(List)}
      */
+    @Deprecated
     public static Rule fuzzyDefaultInclude(final List<Rule> rules) {
         if (rules != null && !rules.isEmpty() && rules.get(0).isInclude()) {
             return DEFAULT_EXCLUDE;
@@ -251,7 +216,9 @@ public final class Rule implements JavaxJson.ObjectConvertible {
      *
      * @param rules rules list
      * @return usually {@link #DEFAULT_EXCLUDE}, but sometimes {@link #DEFAULT_INCLUDE}
+     * @deprecated 2.0.0 use {@link Rules#fuzzyDefaultExclude(List)}
      */
+    @Deprecated
     public static Rule fuzzyDefaultExclude(final List<Rule> rules) {
         if (rules != null && !rules.isEmpty() && rules.get(0).isExclude()) {
             return DEFAULT_INCLUDE;
@@ -267,7 +234,9 @@ public final class Rule implements JavaxJson.ObjectConvertible {
      * @param value         the string value to match against.
      * @param selectDefault a function to select the default rule based on the specified list of rules.
      * @return the last rule in the list that matches the value, or a default rule
+     * @deprecated 2.0.0 use {@link Rules#lastMatch(List, String, Function)}
      */
+    @Deprecated
     public static Rule lastMatch(final List<Rule> rules,
                                  final String value,
                                  final Function<List<Rule>, Rule> selectDefault) {
@@ -281,15 +250,16 @@ public final class Rule implements JavaxJson.ObjectConvertible {
     }
 
     /**
-     * Evaluate the provided list of rules against the String value, using {@link #fuzzyDefaultInclude(List)} to select
+     * Evaluate the provided list of rules against the String value, using {@link Rules#fuzzyDefaultInclude(List)} to select
      * the default rule when none match.
      *
      * @param rules a list of rules to match against the value. the last one to match, if any, is returned.
      * @param value the string value to match against.
      * @return the last rule in the list that matches the value, or a default rule
+     * @deprecated 2.0.0 use {@link Rules#lastMatch(List, String)}
      */
+    @Deprecated
     public static Rule lastMatch(final List<Rule> rules, final String value) {
         return lastMatch(rules, value, Rule::fuzzyDefaultInclude);
     }
-
 }

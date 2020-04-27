@@ -24,6 +24,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import javax.jcr.Binary;
@@ -115,10 +116,21 @@ public class JcrFactoryTest {
         }
     }
 
+    private void recursiveDeleteWithRetry(final File toDelete) throws IOException {
+        try {
+            FileUtils.deleteDirectory(toDelete);
+        } catch (IOException e) {
+            // retry if failed.
+            if (toDelete.exists()) {
+                FileUtils.deleteDirectory(toDelete);
+            }
+        }
+    }
+
     @Test
     public void testGetNodeStoreFixture_withWithoutFDS() throws Exception {
         final File seedRepoHome = new File(testBaseDir, "testGetNodeStoreFixture_withFDS/seedRepo");
-        FileUtils.deleteDirectory(seedRepoHome);
+        recursiveDeleteWithRetry(seedRepoHome);
         final File seedDir = new File(seedRepoHome, "segmentstore");
         final File fdsDir = new File(seedRepoHome, "datastore");
 
@@ -127,7 +139,7 @@ public class JcrFactoryTest {
             assertNull("blob store should be null without datastore dir", fixture.getBlobStore());
         }
 
-        FileUtils.deleteDirectory(seedRepoHome);
+        recursiveDeleteWithRetry(seedRepoHome);
         fdsDir.mkdirs();
         assertTrue("fds dir should exist @ " + fdsDir.getAbsolutePath(), fdsDir.exists());
         try (NodeStoreFixture fixture = JcrFactory.getNodeStoreFixture(false, seedDir)) {

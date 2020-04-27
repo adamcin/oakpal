@@ -21,6 +21,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import net.adamcin.oakpal.api.ProgressCheck;
+import net.adamcin.oakpal.api.ProgressCheckFactory;
 import net.adamcin.oakpal.core.AbortedScanException;
 import net.adamcin.oakpal.core.CheckReport;
 import net.adamcin.oakpal.core.CheckSpec;
@@ -154,11 +156,11 @@ abstract class AbstractITestWithPlanMojo extends AbstractITestMojo implements Pl
     protected List<ForcedRoot> forcedRoots = new ArrayList<>();
 
     /**
-     * Specify a list of Checks to locate and load as {@link net.adamcin.oakpal.core.ProgressCheck}s.
+     * Specify a list of Checks to locate and load as {@link ProgressCheck}s.
      * <p>
      * Minimally, there are two ways to define a {@link CheckSpec}. To load a check from the project's test output
      * directory, you must specify the {@code impl} value as a classPath-relative resource name for script checks, or as
-     * a fully-qualified class name for Java {@link net.adamcin.oakpal.core.ProgressCheck} implementations.
+     * a fully-qualified class name for Java {@link ProgressCheck} implementations.
      * <p>
      * For example, if your script check source is located at {@code src/test/resources/OAKPAL-INF/scripts/acme-vault-enforcer.js}:
      * <pre>
@@ -169,7 +171,7 @@ abstract class AbstractITestWithPlanMojo extends AbstractITestMojo implements Pl
      * &lt;/checks&gt;
      * </pre>
      * <p>
-     * If your {@code impl} represents a script check or a {@link net.adamcin.oakpal.core.ProgressCheckFactory}, you can
+     * If your {@code impl} represents a script check or a {@link ProgressCheckFactory}, you can
      * also provide a {@code config} element that will be translated to a {@link javax.json.JsonObject} by the
      * {@link JsonConverter} via the
      * {@link net.adamcin.oakpal.maven.component.OakpalComponentConfigurator}:

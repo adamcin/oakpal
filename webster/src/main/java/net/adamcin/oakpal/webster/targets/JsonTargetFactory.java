@@ -16,11 +16,11 @@
 
 package net.adamcin.oakpal.webster.targets;
 
-import static net.adamcin.oakpal.core.Fun.uncheck1;
-import static net.adamcin.oakpal.core.Fun.uncheck2;
-import static net.adamcin.oakpal.core.JavaxJson.mapArrayOfObjects;
-import static net.adamcin.oakpal.core.JavaxJson.mapObjectValues;
-import static net.adamcin.oakpal.core.JavaxJson.obj;
+import static net.adamcin.oakpal.api.Fun.uncheck1;
+import static net.adamcin.oakpal.api.Fun.uncheck2;
+import static net.adamcin.oakpal.api.JavaxJson.mapArrayOfObjects;
+import static net.adamcin.oakpal.api.JavaxJson.mapObjectValues;
+import static net.adamcin.oakpal.api.JavaxJson.obj;
 
 import java.io.File;
 import java.util.ArrayList;

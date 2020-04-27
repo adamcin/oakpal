@@ -2,7 +2,7 @@ package net.adamcin.oakpal.cli;
 
 import java.util.function.Function;
 
-import net.adamcin.oakpal.core.Nothing;
+import net.adamcin.oakpal.api.Nothing;
 
 /**
  * Extension of simple IO printer function type to add a dispose() method.

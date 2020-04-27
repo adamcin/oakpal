@@ -17,18 +17,10 @@
 package net.adamcin.oakpal.maven.mojo;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.Collections;
-import java.util.List;
 import java.util.Optional;
 
-import net.adamcin.oakpal.core.CheckReport;
-import net.adamcin.oakpal.core.DefaultErrorListener;
-import net.adamcin.oakpal.core.FileBlobMemoryNodeStore;
-import net.adamcin.oakpal.core.OakMachine;
-import net.adamcin.oakpal.core.ReportMapper;
 import net.adamcin.oakpal.maven.component.OakpalComponentConfigurator;
-import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;

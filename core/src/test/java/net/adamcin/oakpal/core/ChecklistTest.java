@@ -16,9 +16,9 @@
 
 package net.adamcin.oakpal.core;
 
-import static net.adamcin.oakpal.core.JavaxJson.arr;
-import static net.adamcin.oakpal.core.JavaxJson.key;
-import static net.adamcin.oakpal.core.JavaxJson.obj;
+import static net.adamcin.oakpal.api.JavaxJson.arr;
+import static net.adamcin.oakpal.api.JavaxJson.key;
+import static net.adamcin.oakpal.api.JavaxJson.obj;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -37,6 +37,7 @@ import javax.json.JsonArray;
 import javax.json.JsonObject;
 import javax.json.JsonReader;
 
+import net.adamcin.oakpal.api.JavaxJson;
 import org.apache.jackrabbit.spi.PrivilegeDefinition;
 import org.apache.jackrabbit.spi.QNodeTypeDefinition;
 import org.apache.jackrabbit.spi.commons.namespace.NamespaceMapping;
@@ -76,20 +77,21 @@ public class ChecklistTest {
 
     @Test
     public void testChecklistKeyComparator() {
-        final String[] inputValues1 = Checklist.KEY_ORDER.toArray(new String[0]);
+        final Checklist.JsonKeys keys = Checklist.keys();
+        final String[] inputValues1 = keys.orderedKeys().toArray(new String[0]);
         Arrays.sort(inputValues1, Checklist.checklistKeyComparator.reversed());
         Arrays.sort(inputValues1, Checklist.checklistKeyComparator);
         assertArrayEquals("sort reverse sort should be stable",
-                Checklist.KEY_ORDER.toArray(new String[0]), inputValues1);
+                keys.orderedKeys().toArray(new String[0]), inputValues1);
 
-        final String[] inputValues2 = new String[]{"foo", Checklist.KEY_NAME};
-        final String[] expectValues2 = new String[]{Checklist.KEY_NAME, "foo"};
+        final String[] inputValues2 = new String[]{"foo", keys.name()};
+        final String[] expectValues2 = new String[]{keys.name(), "foo"};
         Arrays.sort(inputValues2, Checklist.checklistKeyComparator);
         assertArrayEquals("sort unknown keys after known keys",
                 expectValues2, inputValues2);
 
-        final String[] inputValues2b = new String[]{Checklist.KEY_NAME, "foo"};
-        final String[] expectValues2b = new String[]{Checklist.KEY_NAME, "foo"};
+        final String[] inputValues2b = new String[]{keys.name(), "foo"};
+        final String[] expectValues2b = new String[]{keys.name(), "foo"};
         Arrays.sort(inputValues2b, Checklist.checklistKeyComparator);
         assertArrayEquals("sort unknown keys after known keys",
                 expectValues2b, inputValues2b);
@@ -103,9 +105,10 @@ public class ChecklistTest {
 
     @Test
     public void testComparingJsonKeys() {
-        final JsonObject obj1 = key("id", Checklist.KEY_CHECKS).get();
-        final JsonObject obj2 = key("id", Checklist.KEY_CND_NAMES).get();
-        final JsonObject obj3 = key("id", Checklist.KEY_CND_URLS).get();
+        final Checklist.JsonKeys keys = Checklist.keys();
+        final JsonObject obj1 = key("id", keys.checks()).get();
+        final JsonObject obj2 = key("id", keys.cndNames()).get();
+        final JsonObject obj3 = key("id", keys.cndUrls()).get();
         final JsonObject[] inputValues1 = new JsonObject[]{obj2, obj3, obj1};
         final JsonObject[] expectValues1 = new JsonObject[]{obj1, obj2, obj3};
         Arrays.sort(inputValues1, Checklist.comparingJsonKeys(obj -> obj.getString("id")));
@@ -189,12 +192,12 @@ public class ChecklistTest {
         Checklist.Builder builderWithForcedRoots = new Checklist.Builder("test");
         final List<ForcedRoot> forcedRoots = Arrays.asList(
                 ForcedRoot.fromJson(obj()
-                        .key(ForcedRoot.KEY_PATH, "/test/foo")
-                        .key(ForcedRoot.KEY_PRIMARY_TYPE, "foo:primaryType")
+                        .key(ForcedRoot.keys().path(), "/test/foo")
+                        .key(ForcedRoot.keys().primaryType(), "foo:primaryType")
                         .get()),
                 ForcedRoot.fromJson(obj()
-                        .key(ForcedRoot.KEY_PATH, "/test/bar")
-                        .key(ForcedRoot.KEY_PRIMARY_TYPE, "bar:primaryType")
+                        .key(ForcedRoot.keys().path(), "/test/bar")
+                        .key(ForcedRoot.keys().primaryType(), "bar:primaryType")
                         .get()));
         builderWithForcedRoots.withForcedRoots(forcedRoots);
         assertEquals("forced roots pass thru",
@@ -204,23 +207,23 @@ public class ChecklistTest {
     @Test
     public void testBuilderIsValidCheckSpec() {
         Checklist.Builder builder = new Checklist.Builder("test");
-        CheckSpec validSpec = CheckSpec.fromJson(key(CheckSpec.KEY_NAME, "valid")
-                .key(CheckSpec.KEY_IMPL, "impl").get());
+        CheckSpec validSpec = CheckSpec.fromJson(key(CheckSpec.keys().name(), "valid")
+                .key(CheckSpec.keys().impl(), "impl").get());
         assertTrue("valid spec isValid: " + validSpec.getName(),
                 builder.isValidCheckspec(validSpec));
-        CheckSpec abstractSpec = CheckSpec.fromJson(key(CheckSpec.KEY_NAME, "valid").get());
+        CheckSpec abstractSpec = CheckSpec.fromJson(key(CheckSpec.keys().name(), "valid").get());
         assertFalse("abstract spec not isValid: " + abstractSpec.getName(),
                 builder.isValidCheckspec(abstractSpec));
-        CheckSpec nullNameSpec = CheckSpec.fromJson(key(CheckSpec.KEY_NAME, null)
-                .key(CheckSpec.KEY_IMPL, "impl").get());
+        CheckSpec nullNameSpec = CheckSpec.fromJson(key(CheckSpec.keys().name(), null)
+                .key(CheckSpec.keys().impl(), "impl").get());
         assertFalse("nullName spec not isValid: " + nullNameSpec.getName(),
                 builder.isValidCheckspec(nullNameSpec));
-        CheckSpec emptyNameSpec = CheckSpec.fromJson(key(CheckSpec.KEY_NAME, "")
-                .key(CheckSpec.KEY_IMPL, "impl").get());
+        CheckSpec emptyNameSpec = CheckSpec.fromJson(key(CheckSpec.keys().name(), "")
+                .key(CheckSpec.keys().impl(), "impl").get());
         assertFalse("emptyName spec not isValid: " + emptyNameSpec.getName(),
                 builder.isValidCheckspec(emptyNameSpec));
-        CheckSpec slashNameSpec = CheckSpec.fromJson(key(CheckSpec.KEY_NAME, "valid/notValid")
-                .key(CheckSpec.KEY_IMPL, "impl").get());
+        CheckSpec slashNameSpec = CheckSpec.fromJson(key(CheckSpec.keys().name(), "valid/notValid")
+                .key(CheckSpec.keys().impl(), "impl").get());
         assertFalse("slashName spec not isValid: " + slashNameSpec.getName(),
                 builder.isValidCheckspec(slashNameSpec));
     }
@@ -228,12 +231,12 @@ public class ChecklistTest {
     @Test
     public void testBuilderWithChecks() {
         final Checklist.Builder builder = new Checklist.Builder("test");
-        CheckSpec validSpec1 = CheckSpec.fromJson(key(CheckSpec.KEY_NAME, "valid1")
-                .key(CheckSpec.KEY_IMPL, "impl").get());
-        CheckSpec validSpec2 = CheckSpec.fromJson(key(CheckSpec.KEY_NAME, "valid2")
-                .key(CheckSpec.KEY_IMPL, "impl").get());
-        CheckSpec slashNameSpec = CheckSpec.fromJson(key(CheckSpec.KEY_NAME, "valid/notValid")
-                .key(CheckSpec.KEY_IMPL, "impl").get());
+        CheckSpec validSpec1 = CheckSpec.fromJson(key(CheckSpec.keys().name(), "valid1")
+                .key(CheckSpec.keys().impl(), "impl").get());
+        CheckSpec validSpec2 = CheckSpec.fromJson(key(CheckSpec.keys().name(), "valid2")
+                .key(CheckSpec.keys().impl(), "impl").get());
+        CheckSpec slashNameSpec = CheckSpec.fromJson(key(CheckSpec.keys().name(), "valid/notValid")
+                .key(CheckSpec.keys().impl(), "impl").get());
         assertFalse("slashName spec not isValid: " + slashNameSpec.getName(),
                 builder.isValidCheckspec(slashNameSpec));
         final String prefix = "test/";
@@ -275,14 +278,14 @@ public class ChecklistTest {
         builder.withJcrPrivileges(privileges);
         final List<ForcedRoot> forcedRoots = Arrays.asList(
                 ForcedRoot.fromJson(obj()
-                        .key(ForcedRoot.KEY_PATH, "/test/foo")
-                        .key(ForcedRoot.KEY_PRIMARY_TYPE, "foo:primaryType")
-                        .key(ForcedRoot.KEY_MIXIN_TYPES, arr().val("foo:mixinType"))
+                        .key(ForcedRoot.keys().path(), "/test/foo")
+                        .key(ForcedRoot.keys().primaryType(), "foo:primaryType")
+                        .key(ForcedRoot.keys().mixinTypes(), arr().val("foo:mixinType"))
                         .get()),
                 ForcedRoot.fromJson(obj()
-                        .key(ForcedRoot.KEY_PATH, "/test/bar")
-                        .key(ForcedRoot.KEY_PRIMARY_TYPE, "bar:primaryType")
-                        .key(ForcedRoot.KEY_MIXIN_TYPES, arr().val("bar:mixinType"))
+                        .key(ForcedRoot.keys().path(), "/test/bar")
+                        .key(ForcedRoot.keys().primaryType(), "bar:primaryType")
+                        .key(ForcedRoot.keys().mixinTypes(), arr().val("bar:mixinType"))
                         .get()));
         builder.withForcedRoots(forcedRoots);
         InitStage initStage = builder.build().asInitStage();
@@ -337,33 +340,34 @@ public class ChecklistTest {
         builder.withJcrPrivileges(privileges);
         final List<ForcedRoot> forcedRoots = Arrays.asList(
                 ForcedRoot.fromJson(obj()
-                        .key(ForcedRoot.KEY_PATH, "/test/foo")
-                        .key(ForcedRoot.KEY_PRIMARY_TYPE, "foo:primaryType")
-                        .key(ForcedRoot.KEY_MIXIN_TYPES, arr().val("foo:mixinType"))
+                        .key(ForcedRoot.keys().path(), "/test/foo")
+                        .key(ForcedRoot.keys().primaryType(), "foo:primaryType")
+                        .key(ForcedRoot.keys().mixinTypes(), arr().val("foo:mixinType"))
                         .get()),
                 ForcedRoot.fromJson(obj()
-                        .key(ForcedRoot.KEY_PATH, "/test/bar")
-                        .key(ForcedRoot.KEY_PRIMARY_TYPE, "bar:primaryType")
-                        .key(ForcedRoot.KEY_MIXIN_TYPES, arr().val("bar:mixinType"))
+                        .key(ForcedRoot.keys().path(), "/test/bar")
+                        .key(ForcedRoot.keys().primaryType(), "bar:primaryType")
+                        .key(ForcedRoot.keys().mixinTypes(), arr().val("bar:mixinType"))
                         .get()));
         final JsonArray forcedRootsJson = JavaxJson.wrap(forcedRoots).asJsonArray();
         builder.withForcedRoots(forcedRoots);
-        CheckSpec validSpec1 = CheckSpec.fromJson(key(CheckSpec.KEY_NAME, "valid1")
-                .key(CheckSpec.KEY_IMPL, "impl").get());
-        CheckSpec validSpec2 = CheckSpec.fromJson(key(CheckSpec.KEY_NAME, "valid2")
-                .key(CheckSpec.KEY_IMPL, "impl").get());
+        CheckSpec validSpec1 = CheckSpec.fromJson(key(CheckSpec.keys().name(), "valid1")
+                .key(CheckSpec.keys().impl(), "impl").get());
+        CheckSpec validSpec2 = CheckSpec.fromJson(key(CheckSpec.keys().name(), "valid2")
+                .key(CheckSpec.keys().impl(), "impl").get());
         final List<CheckSpec> checks = Arrays.asList(validSpec1, validSpec2);
         final JsonArray checksJson = JavaxJson.wrap(checks).asJsonArray();
         builder.withChecks(checks);
         final Checklist checklist = builder.build();
+        final Checklist.JsonKeys keys = Checklist.keys();
         final JsonObject expectJson = obj()
-                .key(Checklist.KEY_NAME, "name")
-                .key(Checklist.KEY_CHECKS, checksJson)
-                .key(Checklist.KEY_FORCED_ROOTS, forcedRootsJson)
-                .key(Checklist.KEY_CND_URLS, cndUrlsJson)
-                .key(Checklist.KEY_JCR_NODETYPES, nodetypesJson)
-                .key(Checklist.KEY_JCR_PRIVILEGES, privilegesJson)
-                .key(Checklist.KEY_JCR_NAMESPACES, jcrNamespacesJson)
+                .key(keys.name(), "name")
+                .key(keys.checks(), checksJson)
+                .key(keys.forcedRoots(), forcedRootsJson)
+                .key(keys.cndUrls(), cndUrlsJson)
+                .key(keys.jcrNodetypes(), nodetypesJson)
+                .key(keys.jcrPrivileges(), privilegesJson)
+                .key(keys.jcrNamespaces(), jcrNamespacesJson)
                 .get();
         final JsonObject json = checklist.toJson();
         assertEquals("toJson should match", expectJson, json);

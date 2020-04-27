@@ -19,8 +19,17 @@ oakpal [ <options> ] <scanFile> ...
                                       or if no opear is specified, the basic oakpal plan will be used.
   +p | --no-plan                    : Use no plan for the scan. Overrides the default behavior, which otherwise
                                       uses the oakpal core "basic-plan.json".
+ -pi | --pre-install-file <file>    : Add a preinstall package to the list specified in the plan, if any.
+ -pf | --plan-file <file>           : Override the opear plan with the specified json file. The base directory for the
+                                      plan will default to the parent directory of the file, unless a different
+                                      directory is specified using --plan-file-base.
+       --plan-file-base <dir>       : Specify a different base classpath directory for --plan-file. This is
+                                      important for resolution of script checks referenced by relative path in the plan
+                                      check impl properties, but does not affect resolution of resources linked by URL,
+                                      like preInstallUrls.
        --no-hooks                   : Disable preinstall and scan install hooks for all packages, otherwise, rely on
                                       install hook policies configured in the selected plan.
+ -xp | --extend-classpath <file>    : Extend the opear classpath with the specified jar file or directory.
   -s | --severity-fail <severity>   : Exit with a non-zero code if any violations are
                                       reported with a severity level equal to or higher
                                       than <severity>. Can be MINOR, MAJOR, or SEVERE.

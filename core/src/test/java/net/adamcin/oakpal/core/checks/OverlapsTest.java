@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Mark Adamcin
+ * Copyright 2020 Mark Adamcin
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,14 +16,14 @@
 
 package net.adamcin.oakpal.core.checks;
 
-import static net.adamcin.oakpal.core.JavaxJson.obj;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
+import net.adamcin.oakpal.api.ProgressCheck;
 import net.adamcin.oakpal.core.CheckReport;
-import net.adamcin.oakpal.core.ProgressCheck;
-import net.adamcin.oakpal.core.TestUtil;
+import net.adamcin.oakpal.testing.TestUtil;
+import org.junit.Assert;
 import org.junit.Test;
+
+import static net.adamcin.oakpal.api.JavaxJson.obj;
+import static org.junit.Assert.assertTrue;
 
 public class OverlapsTest extends ProgressCheckTestBase {
     @Test
@@ -32,7 +32,7 @@ public class OverlapsTest extends ProgressCheckTestBase {
             ProgressCheck check = new Overlaps().newInstance(obj().get());
             CheckReport report = scanWithCheck(check, "test_a-1.0.zip", "test_b-1.0.zip");
             logViolations("testOverlaps:none", report);
-            assertEquals("no violations", 0, report.getViolations().size());
+            Assert.assertEquals("no violations", 0, report.getViolations().size());
             assertTrue("all violations have packageIds", report.getViolations().stream()
                     .allMatch(viol -> !viol.getPackages().isEmpty()));
         });
@@ -40,7 +40,7 @@ public class OverlapsTest extends ProgressCheckTestBase {
             ProgressCheck check = new Overlaps().newInstance(obj().get());
             CheckReport report = scanWithCheck(check, "tmp_foo.zip", "tmp_foo_bar.zip", "tmp_foo_bar_test.zip");
             logViolations("testOverlaps:[foo, foo_bar, foo_bar_test]", report);
-            assertEquals("two violations", 2, report.getViolations().size());
+            Assert.assertEquals("two violations", 2, report.getViolations().size());
             assertTrue("all violations have packageIds", report.getViolations().stream()
                     .allMatch(viol -> !viol.getPackages().isEmpty()));
         });
@@ -48,15 +48,15 @@ public class OverlapsTest extends ProgressCheckTestBase {
             ProgressCheck check = new Overlaps().newInstance(obj().get());
             CheckReport report = scanWithCheck(check, "tmp_foo_bar_test.zip", "tmp_foo_bar.zip", "tmp_foo.zip");
             logViolations("testOverlaps:[foo_bar_test, foo_bar, foo]", report);
-            assertEquals("two violations", 2, report.getViolations().size());
+            Assert.assertEquals("two violations", 2, report.getViolations().size());
             assertTrue("all violations have packageIds", report.getViolations().stream()
                     .allMatch(viol -> !viol.getPackages().isEmpty()));
         });
         TestUtil.testBlock(() -> {
-            ProgressCheck check = new Overlaps().newInstance(obj().key(Overlaps.CONFIG_REPORT_ALL_OVERLAPS, true).get());
+            ProgressCheck check = new Overlaps().newInstance(obj().key(Overlaps.keys().reportAllOverlaps(), true).get());
             CheckReport report = scanWithCheck(check, "tmp_foo_bar_test.zip", "tmp_foo_bar.zip", "tmp_foo.zip");
             logViolations("testOverlaps:[foo_bar_test, foo_bar, foo]:reportAllOverlaps", report);
-            assertEquals("three violations", 3, report.getViolations().size());
+            Assert.assertEquals("three violations", 3, report.getViolations().size());
             assertTrue("all violations have packageIds", report.getViolations().stream()
                     .allMatch(viol -> !viol.getPackages().isEmpty()));
         });

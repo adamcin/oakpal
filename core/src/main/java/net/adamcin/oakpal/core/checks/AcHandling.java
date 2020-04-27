@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Mark Adamcin
+ * Copyright 2020 Mark Adamcin
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,14 +16,15 @@
 
 package net.adamcin.oakpal.core.checks;
 
-import net.adamcin.oakpal.core.ProgressCheck;
-import net.adamcin.oakpal.core.ProgressCheckFactory;
-import net.adamcin.oakpal.core.SimpleProgressCheck;
-import net.adamcin.oakpal.core.Violation;
+import net.adamcin.oakpal.api.ProgressCheck;
+import net.adamcin.oakpal.api.ProgressCheckFactory;
+import net.adamcin.oakpal.api.Severity;
+import net.adamcin.oakpal.api.SimpleProgressCheckFactoryCheck;
 import org.apache.jackrabbit.vault.fs.config.MetaInf;
 import org.apache.jackrabbit.vault.fs.io.AccessControlHandling;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.apache.jackrabbit.vault.packaging.PackageProperties;
+import org.osgi.annotation.versioning.ProviderType;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -33,10 +34,10 @@ import java.util.Collections;
 import java.util.List;
 
 import static java.util.Optional.ofNullable;
-import static net.adamcin.oakpal.core.Fun.compose;
-import static net.adamcin.oakpal.core.JavaxJson.arrayOrEmpty;
-import static net.adamcin.oakpal.core.JavaxJson.hasNonNull;
-import static net.adamcin.oakpal.core.JavaxJson.mapArrayOfStrings;
+import static net.adamcin.oakpal.api.Fun.compose1;
+import static net.adamcin.oakpal.api.JavaxJson.arrayOrEmpty;
+import static net.adamcin.oakpal.api.JavaxJson.hasNonNull;
+import static net.adamcin.oakpal.api.JavaxJson.mapArrayOfStrings;
 import static org.apache.jackrabbit.vault.fs.io.AccessControlHandling.IGNORE;
 import static org.apache.jackrabbit.vault.fs.io.AccessControlHandling.MERGE;
 import static org.apache.jackrabbit.vault.fs.io.AccessControlHandling.MERGE_PRESERVE;
@@ -69,18 +70,44 @@ import static org.apache.jackrabbit.vault.fs.io.AccessControlHandling.OVERWRITE;
  * </dl>
  */
 public final class AcHandling implements ProgressCheckFactory {
-    public static final String CONFIG_ALLOWED_MODES = "allowedModes";
-    public static final String CONFIG_LEVEL_SET = "levelSet";
+    @ProviderType
+    public interface JsonKeys {
+        String allowedModes();
+
+        String levelSet();
+    }
+
+    private static final JsonKeys KEYS = new JsonKeys() {
+        @Override
+        public String allowedModes() {
+            return "allowedModes";
+        }
+
+        @Override
+        public String levelSet() {
+            return "levelSet";
+        }
+    };
+
+    public static JsonKeys keys() {
+        return KEYS;
+    }
+
+    @Deprecated
+    public static final String CONFIG_ALLOWED_MODES = keys().allowedModes();
+    @Deprecated
+    public static final String CONFIG_LEVEL_SET = keys().levelSet();
+
     static final ACHandlingLevelSet DEFAULT_LEVEL_SET = ACHandlingLevelSet.NO_UNSAFE;
 
     @Override
     public ProgressCheck newInstance(final JsonObject config) {
-        if (hasNonNull(config, CONFIG_ALLOWED_MODES)) {
-            List<AccessControlHandling> allowedModes = mapArrayOfStrings(arrayOrEmpty(config, CONFIG_ALLOWED_MODES),
-                    compose(String::toUpperCase, AccessControlHandling::valueOf), true);
+        if (hasNonNull(config, keys().allowedModes())) {
+            List<AccessControlHandling> allowedModes = mapArrayOfStrings(arrayOrEmpty(config, keys().allowedModes()),
+                    compose1(String::toUpperCase, AccessControlHandling::valueOf), true);
             return new Check(ACHandlingLevelSet.EXPLICIT, allowedModes);
-        } else if (hasNonNull(config, CONFIG_LEVEL_SET)) {
-            ACHandlingLevelSet levelSet = ACHandlingLevelSet.valueOf(config.getString(CONFIG_LEVEL_SET).toUpperCase());
+        } else if (hasNonNull(config, keys().levelSet())) {
+            ACHandlingLevelSet levelSet = ACHandlingLevelSet.valueOf(config.getString(keys().levelSet()).toUpperCase());
             return new Check(levelSet, Collections.emptyList());
         } else {
             return new Check(DEFAULT_LEVEL_SET, Collections.emptyList());
@@ -129,19 +156,15 @@ public final class AcHandling implements ProgressCheckFactory {
         }
     }
 
-    static final class Check extends SimpleProgressCheck {
+    static final class Check extends SimpleProgressCheckFactoryCheck<AcHandling> {
         final ACHandlingLevelSet levelSet;
         final List<AccessControlHandling> allowedModes;
 
         Check(final ACHandlingLevelSet levelSet,
               final List<AccessControlHandling> allowedModes) {
+            super(AcHandling.class);
             this.levelSet = levelSet;
             this.allowedModes = allowedModes;
-        }
-
-        @Override
-        public String getCheckName() {
-            return AcHandling.class.getSimpleName();
         }
 
         @Override
@@ -155,16 +178,19 @@ public final class AcHandling implements ProgressCheckFactory {
             AccessControlHandling packageMode = ofNullable(packageProperties.getACHandling()).orElse(IGNORE);
             if (this.levelSet == ACHandlingLevelSet.EXPLICIT) {
                 if (!allowedModes.contains(packageMode)) {
-                    reportViolation(Violation.Severity.MAJOR,
-                            String.format("acHandling mode %s is forbidden. acHandling values in allowedModes are %s",
-                                    packageMode, allowedModes), packageId);
+                    reporting(builder -> builder
+                            .withSeverity(Severity.MAJOR)
+                            .withDescription("acHandling mode {0} is forbidden. acHandling values in allowedModes are {1}")
+                            .withArgument(packageMode, allowedModes)
+                            .withPackage(packageId));
                 }
             } else {
                 if (!this.levelSet.getAllowedModes().contains(packageMode)) {
-                    reportViolation(Violation.Severity.MAJOR,
-                            String.format("acHandling mode %s is forbidden. allowed acHandling values in levelSet:%s are %s",
-                                    packageMode, this.levelSet.name().toLowerCase(), this.levelSet.getAllowedModes()),
-                            packageId);
+                    reporting(builder -> builder
+                            .withSeverity(Severity.MAJOR)
+                            .withDescription("acHandling mode {0} is forbidden. allowed acHandling values in levelSet:{1} are {2}")
+                            .withArgument(packageMode, this.levelSet.name().toLowerCase(), this.levelSet.getAllowedModes())
+                            .withPackage(packageId));
                 }
             }
         }

@@ -18,10 +18,10 @@ package net.adamcin.oakpal.webster;
 
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
-import net.adamcin.oakpal.core.Fun;
+import net.adamcin.oakpal.api.Fun;
 import net.adamcin.oakpal.core.OakMachine;
 import net.adamcin.oakpal.core.OakpalPlan;
-import net.adamcin.oakpal.core.Result;
+import net.adamcin.oakpal.api.Result;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.api.JackrabbitWorkspace;
@@ -70,10 +70,10 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static net.adamcin.oakpal.core.Fun.result1;
-import static net.adamcin.oakpal.core.Fun.uncheck1;
-import static net.adamcin.oakpal.core.Fun.zipKeysWithValueFunc;
-import static net.adamcin.oakpal.core.JavaxJson.obj;
+import static net.adamcin.oakpal.api.Fun.result1;
+import static net.adamcin.oakpal.api.Fun.uncheck1;
+import static net.adamcin.oakpal.api.Fun.zipKeysWithValueFunc;
+import static net.adamcin.oakpal.api.JavaxJson.obj;
 import static org.junit.Assert.assertTrue;
 
 public final class TestUtil {

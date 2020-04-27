@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Mark Adamcin
+ * Copyright 2020 Mark Adamcin
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,72 +16,64 @@
 
 package net.adamcin.oakpal.core;
 
+import net.adamcin.oakpal.api.Violation;
 import org.apache.jackrabbit.vault.packaging.PackageId;
+import org.osgi.annotation.versioning.ProviderType;
 
-import javax.json.JsonObject;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
-import static net.adamcin.oakpal.core.JavaxJson.mapArrayOfStrings;
-import static net.adamcin.oakpal.core.JavaxJson.optArray;
-import static net.adamcin.oakpal.core.ReportMapper.KEY_DESCRIPTION;
-import static net.adamcin.oakpal.core.ReportMapper.KEY_PACKAGES;
-import static net.adamcin.oakpal.core.ReportMapper.KEY_SEVERITY;
-
 /**
- * Simple implementation of a {@link Violation}.
+ * @deprecated 2.0.0 use {@link net.adamcin.oakpal.api.SimpleViolation}
  */
-public final class SimpleViolation implements Violation {
-    private final Severity severity;
+@Deprecated
+@ProviderType
+public class SimpleViolation implements Violation {
+    private final net.adamcin.oakpal.core.Violation.Severity severity;
     private final String description;
     private final List<PackageId> packages;
 
-    public SimpleViolation(final Severity severity, final String description, final PackageId... packages) {
+    /**
+     * Constructor.
+     *
+     * @param severity    the severity
+     * @param description the description
+     * @param packages    the package ids
+     */
+    public SimpleViolation(final net.adamcin.oakpal.core.Violation.Severity severity,
+                           final String description, final PackageId... packages) {
         this(severity, description, packages != null ? Arrays.asList(packages) : null);
     }
 
-    public SimpleViolation(final Severity severity, final String description, final List<PackageId> packages) {
-        this.severity = severity;
+    /**
+     * Constructor.
+     *
+     * @param severity    the severity
+     * @param description the description
+     * @param packages    the package ids
+     */
+    public SimpleViolation(final net.adamcin.oakpal.core.Violation.Severity severity,
+                           final String description, final List<PackageId> packages) {
+        this.severity = severity != null ? severity : net.adamcin.oakpal.core.Violation.Severity.MAJOR;
         this.description = description;
-        this.packages = Collections.unmodifiableList(
-                packages != null ? new ArrayList<>(packages) : Collections.emptyList());
+        this.packages = packages == null || packages.isEmpty()
+                ? Collections.emptyList()
+                : Collections.unmodifiableList(new ArrayList<>(packages));
     }
 
-    @Override
-    public Severity getSeverity() {
-        return severity;
+    public net.adamcin.oakpal.api.Severity getSeverity() {
+        return severity.getSeverity();
     }
 
-    @Override
-    public Collection<PackageId> getPackages() {
-        return packages;
-    }
-
-    @Override
     public String getDescription() {
         return description;
     }
 
-    public static SimpleViolation fromReported(final Violation violation) {
-        Severity severity = violation.getSeverity();
-        String description = violation.getDescription();
-        List<PackageId> packages = new ArrayList<>(violation.getPackages());
-        return new SimpleViolation(severity, description, packages);
-    }
-
-    public static SimpleViolation fromJson(final JsonObject jsonViolation) {
-        String vSeverity = jsonViolation.getString(KEY_SEVERITY, Violation.Severity.MINOR.name());
-        Violation.Severity severity = Violation.Severity.valueOf(vSeverity);
-        String description = jsonViolation.getString(KEY_DESCRIPTION, "");
-        List<PackageId> packages = optArray(jsonViolation, KEY_PACKAGES)
-                .map(array -> mapArrayOfStrings(array, PackageId::fromString, true))
-                .orElseGet(Collections::emptyList);
-
-        return new SimpleViolation(severity, description, packages);
+    public List<PackageId> getPackages() {
+        return packages;
     }
 
     @Override

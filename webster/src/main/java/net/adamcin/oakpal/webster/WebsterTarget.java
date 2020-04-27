@@ -16,11 +16,14 @@
 
 package net.adamcin.oakpal.webster;
 
+import org.osgi.annotation.versioning.ProviderType;
+
 import javax.jcr.Session;
 
 /**
  * Simple interface for executing a Webster action that generates one source files.
  */
+@ProviderType
 public interface WebsterTarget {
 
     /**

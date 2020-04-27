@@ -6,13 +6,33 @@ The format is based on [Keep a Changelog](http://keepachangelog.com)
 
 ## [Unreleased]
 
+## [2.0.0] - 2020-04-27
+
+### Added
+
+- API extracted to net.adamcin.oakpal.api package in new oakpal-api module for tighter dependency control, requiring a major version bump.
+- @ProviderType and @ConsumerType annotations added to interfaces in exported packages
+- Added setResourceBundle() method to ViolationReporter interface and default implementations to support future i18n enhancements.
+- Added SimpleViolation.builder() with easy support for formatting violation description with MessageFormat.format(), using withArguments() builder method.
+- Migrated CompositeStoreAlignment check from ACS AEM Commons because of unavoidable tight-coupling to oak-core-spi classes.
+- Added --plan-file, --plan-file-base, and --extend-classpath CLI parameters
+
+### Changed
+
+- Added overload with default implementation for ProgressCheck.importedPath() that accepts new PathAction enumerator type. Other signature now deprecated.
+- Moved Violation.Severity enumerator to top-level type because 1) I wanted to and 2) the API extraction made this a convenient time to do it.
+- JSON Config keys are now managed in child interface types with @ProviderType annotations to avoid major version bumps when adding config constants.
+
+## [1.5.2] - 2020-04-15
+
 ### Added
 - #38 modified pom to upload cli dist binaries to releases.
 - #39 add --no-hooks cli option
 
 ### Fixed
+- #50 Provide CLI dist with Windows binary launcher
 - ExpectAces ACE criteria now correctly trims around parameter names
-- #51 copied InstallHookPolicy details to scan goal doc
+- #35 copied InstallHookPolicy details to scan goal doc
 - #37 switched to jar checksums for opear cache folder names.
 
 ## [1.5.1] - 2019-10-03

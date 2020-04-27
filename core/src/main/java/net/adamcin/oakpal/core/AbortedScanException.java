@@ -22,7 +22,7 @@ import java.net.URL;
 import java.util.Optional;
 import java.util.stream.Stream;
 
-import static net.adamcin.oakpal.core.Fun.uncheck1;
+import static net.adamcin.oakpal.api.Fun.uncheck1;
 
 /**
  * Represents an error that causes a package scan to abort without notifying the {@link ErrorListener}.

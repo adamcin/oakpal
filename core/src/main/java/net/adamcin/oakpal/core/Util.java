@@ -19,6 +19,7 @@ package net.adamcin.oakpal.core;
 import aQute.bnd.header.Attrs;
 import aQute.bnd.header.Parameters;
 import aQute.bnd.osgi.Domain;
+import net.adamcin.oakpal.api.Fun;
 import net.adamcin.oakpal.core.jcrfacade.SessionFacade;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -201,15 +202,15 @@ public final class Util {
      * @param <T>       The input type mapped by the monad, i.e. the String type in {@code Stream<String>}.
      * @param <R>       The output type mapped by the monad, i.e. the URL type in {@code Stream<URL>}.
      * @return a flatMappable function
-     * @see Fun#composeTry(Function, Supplier, Fun.ThrowingFunction, BiConsumer)
-     * @deprecated 1.3.0 use {@link Fun#composeTry(Function, Supplier, Fun.ThrowingFunction, BiConsumer)}
+     * @see Fun#composeTry1(Function, Supplier, Fun.ThrowingFunction, BiConsumer)
+     * @deprecated 1.3.0 use {@link Fun#composeTry1(Function, Supplier, Fun.ThrowingFunction, BiConsumer)}
      */
     @Deprecated
     public static <M, T, R> Function<T, M> composeTry(final Function<R, M> monadUnit,
                                                       final Supplier<M> monadZero,
                                                       final TryFunction<T, R> onElement,
                                                       final BiConsumer<T, Exception> onError) {
-        return Fun.composeTry(monadUnit, monadZero, onElement, onError);
+        return Fun.composeTry1(monadUnit, monadZero, onElement, onError);
     }
 
     /**
@@ -247,7 +248,7 @@ public final class Util {
      * @param <I>    the intermediate type
      * @param <R>    the output type
      * @return a composed function from {@code T} to {@code R}
-     * @deprecated 1.3.0 use {@link Fun#compose(Function, Function)} instead
+     * @deprecated 1.3.0 use {@link Fun#compose1(Function, Function)} instead
      */
     @Deprecated
     public static <T, I, R> Function<T, R> compose(final Function<T, I> before, final Function<I, R> after) {

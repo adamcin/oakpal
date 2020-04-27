@@ -16,7 +16,7 @@
 
 package net.adamcin.oakpal.core;
 
-import static net.adamcin.oakpal.core.JavaxJson.key;
+import static net.adamcin.oakpal.api.JavaxJson.key;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -38,6 +38,7 @@ import java.util.jar.JarFile;
 import java.util.stream.Collectors;
 import javax.json.JsonObject;
 
+import net.adamcin.oakpal.api.Fun;
 import org.junit.Before;
 import org.junit.Test;
 

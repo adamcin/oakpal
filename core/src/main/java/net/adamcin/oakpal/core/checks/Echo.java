@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Mark Adamcin
+ * Copyright 2020 Mark Adamcin
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,12 +16,14 @@
 
 package net.adamcin.oakpal.core.checks;
 
-import net.adamcin.oakpal.core.ProgressCheck;
-import net.adamcin.oakpal.core.Violation;
+import net.adamcin.oakpal.api.PathAction;
+import net.adamcin.oakpal.api.ProgressCheck;
+import net.adamcin.oakpal.api.Violation;
 import org.apache.jackrabbit.vault.fs.config.MetaInf;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.apache.jackrabbit.vault.packaging.PackageProperties;
 import org.jetbrains.annotations.NotNull;
+import org.osgi.annotation.versioning.ConsumerType;
 
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
@@ -38,6 +40,7 @@ import java.util.jar.Manifest;
 /**
  * Simple verbose package check that logs all scan events to standard out. Extend to override methods.
  */
+@ConsumerType
 public class Echo implements ProgressCheck {
 
     private final AtomicLong lastEvent = new AtomicLong(System.nanoTime());
@@ -111,9 +114,15 @@ public class Echo implements ProgressCheck {
         echo("beforeExtract(packageId: %s, ..., subpackages: %s)", packageId, subpackages);
     }
 
-    @Override
+    @Deprecated
     public void importedPath(final PackageId packageId, final String path, final Node node) throws RepositoryException {
-        echo("importedPath(packageId: %s, path: %s, ...)", packageId, path);
+        importedPath(packageId, path, node, PathAction.UNKNOWN);
+    }
+
+    @Override
+    public void importedPath(final PackageId packageId, final String path, final Node node, final PathAction action)
+            throws RepositoryException {
+        echo("importedPath(packageId: %s, path: %s, ..., action: %s)", packageId, path, action);
     }
 
     @Override

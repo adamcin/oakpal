@@ -16,9 +16,9 @@
 
 package net.adamcin.oakpal.maven.mojo;
 
-import net.adamcin.oakpal.core.Fun;
+import net.adamcin.oakpal.api.Fun;
 import net.adamcin.oakpal.core.OakpalPlan;
-import net.adamcin.oakpal.core.Result;
+import net.adamcin.oakpal.api.Result;
 import net.adamcin.oakpal.core.Util;
 import net.adamcin.oakpal.testing.TestPackageUtil;
 import net.adamcin.oakpal.testing.oakpaltest.Handler;
@@ -39,7 +39,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.File;
-import java.io.FilenameFilter;
 import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;
@@ -56,6 +55,7 @@ import java.util.jar.Manifest;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static net.adamcin.oakpal.maven.mojo.OpearPackageMojo.OAKPAL_API_ARTIFACT_ID;
 import static net.adamcin.oakpal.maven.mojo.OpearPackageMojo.OAKPAL_CORE_ARTIFACT_ID;
 import static net.adamcin.oakpal.maven.mojo.OpearPackageMojo.OAKPAL_GROUP_ID;
 import static net.adamcin.oakpal.maven.mojo.OpearPackageMojo.OPEAR;
@@ -297,6 +297,131 @@ public class OpearPackageMojoTest {
         }).when(repositorySystem).resolve(any(ArtifactResolutionRequest.class));
 
         assertEquals("expect version", expectVersion, mojo.getOakpalCoreVersion());
+    }
+
+    @Test
+    public void testGetOakpalCoreVersionWithApi() {
+        final OpearPackageMojo mojo = newMojo();
+        final MavenProject project = mock(MavenProject.class);
+        mojo.project = project;
+        final MavenSession session = mock(MavenSession.class);
+        mojo.session = session;
+        final MavenExecutionRequest executionRequest = mock(MavenExecutionRequest.class);
+        when(session.getRequest()).thenReturn(executionRequest);
+        final String expectVersion = "0.31415926535898";
+        final Dependency oakpalApiDep = new DependencyFilter()
+                .withGroupId(OAKPAL_GROUP_ID)
+                .withArtifactId(OAKPAL_API_ARTIFACT_ID)
+                .withVersion(expectVersion)
+                .toDependency();
+        when(project.getDependencies()).thenReturn(Collections.singletonList(oakpalApiDep));
+        final RepositorySystem repositorySystem = mock(RepositorySystem.class);
+        mojo.repositorySystem = repositorySystem;
+        final Artifact oakpalApiArt = mock(Artifact.class);
+        final ArtifactResolutionResult result = mock(ArtifactResolutionResult.class);
+        when(result.getArtifacts()).thenReturn(Collections.singleton(oakpalApiArt));
+
+        when(oakpalApiArt.getGroupId()).thenReturn(OAKPAL_GROUP_ID);
+        when(oakpalApiArt.getArtifactId()).thenReturn(OAKPAL_API_ARTIFACT_ID);
+        when(oakpalApiArt.getVersion()).thenReturn(expectVersion);
+        when(repositorySystem.createDependencyArtifact(oakpalApiDep)).thenReturn(oakpalApiArt);
+
+        doAnswer(call -> {
+            final ArtifactResolutionRequest request = call.getArgument(0, ArtifactResolutionRequest.class);
+            if (request.getArtifact() == oakpalApiArt) {
+                return result;
+            } else {
+                return null;
+            }
+        }).when(repositorySystem).resolve(any(ArtifactResolutionRequest.class));
+
+        assertEquals("expect version", expectVersion, mojo.getOakpalCoreVersion());
+    }
+    @Test
+    public void testGetOakpalCoreVersionWithCoreAndApi() {
+        final OpearPackageMojo mojo = newMojo();
+        final MavenProject project = mock(MavenProject.class);
+        mojo.project = project;
+        final MavenSession session = mock(MavenSession.class);
+        mojo.session = session;
+        final MavenExecutionRequest executionRequest = mock(MavenExecutionRequest.class);
+        when(session.getRequest()).thenReturn(executionRequest);
+        final String expectApiVersion = "0.31415926535898";
+        final String expectCoreVersion = "1.31415926535898";
+
+        final RepositorySystem repositorySystem = mock(RepositorySystem.class);
+        mojo.repositorySystem = repositorySystem;
+        final Dependency oakpalApiDep = new DependencyFilter()
+                .withGroupId(OAKPAL_GROUP_ID)
+                .withArtifactId(OAKPAL_API_ARTIFACT_ID)
+                .withVersion(expectApiVersion)
+                .toDependency();
+        final Artifact oakpalApiArt = mock(Artifact.class);
+        when(oakpalApiArt.getGroupId()).thenReturn(OAKPAL_GROUP_ID);
+        when(oakpalApiArt.getArtifactId()).thenReturn(OAKPAL_API_ARTIFACT_ID);
+        when(oakpalApiArt.getVersion()).thenReturn(expectApiVersion);
+        when(repositorySystem.createDependencyArtifact(oakpalApiDep)).thenReturn(oakpalApiArt);
+
+        final Dependency oakpalCoreDep = new DependencyFilter()
+                .withGroupId(OAKPAL_GROUP_ID)
+                .withArtifactId(OAKPAL_CORE_ARTIFACT_ID)
+                .withVersion(expectCoreVersion)
+                .toDependency();
+        final Artifact oakpalCoreArt = mock(Artifact.class);
+        when(oakpalCoreArt.getGroupId()).thenReturn(OAKPAL_GROUP_ID);
+        when(oakpalCoreArt.getArtifactId()).thenReturn(OAKPAL_CORE_ARTIFACT_ID);
+        when(oakpalCoreArt.getVersion()).thenReturn(expectCoreVersion);
+        when(repositorySystem.createDependencyArtifact(oakpalCoreDep)).thenReturn(oakpalCoreArt);
+
+        final Dependency oakpalApiDepTrans = new DependencyFilter()
+                .withGroupId(OAKPAL_GROUP_ID)
+                .withArtifactId(OAKPAL_API_ARTIFACT_ID)
+                .withVersion(expectCoreVersion)
+                .toDependency();
+        final Artifact oakpalApiArtTrans = mock(Artifact.class);
+        when(oakpalApiArtTrans.getGroupId()).thenReturn(OAKPAL_GROUP_ID);
+        when(oakpalApiArtTrans.getArtifactId()).thenReturn(OAKPAL_API_ARTIFACT_ID);
+        when(oakpalApiArtTrans.getVersion()).thenReturn(expectCoreVersion);
+        when(repositorySystem.createDependencyArtifact(oakpalApiDepTrans)).thenReturn(oakpalApiArtTrans);
+
+        final ArtifactResolutionResult apiOnlyResult = mock(ArtifactResolutionResult.class);
+        when(apiOnlyResult.getArtifacts()).thenReturn(Collections.singleton(oakpalApiArt));
+        final ArtifactResolutionResult coreOnlyResult = mock(ArtifactResolutionResult.class);
+        when(coreOnlyResult.getArtifacts()).thenReturn(Collections.singleton(oakpalCoreArt));
+        final ArtifactResolutionResult coreTransResult = mock(ArtifactResolutionResult.class);
+        when(coreTransResult.getArtifacts()).thenReturn(new HashSet<>(Arrays.asList(oakpalCoreArt, oakpalApiArtTrans)));
+        final ArtifactResolutionResult apiTransOnlyResult = mock(ArtifactResolutionResult.class);
+        when(apiTransOnlyResult.getArtifacts()).thenReturn(Collections.singleton(oakpalApiArtTrans));
+
+        doAnswer(call -> {
+            final ArtifactResolutionRequest request = call.getArgument(0, ArtifactResolutionRequest.class);
+            if (request.getArtifact() == oakpalApiArt) {
+                return apiOnlyResult;
+            } else if (request.getArtifact() == oakpalApiArtTrans) {
+                return apiTransOnlyResult;
+            } else if (request.getArtifact() == oakpalCoreArt) {
+                if (request.isResolveTransitively()) {
+                    return coreTransResult;
+                } else {
+                    return coreOnlyResult;
+                }
+            } else {
+                return null;
+            }
+        }).when(repositorySystem).resolve(any(ArtifactResolutionRequest.class));
+
+        when(project.getDependencies()).thenReturn(Collections.singletonList(oakpalApiDep));
+        assertEquals("expect api version", expectApiVersion, mojo.getOakpalCoreVersion());
+        when(project.getDependencies()).thenReturn(Collections.singletonList(oakpalCoreDep));
+        assertEquals("expect core version", expectCoreVersion, mojo.getOakpalCoreVersion());
+        when(project.getDependencies()).thenReturn(Arrays.asList(oakpalCoreDep, oakpalApiDepTrans));
+        assertEquals("expect core version", expectCoreVersion, mojo.getOakpalCoreVersion());
+        when(project.getDependencies()).thenReturn(Arrays.asList(oakpalApiDep, oakpalCoreDep, oakpalApiDepTrans));
+        assertEquals("expect api version", expectApiVersion, mojo.getOakpalCoreVersion());
+        when(project.getDependencies()).thenReturn(Arrays.asList(oakpalApiDep, oakpalApiDepTrans));
+        assertEquals("expect api version", expectApiVersion, mojo.getOakpalCoreVersion());
+        when(project.getDependencies()).thenReturn(Arrays.asList(oakpalApiDepTrans, oakpalApiDep));
+        assertEquals("expect core version", expectCoreVersion, mojo.getOakpalCoreVersion());
     }
 
     @Test
@@ -949,7 +1074,7 @@ public class OpearPackageMojoTest {
 
         final Result<Map<URL, String>> result = OpearPackageMojo.copyUrlStreams(testOutDir,
                 Stream.of(copyMe1, copyMe2)
-                        .map(Fun.compose(File::toURI, Fun.uncheck1(URI::toURL)))
+                        .map(Fun.compose1(File::toURI, Fun.uncheck1(URI::toURL)))
                         .collect(Collectors.toList())).teeLogError();
         assertTrue("result is successful: " + result.getError(), result.isSuccess());
         assertEquals("same values",

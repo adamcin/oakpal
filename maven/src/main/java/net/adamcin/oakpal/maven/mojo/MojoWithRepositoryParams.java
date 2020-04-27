@@ -12,7 +12,7 @@ import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import net.adamcin.oakpal.core.Fun;
+import net.adamcin.oakpal.api.Fun;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.artifact.repository.DefaultRepositoryRequest;
 import org.apache.maven.artifact.repository.RepositoryRequest;
@@ -77,7 +77,7 @@ public interface MojoWithRepositoryParams extends MojoWithCommonParams {
         dependencyJars.addAll(resolveDependencies(unresolvedDependencies, true));
 
         URL[] urls = dependencyJars.stream()
-                .map(Fun.compose(File::toURI, Fun.uncheck1(URI::toURL)))
+                .map(Fun.compose1(File::toURI, Fun.uncheck1(URI::toURL)))
                 .toArray(URL[]::new);
 
         return new URLClassLoader(urls, getClass().getClassLoader());

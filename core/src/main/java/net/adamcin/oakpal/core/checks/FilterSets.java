@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Mark Adamcin
+ * Copyright 2020 Mark Adamcin
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,23 +16,25 @@
 
 package net.adamcin.oakpal.core.checks;
 
-import net.adamcin.oakpal.core.ProgressCheck;
-import net.adamcin.oakpal.core.ProgressCheckFactory;
-import net.adamcin.oakpal.core.SimpleProgressCheck;
-import net.adamcin.oakpal.core.Violation;
+import net.adamcin.oakpal.api.ProgressCheck;
+import net.adamcin.oakpal.api.ProgressCheckFactory;
+import net.adamcin.oakpal.api.Severity;
+import net.adamcin.oakpal.api.SimpleProgressCheckFactoryCheck;
 import org.apache.jackrabbit.vault.fs.api.ImportMode;
 import org.apache.jackrabbit.vault.fs.api.PathFilterSet;
 import org.apache.jackrabbit.vault.fs.api.WorkspaceFilter;
 import org.apache.jackrabbit.vault.fs.config.MetaInf;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.apache.jackrabbit.vault.packaging.PackageProperties;
+import org.jetbrains.annotations.NotNull;
+import org.osgi.annotation.versioning.ProviderType;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.json.JsonObject;
 import java.util.List;
 
-import static net.adamcin.oakpal.core.JavaxJson.hasNonNull;
+import static net.adamcin.oakpal.api.JavaxJson.hasNonNull;
 
 /**
  * Sanity check for {@link WorkspaceFilter}.
@@ -40,7 +42,7 @@ import static net.adamcin.oakpal.core.JavaxJson.hasNonNull;
  * {@code config} options:
  * <dl>
  * <dt>{@code importModeSeverity}</dt>
- * <dd>(default: {@link net.adamcin.oakpal.core.Violation.Severity#MINOR}) The default {@link ImportMode} for a
+ * <dd>(default: {@link Severity#MINOR}) The default {@link ImportMode} for a
  * filter set is {@link ImportMode#REPLACE}. FileVault also supports {@link ImportMode#UPDATE} and
  * {@link ImportMode#MERGE}, but it also supports forcing the import mode for an entire package via
  * {@link org.apache.jackrabbit.vault.fs.io.ImportOptions#setImportMode(ImportMode)}, which certain platforms use to
@@ -56,37 +58,68 @@ import static net.adamcin.oakpal.core.JavaxJson.hasNonNull;
  * </dl>
  */
 public final class FilterSets implements ProgressCheckFactory {
-    public static final String CONFIG_IMPORT_MODE_SEVERITY = "importModeSeverity";
-    public static final String CONFIG_ALLOW_EMPTY_FILTER = "allowEmptyFilter";
-    public static final String CONFIG_ALLOW_ROOT_FILTER = "allowRootFilter";
-    public static final Violation.Severity DEFAULT_IMPORT_MODE_SEVERITY = Violation.Severity.MINOR;
+    @ProviderType
+    public interface JsonKeys {
+        String importModeSeverity();
 
-    @Override
-    public ProgressCheck newInstance(final JsonObject config) {
-        final Violation.Severity importModeSeverity = Violation.Severity
-                .valueOf(config.getString(CONFIG_IMPORT_MODE_SEVERITY, DEFAULT_IMPORT_MODE_SEVERITY.name())
-                        .toUpperCase());
-        final boolean allowEmptyFilter = hasNonNull(config, CONFIG_ALLOW_EMPTY_FILTER)
-                && config.getBoolean(CONFIG_ALLOW_EMPTY_FILTER);
-        final boolean allowRootFilter = hasNonNull(config, CONFIG_ALLOW_ROOT_FILTER)
-                && config.getBoolean(CONFIG_ALLOW_ROOT_FILTER);
-        return new Check(importModeSeverity, allowEmptyFilter, allowRootFilter);
+        String allowEmptyFilter();
+
+        String allowRootFilter();
     }
 
-    static final class Check extends SimpleProgressCheck {
-        final Violation.Severity importModeSeverity;
-        final boolean allowEmptyFilter;
-        final boolean allowRootFilter;
-
-        Check(final Violation.Severity importModeSeverity, final boolean allowEmptyFilter, final boolean allowRootFilter) {
-            this.importModeSeverity = importModeSeverity;
-            this.allowEmptyFilter = allowEmptyFilter;
-            this.allowRootFilter = allowRootFilter;
+    private static final JsonKeys KEYS = new JsonKeys() {
+        @Override
+        public String importModeSeverity() {
+            return "importModeSeverity";
         }
 
         @Override
-        public String getCheckName() {
-            return FilterSets.class.getSimpleName();
+        public String allowEmptyFilter() {
+            return "allowEmptyFilter";
+        }
+
+        @Override
+        public String allowRootFilter() {
+            return "allowRootFilter";
+        }
+    };
+
+    @NotNull
+    public static JsonKeys keys() {
+        return KEYS;
+    }
+
+    @Deprecated
+    public static final String CONFIG_IMPORT_MODE_SEVERITY = keys().importModeSeverity();
+    @Deprecated
+    public static final String CONFIG_ALLOW_EMPTY_FILTER = keys().allowEmptyFilter();
+    @Deprecated
+    public static final String CONFIG_ALLOW_ROOT_FILTER = keys().allowRootFilter();
+
+    public static final Severity DEFAULT_IMPORT_MODE_SEVERITY = Severity.MINOR;
+
+    @Override
+    public ProgressCheck newInstance(final JsonObject config) {
+        final Severity importModeSeverity = Severity
+                .valueOf(config.getString(keys().importModeSeverity(), DEFAULT_IMPORT_MODE_SEVERITY.name())
+                        .toUpperCase());
+        final boolean allowEmptyFilter = hasNonNull(config, keys().allowEmptyFilter())
+                && config.getBoolean(keys().allowEmptyFilter());
+        final boolean allowRootFilter = hasNonNull(config, keys().allowRootFilter())
+                && config.getBoolean(keys().allowRootFilter());
+        return new Check(importModeSeverity, allowEmptyFilter, allowRootFilter);
+    }
+
+    static final class Check extends SimpleProgressCheckFactoryCheck<FilterSets> {
+        final Severity importModeSeverity;
+        final boolean allowEmptyFilter;
+        final boolean allowRootFilter;
+
+        Check(final Severity importModeSeverity, final boolean allowEmptyFilter, final boolean allowRootFilter) {
+            super(FilterSets.class);
+            this.importModeSeverity = importModeSeverity;
+            this.allowEmptyFilter = allowEmptyFilter;
+            this.allowRootFilter = allowRootFilter;
         }
 
         @Override
@@ -96,19 +129,19 @@ public final class FilterSets implements ProgressCheckFactory {
             final WorkspaceFilter filter = metaInf.getFilter();
             if (filter == null || filter.getFilterSets().isEmpty()) {
                 if (!allowEmptyFilter) {
-                    reportViolation(Violation.Severity.MAJOR,
+                    reportViolation(Severity.MAJOR,
                             "empty workspace filter is not allowed", packageId);
                 }
             } else {
                 for (PathFilterSet filterSet : filter.getFilterSets()) {
                     if (filterSet.getImportMode() != ImportMode.REPLACE) {
-                        reportViolation(importModeSeverity,
-                                String.format("non-default import mode %s defined for filterSet with root %s",
-                                        filterSet.getImportMode(), filterSet.getRoot()),
-                                packageId);
+                        reporting(violation -> violation.withSeverity(importModeSeverity)
+                                .withDescription("non-default import mode {0} defined for filterSet with root {1}")
+                                .withArgument(filterSet.getImportMode(), filterSet.getRoot())
+                                .withPackage(packageId));
                     }
                     if (!allowRootFilter && "/".equals(filterSet.getRoot())) {
-                        reportViolation(Violation.Severity.MAJOR,
+                        reportViolation(Severity.MAJOR,
                                 "root filter sets are not allowed", packageId);
                     }
                 }

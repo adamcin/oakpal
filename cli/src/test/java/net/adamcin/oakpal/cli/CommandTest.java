@@ -1,18 +1,25 @@
 package net.adamcin.oakpal.cli;
 
-import static net.adamcin.oakpal.core.Fun.uncheck0;
-import static net.adamcin.oakpal.core.JavaxJson.key;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.doCallRealMethod;
-import static org.mockito.Mockito.mock;
+import net.adamcin.oakpal.api.Nothing;
+import net.adamcin.oakpal.api.ReportCollector;
+import net.adamcin.oakpal.api.Result;
+import net.adamcin.oakpal.api.Severity;
+import net.adamcin.oakpal.api.SimpleViolation;
+import net.adamcin.oakpal.core.CheckReport;
+import net.adamcin.oakpal.core.FileBlobMemoryNodeStore;
+import net.adamcin.oakpal.core.ReportMapper;
+import net.adamcin.oakpal.core.SimpleReport;
+import net.adamcin.oakpal.testing.TestPackageUtil;
+import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
+import org.apache.jackrabbit.vault.packaging.PackageId;
+import org.jetbrains.annotations.NotNull;
+import org.junit.Before;
+import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import javax.json.JsonObject;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.PrintWriter;
@@ -27,26 +34,19 @@ import java.util.Stack;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import javax.json.JsonObject;
 
-import net.adamcin.oakpal.core.CheckReport;
-import net.adamcin.oakpal.core.FileBlobMemoryNodeStore;
-import net.adamcin.oakpal.core.Nothing;
-import net.adamcin.oakpal.core.ReportCollector;
-import net.adamcin.oakpal.core.ReportMapper;
-import net.adamcin.oakpal.core.Result;
-import net.adamcin.oakpal.core.SimpleReport;
-import net.adamcin.oakpal.core.SimpleViolation;
-import net.adamcin.oakpal.core.Violation;
-import net.adamcin.oakpal.testing.TestPackageUtil;
-import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
-import org.apache.jackrabbit.vault.packaging.PackageId;
-import org.jetbrains.annotations.NotNull;
-import org.junit.Before;
-import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static net.adamcin.oakpal.api.Fun.uncheck0;
+import static net.adamcin.oakpal.api.JavaxJson.key;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doCallRealMethod;
+import static org.mockito.Mockito.mock;
 
 public class CommandTest {
     private static final Logger LOGGER = LoggerFactory.getLogger(CommandTest.class);
@@ -94,10 +94,10 @@ public class CommandTest {
         final List<CheckReport> reports = new ArrayList<>();
         reports.add(new SimpleReport("some check", Collections.emptyList()));
         reports.add(new SimpleReport("check with violations", Arrays.asList(
-                new SimpleViolation(Violation.Severity.MINOR, "minor violation"),
-                new SimpleViolation(Violation.Severity.SEVERE, "severe violation with one packageId",
+                new SimpleViolation(Severity.MINOR, "minor violation"),
+                new SimpleViolation(Severity.SEVERE, "severe violation with one packageId",
                         PackageId.fromString("my_packages/acme/1.0")),
-                new SimpleViolation(Violation.Severity.MAJOR, "major violation with several packageIds",
+                new SimpleViolation(Severity.MAJOR, "major violation with several packageIds",
                         PackageId.fromString("my_packages/alpha/1.0"),
                         PackageId.fromString("my_packages/beta/1.0"),
                         PackageId.fromString("my_packages/gamma/1.0"))
@@ -132,27 +132,27 @@ public class CommandTest {
     @Test
     public void testGetHighestReportSeverity() {
         ReportCollector collector1 = new ReportCollector();
-        collector1.reportViolation(new SimpleViolation(Violation.Severity.MINOR, ""));
-        collector1.reportViolation(new SimpleViolation(Violation.Severity.MAJOR, ""));
+        collector1.reportViolation(new SimpleViolation(Severity.MINOR, ""));
+        collector1.reportViolation(new SimpleViolation(Severity.MAJOR, ""));
         CheckReport hasMajor = new SimpleReport("hasMajor", collector1.getReportedViolations());
         ReportCollector collector2 = new ReportCollector();
-        collector2.reportViolation(new SimpleViolation(Violation.Severity.MINOR, ""));
-        collector2.reportViolation(new SimpleViolation(Violation.Severity.SEVERE, ""));
+        collector2.reportViolation(new SimpleViolation(Severity.MINOR, ""));
+        collector2.reportViolation(new SimpleViolation(Severity.SEVERE, ""));
         CheckReport hasSevere = new SimpleReport("hasSevere", collector2.getReportedViolations());
         ReportCollector collector3 = new ReportCollector();
-        collector3.reportViolation(new SimpleViolation(Violation.Severity.MINOR, ""));
+        collector3.reportViolation(new SimpleViolation(Severity.MINOR, ""));
         CheckReport hasMinor = new SimpleReport("hasMinor", collector3.getReportedViolations());
         final Console console = getMockConsole();
         Options optsFailDefault = new Options.Builder()
                 .build(console).getOrDefault(null);
         Options optsFailMinor = new Options.Builder()
-                .setFailOnSeverity(Violation.Severity.MINOR)
+                .setFailOnSeverity(Severity.MINOR)
                 .build(console).getOrDefault(null);
         Options optsFailMajor = new Options.Builder()
-                .setFailOnSeverity(Violation.Severity.MAJOR)
+                .setFailOnSeverity(Severity.MAJOR)
                 .build(console).getOrDefault(null);
         Options optsFailSevere = new Options.Builder()
-                .setFailOnSeverity(Violation.Severity.SEVERE)
+                .setFailOnSeverity(Severity.SEVERE)
                 .build(console).getOrDefault(null);
         final Command command = new Command();
         assertFalse("no exit minor default fail",
@@ -267,22 +267,22 @@ public class CommandTest {
         validator.expectFailure(args("-s", "extreme"));
         validator.expectSuccess(args(),
                 options -> assertEquals("expect major by default",
-                        Violation.Severity.MAJOR, options.getFailOnSeverity()));
+                        Severity.MAJOR, options.getFailOnSeverity()));
         validator.expectSuccess(args("-s", "major"),
                 options -> assertEquals("expect MAJOR",
-                        Violation.Severity.MAJOR, options.getFailOnSeverity()));
+                        Severity.MAJOR, options.getFailOnSeverity()));
         validator.expectSuccess(args("-s", "minor"),
                 options -> assertEquals("expect MINOR",
-                        Violation.Severity.MINOR, options.getFailOnSeverity()));
+                        Severity.MINOR, options.getFailOnSeverity()));
         validator.expectSuccess(args("-s", "minor", "+s"),
                 options -> assertEquals("expect MAJOR after resetting",
-                        Violation.Severity.MAJOR, options.getFailOnSeverity()));
+                        Severity.MAJOR, options.getFailOnSeverity()));
         validator.expectSuccess(args("-s", "severe"),
                 options -> assertEquals("expect severe",
-                        Violation.Severity.SEVERE, options.getFailOnSeverity()));
+                        Severity.SEVERE, options.getFailOnSeverity()));
         validator.expectSuccess(args("-s", "severe", "+s"),
                 options -> assertEquals("expect MAJOR after resetting",
-                        Violation.Severity.MAJOR, options.getFailOnSeverity()));
+                        Severity.MAJOR, options.getFailOnSeverity()));
 
         validator.expectSuccess(args("--no-plan"),
                 options -> assertNull("expect no plan", options.getPlanName()));
@@ -317,6 +317,68 @@ public class CommandTest {
         FileUtils.touch(notAJar);
         validator.expectFailure(args("-f", notAJar.getAbsolutePath()));
     }
+
+
+    @Test
+    public void testParseArgs_adhocOpear() throws Exception {
+        final File testOutDir = new File(testOutputBaseDir, "testParseArgs_adhocOpear");
+        FileUtils.deleteDirectory(testOutDir);
+
+        final File testModuleSrc = new File("src/test/resources/checklists/test_module");
+        final File testModuleJar = new File(testOutDir, "test_module.jar");
+        TestPackageUtil.buildJarFromDir(testModuleSrc, testModuleJar, Collections.emptyMap());
+
+        final File contentPackageSrc = new File("src/test/resources/simple-content");
+        final File contentPackageJar = new File(testOutDir, "simple-content.zip");
+        TestPackageUtil.buildJarFromDir(contentPackageSrc, contentPackageJar, Collections.emptyMap());
+
+        final File planFromFile = new File("src/test/resources/opears/adhocPlan/plan.json");
+
+        final Console console = getMockConsole();
+        final OptionsValidator validator = new OptionsValidator(console);
+
+        validator.expectSuccess(
+                args(
+                        "--plan-file", planFromFile.getAbsolutePath(),
+                        "--plan-file-base", planFromFile.getParentFile().getAbsolutePath(),
+                        "--pre-install-file", contentPackageJar.getAbsolutePath(),
+                        "--extend-classpath", testModuleJar.getAbsolutePath()),
+                options -> {
+                    assertEquals("expect plan file",
+                            planFromFile.getAbsolutePath(), options.getPlanFile().getAbsolutePath());
+                    assertEquals("expect plan file base dir",
+                            planFromFile.getParentFile().getAbsolutePath(), options.getPlanFileBaseDir().getAbsolutePath());
+                    assertTrue("expect pre-install file", options.getPreInstallFiles().stream()
+                            .anyMatch(file -> file.getAbsolutePath().equals(contentPackageJar.getAbsolutePath())));
+                    assertTrue("expect classpath", options.getExtendedClassPathFiles().stream()
+                            .anyMatch(file -> file.getAbsolutePath().equals(testModuleJar.getAbsolutePath())));
+                    assertNotNull("expect test_module-handler.js", options.getScanClassLoader()
+                            .getResource("test_module-handler.js"));
+                });
+
+        validator.expectSuccess(
+                args(
+                        "--plan-file", planFromFile.getAbsolutePath(),
+                        "--no-plan-file",
+                        "--plan-file-base", planFromFile.getParentFile().getAbsolutePath(),
+                        "--no-plan-file-base",
+                        "--pre-install-file", contentPackageJar.getAbsolutePath(),
+                        "--no-pre-install-file",
+                        "--extend-classpath", testModuleJar.getAbsolutePath(),
+                        "--no-extend-classpath"),
+
+                options -> {
+                    assertNull("expect null plan file", options.getPlanFile());
+                    assertNull("expect null plan file base dir", options.getPlanFileBaseDir());
+                    assertFalse("expect no pre-install file", options.getPreInstallFiles().stream()
+                            .anyMatch(file -> file.getAbsolutePath().equals(contentPackageJar.getAbsolutePath())));
+                    assertFalse("expect no classpath", options.getExtendedClassPathFiles().stream()
+                            .anyMatch(file -> file.getAbsolutePath().equals(testModuleJar.getAbsolutePath())));
+                    assertNull("expect no test_module-handler.js", options.getScanClassLoader()
+                            .getResource("test_module-handler.js"));
+                });
+    }
+
 
     @Test
     public void testParseArgs_outputs() throws Exception {
@@ -403,7 +465,6 @@ public class CommandTest {
         validator.expectSuccess(args("-o", validOutFile.getPath()),
                 expectNotJson.apply(fileStack));
     }
-
 
     String captureOutput(final @NotNull BiFunction<Command, Function<Object, IO<Nothing>>, IO<Nothing>> commandStrategy) {
         final Command command = new Command();

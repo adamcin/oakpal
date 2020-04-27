@@ -17,6 +17,9 @@
 package net.adamcin.oakpal.core;
 
 import junitx.util.PrivateAccessor;
+import net.adamcin.oakpal.api.PathAction;
+import net.adamcin.oakpal.api.ProgressCheck;
+import net.adamcin.oakpal.api.SimpleProgressCheck;
 import net.adamcin.oakpal.testing.TestPackageUtil;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
@@ -69,10 +72,10 @@ import java.util.jar.Manifest;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static net.adamcin.oakpal.core.Fun.compose;
-import static net.adamcin.oakpal.core.Fun.toEntry;
-import static net.adamcin.oakpal.core.Fun.uncheck1;
-import static net.adamcin.oakpal.core.Fun.uncheckVoid1;
+import static net.adamcin.oakpal.api.Fun.compose1;
+import static net.adamcin.oakpal.api.Fun.toEntry;
+import static net.adamcin.oakpal.api.Fun.uncheck1;
+import static net.adamcin.oakpal.api.Fun.uncheckVoid1;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -82,10 +85,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.anyBoolean;
 import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.doCallRealMethod;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockitoSession;
 import static org.mockito.Mockito.nullable;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
@@ -377,7 +378,7 @@ public class OakMachineTest {
         final OakMachine machine = builder().withPreInstallUrl(file1.toURI().toURL(), file2.toURI().toURL()).build();
         assertEquals("expect urls",
                 Stream.of(file1.getAbsoluteFile(), file2.getAbsoluteFile())
-                        .map(compose(File::toURI, uncheck1(URI::toURL))).collect(Collectors.toList()),
+                        .map(compose1(File::toURI, uncheck1(URI::toURL))).collect(Collectors.toList()),
                 machine.getPreInstallUrls());
     }
 
@@ -683,7 +684,7 @@ public class OakMachineTest {
         final File testPackage = TestPackageUtil.prepareTestPackage("tmp_foo_bar.zip");
         final ProgressCheck check = mock(ProgressCheck.class);
         doThrow(RepositoryException.class).when(check)
-                .importedPath(any(PackageId.class), anyString(), any(Node.class));
+                .importedPath(any(PackageId.class), anyString(), any(Node.class), any(PathAction.class));
 
         final CompletableFuture<Exception> eLatch = new CompletableFuture<>();
         final CompletableFuture<ProgressCheck> handlerLatch = new CompletableFuture<>();

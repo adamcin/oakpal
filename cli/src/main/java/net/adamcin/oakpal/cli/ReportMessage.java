@@ -1,20 +1,20 @@
 package net.adamcin.oakpal.cli;
 
+import net.adamcin.oakpal.api.Violation;
+import net.adamcin.oakpal.core.CheckReport;
+import org.apache.jackrabbit.vault.packaging.PackageId;
+import org.jetbrains.annotations.NotNull;
+
+import javax.json.JsonObject;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Set;
 import java.util.stream.Collectors;
-import javax.json.JsonObject;
-
-import net.adamcin.oakpal.core.CheckReport;
-import net.adamcin.oakpal.core.Violation;
-import org.apache.jackrabbit.vault.packaging.PackageId;
-import org.jetbrains.annotations.NotNull;
 
 class ReportMessage implements StructuredMessage {
     private final CheckReport report;
 
-    ReportMessage(final @NotNull CheckReport report) {
+    ReportMessage(@NotNull final CheckReport report) {
         this.report = report;
     }
 

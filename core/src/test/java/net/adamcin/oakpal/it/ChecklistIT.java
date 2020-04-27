@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Mark Adamcin
+ * Copyright 2020 Mark Adamcin
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -51,7 +51,8 @@ public class ChecklistIT {
                 "subpackages",
                 "acHandling",
                 "filterSets",
-                "overlaps"
+                "overlaps",
+                "composite-store-alignment"
         ).map(name -> OAKPAL_MODULE_NAME + "/" + OAKPAL_CHECKLIST_BASIC + "/" + name)
                 .collect(Collectors.toList());
 

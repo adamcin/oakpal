@@ -16,10 +16,11 @@
 
 package net.adamcin.oakpal.webster;
 
-import net.adamcin.oakpal.core.Fun;
+import net.adamcin.oakpal.api.Fun;
+import net.adamcin.oakpal.api.Rules;
 import net.adamcin.oakpal.core.JsonCnd;
-import net.adamcin.oakpal.core.Result;
-import net.adamcin.oakpal.core.checks.Rule;
+import net.adamcin.oakpal.api.Result;
+import net.adamcin.oakpal.api.Rule;
 import org.apache.jackrabbit.commons.cnd.CompactNodeTypeDefReader;
 import org.apache.jackrabbit.commons.cnd.ParseException;
 import org.apache.jackrabbit.commons.cnd.TemplateBuilderFactory;
@@ -66,10 +67,10 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static net.adamcin.oakpal.core.Fun.compose;
-import static net.adamcin.oakpal.core.Fun.inSet;
-import static net.adamcin.oakpal.core.Fun.result1;
-import static net.adamcin.oakpal.core.Fun.uncheck1;
+import static net.adamcin.oakpal.api.Fun.compose1;
+import static net.adamcin.oakpal.api.Fun.inSet;
+import static net.adamcin.oakpal.api.Fun.result1;
+import static net.adamcin.oakpal.api.Fun.uncheck1;
 
 /**
  * Interface independent logic for exporting .cnd files from a JCR session.
@@ -212,25 +213,25 @@ public final class CndExporter {
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
 
-        final Function<String, String> normalizer = compose(mapper, qualifier);
+        final Function<String, String> normalizer = compose1(mapper, qualifier);
 
         final Predicate<NodeTypeDefinition> scopeExportFilter = Fun
-                .composeTest(compose(NodeTypeDefinition::getName, normalizer),
-                        (name -> Rule.lastMatch(scopeExportNames, name).isInclude()));
+                .composeTest1(compose1(NodeTypeDefinition::getName, normalizer),
+                        (name -> Rules.lastMatch(scopeExportNames, name).isInclude()));
 
         final Predicate<String> scopeReplaceMatcher =
-                name -> Rule.lastMatch(scopeReplaceNames, name).isInclude();
+                name -> Rules.lastMatch(scopeReplaceNames, name).isInclude();
 
         final Predicate<NodeTypeDefinition> scopeReplaceFilter = Fun
-                .composeTest(compose(NodeTypeDefinition::getName, normalizer), scopeReplaceMatcher);
+                .composeTest1(compose1(NodeTypeDefinition::getName, normalizer), scopeReplaceMatcher);
 
         final Predicate<NodeTypeDefinition> addOrReplaceFilter = Fun
-                .composeTest(compose(NodeTypeDefinition::getName, mapper), inSet(writableTypes.keySet()))
+                .composeTest1(compose1(NodeTypeDefinition::getName, mapper), inSet(writableTypes.keySet()))
                 .negate().or(scopeReplaceFilter);
 
         final Predicate<Name> builtinMatcher = includeBuiltins ? name -> true : Fun.inSet(builtinNodetypes).negate();
         final Predicate<NodeTypeDefinition> builtinFilter =
-                Fun.composeTest(compose(NodeTypeDefinition::getName, mapper), builtinMatcher);
+                Fun.composeTest1(compose1(NodeTypeDefinition::getName, mapper), builtinMatcher);
 
         writableTypes.values().stream()
                 .map(NodeTypeTemplate.class::cast)

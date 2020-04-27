@@ -36,11 +36,9 @@ import javax.jcr.Session;
 import javax.jcr.version.Version;
 import javax.jcr.version.VersionHistory;
 
-import net.adamcin.oakpal.core.Fun;
 import net.adamcin.oakpal.core.ListenerReadOnlyException;
 import net.adamcin.oakpal.core.jcrfacade.version.VersionFacade;
 import net.adamcin.oakpal.core.jcrfacade.version.VersionHistoryFacade;
-import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;

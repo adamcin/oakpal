@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Mark Adamcin
+ * Copyright 2020 Mark Adamcin
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,44 +17,27 @@
 package net.adamcin.oakpal.core;
 
 import org.apache.jackrabbit.vault.packaging.PackageId;
+import org.jetbrains.annotations.Nullable;
+import org.osgi.annotation.versioning.ProviderType;
 
-import java.util.Collection;
+import java.util.MissingResourceException;
+import java.util.ResourceBundle;
 
 /**
- * Simple implementation of a {@link ProgressCheck} with convenient methods for reporting and collecting violations.
+ * @deprecated 2.0.0 use {@link net.adamcin.oakpal.api.SimpleProgressCheck}
  */
-public class SimpleProgressCheck implements ProgressCheck {
-    protected final ReportCollector collector = new ReportCollector();
+@Deprecated
+@ProviderType
+public class SimpleProgressCheck extends net.adamcin.oakpal.api.SimpleProgressCheck implements ProgressCheck {
 
-    protected void reportViolation(final Violation violation) {
-        collector.reportViolation(violation);
+    @Override
+    protected final @Nullable ResourceBundle getResourceBundle() throws MissingResourceException {
+        return null;
     }
 
     protected final void reportViolation(final Violation.Severity severity,
                                          final String description,
                                          final PackageId... packages) {
-        this.reportViolation(new SimpleViolation(severity, description, packages));
-    }
-
-    protected final void minorViolation(final String description, final PackageId... packages) {
-        this.reportViolation(new SimpleViolation(Violation.Severity.MINOR, description, packages));
-    }
-
-    protected final void majorViolation(final String description, final PackageId... packages) {
-        this.reportViolation(new SimpleViolation(Violation.Severity.MAJOR, description, packages));
-    }
-
-    protected final void severeViolation(final String description, final PackageId... packages) {
-        this.reportViolation(new SimpleViolation(Violation.Severity.SEVERE, description, packages));
-    }
-
-    @Override
-    public void startedScan() {
-        collector.clearViolations();
-    }
-
-    @Override
-    public Collection<Violation> getReportedViolations() {
-        return collector.getReportedViolations();
+        this.reportViolation(severity.getSeverity(), description, packages);
     }
 }

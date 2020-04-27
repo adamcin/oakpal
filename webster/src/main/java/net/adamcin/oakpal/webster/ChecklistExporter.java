@@ -16,15 +16,16 @@
 
 package net.adamcin.oakpal.webster;
 
+import net.adamcin.oakpal.api.Rules;
 import net.adamcin.oakpal.core.Checklist;
 import net.adamcin.oakpal.core.ForcedRoot;
-import net.adamcin.oakpal.core.Fun;
-import net.adamcin.oakpal.core.JavaxJson;
+import net.adamcin.oakpal.api.Fun;
+import net.adamcin.oakpal.api.JavaxJson;
 import net.adamcin.oakpal.core.JcrNs;
 import net.adamcin.oakpal.core.JsonCnd;
 import net.adamcin.oakpal.core.NamespaceMappingRequest;
-import net.adamcin.oakpal.core.Result;
-import net.adamcin.oakpal.core.checks.Rule;
+import net.adamcin.oakpal.api.Result;
+import net.adamcin.oakpal.api.Rule;
 import org.apache.jackrabbit.spi.Name;
 import org.apache.jackrabbit.spi.PrivilegeDefinition;
 import org.apache.jackrabbit.spi.QNodeTypeDefinition;
@@ -76,13 +77,11 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static net.adamcin.oakpal.core.Fun.compose;
-import static net.adamcin.oakpal.core.Fun.inferTest1;
-import static net.adamcin.oakpal.core.Fun.mapValue;
-import static net.adamcin.oakpal.core.Fun.testKey;
-import static net.adamcin.oakpal.core.Fun.testValue;
-import static net.adamcin.oakpal.core.Fun.uncheck1;
-import static net.adamcin.oakpal.core.Fun.uncheckVoid1;
+import static net.adamcin.oakpal.api.Fun.compose1;
+import static net.adamcin.oakpal.api.Fun.mapValue;
+import static net.adamcin.oakpal.api.Fun.testKey;
+import static net.adamcin.oakpal.api.Fun.uncheck1;
+import static net.adamcin.oakpal.api.Fun.uncheckVoid1;
 
 /**
  * Exports namespaces, node types, and {@link ForcedRoot}s from a JCR session to assist with project checklist management.
@@ -93,7 +92,7 @@ public final class ChecklistExporter {
     /**
      * Builder for a {@link ChecklistExporter}, which is otherwise immutable.
      */
-    public static class Builder {
+    public static final class Builder {
         private List<Op> operations = new ArrayList<>();
         private List<String> exportTypeDefs = new ArrayList<>();
         private List<Rule> pathScopes = new ArrayList<>();
@@ -150,7 +149,7 @@ public final class ChecklistExporter {
          *
          * @param scopePaths the list of include/exclude patterns
          * @return this builder
-         * @see Rule#lastMatch(List, String)
+         * @see Rules#lastMatch(List, String)
          */
         public Builder withScopePaths(final List<Rule> scopePaths) {
             this.pathScopes = Optional.ofNullable(scopePaths).orElse(Collections.emptyList());
@@ -165,7 +164,7 @@ public final class ChecklistExporter {
          *
          * @param nodeTypeFilters the list of include/exclude patterns
          * @return this builder
-         * @see Rule#lastMatch(List, String)
+         * @see Rules#lastMatch(List, String)
          */
         public Builder withNodeTypeFilters(final List<Rule> nodeTypeFilters) {
             this.nodeTypeFilters = Optional.ofNullable(nodeTypeFilters).orElse(Collections.emptyList());
@@ -225,7 +224,7 @@ public final class ChecklistExporter {
     /**
      * Represents an atomic export operation.
      */
-    static class Op {
+    static final class Op {
         private final SelectorType selectorType;
         private final List<String> args;
 
@@ -372,7 +371,7 @@ public final class ChecklistExporter {
                 return root -> false;
             case REPLACE:
                 // only retain roots excluded by the path filter
-                return root -> Rule.lastMatch(pathScopes, root.getPath()).isExclude();
+                return root -> Rules.lastMatch(pathScopes, root.getPath()).isExclude();
             case MERGE:
             default:
                 // retain everything
@@ -390,7 +389,7 @@ public final class ChecklistExporter {
                 .collect(Collectors.toSet());
         return (resolver, type) -> {
             final String name = type.getName();
-            return Rule.lastMatch(nodeTypeFilters, name).isInclude()
+            return Rules.lastMatch(nodeTypeFilters, name).isInclude()
                     && (singleTypes.contains(name) || Stream.of(type.getSupertypes())
                     .map(NodeType::getName).anyMatch(superTypes::contains));
         };
@@ -451,7 +450,7 @@ public final class ChecklistExporter {
         //final Set<String> finalPrefixes = new HashSet<>();
         final NamespaceMappingRequest.Builder request = new NamespaceMappingRequest.Builder();
         if (!privileges.isEmpty()) {
-            builder.add(Checklist.KEY_JCR_PRIVILEGES, JsonCnd.privilegesToJson(privileges, origMapping));
+            builder.add(Checklist.keys().jcrPrivileges(), JsonCnd.privilegesToJson(privileges, origMapping));
             privileges.stream().flatMap(JsonCnd::namedBy).forEach(request::withQName);
         }
 
@@ -464,7 +463,7 @@ public final class ChecklistExporter {
                 .map(ForcedRoot::toJson)
                 .collect(JsonCollectors.toJsonArray());
 
-        builder.add(Checklist.KEY_FORCED_ROOTS, forcedRootsJson);
+        builder.add(Checklist.keys().forcedRoots(), forcedRootsJson);
 
         // begin nodetype handling
 
@@ -506,7 +505,7 @@ public final class ChecklistExporter {
 
             final JsonObject jcrNodetypes =
                     JsonCnd.toJson(qNodeTypes, new NamespaceMapping(new SessionNamespaceResolver(session)));
-            builder.add(Checklist.KEY_JCR_NODETYPES, jcrNodetypes);
+            builder.add(Checklist.keys().jcrNodetypes(), jcrNodetypes);
         }
 
         // begin namespace handling
@@ -521,7 +520,7 @@ public final class ChecklistExporter {
                 .flatMap(Result::stream)
                 .collect(Collectors.toList());
         if (!exportNamespaces.isEmpty()) {
-            builder.add(Checklist.KEY_JCR_NAMESPACES, JavaxJson.wrap(exportNamespaces));
+            builder.add(Checklist.keys().jcrNamespaces(), JavaxJson.wrap(exportNamespaces));
         }
 
         final JsonObject sorted = builder.build().entrySet().stream()
@@ -651,23 +650,22 @@ public final class ChecklistExporter {
      * @throws RepositoryException when an error occurs
      */
     Optional<ForcedRoot> nodeToRoot(final Node node, final NamespaceMapping mapping) throws RepositoryException {
-        if (Rule.lastMatch(pathScopes, node.getPath()).isExclude()) {
+        if (Rules.lastMatch(pathScopes, node.getPath()).isExclude()) {
             return Optional.empty();
         }
 
         ForcedRoot forcedRoot = new ForcedRoot();
         forcedRoot.setPath(node.getPath());
         final String primaryType = node.getPrimaryNodeType().getName();
-        if (Rule.lastMatch(nodeTypeFilters, QName.parseQName(mapping, QName.Type.NODETYPE, primaryType).toString()).isInclude()) {
+        if (Rules.lastMatch(nodeTypeFilters, QName.parseQName(mapping, QName.Type.NODETYPE, primaryType).toString()).isInclude()) {
             forcedRoot.setPrimaryType(primaryType);
         }
         final List<String> mixinTypes = Stream.of(node.getMixinNodeTypes())
-                .map(compose(NodeType::getName,
+                .map(compose1(NodeType::getName,
                         qName -> QName.parseQName(mapping, QName.Type.NODETYPE, qName).toString()))
-                .filter(name -> Rule.lastMatch(nodeTypeFilters, name).isInclude())
+                .filter(name -> Rules.lastMatch(nodeTypeFilters, name).isInclude())
                 .collect(Collectors.toList());
         forcedRoot.setMixinTypes(mixinTypes);
         return Optional.of(forcedRoot);
     }
-
 }

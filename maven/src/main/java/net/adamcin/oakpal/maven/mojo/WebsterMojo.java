@@ -16,7 +16,7 @@
 
 package net.adamcin.oakpal.maven.mojo;
 
-import net.adamcin.oakpal.core.Fun;
+import net.adamcin.oakpal.api.Fun;
 import net.adamcin.oakpal.maven.component.OakpalComponentConfigurator;
 import net.adamcin.oakpal.webster.CliArgParser;
 import net.adamcin.oakpal.webster.JcrFactory;

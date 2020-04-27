@@ -1,5 +1,6 @@
 package net.adamcin.oakpal.core;
 
+import net.adamcin.oakpal.api.Result;
 import org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants;
 import org.apache.jackrabbit.spi.Name;
 import org.apache.jackrabbit.spi.commons.namespace.NamespaceMapping;
@@ -12,8 +13,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static net.adamcin.oakpal.core.Fun.inSet;
-import static net.adamcin.oakpal.core.Fun.result1;
+import static net.adamcin.oakpal.api.Fun.inSet;
+import static net.adamcin.oakpal.api.Fun.result1;
 
 /**
  * Given all the JCR namespace gymnastics that have to be performed for {@link JsonCnd} and webster, dealing with

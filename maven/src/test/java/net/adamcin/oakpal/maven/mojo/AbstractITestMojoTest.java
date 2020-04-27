@@ -16,19 +16,14 @@
 
 package net.adamcin.oakpal.maven.mojo;
 
+import net.adamcin.oakpal.api.Severity;
+import net.adamcin.oakpal.api.SimpleViolation;
 import net.adamcin.oakpal.core.CheckReport;
 import net.adamcin.oakpal.core.SimpleReport;
-import net.adamcin.oakpal.core.SimpleViolation;
-import net.adamcin.oakpal.core.Violation;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.vault.packaging.PackageId;
-import org.apache.maven.execution.MavenSession;
-import org.apache.maven.plugin.MojoExecution;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
-import org.apache.maven.project.MavenProject;
-import org.apache.maven.repository.RepositorySystem;
-import org.apache.maven.settings.Settings;
 import org.junit.Test;
 
 import java.io.File;
@@ -43,8 +38,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.mockito.Mockito.mock;
 
 public class AbstractITestMojoTest {
     private final File testOutBaseDir = new File("target/test-out/AbstractITestMojoTest");
@@ -97,10 +90,10 @@ public class AbstractITestMojoTest {
         mojo.setLog(log);
         mojo.reactToReports(Arrays.asList(
                 new SimpleReport("one", Collections
-                        .singletonList(new SimpleViolation(Violation.Severity.MINOR, "one",
+                        .singletonList(new SimpleViolation(Severity.MINOR, "one",
                                 packageId))),
                 new SimpleReport("two", Collections
-                        .singletonList(new SimpleViolation(Violation.Severity.MINOR, "two")))));
+                        .singletonList(new SimpleViolation(Severity.MINOR, "two")))));
         assertFalse("no error messages", log.any(MockMojoLog.MockMojoLogEntry::isError));
         assertTrue("expect log header", log.any(entry -> "OakPAL Check Reports".equals(entry.message)));
         assertTrue("expect report one", log.any(entry -> "  one".equals(entry.message)));
@@ -115,14 +108,14 @@ public class AbstractITestMojoTest {
         final PackageId packageId = PackageId.fromString("my_packages:example-one:1.0");
         MockMojoLog log = new MockMojoLog();
         ConcreteMojo mojo = new ConcreteMojo();
-        mojo.setFailOnSeverity(Violation.Severity.MINOR);
+        mojo.setFailOnSeverity(Severity.MINOR);
         mojo.setLog(log);
         final List<CheckReport> reports = Arrays.asList(
                 new SimpleReport("one", Collections
-                        .singletonList(new SimpleViolation(Violation.Severity.MINOR, "one",
+                        .singletonList(new SimpleViolation(Severity.MINOR, "one",
                                 packageId))),
                 new SimpleReport("two", Collections
-                        .singletonList(new SimpleViolation(Violation.Severity.MINOR, "two"))));
+                        .singletonList(new SimpleViolation(Severity.MINOR, "two"))));
         boolean failed = false;
         try {
             mojo.reactToReports(reports);
@@ -210,7 +203,7 @@ public class AbstractITestMojoTest {
             this.summaryFile = summaryFile;
         }
 
-        public void setFailOnSeverity(Violation.Severity failOnSeverity) {
+        public void setFailOnSeverity(Severity failOnSeverity) {
             this.failOnSeverity = failOnSeverity;
         }
 

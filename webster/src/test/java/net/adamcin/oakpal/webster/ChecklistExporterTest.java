@@ -16,9 +16,9 @@
 
 package net.adamcin.oakpal.webster;
 
-import static net.adamcin.oakpal.core.JavaxJson.arr;
-import static net.adamcin.oakpal.core.JavaxJson.key;
-import static net.adamcin.oakpal.core.JavaxJson.obj;
+import static net.adamcin.oakpal.api.JavaxJson.arr;
+import static net.adamcin.oakpal.api.JavaxJson.key;
+import static net.adamcin.oakpal.api.JavaxJson.obj;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -47,15 +47,15 @@ import javax.json.JsonArray;
 import javax.json.JsonObject;
 import javax.json.JsonReader;
 
+import net.adamcin.oakpal.api.Rules;
 import net.adamcin.oakpal.core.Checklist;
 import net.adamcin.oakpal.core.ForcedRoot;
-import net.adamcin.oakpal.core.Fun;
+import net.adamcin.oakpal.api.Fun;
 import net.adamcin.oakpal.core.InitStage;
-import net.adamcin.oakpal.core.JavaxJson;
+import net.adamcin.oakpal.api.JavaxJson;
 import net.adamcin.oakpal.core.JcrNs;
 import net.adamcin.oakpal.core.JsonCnd;
 import net.adamcin.oakpal.core.OakMachine;
-import net.adamcin.oakpal.core.checks.Rule;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.commons.NamespaceHelper;
 import org.apache.jackrabbit.spi.commons.namespace.NamespaceMapping;
@@ -187,10 +187,10 @@ public class ChecklistExporterTest {
             pathExporter.updateChecklist(() -> new OutputStreamWriter(
                             new FileOutputStream(pass1Checklist), StandardCharsets.UTF_8),
                     session, Checklist.fromJson("", null, obj()
-                            .key(Checklist.KEY_JCR_NAMESPACES, Collections
+                            .key(Checklist.keys().jcrNamespaces(), Collections
                                     .singletonList(JcrNs.create("sling",
                                             "http://sling.apache.org/jcr/sling/1.0")))
-                            .key(Checklist.KEY_JCR_PRIVILEGES, obj()
+                            .key(Checklist.keys().jcrPrivileges(), obj()
                                     .key("sling:doesAll", obj()
                                             .key("contains", arr("sling:doOne", "sling:doTwo")))
                                     .get())
@@ -199,11 +199,11 @@ public class ChecklistExporterTest {
             try (JsonReader reader = Json.createReader(new FileInputStream(pass1Checklist))) {
                 JsonObject checklist = reader.readObject();
                 assertTrue("checklist object should contain the forcedRoots key",
-                        checklist.containsKey(Checklist.KEY_FORCED_ROOTS));
+                        checklist.containsKey(Checklist.keys().forcedRoots()));
                 assertTrue("checklist object should contain the privileges key",
-                        checklist.containsKey(Checklist.KEY_JCR_PRIVILEGES));
+                        checklist.containsKey(Checklist.keys().jcrPrivileges()));
 
-                JsonArray forcedRoots = checklist.getJsonArray(Checklist.KEY_FORCED_ROOTS);
+                JsonArray forcedRoots = checklist.getJsonArray(Checklist.keys().forcedRoots());
                 assertEquals("forcedRoots should be array with expected number of elements", allPaths.size(),
                         forcedRoots.size());
 
@@ -237,11 +237,11 @@ public class ChecklistExporterTest {
             try (JsonReader reader = Json.createReader(new FileInputStream(fullPassChecklist))) {
                 JsonObject checklist = reader.readObject();
                 assertTrue("checklist object should contain the forcedRoots key",
-                        checklist.containsKey(Checklist.KEY_FORCED_ROOTS));
+                        checklist.containsKey(Checklist.keys().forcedRoots()));
                 assertTrue("checklist object should contain the privileges key",
-                        checklist.containsKey(Checklist.KEY_JCR_PRIVILEGES));
+                        checklist.containsKey(Checklist.keys().jcrPrivileges()));
 
-                JsonArray forcedRoots = checklist.getJsonArray(Checklist.KEY_FORCED_ROOTS);
+                JsonArray forcedRoots = checklist.getJsonArray(Checklist.keys().forcedRoots());
                 assertEquals("forcedRoots should be array with expected number of elements", allPaths.size(),
                         forcedRoots.size());
 
@@ -260,8 +260,8 @@ public class ChecklistExporterTest {
         TestUtil.withReadOnlyFixture(diffRepoDir, session -> {
             ChecklistExporter diffExporter = new ChecklistExporter.Builder()
                     .byNodeType("sling:Folder")
-                    .withScopePaths(Rule.fromJsonArray(arr(key("type", "include").key("pattern", pathPrefix + "/ordered.*")).get()))
-                    .withNodeTypeFilters(Rule.fromJsonArray(arr(key("type", "exclude").key("pattern", "sling:.*")).get()))
+                    .withScopePaths(Rules.fromJsonArray(arr(key("type", "include").key("pattern", pathPrefix + "/ordered.*")).get()))
+                    .withNodeTypeFilters(Rules.fromJsonArray(arr(key("type", "exclude").key("pattern", "sling:.*")).get()))
                     .build();
 
             try (JsonReader reader = Json.createReader(new FileInputStream(fullPassChecklist))) {
@@ -291,9 +291,9 @@ public class ChecklistExporterTest {
             try (JsonReader reader = Json.createReader(new FileInputStream(mergePassChecklist))) {
                 JsonObject checklist = reader.readObject();
                 assertTrue("checklist object should contain the forcedRoots key",
-                        checklist.containsKey(Checklist.KEY_FORCED_ROOTS));
+                        checklist.containsKey(Checklist.keys().forcedRoots()));
 
-                JsonArray forcedRoots = checklist.getJsonArray(Checklist.KEY_FORCED_ROOTS);
+                JsonArray forcedRoots = checklist.getJsonArray(Checklist.keys().forcedRoots());
                 assertEquals("[mergePass] forcedRoots should be array with expected number of elements", allPaths.size(),
                         forcedRoots.size());
 
@@ -323,9 +323,9 @@ public class ChecklistExporterTest {
             try (JsonReader reader = Json.createReader(new FileInputStream(replacePassChecklist))) {
                 JsonObject checklist = reader.readObject();
                 assertTrue("checklist object should contain the forcedRoots key",
-                        checklist.containsKey(Checklist.KEY_FORCED_ROOTS));
+                        checklist.containsKey(Checklist.keys().forcedRoots()));
 
-                JsonArray forcedRoots = checklist.getJsonArray(Checklist.KEY_FORCED_ROOTS);
+                JsonArray forcedRoots = checklist.getJsonArray(Checklist.keys().forcedRoots());
                 assertEquals("[replacePass] forcedRoots should be array with expected number of elements",
                         1 + unorderedPaths.size() + orderedPaths.stream().filter(path -> path.matches(".*[02468]$")).count(),
                         forcedRoots.size());
@@ -358,9 +358,9 @@ public class ChecklistExporterTest {
             try (JsonReader reader = Json.createReader(new FileInputStream(truncatePassChecklist))) {
                 JsonObject checklist = reader.readObject();
                 assertTrue("checklist object should contain the forcedRoots key",
-                        checklist.containsKey(Checklist.KEY_FORCED_ROOTS));
+                        checklist.containsKey(Checklist.keys().forcedRoots()));
 
-                JsonArray forcedRoots = checklist.getJsonArray(Checklist.KEY_FORCED_ROOTS);
+                JsonArray forcedRoots = checklist.getJsonArray(Checklist.keys().forcedRoots());
                 assertEquals("[truncatePass] forcedRoots should be array with expected number of elements",
                         orderedPaths.stream().filter(path -> path.matches(".*[02468]$")).count(), forcedRoots.size());
 
@@ -499,7 +499,7 @@ public class ChecklistExporterTest {
             Node node2 = JcrUtils.getOrCreateByPath("/test_exclude/node2", "nt:folder", session);
 
             ChecklistExporter exporter = new ChecklistExporter.Builder()
-                    .withScopePaths(Rule
+                    .withScopePaths(Rules
                             .fromJsonArray(arr(key("type", "include").key("pattern", "/test_include(/.*)?"))
                                     .get())).build();
 
@@ -525,15 +525,15 @@ public class ChecklistExporterTest {
             node1.addMixin("sling:ResourceSuperType");
 
             ChecklistExporter mixExporter = new ChecklistExporter.Builder().withNodeTypeFilters(
-                    Rule.fromJsonArray(arr(key("type", "include").key("pattern", "mix:.*"))
+                    Rules.fromJsonArray(arr(key("type", "include").key("pattern", "mix:.*"))
                             .get())).build();
 
             ChecklistExporter slingExporter = new ChecklistExporter.Builder().withNodeTypeFilters(
-                    Rule.fromJsonArray(arr(key("type", "include").key("pattern", "sling:.*"))
+                    Rules.fromJsonArray(arr(key("type", "include").key("pattern", "sling:.*"))
                             .get())).build();
 
             ChecklistExporter rtExporter = new ChecklistExporter.Builder().withNodeTypeFilters(
-                    Rule.fromJsonArray(arr(key("type", "include").key("pattern", "sling:Resource"))
+                    Rules.fromJsonArray(arr(key("type", "include").key("pattern", "sling:Resource"))
                             .get())).build();
 
             ForcedRoot mixRoot = mixExporter.nodeToRoot(node1, mapping).orElse(null);

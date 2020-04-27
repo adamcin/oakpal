@@ -16,6 +16,8 @@
 
 package net.adamcin.oakpal.core;
 
+import net.adamcin.oakpal.api.JavaxJson;
+import net.adamcin.oakpal.api.JsonObjectConvertible;
 import org.apache.jackrabbit.spi.PrivilegeDefinition;
 import org.apache.jackrabbit.spi.QNodeTypeDefinition;
 import org.apache.jackrabbit.spi.commons.conversion.DefaultNamePathResolver;
@@ -23,6 +25,7 @@ import org.apache.jackrabbit.spi.commons.conversion.NamePathResolver;
 import org.apache.jackrabbit.spi.commons.namespace.NamespaceMapping;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.osgi.annotation.versioning.ProviderType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,47 +42,115 @@ import java.util.jar.JarFile;
 import java.util.stream.Collectors;
 
 import static java.util.Optional.ofNullable;
-import static net.adamcin.oakpal.core.Fun.compose;
-import static net.adamcin.oakpal.core.Fun.uncheck1;
-import static net.adamcin.oakpal.core.JavaxJson.hasNonNull;
-import static net.adamcin.oakpal.core.JavaxJson.obj;
-import static net.adamcin.oakpal.core.JavaxJson.optArray;
-import static net.adamcin.oakpal.core.JavaxJson.optObject;
-import static net.adamcin.oakpal.core.JavaxJson.parseFromArray;
+import static net.adamcin.oakpal.api.Fun.compose1;
+import static net.adamcin.oakpal.api.Fun.uncheck1;
+import static net.adamcin.oakpal.api.JavaxJson.hasNonNull;
+import static net.adamcin.oakpal.api.JavaxJson.obj;
+import static net.adamcin.oakpal.api.JavaxJson.optArray;
+import static net.adamcin.oakpal.api.JavaxJson.optObject;
+import static net.adamcin.oakpal.api.JavaxJson.parseFromArray;
 
 /**
  * It's a list of checks, along with initStage properties allowing jars to share CNDs, JCR namespaces and privileges,
  * and forced roots.
  */
-public final class Checklist implements JavaxJson.ObjectConvertible {
+public final class Checklist implements JsonObjectConvertible {
+
+    /**
+     * Json keys for Checklist. Use {@link #keys()} to access singleton.
+     */
+    @ProviderType
+    public interface JsonKeys {
+        String name();
+
+        String cndUrls();
+
+        String cndNames();
+
+        String jcrNodetypes();
+
+        String jcrNamespaces();
+
+        String jcrPrivileges();
+
+        String forcedRoots();
+
+        String checks();
+
+        List<String> orderedKeys();
+    }
+
+    private static final JsonKeys KEYS = new JsonKeys() {
+        private final List<String> allKeys = Arrays.asList(
+                name(),
+                checks(),
+                forcedRoots(),
+                cndNames(),
+                cndUrls(),
+                jcrNodetypes(),
+                jcrPrivileges(),
+                jcrNamespaces());
+
+        @Override
+        public String name() {
+            return "name";
+        }
+
+        @Override
+        public String cndUrls() {
+            return "cndUrls";
+        }
+
+        @Override
+        public String cndNames() {
+            return "cndNames";
+        }
+
+        @Override
+        public String jcrNodetypes() {
+            return "jcrNodetypes";
+        }
+
+        @Override
+        public String jcrNamespaces() {
+            return "jcrNamespaces";
+        }
+
+        @Override
+        public String jcrPrivileges() {
+            return "jcrPrivileges";
+        }
+
+        @Override
+        public String forcedRoots() {
+            return "forcedRoots";
+        }
+
+        @Override
+        public String checks() {
+            return "checks";
+        }
+
+        @Override
+        public List<String> orderedKeys() {
+            return allKeys;
+        }
+    };
+
+    @NotNull
+    public static Checklist.JsonKeys keys() {
+        return KEYS;
+    }
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Checklist.class);
 
-    static final String KEY_NAME = "name";
-    static final String KEY_CND_URLS = "cndUrls";
-    static final String KEY_CND_NAMES = "cndNames";
-    public static final String KEY_JCR_NODETYPES = "jcrNodetypes";
-    public static final String KEY_JCR_NAMESPACES = "jcrNamespaces";
-    public static final String KEY_JCR_PRIVILEGES = "jcrPrivileges";
-    public static final String KEY_FORCED_ROOTS = "forcedRoots";
-    static final String KEY_CHECKS = "checks";
-
-    static final List<String> KEY_ORDER = Arrays.asList(
-            Checklist.KEY_NAME,
-            Checklist.KEY_CHECKS,
-            Checklist.KEY_FORCED_ROOTS,
-            Checklist.KEY_CND_NAMES,
-            Checklist.KEY_CND_URLS,
-            Checklist.KEY_JCR_NODETYPES,
-            Checklist.KEY_JCR_PRIVILEGES,
-            Checklist.KEY_JCR_NAMESPACES);
-
     static final Comparator<String> checklistKeyComparator = (s1, s2) -> {
-        if (KEY_ORDER.contains(s1) && KEY_ORDER.contains(s2)) {
-            return Integer.compare(KEY_ORDER.indexOf(s1), KEY_ORDER.indexOf(s2));
-        } else if (KEY_ORDER.contains(s1)) {
+        final List<String> keyOrder = keys().orderedKeys();
+        if (keyOrder.contains(s1) && keyOrder.contains(s2)) {
+            return Integer.compare(keyOrder.indexOf(s1), keyOrder.indexOf(s2));
+        } else if (keyOrder.contains(s1)) {
             return -1;
-        } else if (KEY_ORDER.contains(s2)) {
+        } else if (keyOrder.contains(s2)) {
             return 1;
         } else {
             return s1.compareTo(s2);
@@ -120,6 +191,7 @@ public final class Checklist implements JavaxJson.ObjectConvertible {
         this.checks = checks;
     }
 
+
     public String getModuleName() {
         return moduleName;
     }
@@ -143,7 +215,7 @@ public final class Checklist implements JavaxJson.ObjectConvertible {
     public List<String> getJcrPrivilegeNames() {
         final NamePathResolver resolver = new DefaultNamePathResolver(JsonCnd.toNamespaceMapping(jcrNamespaces));
         return jcrPrivileges.stream()
-                .map(compose(PrivilegeDefinition::getName, uncheck1(resolver::getJCRName)))
+                .map(compose1(PrivilegeDefinition::getName, uncheck1(resolver::getJCRName)))
                 .collect(Collectors.toList());
     }
 
@@ -173,7 +245,7 @@ public final class Checklist implements JavaxJson.ObjectConvertible {
         return builder.build();
     }
 
-    static class Builder {
+    static final class Builder {
         private final String moduleName;
         private String name;
         private List<QNodeTypeDefinition> jcrNodetypes = new ArrayList<>();
@@ -287,15 +359,15 @@ public final class Checklist implements JavaxJson.ObjectConvertible {
             return this.originalJson;
         } else {
             final NamespaceMapping mapping = JsonCnd.toNamespaceMapping(getJcrNamespaces());
+            final JsonKeys jsonKeys = keys();
             return obj()
-                    .key(KEY_NAME).opt(getName())
-
-                    .key(KEY_CHECKS).opt(checks)
-                    .key(KEY_FORCED_ROOTS).opt(getForcedRoots())
-                    .key(KEY_CND_URLS).opt(getCndUrls())
-                    .key(KEY_JCR_NODETYPES).opt(JsonCnd.toJson(getJcrNodetypes(), mapping))
-                    .key(KEY_JCR_PRIVILEGES).opt(JsonCnd.privilegesToJson(getJcrPrivileges(), mapping))
-                    .key(KEY_JCR_NAMESPACES).opt(getJcrNamespaces())
+                    .key(jsonKeys.name()).opt(getName())
+                    .key(jsonKeys.checks()).opt(checks)
+                    .key(jsonKeys.forcedRoots()).opt(getForcedRoots())
+                    .key(jsonKeys.cndUrls()).opt(getCndUrls())
+                    .key(jsonKeys.jcrNodetypes()).opt(JsonCnd.toJson(getJcrNodetypes(), mapping))
+                    .key(jsonKeys.jcrPrivileges()).opt(JsonCnd.privilegesToJson(getJcrPrivileges(), mapping))
+                    .key(jsonKeys.jcrNamespaces()).opt(getJcrNamespaces())
                     .get();
         }
     }
@@ -313,12 +385,13 @@ public final class Checklist implements JavaxJson.ObjectConvertible {
                                      final @NotNull JsonObject json) {
         LOGGER.trace("[fromJson] module: {}, manifestUrl: {}, json: {}", moduleName, manifestUrl, json);
         Builder builder = new Builder(moduleName);
-        if (hasNonNull(json, KEY_NAME)) {
-            builder.withName(json.getString(KEY_NAME));
+        final JsonKeys jsonKeys = keys();
+        if (hasNonNull(json, jsonKeys.name())) {
+            builder.withName(json.getString(jsonKeys.name()));
         }
 
         if (manifestUrl != null && manifestUrl.toExternalForm().endsWith(JarFile.MANIFEST_NAME)) {
-            ofNullable(json.getJsonArray(KEY_CND_NAMES))
+            ofNullable(json.getJsonArray(jsonKeys.cndNames()))
                     .filter(Util.traceFilter(LOGGER, "[fromJson#cndNames] cndNames: {}"))
                     .map(cndNames -> JavaxJson.unwrapArray(cndNames).stream()
                             .map(String::valueOf)
@@ -328,28 +401,28 @@ public final class Checklist implements JavaxJson.ObjectConvertible {
         }
 
         builder.withCndUrls(parseFromArray(
-                optArray(json, KEY_CND_URLS).orElse(JsonValue.EMPTY_JSON_ARRAY), URL::new,
+                optArray(json, jsonKeys.cndUrls()).orElse(JsonValue.EMPTY_JSON_ARRAY), URL::new,
                 (element, error) -> LOGGER.debug("[fromJson#cndUrls] (URL ERROR) {}", error.getMessage())));
 
         final List<JcrNs> jcrNsList = new ArrayList<>();
-        optArray(json, KEY_JCR_NAMESPACES).ifPresent(jsonArray -> {
+        optArray(json, jsonKeys.jcrNamespaces()).ifPresent(jsonArray -> {
             jcrNsList.addAll(JavaxJson.mapArrayOfObjects(jsonArray, JcrNs::fromJson));
             builder.withJcrNamespaces(jcrNsList);
         });
-        optObject(json, KEY_JCR_NODETYPES).ifPresent(jsonObject -> {
+        optObject(json, jsonKeys.jcrNodetypes()).ifPresent(jsonObject -> {
             builder.withJcrNodetypes(
                     JsonCnd.getQTypesFromJson(jsonObject,
                             JsonCnd.toNamespaceMapping(jcrNsList)));
         });
-        if (json.containsKey(KEY_JCR_PRIVILEGES)) {
+        if (json.containsKey(jsonKeys.jcrPrivileges())) {
             builder.withJcrPrivileges(
-                    JsonCnd.getPrivilegesFromJson(json.get(KEY_JCR_PRIVILEGES),
-                    JsonCnd.toNamespaceMapping(jcrNsList)));
+                    JsonCnd.getPrivilegesFromJson(json.get(jsonKeys.jcrPrivileges()),
+                            JsonCnd.toNamespaceMapping(jcrNsList)));
         }
-        optArray(json, KEY_FORCED_ROOTS).ifPresent(jsonArray -> {
+        optArray(json, jsonKeys.forcedRoots()).ifPresent(jsonArray -> {
             builder.withForcedRoots(JavaxJson.mapArrayOfObjects(jsonArray, ForcedRoot::fromJson));
         });
-        optArray(json, KEY_CHECKS).ifPresent(jsonArray -> {
+        optArray(json, jsonKeys.checks()).ifPresent(jsonArray -> {
             builder.withChecks(JavaxJson.mapArrayOfObjects(jsonArray, CheckSpec::fromJson));
         });
         final Checklist checklist = builder.build(json);

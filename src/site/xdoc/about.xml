@@ -81,7 +81,7 @@
                 <li>
                     A pluggable listener API with classpath discovery of third-party <a
                         href="https://github.com/adamcin/oakpal/blob/master/core/src/main/resources/OAKPAL-INF/checklists/basic.json">
-                    Checklists</a>, <a href="oakpal-core/apidocs/net/adamcin/oakpal/core/ProgressCheck.html">
+                    Checklists</a>, <a href="oakpal-api/apidocs/net/adamcin/oakpal/api/ProgressCheck.html">
                     ProgressChecks</a>, and
                     <a href="oakpal-maven-plugin/writing-a-script-check.html">ScriptProgressChecks</a>, which receive
                     progress tracker events along with read-only access to

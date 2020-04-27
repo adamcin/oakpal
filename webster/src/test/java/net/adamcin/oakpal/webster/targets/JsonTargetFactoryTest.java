@@ -16,16 +16,15 @@
 
 package net.adamcin.oakpal.webster.targets;
 
-import net.adamcin.oakpal.core.JavaxJson;
 import org.junit.Test;
 
 import java.io.File;
 import java.util.stream.Stream;
 
-import static net.adamcin.oakpal.core.Fun.compose;
-import static net.adamcin.oakpal.core.JavaxJson.arr;
-import static net.adamcin.oakpal.core.JavaxJson.key;
-import static net.adamcin.oakpal.core.JavaxJson.obj;
+import static net.adamcin.oakpal.api.Fun.compose1;
+import static net.adamcin.oakpal.api.JavaxJson.arr;
+import static net.adamcin.oakpal.api.JavaxJson.key;
+import static net.adamcin.oakpal.api.JavaxJson.obj;
 import static net.adamcin.oakpal.webster.targets.JsonTargetFactory.CHECKLIST;
 import static net.adamcin.oakpal.webster.targets.JsonTargetFactory.HINT_KEY_MORE_TARGETS;
 import static net.adamcin.oakpal.webster.targets.JsonTargetFactory.KEY_TYPE;
@@ -57,12 +56,12 @@ public class JsonTargetFactoryTest {
     public void testIsTargetType() {
         assertTrue("type name uppercase is target type",
                 Stream.of(JsonTargetFactory.values())
-                        .map(compose(JsonTargetFactory::name, String::toUpperCase))
+                        .map(compose1(JsonTargetFactory::name, String::toUpperCase))
                         .allMatch(JsonTargetFactory::isTargetType));
 
         assertTrue("type name lowercase is target type",
                 Stream.of(JsonTargetFactory.values())
-                        .map(compose(JsonTargetFactory::name, String::toLowerCase))
+                        .map(compose1(JsonTargetFactory::name, String::toLowerCase))
                         .allMatch(JsonTargetFactory::isTargetType));
 
         assertFalse("not a type name is not a target type", JsonTargetFactory.isTargetType(""));

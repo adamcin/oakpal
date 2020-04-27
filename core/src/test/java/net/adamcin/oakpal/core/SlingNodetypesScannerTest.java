@@ -34,9 +34,9 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static net.adamcin.oakpal.core.Fun.compose;
-import static net.adamcin.oakpal.core.Fun.uncheck1;
-import static net.adamcin.oakpal.core.Fun.uncheckVoid1;
+import static net.adamcin.oakpal.api.Fun.compose1;
+import static net.adamcin.oakpal.api.Fun.uncheck1;
+import static net.adamcin.oakpal.api.Fun.uncheckVoid1;
 import static org.junit.Assert.assertEquals;
 
 public class SlingNodetypesScannerTest {
@@ -91,7 +91,7 @@ public class SlingNodetypesScannerTest {
         final ClassLoader orig = Thread.currentThread().getContextClassLoader();
         try {
             Thread.currentThread().setContextClassLoader(
-                    new URLClassLoader(getJars(testBaseDir).map(compose(File::toURI, uncheck1(URI::toURL))).toArray(URL[]::new),
+                    new URLClassLoader(getJars(testBaseDir).map(compose1(File::toURI, uncheck1(URI::toURL))).toArray(URL[]::new),
                             null));
             List<URL> urls = SlingNodetypesScanner.findNodeTypeDefinitions();
             assertEquals("urls size should be: " + urls, 8, urls.size());

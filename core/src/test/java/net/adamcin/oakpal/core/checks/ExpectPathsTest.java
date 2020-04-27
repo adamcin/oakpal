@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Mark Adamcin
+ * Copyright 2020 Mark Adamcin
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,8 +16,12 @@
 
 package net.adamcin.oakpal.core.checks;
 
-import net.adamcin.oakpal.core.Violation;
+import net.adamcin.oakpal.api.Rule;
+import net.adamcin.oakpal.api.RuleType;
+import net.adamcin.oakpal.api.Severity;
+import net.adamcin.oakpal.api.Violation;
 import org.apache.jackrabbit.vault.packaging.PackageId;
+import org.junit.Assert;
 import org.junit.Test;
 
 import javax.jcr.Session;
@@ -27,9 +31,9 @@ import java.util.Collection;
 import java.util.List;
 import java.util.regex.Pattern;
 
-import static net.adamcin.oakpal.core.JavaxJson.arr;
-import static net.adamcin.oakpal.core.JavaxJson.key;
-import static net.adamcin.oakpal.core.JavaxJson.obj;
+import static net.adamcin.oakpal.api.JavaxJson.arr;
+import static net.adamcin.oakpal.api.JavaxJson.key;
+import static net.adamcin.oakpal.api.JavaxJson.obj;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -48,35 +52,35 @@ public class ExpectPathsTest {
         assertTrue("empty expectedPaths", emptyCheck.expectedPaths.isEmpty());
         assertTrue("empty notExpectedPaths", emptyCheck.notExpectedPaths.isEmpty());
         assertTrue("empty afterPackageIdRules", emptyCheck.afterPackageIdRules.isEmpty());
-        assertEquals("expect name", ExpectPaths.class.getSimpleName(), emptyCheck.getCheckName());
+        Assert.assertEquals("expect name", ExpectPaths.class.getSimpleName(), emptyCheck.getCheckName());
         emptyCheck.afterExtract(PackageId.fromString("hey"), mock(Session.class));
         assertTrue("empty violations", emptyCheck.getReportedViolations().isEmpty());
     }
 
     @Test
     public void testNewInstance_expectedPaths() {
-        ExpectPaths.Check check1 = checkFor(key(ExpectPaths.CONFIG_EXPECTED_PATHS, arr("/foo1", "/foo2")).get());
-        assertEquals("expect expectedPaths", Arrays.asList("/foo1", "/foo2"), check1.expectedPaths);
-        ExpectPaths.Check check2 = checkFor(key(ExpectPaths.CONFIG_EXPECTED_PATHS, arr("/foo2", "/foo1")).get());
-        assertEquals("expect expectedPaths", Arrays.asList("/foo2", "/foo1"), check2.expectedPaths);
+        ExpectPaths.Check check1 = checkFor(key(ExpectPaths.keys().expectedPaths(), arr("/foo1", "/foo2")).get());
+        Assert.assertEquals("expect expectedPaths", Arrays.asList("/foo1", "/foo2"), check1.expectedPaths);
+        ExpectPaths.Check check2 = checkFor(key(ExpectPaths.keys().expectedPaths(), arr("/foo2", "/foo1")).get());
+        Assert.assertEquals("expect expectedPaths", Arrays.asList("/foo2", "/foo1"), check2.expectedPaths);
     }
 
     @Test
     public void testNewInstance_notExpectedPaths() {
-        ExpectPaths.Check check1 = checkFor(key(ExpectPaths.CONFIG_NOT_EXPECTED_PATHS, arr("/foo1", "/foo2")).get());
-        assertEquals("expect notExpectedPaths", Arrays.asList("/foo1", "/foo2"), check1.notExpectedPaths);
-        ExpectPaths.Check check2 = checkFor(key(ExpectPaths.CONFIG_NOT_EXPECTED_PATHS, arr("/foo2", "/foo1")).get());
-        assertEquals("expect notExpectedPaths", Arrays.asList("/foo2", "/foo1"), check2.notExpectedPaths);
+        ExpectPaths.Check check1 = checkFor(key(ExpectPaths.keys().notExpectedPaths(), arr("/foo1", "/foo2")).get());
+        Assert.assertEquals("expect notExpectedPaths", Arrays.asList("/foo1", "/foo2"), check1.notExpectedPaths);
+        ExpectPaths.Check check2 = checkFor(key(ExpectPaths.keys().notExpectedPaths(), arr("/foo2", "/foo1")).get());
+        Assert.assertEquals("expect notExpectedPaths", Arrays.asList("/foo2", "/foo1"), check2.notExpectedPaths);
     }
 
     @Test
     public void testNewInstance_afterPackageIdRules() {
         final List<Rule> expectedRules = Arrays.asList(
-                new Rule(Rule.RuleType.INCLUDE, Pattern.compile("whua")),
-                new Rule(Rule.RuleType.EXCLUDE, Pattern.compile("heyy")));
+                new Rule(RuleType.INCLUDE, Pattern.compile("whua")),
+                new Rule(RuleType.EXCLUDE, Pattern.compile("heyy")));
 
-        ExpectPaths.Check check1 = checkFor(key(ExpectPaths.CONFIG_AFTER_PACKAGE_ID_RULES, expectedRules).get());
-        assertEquals("expect afterPackageIdRules", expectedRules, check1.afterPackageIdRules);
+        ExpectPaths.Check check1 = checkFor(key(ExpectPaths.keys().afterPackageIdRules(), expectedRules).get());
+        Assert.assertEquals("expect afterPackageIdRules", expectedRules, check1.afterPackageIdRules);
     }
 
     @Test
@@ -84,22 +88,22 @@ public class ExpectPathsTest {
         ExpectPaths.Check defaultMajorCheck = checkFor(obj()
                 .key("expectedPaths", arr("/foo"))
                 .get());
-        assertEquals("expect major (default)", Violation.Severity.MAJOR, defaultMajorCheck.severity);
+        Assert.assertEquals("expect major (default)", Severity.MAJOR, defaultMajorCheck.severity);
         ExpectPaths.Check minorCheck = checkFor(obj()
                 .key("severity", "minor")
                 .key("expectedPaths", arr("/foo"))
                 .get());
-        assertEquals("expect minor", Violation.Severity.MINOR, minorCheck.severity);
+        Assert.assertEquals("expect minor", Severity.MINOR, minorCheck.severity);
         ExpectPaths.Check majorCheck = checkFor(obj()
                 .key("severity", "major")
                 .key("expectedPaths", arr("/foo"))
                 .get());
-        assertEquals("expect major", Violation.Severity.MAJOR, majorCheck.severity);
+        Assert.assertEquals("expect major", Severity.MAJOR, majorCheck.severity);
         ExpectPaths.Check severeCheck = checkFor(obj()
                 .key("severity", "severe")
                 .key("expectedPaths", arr("/foo"))
                 .get());
-        assertEquals("expect severe", Violation.Severity.SEVERE, severeCheck.severity);
+        Assert.assertEquals("expect severe", Severity.SEVERE, severeCheck.severity);
     }
 
     @Test
@@ -107,7 +111,7 @@ public class ExpectPathsTest {
         ExpectPaths.Check check1 = checkFor(obj().get());
         assertTrue("expect true for empty", check1.shouldExpectAfterExtract(PackageId.fromString("foo")));
 
-        ExpectPaths.Check check2 = checkFor(key(ExpectPaths.CONFIG_AFTER_PACKAGE_ID_RULES, arr()
+        ExpectPaths.Check check2 = checkFor(key(ExpectPaths.keys().afterPackageIdRules(), arr()
                 .val(key("type", "include").key("pattern", "^my_packages:.*"))).get());
         assertFalse("expect false", check2.shouldExpectAfterExtract(PackageId.fromString("adamcin:test:1.0")));
         assertTrue("expect true", check2.shouldExpectAfterExtract(PackageId.fromString("my_packages:test:1.0")));
@@ -142,7 +146,7 @@ public class ExpectPathsTest {
 
     @Test
     public void testStartedScan() throws Exception {
-        ExpectPaths.Check check = checkFor(key(ExpectPaths.CONFIG_EXPECTED_PATHS, arr("/foo")).get());
+        ExpectPaths.Check check = checkFor(key(ExpectPaths.keys().expectedPaths(), arr("/foo")).get());
         final PackageId pid = PackageId.fromString("foo");
         final Session session = mock(Session.class);
         check.afterExtract(pid, session);

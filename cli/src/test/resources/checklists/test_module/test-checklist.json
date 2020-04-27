@@ -1,0 +1,8 @@
+{
+  "checks": [
+    {
+      "name": "test-check",
+      "impl": "test_module-handler.js"
+    }
+  ]
+}

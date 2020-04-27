@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Mark Adamcin
+ * Copyright 2020 Mark Adamcin
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,21 +16,47 @@
 
 package net.adamcin.oakpal.core;
 
+import net.adamcin.oakpal.api.JsonObjectConvertible;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.osgi.annotation.versioning.ProviderType;
 
 import javax.json.JsonObject;
 import java.util.Objects;
 import java.util.Optional;
 
-import static net.adamcin.oakpal.core.JavaxJson.key;
+import static net.adamcin.oakpal.api.JavaxJson.key;
 
 /**
  * Config DTO for JCR Namespace Prefix to URI Mappings.
  */
-public final class JcrNs implements JavaxJson.ObjectConvertible, Comparable<JcrNs> {
-    static final String KEY_PREFIX = "prefix";
-    static final String KEY_URI = "uri";
+public final class JcrNs implements JsonObjectConvertible, Comparable<JcrNs> {
+    /**
+     * Json keys for JcrNs. Use {@link #keys()} to access singleton.
+     */
+    @ProviderType
+    public interface JsonKeys {
+        String prefix();
+
+        String uri();
+    }
+
+    private static final JsonKeys KEYS = new JsonKeys() {
+        @Override
+        public String prefix() {
+            return "prefix";
+        }
+
+        @Override
+        public String uri() {
+            return "uri";
+        }
+    };
+
+    @NotNull
+    public static JcrNs.JsonKeys keys() {
+        return KEYS;
+    }
 
     private String prefix;
     private String uri;
@@ -68,12 +94,12 @@ public final class JcrNs implements JavaxJson.ObjectConvertible, Comparable<JcrN
      * @return a new JCR NS mapping
      */
     public static @Nullable JcrNs fromJson(final @NotNull JsonObject json) {
-        if (!json.containsKey(KEY_PREFIX) || !json.containsKey(KEY_URI)) {
+        if (!json.containsKey(KEYS.prefix()) || !json.containsKey(KEYS.uri())) {
             return null;
         }
         JcrNs jcrNs = new JcrNs();
-        jcrNs.setPrefix(json.getString(KEY_PREFIX, ""));
-        jcrNs.setUri(json.getString(KEY_URI, ""));
+        jcrNs.setPrefix(json.getString(KEYS.prefix(), ""));
+        jcrNs.setUri(json.getString(KEYS.uri(), ""));
         return jcrNs;
     }
 
@@ -107,7 +133,8 @@ public final class JcrNs implements JavaxJson.ObjectConvertible, Comparable<JcrN
 
     @Override
     public JsonObject toJson() {
-        return key(KEY_PREFIX, getPrefix()).key(KEY_URI, getUri()).get();
+        final JsonKeys keys = keys();
+        return key(keys.prefix(), getPrefix()).key(keys.uri(), getUri()).get();
     }
 
     @Override
@@ -120,4 +147,6 @@ public final class JcrNs implements JavaxJson.ObjectConvertible, Comparable<JcrN
         return Optional.of(getPrefix().compareTo(o.getPrefix()))
                 .filter(comp -> comp != 0).orElseGet(() -> getUri().compareTo(o.getUri()));
     }
+
+
 }

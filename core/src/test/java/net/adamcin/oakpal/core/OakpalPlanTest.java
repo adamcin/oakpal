@@ -16,6 +16,8 @@
 
 package net.adamcin.oakpal.core;
 
+import net.adamcin.oakpal.api.ProgressCheck;
+import net.adamcin.oakpal.api.Result;
 import org.apache.jackrabbit.api.JackrabbitWorkspace;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.spi.PrivilegeDefinition;
@@ -31,7 +33,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.jcr.nodetype.NodeTypeManager;
-import javax.json.*;
+import javax.json.Json;
+import javax.json.JsonException;
+import javax.json.JsonObject;
+import javax.json.JsonReader;
+import javax.json.JsonValue;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -41,13 +47,26 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
+import java.util.ResourceBundle;
+import java.util.concurrent.CompletableFuture;
 
-import static net.adamcin.oakpal.core.JavaxJson.*;
-import static org.junit.Assert.*;
+import static net.adamcin.oakpal.api.JavaxJson.arr;
+import static net.adamcin.oakpal.api.JavaxJson.key;
+import static net.adamcin.oakpal.api.JavaxJson.obj;
+import static net.adamcin.oakpal.api.JavaxJson.wrap;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class OakpalPlanTest {
     private static final Logger LOGGER = LoggerFactory.getLogger(OakpalPlanTest.class);
@@ -511,5 +530,22 @@ public class OakpalPlanTest {
         final URI fooRel = new URI("file.json");
         assertEquals("return relative uri when base is not json",
                 fooRel, OakpalPlan.relativizeToBaseParent(fooRoot, fooAbs));
+    }
+
+    @Test
+    public void testInitResourceBundle() throws Exception {
+        CompletableFuture<ResourceBundle> callback = new CompletableFuture<>();
+        OakpalPlan plan = builder().build();
+        ProgressCheck check = mock(ProgressCheck.class);
+        doAnswer(call -> callback.complete(call.getArgument(0)))
+                .when(check).setResourceBundle(nullable(ResourceBundle.class));
+        when(check.getResourceBundleBaseName()).thenReturn(null);
+        plan.initResourceBundle(check, Locale.getDefault(), getClass().getClassLoader());
+        assertFalse("expect callback not done", callback.isDone());
+        when(check.getResourceBundleBaseName()).thenReturn(getClass().getName());
+        plan.initResourceBundle(check, Locale.getDefault(), getClass().getClassLoader());
+        assertSame("expect callback complete with", ResourceBundle.getBundle(getClass().getName()),
+                callback.getNow(null));
+
     }
 }

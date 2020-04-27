@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Mark Adamcin
+ * Copyright 2020 Mark Adamcin
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,12 @@
 
 package net.adamcin.oakpal.core.checks;
 
-import static org.junit.Assert.assertTrue;
+import net.adamcin.oakpal.api.ProgressCheck;
+import net.adamcin.oakpal.core.CheckReport;
+import net.adamcin.oakpal.core.OakMachine;
+import net.adamcin.oakpal.testing.TestPackageUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -24,12 +29,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-import net.adamcin.oakpal.core.CheckReport;
-import net.adamcin.oakpal.core.OakMachine;
-import net.adamcin.oakpal.core.ProgressCheck;
-import net.adamcin.oakpal.testing.TestPackageUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static org.junit.Assert.assertTrue;
 
 public class ProgressCheckTestBase {
     protected final Logger LOGGER = LoggerFactory.getLogger(getClass());

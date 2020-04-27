@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Mark Adamcin
+ * Copyright 2020 Mark Adamcin
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,10 +16,12 @@
 
 package net.adamcin.oakpal.core.checks;
 
+import net.adamcin.oakpal.api.Result;
+import net.adamcin.oakpal.api.Rule;
+import net.adamcin.oakpal.api.RuleType;
+import net.adamcin.oakpal.api.Severity;
 import net.adamcin.oakpal.core.JsonCnd;
 import net.adamcin.oakpal.core.OakMachine;
-import net.adamcin.oakpal.core.Result;
-import net.adamcin.oakpal.core.Violation;
 import org.apache.jackrabbit.api.JackrabbitWorkspace;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
@@ -33,6 +35,7 @@ import org.apache.jackrabbit.spi.commons.name.NameConstants;
 import org.apache.jackrabbit.value.ValueFactoryImpl;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.jetbrains.annotations.NotNull;
+import org.junit.Assert;
 import org.junit.Test;
 
 import javax.jcr.Node;
@@ -53,15 +56,12 @@ import java.util.Objects;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
-import static net.adamcin.oakpal.core.Fun.compose;
-import static net.adamcin.oakpal.core.Fun.uncheck1;
-import static net.adamcin.oakpal.core.JavaxJson.arr;
-import static net.adamcin.oakpal.core.JavaxJson.key;
-import static net.adamcin.oakpal.core.JavaxJson.obj;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
+import static net.adamcin.oakpal.api.Fun.compose1;
+import static net.adamcin.oakpal.api.Fun.uncheck1;
+import static net.adamcin.oakpal.api.JavaxJson.arr;
+import static net.adamcin.oakpal.api.JavaxJson.key;
+import static net.adamcin.oakpal.api.JavaxJson.obj;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -101,17 +101,17 @@ public class ExpectAcesTest {
                 .key("principal", " ").key("principals", arr(" ", "foo"))
                 .key("expectedAces", arr("type=allow;path=/foo;privileges=jcr:read"))
                 .get());
-        assertEquals("expect 1 ace", 1, svCheck.expectedAces.size());
+        Assert.assertEquals("expect 1 ace", 1, svCheck.expectedAces.size());
         ExpectAces.Check mvCheck = checkFor(obj()
                 .key("principal", " ").key("principals", arr("bar", "foo"))
                 .key("expectedAces", arr("type=allow;path=/foo;privileges=jcr:read"))
                 .get());
-        assertEquals("expect 2 ace", 2, mvCheck.expectedAces.size());
+        Assert.assertEquals("expect 2 ace", 2, mvCheck.expectedAces.size());
         ExpectAces.Check jpCheck = checkFor(obj()
                 .key("principal", "coo").key("principals", arr("bar", "foo"))
                 .key("expectedAces", arr("type=allow;path=/foo;privileges=jcr:read"))
                 .get());
-        assertEquals("expect 1 ace", 1, jpCheck.expectedAces.size());
+        Assert.assertEquals("expect 1 ace", 1, jpCheck.expectedAces.size());
     }
 
     @Test
@@ -120,22 +120,22 @@ public class ExpectAcesTest {
                 .key("principal", "foo")
                 .key("expectedAces", arr("type=allow;path=/foo;privileges=jcr:read"))
                 .get());
-        assertEquals("expect major (default)", Violation.Severity.MAJOR, defaultMajorCheck.severity);
+        Assert.assertEquals("expect major (default)", Severity.MAJOR, defaultMajorCheck.severity);
         ExpectAces.Check minorCheck = checkFor(obj()
                 .key("principal", "foo").key("severity", "minor")
                 .key("expectedAces", arr("type=allow;path=/foo;privileges=jcr:read"))
                 .get());
-        assertEquals("expect minor", Violation.Severity.MINOR, minorCheck.severity);
+        Assert.assertEquals("expect minor", Severity.MINOR, minorCheck.severity);
         ExpectAces.Check majorCheck = checkFor(obj()
                 .key("principal", "foo").key("severity", "major")
                 .key("expectedAces", arr("type=allow;path=/foo;privileges=jcr:read"))
                 .get());
-        assertEquals("expect major", Violation.Severity.MAJOR, majorCheck.severity);
+        Assert.assertEquals("expect major", Severity.MAJOR, majorCheck.severity);
         ExpectAces.Check severeCheck = checkFor(obj()
                 .key("principal", "foo").key("severity", "severe")
                 .key("expectedAces", arr("type=allow;path=/foo;privileges=jcr:read"))
                 .get());
-        assertEquals("expect severe", Violation.Severity.SEVERE, severeCheck.severity);
+        Assert.assertEquals("expect severe", Severity.SEVERE, severeCheck.severity);
     }
 
     @Test
@@ -144,7 +144,7 @@ public class ExpectAcesTest {
         assertTrue("empty expectedAces", emptyCheck.expectedAces.isEmpty());
         assertTrue("empty notExpectedPaths", emptyCheck.notExpectedAces.isEmpty());
         assertTrue("empty afterPackageIdRules", emptyCheck.afterPackageIdRules.isEmpty());
-        assertEquals("expect name", ExpectAces.class.getSimpleName(), emptyCheck.getCheckName());
+        Assert.assertEquals("expect name", ExpectAces.class.getSimpleName(), emptyCheck.getCheckName());
         emptyCheck.afterExtract(PackageId.fromString("hey"), mock(Session.class));
         assertTrue("empty violations", emptyCheck.getReportedViolations().isEmpty());
     }
@@ -152,12 +152,12 @@ public class ExpectAcesTest {
     @Test
     public void testNewInstance_afterPackageIdRules() throws Exception {
         final List<Rule> expectedRules = Arrays.asList(
-                new Rule(Rule.RuleType.INCLUDE, Pattern.compile("whua")),
-                new Rule(Rule.RuleType.EXCLUDE, Pattern.compile("heyy")));
+                new Rule(RuleType.INCLUDE, Pattern.compile("whua")),
+                new Rule(RuleType.EXCLUDE, Pattern.compile("heyy")));
 
         ExpectAces.Check check1 = checkFor(key("principal", "nouser")
                 .key(ExpectPaths.CONFIG_AFTER_PACKAGE_ID_RULES, expectedRules).get());
-        assertEquals("expect afterPackageIdRules", expectedRules, check1.afterPackageIdRules);
+        Assert.assertEquals("expect afterPackageIdRules", expectedRules, check1.afterPackageIdRules);
     }
 
     @Test
@@ -168,8 +168,8 @@ public class ExpectAcesTest {
                 ExpectAces.AceCriteria.parse(principal, spec).getOrDefault(null)
         );
         ExpectAces.Check check1 = checkFor(key("principal", principal)
-                .key(ExpectAces.CONFIG_EXPECTED_ACES, arr(spec)).get());
-        assertEquals("expect expectedAces", expectCriterias, check1.expectedAces);
+                .key(ExpectAces.keys().expectedAces(), arr(spec)).get());
+        Assert.assertEquals("expect expectedAces", expectCriterias, check1.expectedAces);
     }
 
     @Test
@@ -180,8 +180,8 @@ public class ExpectAcesTest {
                 ExpectAces.AceCriteria.parse(principal, spec).getOrDefault(null)
         );
         ExpectAces.Check check1 = checkFor(key("principal", principal)
-                .key(ExpectAces.CONFIG_NOT_EXPECTED_ACES, arr(spec)).get());
-        assertEquals("expect notExpectedAces", expectCriterias, check1.notExpectedAces);
+                .key(ExpectAces.keys().notExpectedAces(), arr(spec)).get());
+        Assert.assertEquals("expect notExpectedAces", expectCriterias, check1.notExpectedAces);
     }
 
     @Test(expected = Exception.class)
@@ -192,12 +192,12 @@ public class ExpectAcesTest {
     @Test
     public void testCheck_startedScan() throws Exception {
         ExpectAces.Check check = checkFor(obj()
-                .key(ExpectAces.CONFIG_PRINCIPAL, "nouser")
-                .key(ExpectAces.CONFIG_EXPECTED_ACES, arr()
+                .key(ExpectAces.keys().principal(), "nouser")
+                .key(ExpectAces.keys().expectedAces(), arr()
                         .val("type=allow;path=/foo1;privileges=jcr:read")
                         .val("type=allow;path=/foo1;privileges=rep:write")
                 )
-                .key(ExpectAces.CONFIG_NOT_EXPECTED_ACES, arr()
+                .key(ExpectAces.keys().notExpectedAces(), arr()
                         .val("type=allow;path=/foo2;privileges=jcr:read")
                         .val("type=allow;path=/foo2;privileges=rep:write")
                         // foo3 is not created. a non-existent path should satisfy not-expected aces
@@ -236,13 +236,13 @@ public class ExpectAcesTest {
             check.finishedScan();
         });
 
-        assertEquals("expected violation count", 1, check.getReportedViolations().stream().filter(viol -> viol.getDescription().startsWith("expected: ")).count());
-        assertEquals("expected violated spec ends with rep:write", 1,
+        Assert.assertEquals("expected violation count", 1, check.getReportedViolations().stream().filter(viol -> viol.getDescription().startsWith("expected: ")).count());
+        Assert.assertEquals("expected violated spec ends with rep:write", 1,
                 check.getReportedViolations().stream()
                         .filter(viol -> viol.getDescription().startsWith("expected: ")
                                 && viol.getDescription().endsWith("rep:write")).count());
-        assertEquals("unexpected violation count", 1, check.getReportedViolations().stream().filter(viol -> viol.getDescription().startsWith("unexpected: ")).count());
-        assertEquals("unexpected violated spec ends with jcr:read", 1,
+        Assert.assertEquals("unexpected violation count", 1, check.getReportedViolations().stream().filter(viol -> viol.getDescription().startsWith("unexpected: ")).count());
+        Assert.assertEquals("unexpected violated spec ends with jcr:read", 1,
                 check.getReportedViolations().stream()
                         .filter(viol -> viol.getDescription().startsWith("unexpected: ")
                                 && viol.getDescription().endsWith("jcr:read")).count());
@@ -263,7 +263,7 @@ public class ExpectAcesTest {
         assertTrue("expect true for empty", check1.shouldExpectAfterExtract(PackageId.fromString("foo")));
 
         ExpectAces.Check check2 = checkFor(key("principal", "nouser")
-                .key(ExpectAces.CONFIG_AFTER_PACKAGE_ID_RULES,
+                .key(ExpectAces.keys().afterPackageIdRules(),
                         arr().val(key("type", "include").key("pattern", "^my_packages:.*"))).get());
         assertFalse("expect false", check2.shouldExpectAfterExtract(PackageId.fromString("adamcin:test:1.0")));
         assertTrue("expect true", check2.shouldExpectAfterExtract(PackageId.fromString("my_packages:test:1.0")));
@@ -298,9 +298,9 @@ public class ExpectAcesTest {
         Result<ExpectAces.AceCriteria> noRestrictionsResult = ExpectAces.AceCriteria.parse("nouser", "type=allow;path=/foo;privileges=jcr:read");
         ExpectAces.AceCriteria noRestrictionsCriteria = noRestrictionsResult.getOrDefault(null);
         assertNotNull("expect success with no restrictions", noRestrictionsCriteria);
-        assertEquals("expect path", "/foo", noRestrictionsCriteria.path);
+        Assert.assertEquals("expect path", "/foo", noRestrictionsCriteria.path);
         assertTrue("expect isAllow", noRestrictionsCriteria.isAllow);
-        assertArrayEquals("expect privileges", new String[]{"jcr:read"}, noRestrictionsCriteria.privileges);
+        Assert.assertArrayEquals("expect privileges", new String[]{"jcr:read"}, noRestrictionsCriteria.privileges);
     }
 
     @Test
@@ -312,9 +312,9 @@ public class ExpectAcesTest {
                         new ExpectAces.RestrictionCriteria("myRestriction", null)
                 },
                 null);
-        assertEquals("expect spec", "type=deny;path=/foo;privileges=jcr:read,jcr:all;rep:glob=*;myRestriction",
+        Assert.assertEquals("expect spec", "type=deny;path=/foo;privileges=jcr:read,jcr:all;rep:glob=*;myRestriction",
                 criteriaNoSpec.getSpec());
-        assertEquals("expect toString", "principal:nouser ace:type=deny;path=/foo;privileges=jcr:read,jcr:all;rep:glob=*;myRestriction",
+        Assert.assertEquals("expect toString", "principal:nouser ace:type=deny;path=/foo;privileges=jcr:read,jcr:all;rep:glob=*;myRestriction",
                 criteriaNoSpec.toString());
         ExpectAces.AceCriteria criteriaWithSpec = new ExpectAces.AceCriteria("nouser", false, "/foo",
                 new String[]{"jcr:read", "jcr:all"},
@@ -323,9 +323,9 @@ public class ExpectAcesTest {
                         new ExpectAces.RestrictionCriteria("myRestriction", null)
                 },
                 "whuheay!");
-        assertEquals("expect whatever spec", "whuheay!",
+        Assert.assertEquals("expect whatever spec", "whuheay!",
                 criteriaWithSpec.getSpec());
-        assertEquals("expect whatever toString", "principal:nouser ace:whuheay!",
+        Assert.assertEquals("expect whatever toString", "principal:nouser ace:whuheay!",
                 criteriaWithSpec.toString());
     }
 
@@ -382,7 +382,7 @@ public class ExpectAcesTest {
     static final Privilege[] emptyPrivileges = new Privilege[0];
 
     final Privilege privilegeByName(final @NotNull String name) {
-        final String jcrName = compose(uncheck1(resolver::getQName), uncheck1(resolver::getJCRName)).apply(name);
+        final String jcrName = compose1(uncheck1(resolver::getQName), uncheck1(resolver::getJCRName)).apply(name);
         if (PrivilegeConstants.AGGREGATE_PRIVILEGES.containsKey(jcrName)) {
             return new MockPrivilege(jcrName, Stream.of(PrivilegeConstants.AGGREGATE_PRIVILEGES.get(jcrName))
                     .map(this::privilegeByName).toArray(Privilege[]::new));
@@ -491,14 +491,14 @@ public class ExpectAcesTest {
     @Test
     public void testRestrictionCriteria_equalsHashCode() {
         final ExpectAces.RestrictionCriteria left = new ExpectAces.RestrictionCriteria("left", null);
-        assertEquals("expect same", left, left);
-        assertEquals("expect same hash", left.hashCode(), left.hashCode());
-        assertNotEquals("expect null not equal", left, null);
+        Assert.assertEquals("expect same", left, left);
+        Assert.assertEquals("expect same hash", left.hashCode(), left.hashCode());
+        Assert.assertNotEquals("expect null not equal", left, null);
         final ExpectAces.RestrictionCriteria leftAgain = new ExpectAces.RestrictionCriteria("left", null);
-        assertEquals("expect same", left, leftAgain);
-        assertEquals("expect same hash", left.hashCode(), leftAgain.hashCode());
+        Assert.assertEquals("expect same", left, leftAgain);
+        Assert.assertEquals("expect same hash", left.hashCode(), leftAgain.hashCode());
         final ExpectAces.RestrictionCriteria right = new ExpectAces.RestrictionCriteria("right", null);
-        assertNotEquals("expect not same", left, right);
-        assertNotEquals("expect not same hash", left.hashCode(), right.hashCode());
+        Assert.assertNotEquals("expect not same", left, right);
+        Assert.assertNotEquals("expect not same hash", left.hashCode(), right.hashCode());
     }
 }

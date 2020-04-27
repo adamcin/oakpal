@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Mark Adamcin
+ * Copyright 2020 Mark Adamcin
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,9 +19,7 @@ package net.adamcin.oakpal.core;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.AbstractMap;
 import java.util.Collection;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiConsumer;
@@ -33,1352 +31,625 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collector;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * This alphabet soup provides function transformation methods targeting usage within Java 8+ Streams. Major support for
- * the following functional primitives:
- * <ol>
- * <li>{@link Function}</li>
- * <li>{@link BiFunction}</li>
- * <li>{@link Consumer}</li>
- * <li>{@link BiConsumer}</li>
- * <li>{@link Predicate}</li>
- * <li>{@link BiPredicate}</li>
- * <li>{@link Supplier}</li>
- * </ol>
- * In addition, the {@link Map.Entry} type is treated as a 2-n tuple, or pair, for mapping {@link Map#entrySet()} streams
- * to bifunctions, bipredicates, and biconsumers.
- * Some methods here serve a very simple purpose of supporting immediate type inference of method references,
- * like {@link #infer1(Function)}, which allows {@code infer1(String::valueOf).andThen()}.
- * To support method overloads in lambda and method ref type inference is in play, many method names have a numeric
- * suffix of 0, 1, or 2. (Sometimes the 1 is omitted even when "0" and "2" overloads are defined). This suffix indicates
- * the highest *arity of function arguments, and often represents the arity of a returned function type as well.
- * A Supplier argument represents an *arity of 0, because it takes 0 arguments in order to return a value. A Function
- * has an *arity of 1, because it accepts one argument to return one value. A BiFunction accepts two arguments, and
- * therefore has an *arity of 2. Consumers and Predicates also have an *arity of 1, and BiConsumers and BiPredicates also
- * have an *arity of 2.
- * Another area of treatment is transformation of checked signatures to unchecked signatures via the following functional
- * interfaces:
- * <ol>
- * <li>{@link ThrowingFunction}</li>
- * <li>{@link ThrowingBiFunction}</li>
- * <li>{@link ThrowingConsumer}</li>
- * <li>{@link ThrowingBiConsumer}</li>
- * <li>{@link ThrowingPredicate}</li>
- * <li>{@link ThrowingBiPredicate}</li>
- * <li>{@link ThrowingSupplier}</li>
- * </ol>
- * The {@code uncheck*} methods will catch any checked exception thrown by the above types and rethrow as a
- * {@link FunRuntimeException}.
- * The {@code result*} methods will catch any exception (checked or not) and transform the return type signature to wrap
- * with {@link Result}.
- * For {@link ThrowingConsumer} and {@link ThrowingBiConsumer}, there is no return type to wrap, so
- * {@link #resultNothing1(ThrowingConsumer)} and {@link #resultNothing2(ThrowingBiConsumer)} will transform the consumers
- * to equivalent functions that return a Result wrapping the {@link Nothing} sentinel type.
+ * @deprecated use {@link net.adamcin.oakpal.api.Fun}
  */
-@SuppressWarnings("WeakerAccess")
+@Deprecated
 public final class Fun {
     private Fun() {
         // no construct
     }
 
     /**
-     * What's the most efficient way to stream a single nullable element? I don't know, but maybe I randomly got it
-     * right under the hood.
-     *
-     * @param element the single element to stream
-     * @param <T>     the type of the element within the stream
-     * @return a single-element stream
+     * @deprecated use {@link net.adamcin.oakpal.api.Fun#streamIt(Object)}
      */
+    @Deprecated
     public static <T> Stream<T>
     streamIt(final @Nullable T element) {
-        return element != null ? Stream.of(element) : Stream.empty();
+        return net.adamcin.oakpal.api.Fun.streamIt(element);
     }
 
     /**
-     * Use this to transform a less useful Optional into an equivalent single-element stream.
-     *
-     * @param element the single element to stream, wrapped in an Optional
-     * @param <T>     the type of the element within the stream
-     * @return a single-element stream
+     * @deprecated use {@link net.adamcin.oakpal.api.Fun#streamOpt(Optional)}
      */
+    @Deprecated
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     public static <T> Stream<T>
     streamOpt(final @NotNull Optional<T> element) {
-        return element.map(Stream::of).orElse(Stream.empty());
+        return net.adamcin.oakpal.api.Fun.streamOpt(element);
     }
 
     /**
-     * Transform a consumer into a "tee" (like the Unix command, evoking the shape of the letter, 'T') function that
-     * passes the input argument to output after calling {@link Consumer#accept(Object)} with the input.
-     *
-     * @param consumer the consumer
-     * @param <T>      the input type
-     * @return a tee function
+     * @deprecated use {@link net.adamcin.oakpal.api.Fun#tee(Consumer)}
      */
+    @Deprecated
     public static <T> @NotNull Function<T, T>
     tee(final @NotNull Consumer<? super T> consumer) {
-        return input -> {
-            consumer.accept(input);
-            return input;
-        };
+        return net.adamcin.oakpal.api.Fun.tee(consumer);
     }
 
     /**
-     * Fits a supplier into a pipeline as a constant {@link Function}.
-     *
-     * @param supplier the supplier
-     * @param <T>      the (ignored) input type
-     * @param <R>      the supplied output type
-     * @return a constant Function
+     * @deprecated use {@link net.adamcin.oakpal.api.Fun#constantly1(Supplier)}
      */
+    @Deprecated
     public static <T, R> @NotNull Function<T, R>
     constantly1(final @NotNull Supplier<? extends R> supplier) {
-        return input -> supplier.get();
+        return net.adamcin.oakpal.api.Fun.constantly1(supplier);
     }
 
     /**
-     * Fits a supplier into a pipeline as a constant {@link BiFunction}.
-     *
-     * @param supplier the supplier
-     * @param <K>      the (ignored) input entry key type
-     * @param <V>      the (ignored) input entry value type
-     * @param <R>      the supplied output type
-     * @return a constant BiFunction
+     * @deprecated use {@link net.adamcin.oakpal.api.Fun#constantly2(Supplier)}
      */
+    @Deprecated
     public static <K, V, R> @NotNull BiFunction<K, V, R>
     constantly2(final @NotNull Supplier<? extends R> supplier) {
-        return (input0, input1) -> supplier.get();
+        return net.adamcin.oakpal.api.Fun.constantly2(supplier);
     }
 
     /**
-     * Essentially the same as calling {@link Function#andThen(Function)}, except needing no cast for a method reference
-     * as the {@code before} argument, resulting in function composition of {@code before} followed by {@code after}.
-     *
-     * @param before the before function
-     * @param after  the after function
-     * @param <T>    the input type
-     * @param <I>    the intermediate type
-     * @param <R>    the output type
-     * @return a composed Function
+     * @deprecated use {@link net.adamcin.oakpal.api.Fun#compose1(Function, Function)}
      */
+    @Deprecated
     public static <T, I, R> Function<T, R>
     compose(final @NotNull Function<T, ? extends I> before, final @NotNull Function<? super I, ? extends R> after) {
-        return before.andThen(after);
+        return net.adamcin.oakpal.api.Fun.compose1(before, after);
     }
 
     /**
-     * Compose a Supplier with a Function that maps the original supplied type to a new supplied type.
-     *
-     * @param before the supplier
-     * @param after  the after function
-     * @param <R>    the original supplied type
-     * @param <S>    the new supplied type
-     * @return a composed Supplier
+     * @deprecated use {@link net.adamcin.oakpal.api.Fun#compose0(Supplier, Function)}
      */
+    @Deprecated
     public static <R, S> Supplier<S>
     compose0(final @NotNull Supplier<? extends R> before, final @NotNull Function<? super R, ? extends S> after) {
-        final Function<Nothing, S> composed = compose(constantly1(before), after);
-        return () -> composed.apply(Nothing.instance);
+        return net.adamcin.oakpal.api.Fun.compose0(before, after);
     }
 
     /**
-     * Essentially the same as calling {@link BiFunction#andThen(Function)}, except needing no cast for a method reference
-     * as the {@code before} argument, resulting in function composition of {@code before} followed by {@code after}.
-     *
-     * @param before the before function
-     * @param after  the after function
-     * @param <K>    the input stream entry key type
-     * @param <V>    the input stream entry value type
-     * @param <I>    the intermediate type
-     * @param <R>    the output type
-     * @return a composed BiFunction
+     * @deprecated use {@link net.adamcin.oakpal.api.Fun#compose2(BiFunction, Function)}
      */
+    @Deprecated
     public static <K, V, I, R> BiFunction<K, V, R>
     compose2(final @NotNull BiFunction<K, V, ? extends I> before, final @NotNull Function<? super I, ? extends R> after) {
-        return before.andThen(after);
+        return net.adamcin.oakpal.api.Fun.compose2(before, after);
     }
 
     /**
-     * Compose a Predicate with a preceding input Function that maps the stream element type to the input type of the
-     * Predicate.
-     *
-     * @param inputFunction the preceding input function
-     * @param testResult    the predicate
-     * @param <T>           the pipeline element type
-     * @param <P>           the original predicate input type
-     * @return a composed Predicate
+     * @deprecated use {@link net.adamcin.oakpal.api.Fun#composeTest1(Function, Predicate)}
      */
+    @Deprecated
     public static <T, P> Predicate<T>
     composeTest(final @NotNull Function<? super T, ? extends P> inputFunction,
                 final @NotNull Predicate<? super P> testResult) {
-        return input -> testResult.test(inputFunction.apply(input));
+        return net.adamcin.oakpal.api.Fun.composeTest1(inputFunction, testResult);
     }
 
     /**
-     * Compose a BiPredicate with preceding left and right input Functions that map the stream Entry element key and value
-     * types to the respective input type of the provided BiPredicate.
-     *
-     * @param inputTFunction the preceding left input function
-     * @param inputUFunction the preceding right input function
-     * @param testResult     the predicate
-     * @param <K>            the stream entry key type
-     * @param <V>            the stream entry value type
-     * @param <P>            the original predicate left input type
-     * @param <Q>            the original predicate right input type
-     * @return a composed BiPredicate
+     * @deprecated use {@link net.adamcin.oakpal.api.Fun#composeTest2(Function, Function, BiPredicate)}
      */
+    @Deprecated
     public static <K, V, P, Q> BiPredicate<K, V>
     composeTest2(final @NotNull Function<? super K, ? extends P> inputTFunction,
                  final @NotNull Function<? super V, ? extends Q> inputUFunction,
                  final @NotNull BiPredicate<? super P, ? super Q> testResult) {
-        return (inputK, inputV) -> testResult.test(inputTFunction.apply(inputK), inputUFunction.apply(inputV));
+        return net.adamcin.oakpal.api.Fun.composeTest2(inputTFunction, inputUFunction, testResult);
     }
 
     /**
-     * Compose a BiPredicate with a single preceding BiFunction that maps the stream Entry element key and value types to
-     * the input type of the provided Predicate.
-     *
-     * @param inputFunction the preceding input BiFunction
-     * @param testResult    the predicate
-     * @param <K>           the stream entry key type
-     * @param <V>           the stream entry value type
-     * @param <P>           the original predicate input type
-     * @return a composed BiPredicate
+     * @deprecated use {@link net.adamcin.oakpal.api.Fun#composeTest2(BiFunction, Predicate)}
      */
+    @Deprecated
     public static <K, V, P> BiPredicate<K, V>
     composeTest2(final @NotNull BiFunction<? super K, ? super V, ? extends P> inputFunction,
                  final @NotNull Predicate<? super P> testResult) {
-        return (inputK, inputV) -> testResult.test(inputFunction.apply(inputK, inputV));
+        return net.adamcin.oakpal.api.Fun.composeTest2(inputFunction, testResult);
     }
 
     /**
-     * Infers a {@link Function#apply(Object)} signature as a {@link Consumer}.
-     *
-     * @param inputFunction the Function to use as a Consumer
-     * @param <T>           the consumed input type
-     * @return a Consumer
+     * @deprecated use {@link net.adamcin.oakpal.api.Fun#toVoid1(Function)}
      */
+    @Deprecated
     public static <T> Consumer<T>
     toVoid1(final @NotNull Function<? super T, ?> inputFunction) {
-        return inputFunction::apply;
+        return net.adamcin.oakpal.api.Fun.toVoid1(inputFunction);
     }
 
     /**
-     * Infers a {@link BiFunction#apply(Object, Object)} signature as a {@link BiConsumer}.
-     *
-     * @param inputFunction the BiFunction to use as a BiConsumer
-     * @param <K>           the consumed stream entry key type
-     * @param <V>           the consumed stream entry value type
-     * @return a composed BiConsumer
+     * @deprecated use {@link net.adamcin.oakpal.api.Fun#toVoid2(BiFunction)}
      */
+    @Deprecated
     public static <K, V> BiConsumer<K, V>
     toVoid2(final @NotNull BiFunction<? super K, ? super V, ?> inputFunction) {
-        return inputFunction::apply;
+        return net.adamcin.oakpal.api.Fun.toVoid2(inputFunction);
     }
 
     /**
-     * Infers a static method ref to a Function.
-     *
-     * @param methodRef the method ref
-     * @param <T>       the input type
-     * @param <R>       the output type
-     * @return an inferred Function
+     * @deprecated use {@link net.adamcin.oakpal.api.Fun#infer1(Function)}
      */
+    @Deprecated
     public static <T, R> Function<T, R>
     infer1(final @NotNull Function<? super T, ? extends R> methodRef) {
-        return methodRef::apply;
+        return net.adamcin.oakpal.api.Fun.infer1(methodRef);
     }
 
     /**
-     * Infers a static method ref to a BiFunction.
-     *
-     * @param methodRef the method ref
-     * @param <K>       the input key type
-     * @param <V>       the input value type
-     * @param <R>       the return type
-     * @return an inferred BiFunction
+     * @deprecated use {@link net.adamcin.oakpal.api.Fun#infer2(BiFunction)}
      */
+    @Deprecated
     public static <K, V, R> BiFunction<K, V, R>
     infer2(final @NotNull BiFunction<? super K, ? super V, ? extends R> methodRef) {
-        return methodRef::apply;
+        return net.adamcin.oakpal.api.Fun.infer2(methodRef);
     }
 
     /**
-     * Infers a method ref to a Supplier.
-     *
-     * @param methodRef the method ref
-     * @param <T>       the supplied type
-     * @return an inferred Supplier
+     * @deprecated use {@link net.adamcin.oakpal.api.Fun#infer0(Supplier)}
      */
+    @Deprecated
     public static <T> Supplier<T>
     infer0(final @NotNull Supplier<? extends T> methodRef) {
-        return methodRef::get;
+        return net.adamcin.oakpal.api.Fun.infer0(methodRef);
     }
 
     /**
-     * Infers a method ref to a Predicate.
-     *
-     * @param methodRef the method ref
-     * @param <T>       the input type
-     * @return an inferred Predicate
+     * @deprecated use {@link net.adamcin.oakpal.api.Fun#inferTest1(Predicate)}
      */
+    @Deprecated
     public static <T> Predicate<T>
     inferTest1(final @NotNull Predicate<? super T> methodRef) {
-        return methodRef::test;
+        return net.adamcin.oakpal.api.Fun.inferTest1(methodRef);
     }
 
     /**
-     * Infers a method ref to a BiPredicate.
-     *
-     * @param methodRef the method ref
-     * @param <K>       the input key type
-     * @param <V>       the input value type
-     * @return an inferred BiPredicate
+     * @deprecated use {@link net.adamcin.oakpal.api.Fun#inferTest2(BiPredicate)}
      */
+    @Deprecated
     public static <K, V> BiPredicate<K, V>
     inferTest2(final @NotNull BiPredicate<? super K, ? super V> methodRef) {
-        return methodRef::test;
+        return net.adamcin.oakpal.api.Fun.inferTest2(methodRef);
     }
 
     /**
-     * Parallel method to {@link Nothing#voidToNothing1(Consumer)}, for transforming a {@link ThrowingConsumer} to a
-     * {@link ThrowingFunction} that returns {@link Nothing}.
-     *
-     * @param mayThrowOnAccept the throwing consumer
-     * @param <T>              the consumed type
-     * @return a {@link ThrowingFunction} that returns {@link Nothing}
+     * @deprecated use {@link net.adamcin.oakpal.api.Fun#entryTee(BiConsumer)}
      */
-    public static <T> ThrowingFunction<T, Nothing>
-    throwingVoidToNothing1(final @NotNull ThrowingConsumer<? super T> mayThrowOnAccept) {
-        return input -> {
-            mayThrowOnAccept.tryAccept(input);
-            return Nothing.instance;
-        };
-    }
-
-    /**
-     * Parallel method to {@link Nothing#voidToNothing2(BiConsumer)}, for transforming a {@link ThrowingBiConsumer} to a
-     * {@link ThrowingBiFunction} that returns {@link Nothing}.
-     *
-     * @param mayThrowOnAccept the throwing BiConsumer
-     * @param <K>              the consumed key type
-     * @param <V>              the consumed value type
-     * @return a {@link ThrowingBiFunction} that returns {@link Nothing}
-     */
-    public static <K, V> ThrowingBiFunction<K, V, Nothing>
-    throwingVoidToNothing2(final @NotNull ThrowingBiConsumer<? super K, ? super V> mayThrowOnAccept) {
-        return (inputK, inputV) -> {
-            mayThrowOnAccept.tryAccept(inputK, inputV);
-            return Nothing.instance;
-        };
-    }
-
-    /**
-     * Like {@link #tee(Consumer)}, this method transforms a {@link BiConsumer} into a "tee" (like the Unix command,
-     * evoking the shape of the letter, 'T') function for {@link Map.Entry} streams, that passes the input entry to output
-     * after calling {@link BiConsumer#accept(Object, Object)} with the input entry key and value.
-     *
-     * @param consumer the BiConsumer function
-     * @param <K>      the input entry key type
-     * @param <V>      the input entry value type
-     * @return a tee function for Map.Entry streams
-     */
+    @Deprecated
     public static <K, V> Function<Map.Entry<K, V>, Map.Entry<K, V>>
     entryTee(final @NotNull BiConsumer<? super K, ? super V> consumer) {
-        return entry -> {
-            consumer.accept(entry.getKey(), entry.getValue());
-            return entry;
-        };
+        return net.adamcin.oakpal.api.Fun.entryTee(consumer);
     }
 
     /**
-     * Zips stream elements into {@link Map.Entry} elements as keys, with values mapped from the provided function, which
-     * can, for example, be a {@link Map#get(Object)} method reference to perform a lookup.
-     *
-     * @param valueFunc the function to map a stream element as a key to an associated value for the constructed {@link Map.Entry}
-     * @param <K>       the stream element and entry key type
-     * @param <V>       the entry value type
-     * @return a function to map a stream element type to an entry with the same type for the key
+     * @deprecated use {@link net.adamcin.oakpal.api.Fun#zipKeysWithValueFunc(Function)}
      */
+    @Deprecated
     public static <K, V> Function<K, Map.Entry<K, V>>
     zipKeysWithValueFunc(final @NotNull Function<? super K, ? extends V> valueFunc) {
-        return key -> toEntry(key, valueFunc.apply(key));
+        return net.adamcin.oakpal.api.Fun.zipKeysWithValueFunc(valueFunc);
     }
 
     /**
-     * Zips stream elements into {@link Map.Entry} elements as values, with keys mapped from the provided function, which
-     * can, for example, be a {@link Map#get(Object)} method reference to perform a lookup.
-     *
-     * @param keyFunction the function to map a stream element as a value to an associated key for the constructed {@link Map.Entry}
-     * @param <K>         the entry key type
-     * @param <V>         the stream element and entry value type
-     * @return a function to map a stream element type to an entry with the same type for the value
+     * @deprecated use {@link net.adamcin.oakpal.api.Fun#zipValuesWithKeyFunc(Function)}
      */
+    @Deprecated
     public static <K, V> Function<V, Map.Entry<K, V>>
     zipValuesWithKeyFunc(final @NotNull Function<? super V, ? extends K> keyFunction) {
-        return value -> toEntry(keyFunction.apply(value), value);
+        return net.adamcin.oakpal.api.Fun.zipValuesWithKeyFunc(keyFunction);
     }
 
     /**
-     * An alias for creating a {@link AbstractMap.SimpleImmutableEntry} for the provided key and value.
-     *
-     * @param key   the entry key
-     * @param value the entry value
-     * @param <K>   the entry key type
-     * @param <V>   the entry value type
-     * @return an immutable {@link Map.Entry}
+     * @deprecated use {@link net.adamcin.oakpal.api.Fun#toEntry(Object, Object)}
      */
+    @Deprecated
     public static <K, V> Map.Entry<K, V>
     toEntry(final @Nullable K key, final @Nullable V value) {
-        return new AbstractMap.SimpleImmutableEntry<>(key, value);
+        return net.adamcin.oakpal.api.Fun.toEntry(key, value);
     }
 
     /**
-     * A merge function for {@link #entriesToMap(BinaryOperator)} and {@link #entriesToMapOfType(Supplier, BinaryOperator)}
-     * that keeps the first element defined for a key when merging duplicates.
-     *
-     * @param <V> the entry value type
-     * @return a merge function
+     * @deprecated use {@link net.adamcin.oakpal.api.Fun#keepFirstMerger()}
      */
+    @Deprecated
     public static <V> BinaryOperator<V> keepFirstMerger() {
-        return (kv1, kv2) -> kv1;
+        return net.adamcin.oakpal.api.Fun.keepFirstMerger();
     }
 
     /**
-     * A merge function for {@link #entriesToMap(BinaryOperator)} and {@link #entriesToMapOfType(Supplier, BinaryOperator)}
-     * that keeps the last element defined for a key when merging duplicates.
-     *
-     * @param <V> the entry value type
-     * @return a merge function
+     * @deprecated use {@link net.adamcin.oakpal.api.Fun#keepLastMerger()}
      */
+    @Deprecated
     public static <V> BinaryOperator<V> keepLastMerger() {
-        return (kv1, kv2) -> kv2;
+        return net.adamcin.oakpal.api.Fun.keepLastMerger();
     }
 
     /**
-     * A merge function for {@link #entriesToMap(BinaryOperator)} and {@link #entriesToMapOfType(Supplier, BinaryOperator)}
-     * that throws an {@link IllegalStateException} when merging duplicates to guarantee distinct pairs.
-     *
-     * @param <V> the entry value type
-     * @return a merge function
+     * @deprecated use {@link net.adamcin.oakpal.api.Fun#throwingMerger()}
      */
+    @Deprecated
     public static <V> BinaryOperator<V> throwingMerger() {
-        return (u, v) -> {
-            throw new IllegalStateException(String.format("Duplicate key %s", u));
-        };
+        return net.adamcin.oakpal.api.Fun.throwingMerger();
     }
 
     /**
-     * Shorthand for {@link Collectors#toMap(Function, Function)} for collecting streams of {@link Map.Entry}, except
-     * using {@link #keepLastMerger()} as the merge function, and {@link LinkedHashMap} as the supplied map type. This
-     * preserves stream sequence by default.
-     *
-     * @param <K> the entry key type
-     * @param <V> the entry value type
-     * @return a Map {@link Collector} for a stream of {@link Map.Entry}
+     * @deprecated use {@link net.adamcin.oakpal.api.Fun#entriesToMap()}
      */
+    @Deprecated
     public static <K, V> Collector<Map.Entry<K, V>, ?, Map<K, V>>
     entriesToMap() {
-        return Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, keepLastMerger(), LinkedHashMap::new);
+        return net.adamcin.oakpal.api.Fun.entriesToMap();
     }
 
     /**
-     * Shorthand for {@link Collectors#toMap(Function, Function, BinaryOperator, Supplier)} for collecting streams of
-     * {@link Map.Entry}, except using {@link #keepLastMerger()} as the merge function.
-     *
-     * @param mapSupplier a Map constructor method reference
-     * @param <K>         the entry key type
-     * @param <V>         the entry value type
-     * @return a Map {@link Collector} for a stream of {@link Map.Entry}
+     * @deprecated use {@link net.adamcin.oakpal.api.Fun#entriesToMapOfType(Supplier)}
      */
+    @Deprecated
     public static <K, V> Collector<Map.Entry<K, V>, ?, Map<K, V>>
     entriesToMapOfType(final @NotNull Supplier<Map<K, V>> mapSupplier) {
-        return Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, keepLastMerger(), mapSupplier);
+        return net.adamcin.oakpal.api.Fun.entriesToMapOfType(mapSupplier);
     }
 
     /**
-     * Shorthand for {@link Collectors#toMap(Function, Function, BinaryOperator, Supplier)} for collecting streams of
-     * {@link Map.Entry}, except using {@link LinkedHashMap} as the supplied map type.
-     *
-     * @param mergeFunction a function to merge entry values on key duplication.
-     * @param <K>           the entry key type
-     * @param <V>           the entry value type
-     * @return a Map {@link Collector} for a stream of {@link Map.Entry}
-     * @see #keepFirstMerger()
-     * @see #keepLastMerger()
-     * @see #throwingMerger()
+     * @deprecated use {@link net.adamcin.oakpal.api.Fun#entriesToMap(BinaryOperator)}
      */
+    @Deprecated
     public static <K, V> Collector<Map.Entry<K, V>, ?, Map<K, V>>
     entriesToMap(final @NotNull BinaryOperator<V> mergeFunction) {
-        return Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, mergeFunction, LinkedHashMap::new);
+        return net.adamcin.oakpal.api.Fun.entriesToMap(mergeFunction);
     }
 
     /**
-     * Shorthand for {@link Collectors#toMap(Function, Function, BinaryOperator, Supplier)} for collecting streams of
-     * {@link Map.Entry}.
-     *
-     * @param mapSupplier   a Map constructor method reference
-     * @param mergeFunction a function to merge entry values on key duplication.
-     * @param <K>           the entry key type
-     * @param <V>           the entry value type
-     * @return a Map {@link Collector} for a stream of {@link Map.Entry}
-     * @see #keepFirstMerger()
-     * @see #keepLastMerger()
-     * @see #throwingMerger()
+     * @deprecated use {@link net.adamcin.oakpal.api.Fun#entriesToMapOfType(Supplier, BinaryOperator)}
      */
+    @Deprecated
     public static <K, V> Collector<Map.Entry<K, V>, ?, Map<K, V>>
     entriesToMapOfType(final @NotNull Supplier<Map<K, V>> mapSupplier, final @NotNull BinaryOperator<V> mergeFunction) {
-        return Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, mergeFunction, mapSupplier);
+        return net.adamcin.oakpal.api.Fun.entriesToMapOfType(mapSupplier, mergeFunction);
     }
 
     /**
-     * Transform a {@link BiFunction} to a {@link Function} over {@link Map.Entry} stream elements of the same key and
-     * value type parameters.
-     *
-     * @param biMapFunction the mapping BiFunction
-     * @param <K>           the entry key type
-     * @param <V>           the entry value type
-     * @param <R>           the output type
-     * @return a Function mapping over {@link Map.Entry} elements
+     * @deprecated use {@link net.adamcin.oakpal.api.Fun#mapEntry(BiFunction)}
      */
+    @Deprecated
     public static <K, V, R> Function<Map.Entry<K, V>, R>
     mapEntry(final @NotNull BiFunction<? super K, ? super V, ? extends R> biMapFunction) {
-        return entry -> biMapFunction.apply(entry.getKey(), entry.getValue());
+        return net.adamcin.oakpal.api.Fun.mapEntry(biMapFunction);
     }
 
     /**
-     * Transform a {@link BiFunction} to a {@link Function} over {@link Map.Entry} stream elements of the same key and
-     * value type parameters, that returns new {@link Map.Entry} elements that retain the input key but take the output
-     * of the {@link BiFunction} as the new value.
-     *
-     * @param valueBiFunction the mapping BiFunction
-     * @param <K>             the input and output entry key type
-     * @param <V>             the input entry value type
-     * @param <W>             the output entry value type
-     * @return a Function mapping over {@link Map.Entry} elements
+     * @deprecated use {@link net.adamcin.oakpal.api.Fun#mapValue(BiFunction)}
      */
+    @Deprecated
     public static <K, V, W> Function<Map.Entry<K, V>, Map.Entry<K, W>>
     mapValue(final @NotNull BiFunction<? super K, ? super V, ? extends W> valueBiFunction) {
-        return entry -> toEntry(entry.getKey(), valueBiFunction.apply(entry.getKey(), entry.getValue()));
+        return net.adamcin.oakpal.api.Fun.mapValue(valueBiFunction);
     }
 
     /**
-     * Transform a {@link Function} over value types to a {@link Function} over {@link Map.Entry} stream elements whose
-     * value type matches the input type of the {@link Function}, that returns new {@link Map.Entry} elements that retain
-     * the input key but take the output of the {@link Function} as the new value.
-     *
-     * @param valueFunction the mapping Function
-     * @param <K>           the input and output entry key type
-     * @param <V>           the input entry value type
-     * @param <W>           the output entry value type
-     * @return a Function mapping over {@link Map.Entry} elements
+     * @deprecated use {@link net.adamcin.oakpal.api.Fun#mapValue(Function)}
      */
+    @Deprecated
     public static <K, V, W> Function<Map.Entry<K, V>, Map.Entry<K, W>>
     mapValue(final @NotNull Function<? super V, ? extends W> valueFunction) {
-        return mapValue((key, value) -> valueFunction.apply(value));
+        return net.adamcin.oakpal.api.Fun.mapValue(valueFunction);
     }
 
     /**
-     * Transform a {@link BiFunction} to a {@link Function} over {@link Map.Entry} stream elements of the same key and
-     * value type parameters, that returns new {@link Map.Entry} elements that retain the input value but take the output
-     * of the {@link BiFunction} as the new key.
-     *
-     * @param keyBiFunction the mapping Function
-     * @param <K>           the input entry key type
-     * @param <V>           the input and output entry value type
-     * @param <L>           the output entry key type
-     * @return a Function mapping over {@link Map.Entry} elements
+     * @deprecated use {@link net.adamcin.oakpal.api.Fun#mapKey(BiFunction)}
      */
+    @Deprecated
     public static <K, V, L> Function<Map.Entry<K, V>, Map.Entry<L, V>>
     mapKey(final @NotNull BiFunction<? super K, ? super V, ? extends L> keyBiFunction) {
-        return entry -> toEntry(keyBiFunction.apply(entry.getKey(), entry.getValue()), entry.getValue());
+        return net.adamcin.oakpal.api.Fun.mapKey(keyBiFunction);
     }
 
     /**
-     * Transform a {@link Function} over key types to a {@link Function} over {@link Map.Entry} stream elements whose
-     * key type matches the input type of the {@link Function}, that returns new {@link Map.Entry} elements that retain
-     * the input value but take the output of the {@link Function} as the new key.
-     *
-     * @param keyFunction the mapping Function
-     * @param <K>         the input entry key type
-     * @param <V>         the input and output entry value type
-     * @param <L>         the output entry key type
-     * @return a Function mapping over {@link Map.Entry} elements
+     * @deprecated use {@link net.adamcin.oakpal.api.Fun#mapKey(Function)}
      */
+    @Deprecated
     public static <K, V, L> Function<Map.Entry<K, V>, Map.Entry<L, V>>
     mapKey(final @NotNull Function<? super K, ? extends L> keyFunction) {
-        return mapKey((key, value) -> keyFunction.apply(key));
+        return net.adamcin.oakpal.api.Fun.mapKey(keyFunction);
     }
 
     /**
-     * Transform a {@link BiConsumer} to a {@link Consumer} of {@link Map.Entry} stream elements with matching respective
-     * key and value type parameters.
-     *
-     * @param biConsumer the BiConsumer
-     * @param <K>        the stream entry key type
-     * @param <V>        the stream entry value type
-     * @return a {@link Consumer} of {@link Map.Entry}
+     * @deprecated use {@link net.adamcin.oakpal.api.Fun#onEntry(BiConsumer)}
      */
+    @Deprecated
     public static <K, V> Consumer<Map.Entry<K, V>>
     onEntry(final @NotNull BiConsumer<? super K, ? super V> biConsumer) {
-        return entry -> biConsumer.accept(entry.getKey(), entry.getValue());
+        return net.adamcin.oakpal.api.Fun.onEntry(biConsumer);
     }
 
     /**
-     * Transform a {@link Consumer} of key types to a {@link Consumer} of {@link Map.Entry} stream elements with a matching
-     * key type parameter.
-     *
-     * @param consumer the key consumer
-     * @param <K>      the input type and stream entry key type
-     * @param <V>      the stream entry value type
-     * @return a {@link Consumer} of {@link Map.Entry} stream elements
+     * @deprecated use {@link net.adamcin.oakpal.api.Fun#onKey(Consumer)}
      */
+    @Deprecated
     public static <K, V> Consumer<Map.Entry<K, V>>
     onKey(final @NotNull Consumer<? super K> consumer) {
-        return entry -> consumer.accept(entry.getKey());
+        return net.adamcin.oakpal.api.Fun.onKey(consumer);
     }
 
     /**
-     * Transform a {@link Consumer} of value types to a {@link Consumer} of {@link Map.Entry} stream elements with a matching
-     * value type parameter.
-     *
-     * @param consumer the key consumer
-     * @param <K>      the stream entry key type
-     * @param <V>      the input type and stream entry value type
-     * @return a {@link Consumer} of {@link Map.Entry} stream elements
+     * @deprecated use {@link net.adamcin.oakpal.api.Fun#onValue(Consumer)}
      */
+    @Deprecated
     public static <K, V> Consumer<Map.Entry<K, V>>
     onValue(final @NotNull Consumer<? super V> consumer) {
-        return entry -> consumer.accept(entry.getValue());
+        return net.adamcin.oakpal.api.Fun.onValue(consumer);
     }
 
     /**
-     * Transform a {@link BiPredicate} to a {@link Predicate} testing {@link Map.Entry} stream elements with matching
-     * respective key and value type parameters.
-     *
-     * @param biPredicate the BiPredicate
-     * @param <K>         the input key type
-     * @param <V>         the input value type
-     * @return a {@link Predicate} filtering {@link Map.Entry} stream elements
+     * @deprecated use {@link net.adamcin.oakpal.api.Fun#testEntry(BiPredicate)}
      */
+    @Deprecated
     public static <K, V> Predicate<? super Map.Entry<K, V>>
     testEntry(final @NotNull BiPredicate<? super K, ? super V> biPredicate) {
-        return entry -> biPredicate.test(entry.getKey(), entry.getValue());
+        return net.adamcin.oakpal.api.Fun.testEntry(biPredicate);
     }
 
     /**
-     * Transform a {@link Predicate} of value types to a {@link Predicate} testing {@link Map.Entry} stream elements with
-     * a matching value type parameter.
-     *
-     * @param valuePredicate the Predicate
-     * @param <K>            the stream entry key type
-     * @param <V>            the input type and stream entry value type
-     * @return a {@link Predicate} filtering {@link Map.Entry} stream elements
+     * @deprecated use {@link net.adamcin.oakpal.api.Fun#testValue(Predicate)}
      */
+    @Deprecated
     public static <K, V> Predicate<? super Map.Entry<K, V>>
     testValue(final @NotNull Predicate<? super V> valuePredicate) {
-        return testEntry((key, value) -> valuePredicate.test(value));
+        return net.adamcin.oakpal.api.Fun.testValue(valuePredicate);
     }
 
     /**
-     * Transform a {@link Predicate} of key types to a {@link Predicate} testing {@link Map.Entry} stream elements with
-     * a matching key type parameter.
-     *
-     * @param keyPredicate the Predicate
-     * @param <K>          the input value and stream entry key type
-     * @param <V>          the stream entry value type
-     * @return a {@link Predicate} filtering {@link Map.Entry} stream elements
+     * @deprecated use {@link net.adamcin.oakpal.api.Fun#testKey(Predicate)}
      */
+    @Deprecated
     public static <K, V> Predicate<? super Map.Entry<K, V>>
     testKey(final @NotNull Predicate<? super K> keyPredicate) {
-        return testEntry((key, value) -> keyPredicate.test(key));
+        return net.adamcin.oakpal.api.Fun.testKey(keyPredicate);
     }
 
     /**
-     * This method is used to support type inference around the {@link Collection#contains(Object)} method, whose argument
-     * is not otherwise typed with the element type parameter of the collection. This returns the method reference for the
-     * provided collection's {@code contains} method as a Predicate, but with restrictive type parameters so that it does
-     * not break inference by introducing {@code Object} as the input type bound.
-     *
-     * @param haystack the collection possibly containing stream elements
-     * @param <T>      the stream element type
-     * @param <S>      the collection type wildcard
-     * @return {@code haystack::contains} as a properly bounded predicate
+     * @deprecated use {@link net.adamcin.oakpal.api.Fun#inSet(Collection)}
      */
+    @Deprecated
     public static <T, S extends Collection<? super T>> Predicate<T>
     inSet(final @NotNull S haystack) {
-        return haystack::contains;
+        return net.adamcin.oakpal.api.Fun.inSet(haystack);
     }
 
     /**
-     * This method is used to support type inference around the {@link Map#containsKey(Object)} method, whose argument
-     * is not otherwise typed with the key type parameter of the Map. This returns the method reference for the
-     * provided map's {@code containsKey} method as a Predicate, but with restrictive type parameters so that it does
-     * not break inference by introducing {@code Object} as the input type bound.
-     *
-     * @param haystack the map possibly containing stream elements as keys
-     * @param <K>      the stream element type
-     * @param <M>      the map type wildcard
-     * @return {@code haystack::containsKey} as a properly bounded predicate
+     * @deprecated use {@link net.adamcin.oakpal.api.Fun#isKeyIn(Map)}
      */
+    @Deprecated
     public static <K, M extends Map<? super K, ?>> Predicate<K>
     isKeyIn(final @NotNull M haystack) {
-        return haystack::containsKey;
+        return net.adamcin.oakpal.api.Fun.isKeyIn(haystack);
     }
 
     /**
-     * This method is used to support type inference around the {@link Map#containsValue(Object)} method, whose argument
-     * is not otherwise typed with the value type parameter of the Map. This returns the method reference for the
-     * provided map's {@code containsValue} method as a Predicate, but with restrictive type parameters so that it does
-     * not break inference by introducing {@code Object} as the input type bound.
-     *
-     * @param haystack the map possibly containing stream elements as values
-     * @param <V>      the stream element type
-     * @param <M>      the map type wildcard
-     * @return {@code haystack::containsValue} as a properly bounded predicate
+     * @deprecated use {@link net.adamcin.oakpal.api.Fun#isValueIn(Map)}
      */
+    @Deprecated
     public static <V, M extends Map<?, ? super V>> Predicate<V>
     isValueIn(final @NotNull M haystack) {
-        return haystack::containsValue;
+        return net.adamcin.oakpal.api.Fun.isValueIn(haystack);
     }
 
     /**
-     * Inferrable type for {@link Supplier}s that throw.
-     *
-     * @param <R> output type
+     * @deprecated use {@link net.adamcin.oakpal.api.Fun#composeTry1(Function, Supplier, net.adamcin.oakpal.api.Fun.ThrowingFunction, BiConsumer)}
      */
-    @FunctionalInterface
-    public interface ThrowingSupplier<R> {
-        R tryGet() throws Exception;
-    }
-
-    /**
-     * Inferrable type for {@link Predicate}s that throw
-     *
-     * @param <T> input type
-     */
-    @FunctionalInterface
-    public interface ThrowingPredicate<T> {
-        boolean tryTest(T input) throws Exception;
-    }
-
-    /**
-     * Inferrable type for {@link BiPredicate}s that throw.
-     *
-     * @param <K> left input type
-     * @param <V> right input type
-     */
-    @FunctionalInterface
-    public interface ThrowingBiPredicate<K, V> {
-        boolean tryTest(K inputK, V inputV) throws Exception;
-    }
-
-    /**
-     * Inferrable type for {@link Function}s that throw.
-     *
-     * @param <T> input type
-     * @param <R> output type
-     */
-    @FunctionalInterface
-    public interface ThrowingFunction<T, R> {
-        R tryApply(T input) throws Exception;
-    }
-
-    /**
-     * Inferrable type for {@link BiFunction}s that throw.
-     *
-     * @param <K> left input type
-     * @param <V> right input type
-     * @param <R> output type
-     */
-    @FunctionalInterface
-    public interface ThrowingBiFunction<K, V, R> {
-        R tryApply(K inputK, V inputV) throws Exception;
-    }
-
-    /**
-     * Inferrable type for {@link Consumer}s that throw.
-     *
-     * @param <T> input type
-     */
-    @FunctionalInterface
-    public interface ThrowingConsumer<T> {
-        void tryAccept(T input) throws Exception;
-    }
-
-    /**
-     * Inferrable type for {@link BiConsumer}s that throw.
-     *
-     * @param <K> left input type
-     * @param <V> right input type
-     */
-    @FunctionalInterface
-    public interface ThrowingBiConsumer<K, V> {
-        void tryAccept(K inputK, V inputV) throws Exception;
-    }
-
-    /**
-     * Wrapping runtime error type for unchecked throwing functions.
-     */
-    public static final class FunRuntimeException extends RuntimeException {
-        private FunRuntimeException(final @NotNull Throwable cause) {
-            super(cause);
-        }
-    }
-
-    /**
-     * Composes four lambdas into a single function for use with flatMap() defined by {@link java.util.stream.Stream},
-     * {@link java.util.Optional}, etc. Useful for eliminating clumsy try/catch blocks from lambdas.
-     *
-     * @param monadUnit       the "unit" (or "single") function defined by the appropriate monoid/monad. I.E. Stream::of,
-     *                        Optional::of, or Optional::ofNullable.
-     * @param monadZero       the "zero" (or "empty") function defined by the appropriate monoid/monad, as in Stream::empty,
-     *                        or Optional::empty
-     * @param mayThrowOnApply some function that produces type {@code R} when applied to an input of type {@code T}, or fails
-     *                        with an Exception.
-     * @param onError         an optional consumer function to perform some logic when the parser function throws.
-     *                        Receives both the failing input element and the caught Exception.
-     * @param <M>             The captured monad type, which must match the return types of the {@code monadUnit} and
-     *                        {@code monadZero} functions, but which is not involved in the {@code onElement} or
-     *                        {@code onError} functions.
-     * @param <T>             The input type mapped by the monoid/monad, i.e. the String type in {@code Stream<String>}.
-     * @param <R>             The output type mapped by the monoid/monad, i.e. the URL type in {@code Stream<URL>}.
-     * @return a function that never throws an exception.
-     */
+    @Deprecated
     public static <M, T, R> Function<T, M>
     composeTry(final @NotNull Function<? super R, ? extends M> monadUnit,
                final @NotNull Supplier<? extends M> monadZero,
-               final @NotNull ThrowingFunction<? super T, ? extends R> mayThrowOnApply,
+               final @NotNull net.adamcin.oakpal.api.Fun.ThrowingFunction<? super T, ? extends R> mayThrowOnApply,
                final @Nullable BiConsumer<? super T, ? super Exception> onError) {
-        final BiConsumer<? super T, ? super Exception> consumeError = onError != null
-                ? onError
-                : (e, t) -> {
-        };
-
-        return element -> {
-            try {
-                return monadUnit.apply(mayThrowOnApply.tryApply(element));
-            } catch (final Exception error) {
-                consumeError.accept(element, error);
-                return monadZero.get();
-            }
-        };
+        return net.adamcin.oakpal.api.Fun.composeTry1(monadUnit, monadZero, mayThrowOnApply, onError);
     }
 
     /**
-     * Composes four lambdas into a single function for use with flatMap() defined by {@link java.util.stream.Stream},
-     * {@link java.util.Optional}, etc. Useful for eliminating clumsy try/catch blocks from lambdas.
-     * This variation is geared towards use with {@link Result} or some other union type with an Exception constructor.
-     *
-     * @param monoidSuccess   the "successful" function defined by the appropriate monoid/monad. I.E. Result::success,
-     *                        Optional::of, or Optional::ofNullable.
-     * @param monoidError     the "failure" function defined by the appropriate monoid/monad, as in Result::failure.
-     * @param mayThrowOnApply some function that produces type {@code R} when given an object of type {@code T}, or fails
-     *                        with an Exception.
-     * @param <M>             The captured monoid type, which must match the return types of the {@code monoidSuccess} and
-     *                        {@code monoidError} functions, but which is not involved in the {@code mayThrowOnApply} function.
-     * @param <T>             The input type mapped by the monoid/monad, i.e. the String type in {@code Stream<String>}.
-     * @param <R>             The output type mapped by the monoid/monad, i.e. the URL type in {@code Stream<URL>}.
-     * @return a function that returns a union type distinguishable between a result type and an error type
+     * @deprecated use {@link net.adamcin.oakpal.api.Fun#composeTry1(Function, Function, net.adamcin.oakpal.api.Fun.ThrowingFunction)}
      */
+    @Deprecated
     public static <M, T, R> Function<T, M>
     composeTry(final @NotNull Function<? super R, ? extends M> monoidSuccess,
                final @NotNull Function<? super Exception, ? extends M> monoidError,
-               final @NotNull ThrowingFunction<? super T, ? extends R> mayThrowOnApply) {
-        return element -> {
-            try {
-                return monoidSuccess.apply(mayThrowOnApply.tryApply(element));
-            } catch (final Exception error) {
-                return monoidError.apply(error);
-            }
-        };
+               final @NotNull net.adamcin.oakpal.api.Fun.ThrowingFunction<? super T, ? extends R> mayThrowOnApply) {
+        return net.adamcin.oakpal.api.Fun.composeTry1(monoidSuccess, monoidError, mayThrowOnApply);
     }
 
     /**
-     * Composes four lambdas into a single supplier for use with flatMap() defined by {@link java.util.stream.Stream},
-     * {@link java.util.Optional}, etc. Useful for eliminating clumsy try/catch blocks from lambdas.
-     *
-     * @param monadUnit     the "unit" (or "single") function defined by the appropriate monoid/monad. I.E. Stream::of,
-     *                      Optional::of, or Optional::ofNullable.
-     * @param monadZero     the "zero" (or "empty") function defined by the appropriate monoid/monad, as in Stream::empty,
-     *                      or Optional::empty
-     * @param mayThrowOnGet some supplier that produces type {@code R}, or fails
-     *                      with an Exception.
-     * @param onError       an optional consumer function to perform some logic when the parser function throws.
-     *                      Receives both the failing input element and the caught Exception.
-     * @param <M>           The captured monad type, which must match the return types of the {@code monadUnit} and
-     *                      {@code monadZero} functions, but which is not involved in the {@code onElement} or
-     *                      {@code onError} functions.
-     * @param <R>           The output type mapped by the monoid/monad, i.e. the URL type in {@code Stream<URL>}.
-     * @return a supplier that never throws an exception.
+     * @deprecated use {@link net.adamcin.oakpal.api.Fun#composeTry0(Function, Supplier, net.adamcin.oakpal.api.Fun.ThrowingSupplier, Consumer)}
      */
+    @Deprecated
     public static <M, R> Supplier<M>
     composeTry0(final @NotNull Function<? super R, ? extends M> monadUnit,
                 final @NotNull Supplier<? extends M> monadZero,
-                final @NotNull ThrowingSupplier<? extends R> mayThrowOnGet,
+                final @NotNull net.adamcin.oakpal.api.Fun.ThrowingSupplier<? extends R> mayThrowOnGet,
                 final @Nullable Consumer<? super Exception> onError) {
-        final Consumer<? super Exception> consumeError = onError != null
-                ? onError
-                : t -> {
-        };
-
-        return () -> {
-            try {
-                return monadUnit.apply(mayThrowOnGet.tryGet());
-            } catch (final Exception error) {
-                consumeError.accept(error);
-                return monadZero.get();
-            }
-        };
+        return net.adamcin.oakpal.api.Fun.composeTry0(monadUnit, monadZero, mayThrowOnGet, onError);
     }
 
     /**
-     * Composes four lambdas into a single supplier for use with flatMap() defined by {@link java.util.stream.Stream},
-     * {@link java.util.Optional}, etc. Useful for eliminating clumsy try/catch blocks from lambdas.
-     * This variation is geared towards use with {@link Result} or some other union type with an Exception constructor.
-     *
-     * @param monoidSuccess the "successful" function defined by the appropriate monoid/monad. I.E. Result::success,
-     *                      Optional::of, or Optional::ofNullable.
-     * @param monoidError   the "failure" function defined by the appropriate monoid/monad, as in Result::failure.
-     * @param mayThrowOnGet some function that produces type {@code R} when given an object of type {@code T}, or fails
-     *                      with an Exception.
-     * @param <M>           The captured monoid type, which must match the return types of the {@code monoidSuccess} and
-     *                      {@code monoidError} functions, but which is not involved in the {@code mayThrowOnApply} function.
-     * @param <R>           The output type mapped by the monoid/monad, i.e. the URL type in {@code Stream<URL>}.
-     * @return a supplier that returns a union type distinguishable between a result type and an error type
+     * @deprecated use {@link net.adamcin.oakpal.api.Fun#composeTry0(Function, Function, net.adamcin.oakpal.api.Fun.ThrowingSupplier)}
      */
+    @Deprecated
     public static <M, R> Supplier<M>
     composeTry0(final @NotNull Function<? super R, ? extends M> monoidSuccess,
                 final @NotNull Function<? super Exception, ? extends M> monoidError,
-                final @NotNull ThrowingSupplier<? extends R> mayThrowOnGet) {
-        return () -> {
-            try {
-                return monoidSuccess.apply(mayThrowOnGet.tryGet());
-            } catch (final Exception error) {
-                return monoidError.apply(error);
-            }
-        };
+                final @NotNull net.adamcin.oakpal.api.Fun.ThrowingSupplier<? extends R> mayThrowOnGet) {
+        return net.adamcin.oakpal.api.Fun.composeTry0(monoidSuccess, monoidError, mayThrowOnGet);
     }
 
     /**
-     * Composes four lambdas into a single bifunction for use with flatMap() defined by {@link java.util.stream.Stream},
-     * {@link java.util.Optional}, etc. Useful for eliminating clumsy try/catch blocks from lambdas.
-     *
-     * @param monadUnit       the "unit" (or "single") function defined by the appropriate monoid/monad. I.E. Stream::of,
-     *                        Optional::of, or Optional::ofNullable.
-     * @param monadZero       the "zero" (or "empty") function defined by the appropriate monoid/monad, as in Stream::empty,
-     *                        or Optional::empty
-     * @param mayThrowOnApply some function that produces type {@code R} when applied to inputs of type {@code T} and {@code U},
-     *                        or fails with an Exception.
-     * @param onError         an optional consumer function to perform some logic when the parser function throws.
-     *                        Receives both the failing input element and the caught Exception.
-     * @param <M>             The captured monad type, which must match the return types of the {@code monadUnit} and
-     *                        {@code monadZero} functions, but which is not involved in the {@code onElement} or
-     *                        {@code onError} functions.
-     * @param <K>             The left input type mapped by the function, i.e. the String type in {@code Stream<String>}.
-     * @param <V>             The right input type mapped by the function, i.e. the String type in {@code Stream<String>}.
-     * @param <R>             The output type mapped by the monoid/monad, i.e. the URL type in {@code Stream<URL>}.
-     * @return a BiFunction that never throws an exception.
+     * @deprecated use {@link net.adamcin.oakpal.api.Fun#composeTry2(Function, Supplier, net.adamcin.oakpal.api.Fun.ThrowingBiFunction, BiConsumer)}
      */
+    @Deprecated
     public static <M, K, V, R> BiFunction<K, V, M>
     composeTry2(final @NotNull Function<? super R, ? extends M> monadUnit,
                 final @NotNull Supplier<? extends M> monadZero,
-                final @NotNull ThrowingBiFunction<? super K, ? super V, ? extends R> mayThrowOnApply,
+                final @NotNull net.adamcin.oakpal.api.Fun.ThrowingBiFunction<? super K, ? super V, ? extends R> mayThrowOnApply,
                 final @Nullable BiConsumer<? super Map.Entry<? super K, ? super V>, ? super Exception> onError) {
-
-        return (elementK, elementV) -> {
-            try {
-                return monadUnit.apply(mayThrowOnApply.tryApply(elementK, elementV));
-            } catch (final Exception error) {
-                if (onError != null) {
-                    onError.accept(toEntry(elementK, elementV), error);
-                }
-                return monadZero.get();
-            }
-        };
+        return net.adamcin.oakpal.api.Fun.composeTry2(monadUnit, monadZero, mayThrowOnApply, onError);
     }
 
     /**
-     * Composes four lambdas into a single function for use with flatMap() defined by {@link java.util.stream.Stream},
-     * {@link java.util.Optional}, etc. Useful for eliminating clumsy try/catch blocks from lambdas.
-     * This variation is geared towards use with {@link Result} or some other union type with an Exception constructor.
-     *
-     * @param monoidSuccess   the "successful" function defined by the appropriate monoid/monad. I.E. Result::success,
-     *                        Optional::of, or Optional::ofNullable.
-     * @param monoidError     the "failure" function defined by the appropriate monoid/monad, as in Result::failure.
-     * @param mayThrowOnApply some function that produces type {@code R} when given inputs of type {@code T} and {@code U},
-     *                        or fails with an Exception.
-     * @param <M>             The captured monoid type, which must match the return types of the {@code monoidSuccess} and
-     *                        {@code monoidError} functions, but which is not involved in the {@code mayThrowOnApply} function.
-     * @param <K>             The left input type mapped by the function
-     * @param <V>             The right input type mapped by the function
-     * @param <R>             The output type mapped by the monoid/monad, i.e. the URL type in {@code Stream<URL>}.
-     * @return a function that returns a union type distinguishable between a result type and an error type
+     * @deprecated use {@link net.adamcin.oakpal.api.Fun#composeTry2(Function, Function, net.adamcin.oakpal.api.Fun.ThrowingBiFunction)}
      */
+    @Deprecated
     public static <M, K, V, R> BiFunction<K, V, M>
     composeTry2(final @NotNull Function<? super R, ? extends M> monoidSuccess,
                 final @NotNull Function<? super Exception, ? extends M> monoidError,
-                final @NotNull ThrowingBiFunction<? super K, ? super V, ? extends R> mayThrowOnApply) {
-        return (elementK, elementV) -> {
-            try {
-                return monoidSuccess.apply(mayThrowOnApply.tryApply(elementK, elementV));
-            } catch (final Exception error) {
-                return monoidError.apply(error);
-            }
-        };
+                final @NotNull net.adamcin.oakpal.api.Fun.ThrowingBiFunction<? super K, ? super V, ? extends R> mayThrowOnApply) {
+        return net.adamcin.oakpal.api.Fun.composeTry2(monoidSuccess, monoidError, mayThrowOnApply);
     }
 
     /**
-     * Transform a {@link ThrowingSupplier} to an unchecked {@link Supplier} of the same supplied type parameter.
-     * Exceptions will be caught and rethrown as {@link FunRuntimeException}s.
-     *
-     * @param mayThrowOnGet the ThrowingSupplier
-     * @param <R>           the supplied type
-     * @return an unchecked {@link Supplier}
+     * @deprecated use {@link net.adamcin.oakpal.api.Fun#uncheck0(net.adamcin.oakpal.api.Fun.ThrowingSupplier)}
      */
+    @Deprecated
     public static <R> Supplier<R>
-    uncheck0(final @NotNull ThrowingSupplier<? extends R> mayThrowOnGet) {
-        return () -> {
-            try {
-                return mayThrowOnGet.tryGet();
-            } catch (Exception e) {
-                throw new FunRuntimeException(e);
-            }
-        };
+    uncheck0(final @NotNull net.adamcin.oakpal.api.Fun.ThrowingSupplier<? extends R> mayThrowOnGet) {
+        return net.adamcin.oakpal.api.Fun.uncheck0(mayThrowOnGet);
     }
 
     /**
-     * Transform a {@link ThrowingSupplier} to a {@link Supplier} of {@link Result} whose success type parameter is the
-     * same as the type parameter of the {@link ThrowingSupplier}.
-     *
-     * @param mayThrowOnGet the ThrowingSupplier
-     * @param <R>           the originally supplied type
-     * @return a {@link Supplier} of {@link Result}s of type {@code R}
+     * @deprecated use {@link net.adamcin.oakpal.api.Fun#uncheck1(net.adamcin.oakpal.api.Fun.ThrowingFunction)}
      */
-    public static <R> Supplier<Result<R>>
-    result0(final @NotNull ThrowingSupplier<? extends R> mayThrowOnGet) {
-        return composeTry0(Result::success, Result::failure, mayThrowOnGet);
-    }
-
-    /**
-     * Transform a {@link ThrowingFunction} to an unchecked {@link Function} of the same input and output type parameters.
-     * Exceptions will be caught and rethrown as {@link FunRuntimeException}s.
-     *
-     * @param mayThrowOnApply the ThrowingFunction
-     * @param <T>             the input type
-     * @param <R>             the output type
-     * @return an unchecked {@link Function}
-     */
+    @Deprecated
     public static <T, R> Function<T, R>
-    uncheck1(final @NotNull ThrowingFunction<? super T, ? extends R> mayThrowOnApply) {
-        return input -> {
-            try {
-                return mayThrowOnApply.tryApply(input);
-            } catch (Exception e) {
-                throw new FunRuntimeException(e);
-            }
-        };
+    uncheck1(final @NotNull net.adamcin.oakpal.api.Fun.ThrowingFunction<? super T, ? extends R> mayThrowOnApply) {
+        return net.adamcin.oakpal.api.Fun.uncheck1(mayThrowOnApply);
     }
 
     /**
-     * Transform a {@link ThrowingFunction} to a {@link Function} over the same input type parameter, which returns a
-     * {@link Result} whose success type parameter is the same as the output type of the {@link ThrowingFunction}.
-     *
-     * @param mayThrowOnApply the ThrowingFunction
-     * @param <T>             the input type
-     * @param <R>             the original output type
-     * @return a {@link Function} over the same input returning a {@link Result} of type {@code R}
+     * @deprecated use {@link net.adamcin.oakpal.api.Fun#uncheck2(net.adamcin.oakpal.api.Fun.ThrowingBiFunction)}
      */
-    public static <T, R> Function<T, Result<R>>
-    result1(final @NotNull ThrowingFunction<? super T, ? extends R> mayThrowOnApply) {
-        return composeTry(Result::success, Result::failure, mayThrowOnApply);
-    }
-
-    /**
-     * Transform a {@link ThrowingBiFunction} to an unchecked {@link BiFunction} of the same input and output type
-     * parameters. Exceptions will be caught and rethrown as {@link FunRuntimeException}s.
-     *
-     * @param mayThrowOnApply the ThrowingBiFunction
-     * @param <K>             the input entry key type
-     * @param <V>             the input entry value type
-     * @param <R>             the output type
-     * @return an unchecked {@link BiFunction}
-     */
+    @Deprecated
     public static <K, V, R> BiFunction<K, V, R>
-    uncheck2(final @NotNull ThrowingBiFunction<? super K, ? super V, ? extends R> mayThrowOnApply) {
-        return (inputK, inputV) -> {
-            try {
-                return mayThrowOnApply.tryApply(inputK, inputV);
-            } catch (Exception e) {
-                throw new FunRuntimeException(e);
-            }
-        };
+    uncheck2(final @NotNull net.adamcin.oakpal.api.Fun.ThrowingBiFunction<? super K, ? super V, ? extends R> mayThrowOnApply) {
+        return net.adamcin.oakpal.api.Fun.uncheck2(mayThrowOnApply);
     }
 
     /**
-     * Transform a {@link ThrowingBiFunction} to a {@link BiFunction} over the same input type parameters, which returns
-     * a {@link Result} whose success type parameter is the same as the output type of the {@link ThrowingBiFunction}.
-     *
-     * @param mayThrowOnApply the ThrowingBiFunction
-     * @param <K>             the input entry key type
-     * @param <V>             the input entry value type
-     * @param <R>             the original output type
-     * @return a {@link BiFunction} over the same inputs returning a {@link Result} of type {@code R}
+     * @deprecated use {@link net.adamcin.oakpal.api.Fun#uncheckTest1(net.adamcin.oakpal.api.Fun.ThrowingPredicate)}
      */
-    public static <K, V, R> BiFunction<K, V, Result<R>>
-    result2(final @NotNull ThrowingBiFunction<? super K, ? super V, ? extends R> mayThrowOnApply) {
-        return composeTry2(Result::success, Result::failure, mayThrowOnApply);
-    }
-
-    /**
-     * Transform a {@link ThrowingPredicate} to a {@link Predicate} of the same input type parameter. Exceptions will be
-     * caught and rethrown as {@link FunRuntimeException}s.
-     *
-     * @param mayThrowOnTest the ThrowingPredicate
-     * @param <T>            the input type
-     * @return an unchecked {@link Predicate}
-     */
+    @Deprecated
     public static <T> Predicate<T>
-    uncheckTest1(final @NotNull ThrowingPredicate<? super T> mayThrowOnTest) {
-        return input -> {
-            try {
-                return mayThrowOnTest.tryTest(input);
-            } catch (Exception e) {
-                throw new FunRuntimeException(e);
-            }
-        };
+    uncheckTest1(final @NotNull net.adamcin.oakpal.api.Fun.ThrowingPredicate<? super T> mayThrowOnTest) {
+        return net.adamcin.oakpal.api.Fun.uncheckTest1(mayThrowOnTest);
     }
 
     /**
-     * Transform a {@link ThrowingBiPredicate} to a {@link BiPredicate} of the same input type parameter. Exceptions will
-     * be caught and rethrown as {@link FunRuntimeException}s.
-     *
-     * @param mayThrowOnTest the ThrowingBiPredicate
-     * @param <K>            the input entry key type
-     * @param <V>            the input entry value type
-     * @return an unchecked {@link BiPredicate}
+     * @deprecated use {@link net.adamcin.oakpal.api.Fun#uncheckTest2(net.adamcin.oakpal.api.Fun.ThrowingBiPredicate)}
      */
+    @Deprecated
     public static <K, V> BiPredicate<K, V>
-    uncheckTest2(final @NotNull ThrowingBiPredicate<? super K, ? super V> mayThrowOnTest) {
-        return (inputK, inputV) -> {
-            try {
-                return mayThrowOnTest.tryTest(inputK, inputV);
-            } catch (Exception e) {
-                throw new FunRuntimeException(e);
-            }
-        };
+    uncheckTest2(final @NotNull net.adamcin.oakpal.api.Fun.ThrowingBiPredicate<? super K, ? super V> mayThrowOnTest) {
+        return net.adamcin.oakpal.api.Fun.uncheckTest2(mayThrowOnTest);
     }
 
     /**
-     * Transform a {@link ThrowingConsumer} to a {@link Consumer} of the same input type parameter. Exceptions will
-     * be caught and rethrown as {@link FunRuntimeException}s.
-     *
-     * @param mayThrowOnAccept the ThrowingConsumer
-     * @param <T>              the input type
-     * @return an unchecked {@link Consumer}
+     * @deprecated use {@link net.adamcin.oakpal.api.Fun#uncheckVoid1(net.adamcin.oakpal.api.Fun.ThrowingConsumer)}
      */
+    @Deprecated
     public static <T> Consumer<T>
-    uncheckVoid1(final @NotNull ThrowingConsumer<? super T> mayThrowOnAccept) {
-        return input -> {
-            try {
-                mayThrowOnAccept.tryAccept(input);
-            } catch (Exception e) {
-                throw new FunRuntimeException(e);
-            }
-        };
+    uncheckVoid1(final @NotNull net.adamcin.oakpal.api.Fun.ThrowingConsumer<? super T> mayThrowOnAccept) {
+        return net.adamcin.oakpal.api.Fun.uncheckVoid1(mayThrowOnAccept);
     }
 
     /**
-     * Transform a {@link ThrowingConsumer} to a {@link Function} over the same input type parameter, but which returns
-     * a {@link Result} of success type {@link Nothing}.
-     *
-     * @param mayThrowOnAccept the ThrowingConsumer
-     * @param <T>              the input type
-     * @return a {@link Function} returning a {@link Result} of type {@link Nothing}
+     * @deprecated use {@link net.adamcin.oakpal.api.Fun#uncheckVoid2(net.adamcin.oakpal.api.Fun.ThrowingBiConsumer)}
      */
-    public static <T> Function<T, Result<Nothing>>
-    resultNothing1(final @NotNull ThrowingConsumer<? super T> mayThrowOnAccept) {
-        return result1(throwingVoidToNothing1(mayThrowOnAccept));
-    }
-
-    /**
-     * Transform a {@link ThrowingBiConsumer} to a {@link BiConsumer} of the same input type parameter. Exceptions will
-     * be caught and rethrown as {@link FunRuntimeException}s.
-     *
-     * @param mayThrowOnAccept the ThrowingBiConsumer
-     * @param <K>              the input entry key type
-     * @param <V>              the input entry value type
-     * @return an unchecked {@link BiConsumer}
-     */
+    @Deprecated
     public static <K, V> BiConsumer<K, V>
-    uncheckVoid2(final @NotNull ThrowingBiConsumer<? super K, ? super V> mayThrowOnAccept) {
-        return (inputK, inputV) -> {
-            try {
-                mayThrowOnAccept.tryAccept(inputK, inputV);
-            } catch (Exception e) {
-                throw new FunRuntimeException(e);
-            }
-        };
+    uncheckVoid2(final @NotNull net.adamcin.oakpal.api.Fun.ThrowingBiConsumer<? super K, ? super V> mayThrowOnAccept) {
+        return net.adamcin.oakpal.api.Fun.uncheckVoid2(mayThrowOnAccept);
     }
 
     /**
-     * Transform a {@link ThrowingBiConsumer} to a {@link BiFunction} over the same input type parameters, but which returns
-     * a {@link Result} of success type {@link Nothing}.
-     *
-     * @param mayThrowOnAccept the ThrowingBiConsumer
-     * @param <K>              the input entry key type
-     * @param <V>              the input entry value type
-     * @return a {@link BiFunction} returning a {@link Result} of type {@link Nothing}
+     * @deprecated use {@link net.adamcin.oakpal.api.Fun#testOrDefault1(net.adamcin.oakpal.api.Fun.ThrowingPredicate, boolean)}
      */
-    public static <K, V> BiFunction<K, V, Result<Nothing>>
-    resultNothing2(final @NotNull ThrowingBiConsumer<? super K, ? super V> mayThrowOnAccept) {
-        return result2(throwingVoidToNothing2(mayThrowOnAccept));
-    }
-
-    /**
-     * Transform a {@link ThrowingPredicate} to a {@link Predicate}, providing a default boolean value to return if an
-     * exception is thrown.
-     *
-     * @param mayThrowOnTest the ThrowingPredicate
-     * @param defaultValue   the value to return when an exception is thrown
-     * @param <T>            the input type
-     * @return a {@link Predicate} that returns a default value when an exception is thrown
-     */
+    @Deprecated
     public static <T> Predicate<T>
-    testOrDefault1(final @NotNull ThrowingPredicate<? super T> mayThrowOnTest, boolean defaultValue) {
-        return compose(result1(mayThrowOnTest::tryTest), result -> result.getOrDefault(defaultValue))::apply;
+    testOrDefault1(final @NotNull net.adamcin.oakpal.api.Fun.ThrowingPredicate<? super T> mayThrowOnTest, boolean defaultValue) {
+        return net.adamcin.oakpal.api.Fun.testOrDefault1(mayThrowOnTest, defaultValue);
     }
 
     /**
-     * Transform a {@link ThrowingBiPredicate} to a {@link BiPredicate}, providing a default boolean value to return if
-     * an exception is thrown.
-     *
-     * @param mayThrowOnTest the ThrowingBiPredicate
-     * @param defaultValue   the value to return when an exception is thrown
-     * @param <K>            the input entry key type
-     * @param <V>            the input entry value type
-     * @return a {@link BiPredicate} that returns a default value when an exception is thrown
+     * @deprecated use {@link net.adamcin.oakpal.api.Fun#testOrDefault2(net.adamcin.oakpal.api.Fun.ThrowingBiPredicate, boolean)}
      */
+    @Deprecated
     public static <K, V> BiPredicate<K, V>
-    testOrDefault2(final @NotNull ThrowingBiPredicate<? super K, ? super V> mayThrowOnTest, boolean defaultValue) {
-        return compose2(result2(mayThrowOnTest::tryTest), result -> result.getOrDefault(defaultValue))::apply;
+    testOrDefault2(final @NotNull net.adamcin.oakpal.api.Fun.ThrowingBiPredicate<? super K, ? super V> mayThrowOnTest, boolean defaultValue) {
+        return net.adamcin.oakpal.api.Fun.testOrDefault2(mayThrowOnTest, defaultValue);
     }
 
     /**
-     * Transform a {@link ThrowingSupplier} to a {@link Supplier}, providing a default value to return if
-     * an exception is thrown.
-     *
-     * @param mayThrowOnGet the ThrowingSupplier
-     * @param defaultValue  the value to return when an exception is thrown
-     * @param <R>           the supplied type
-     * @return a {@link Supplier} that supplies a default value when an exception is thrown
+     * @deprecated use {@link net.adamcin.oakpal.api.Fun#tryOrDefault0(net.adamcin.oakpal.api.Fun.ThrowingSupplier, Object)}
      */
+    @Deprecated
     public static <R> Supplier<R>
-    tryOrDefault0(final @NotNull ThrowingSupplier<R> mayThrowOnGet, @Nullable R defaultValue) {
-        return compose0(result0(mayThrowOnGet), result -> result.getOrDefault(defaultValue));
+    tryOrDefault0(final @NotNull net.adamcin.oakpal.api.Fun.ThrowingSupplier<R> mayThrowOnGet, @Nullable R defaultValue) {
+        return net.adamcin.oakpal.api.Fun.tryOrDefault0(mayThrowOnGet, defaultValue);
     }
 
     /**
-     * Transform a {@link ThrowingFunction} to a {@link Function}, providing a default value to return if
-     * an exception is thrown.
-     *
-     * @param mayThrowOnApply the ThrowingFunction
-     * @param defaultValue    the value to return when an exception is thrown
-     * @param <T>             the input type
-     * @param <R>             the output type
-     * @return a {@link Function} that returns a default value when an exception is thrown
+     * @deprecated use {@link net.adamcin.oakpal.api.Fun#tryOrDefault1(net.adamcin.oakpal.api.Fun.ThrowingFunction, Object)}
      */
+    @Deprecated
     public static <T, R> Function<T, R>
-    tryOrDefault1(final @NotNull ThrowingFunction<? super T, R> mayThrowOnApply, @Nullable R defaultValue) {
-        return compose(result1(mayThrowOnApply), result -> result.getOrDefault(defaultValue));
+    tryOrDefault1(final @NotNull net.adamcin.oakpal.api.Fun.ThrowingFunction<? super T, R> mayThrowOnApply, @Nullable R defaultValue) {
+        return net.adamcin.oakpal.api.Fun.tryOrDefault1(mayThrowOnApply, defaultValue);
     }
 
     /**
-     * Transform a {@link ThrowingBiFunction} to a {@link BiFunction}, providing a default value to return if
-     * an exception is thrown.
-     *
-     * @param mayThrowOnApply the ThrowingBiFunction
-     * @param defaultValue    the value to return when an exception is thrown
-     * @param <K>             the input entry key type
-     * @param <V>             the input entry value type
-     * @param <R>             the output type
-     * @return a {@link BiFunction} that returns a default value when an exception is thrown
+     * @deprecated use {@link net.adamcin.oakpal.api.Fun#tryOrDefault2(net.adamcin.oakpal.api.Fun.ThrowingBiFunction, Object)}
      */
+    @Deprecated
     public static <K, V, R> BiFunction<K, V, R>
-    tryOrDefault2(final @NotNull ThrowingBiFunction<? super K, ? super V, R> mayThrowOnApply, @Nullable R defaultValue) {
-        return compose2(result2(mayThrowOnApply), result -> result.getOrDefault(defaultValue));
+    tryOrDefault2(final @NotNull net.adamcin.oakpal.api.Fun.ThrowingBiFunction<? super K, ? super V, R> mayThrowOnApply, @Nullable R defaultValue) {
+        return net.adamcin.oakpal.api.Fun.tryOrDefault2(mayThrowOnApply, defaultValue);
     }
 
     /**
-     * Transform a {@link ThrowingSupplier} to a {@link Supplier} of the same type, wrapped in an {@link Optional}.
-     * The {@link Optional} value will be empty if an exception is thrown.
-     *
-     * @param mayThrowOnGet the ThrowingSupplier
-     * @param <R>           the originally supplied type
-     * @return a {@link Supplier} that supplies an optional value that is empty if an exception is thrown
+     * @deprecated use {@link net.adamcin.oakpal.api.Fun#tryOrOptional0(net.adamcin.oakpal.api.Fun.ThrowingSupplier)}
      */
+    @Deprecated
     public static <R> Supplier<Optional<R>>
-    tryOrOptional0(final @NotNull ThrowingSupplier<R> mayThrowOnGet) {
-        return compose0(result0(mayThrowOnGet), Result::toOptional);
+    tryOrOptional0(final @NotNull net.adamcin.oakpal.api.Fun.ThrowingSupplier<R> mayThrowOnGet) {
+        return net.adamcin.oakpal.api.Fun.tryOrOptional0(mayThrowOnGet);
     }
 
     /**
-     * Transform a {@link ThrowingFunction} to a {@link Function} of the same input type, with the output type wrapped in
-     * an {@link Optional}. The {@link Optional} value will be empty if an exception is thrown.
-     *
-     * @param mayThrowOnApply the ThrowingFunction
-     * @param <T>             the input type
-     * @param <R>             the original output type
-     * @return a {@link Function} that returns an optional value that is empty if an exception is thrown
+     * @deprecated use {@link net.adamcin.oakpal.api.Fun#tryOrOptional1(net.adamcin.oakpal.api.Fun.ThrowingFunction)}
      */
+    @Deprecated
     public static <T, R> Function<T, Optional<R>>
-    tryOrOptional1(final @NotNull ThrowingFunction<? super T, R> mayThrowOnApply) {
-        return compose(result1(mayThrowOnApply), Result::toOptional);
+    tryOrOptional1(final @NotNull net.adamcin.oakpal.api.Fun.ThrowingFunction<? super T, R> mayThrowOnApply) {
+        return net.adamcin.oakpal.api.Fun.tryOrOptional1(mayThrowOnApply);
     }
 
     /**
-     * Transform a {@link ThrowingBiFunction} to a {@link BiFunction} of the same input types, with the output type
-     * wrapped in an {@link Optional}. The {@link Optional} value will be empty if an exception is thrown.
-     *
-     * @param mayThrowOnApply the ThrowingBiFunction
-     * @param <K>             the input entry key type
-     * @param <V>             the input entry value type
-     * @param <R>             the original output type
-     * @return a {@link BiFunction} that returns an optional value that is empty if an exception is thrown
+     * @deprecated use {@link net.adamcin.oakpal.api.Fun#tryOrOptional2(net.adamcin.oakpal.api.Fun.ThrowingBiFunction)}
      */
+    @Deprecated
     public static <K, V, R> BiFunction<K, V, Optional<R>>
-    tryOrOptional2(final @NotNull ThrowingBiFunction<? super K, ? super V, R> mayThrowOnApply) {
-        return compose2(result2(mayThrowOnApply), Result::toOptional);
+    tryOrOptional2(final @NotNull net.adamcin.oakpal.api.Fun.ThrowingBiFunction<? super K, ? super V, R> mayThrowOnApply) {
+        return net.adamcin.oakpal.api.Fun.tryOrOptional2(mayThrowOnApply);
     }
 
     /**
-     * Transform a {@link ThrowingConsumer} to a {@link Consumer} of the same input type, that simply suppresses any
-     * exceptions if thrown.
-     *
-     * @param mayThrowOnAccept the ThrowingConsumer
-     * @param <T>              the input type
-     * @return a {@link Consumer} that suppresses any exceptions if thrown
+     * @deprecated use {@link net.adamcin.oakpal.api.Fun#tryOrVoid1(net.adamcin.oakpal.api.Fun.ThrowingConsumer)}
      */
+    @Deprecated
     public static <T> Consumer<T>
-    tryOrVoid1(final @NotNull ThrowingConsumer<? super T> mayThrowOnAccept) {
-        return compose(resultNothing1(mayThrowOnAccept), Result::teeLogError)::apply;
+    tryOrVoid1(final @NotNull net.adamcin.oakpal.api.Fun.ThrowingConsumer<? super T> mayThrowOnAccept) {
+        return net.adamcin.oakpal.api.Fun.tryOrVoid1(mayThrowOnAccept);
     }
 
     /**
-     * Transform a {@link ThrowingBiConsumer} to a {@link BiConsumer} of the same input types, that simply suppresses any
-     * exceptions if thrown.
-     *
-     * @param mayThrowOnAccept the ThrowingBiConsumer
-     * @param <K>              the input entry key type
-     * @param <V>              the input entry value type
-     * @return a {@link Consumer} that suppresses any exceptions if thrown
+     * @deprecated use {@link net.adamcin.oakpal.api.Fun#tryOrVoid2(net.adamcin.oakpal.api.Fun.ThrowingBiConsumer)}
      */
+    @Deprecated
     public static <K, V> BiConsumer<K, V>
-    tryOrVoid2(final @NotNull ThrowingBiConsumer<? super K, ? super V> mayThrowOnAccept) {
-        return compose2(resultNothing2(mayThrowOnAccept), Result::teeLogError)::apply;
+    tryOrVoid2(final @NotNull net.adamcin.oakpal.api.Fun.ThrowingBiConsumer<? super K, ? super V> mayThrowOnAccept) {
+        return net.adamcin.oakpal.api.Fun.tryOrVoid2(mayThrowOnAccept);
     }
 }
-

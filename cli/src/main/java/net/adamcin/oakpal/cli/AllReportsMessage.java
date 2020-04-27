@@ -24,7 +24,7 @@ import javax.json.JsonObject;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static net.adamcin.oakpal.core.Fun.compose;
+import static net.adamcin.oakpal.api.Fun.compose1;
 
 class AllReportsMessage implements StructuredMessage {
 
@@ -37,7 +37,7 @@ class AllReportsMessage implements StructuredMessage {
     @Override
     public String toString() {
         return reports.stream()
-                .map(compose(ReportMessage::new, ReportMessage::toString))
+                .map(compose1(ReportMessage::new, ReportMessage::toString))
                 .collect(Collectors.joining(System.lineSeparator()));
     }
 

@@ -108,7 +108,7 @@
 
         <section name="3. Activate the Basic Checklist">
             <p>
-                The <a href="../core/the-basic-checklist.html">basic checklist</a> implements some sane default package
+                The <a href="../oakpal-core/the-basic-checklist.html">basic checklist</a> implements some sane default package
                 acceptance rules, like disallowing subpackages, deletion of existing paths, unsafe acHandling modes, and
                 preventing workspace filter overlaps between multiple packages.
             </p>

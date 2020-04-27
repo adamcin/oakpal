@@ -35,7 +35,6 @@ import javax.jcr.Session;
  * {@link PackagingService#getPackageManager(Session)} method to avoid the nasty stack trace.
  * See recommendation here: https://issues.apache.org/jira/browse/JCRVLT-285
  */
-@SuppressWarnings("CQRules:CQBP-84--dependencies") // suppress warnings
 final class DefaultPackagingService implements Packaging {
     private static final Logger LOGGER = LoggerFactory.getLogger(DefaultPackagingService.class);
     private static final String JCR_PACK_MAN_IMPL_CLASS = "org.apache.jackrabbit.vault.packaging.impl.JcrPackageManagerImpl";

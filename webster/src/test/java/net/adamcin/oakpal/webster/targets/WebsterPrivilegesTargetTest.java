@@ -27,9 +27,9 @@ import org.junit.Test;
 
 import java.io.File;
 
-import static net.adamcin.oakpal.core.JavaxJson.arr;
-import static net.adamcin.oakpal.core.JavaxJson.key;
-import static net.adamcin.oakpal.core.JavaxJson.obj;
+import static net.adamcin.oakpal.api.JavaxJson.arr;
+import static net.adamcin.oakpal.api.JavaxJson.key;
+import static net.adamcin.oakpal.api.JavaxJson.obj;
 import static net.adamcin.oakpal.webster.TestUtil.assertFileContains;
 import static net.adamcin.oakpal.webster.targets.WebsterNodetypesTargetTest.assertFileNotContains;
 import static org.junit.Assert.*;

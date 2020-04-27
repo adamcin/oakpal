@@ -16,6 +16,10 @@
 
 package net.adamcin.oakpal.core;
 
+import net.adamcin.oakpal.api.PathAction;
+import net.adamcin.oakpal.api.ProgressCheck;
+import net.adamcin.oakpal.api.ProgressCheckFactory;
+import net.adamcin.oakpal.api.Violation;
 import org.apache.jackrabbit.vault.fs.config.MetaInf;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.apache.jackrabbit.vault.packaging.PackageProperties;
@@ -28,6 +32,7 @@ import javax.jcr.Session;
 import java.io.File;
 import java.util.Collection;
 import java.util.List;
+import java.util.ResourceBundle;
 import java.util.jar.Manifest;
 
 /**
@@ -53,6 +58,16 @@ class ProgressCheckAliasFacade implements ProgressCheck {
         } else {
             return wrapped.getCheckName();
         }
+    }
+
+    @Override
+    public @Nullable String getResourceBundleBaseName() {
+        return wrapped.getResourceBundleBaseName();
+    }
+
+    @Override
+    public void setResourceBundle(final ResourceBundle resourceBundle) {
+        wrapped.setResourceBundle(resourceBundle);
     }
 
     @Override
@@ -88,8 +103,9 @@ class ProgressCheckAliasFacade implements ProgressCheck {
     }
 
     @Override
-    public void importedPath(final PackageId packageId, final String path, final Node node) throws RepositoryException {
-        wrapped.importedPath(packageId, path, node);
+    public void importedPath(final PackageId packageId, final String path, final Node node,
+                             final PathAction action) throws RepositoryException {
+        wrapped.importedPath(packageId, path, node, action);
     }
 
     @Override

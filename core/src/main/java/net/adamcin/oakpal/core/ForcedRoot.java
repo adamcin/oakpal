@@ -16,8 +16,10 @@
 
 package net.adamcin.oakpal.core;
 
+import net.adamcin.oakpal.api.JsonObjectConvertible;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.osgi.annotation.versioning.ProviderType;
 
 import javax.json.JsonObject;
 import java.util.Arrays;
@@ -28,19 +30,49 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
-import static net.adamcin.oakpal.core.Fun.inferTest1;
-import static net.adamcin.oakpal.core.Fun.streamIt;
-import static net.adamcin.oakpal.core.JavaxJson.mapArrayOfStrings;
-import static net.adamcin.oakpal.core.JavaxJson.obj;
-import static net.adamcin.oakpal.core.JavaxJson.optArray;
+import static net.adamcin.oakpal.api.Fun.inferTest1;
+import static net.adamcin.oakpal.api.Fun.streamIt;
+import static net.adamcin.oakpal.api.JavaxJson.mapArrayOfStrings;
+import static net.adamcin.oakpal.api.JavaxJson.obj;
+import static net.adamcin.oakpal.api.JavaxJson.optArray;
 
 /**
  * Encapsulation of details necessary to force creation of a particular root path.
  */
-public final class ForcedRoot implements JavaxJson.ObjectConvertible, Comparable<ForcedRoot> {
-    static final String KEY_PATH = "path";
-    static final String KEY_PRIMARY_TYPE = "primaryType";
-    static final String KEY_MIXIN_TYPES = "mixinTypes";
+public final class ForcedRoot implements JsonObjectConvertible, Comparable<ForcedRoot> {
+    /**
+     * Json keys for ForcedRoot. Use {@link #keys()} to access singleton.
+     */
+    @ProviderType
+    public interface JsonKeys {
+        String path();
+
+        String primaryType();
+
+        String mixinTypes();
+    }
+
+    private static final JsonKeys KEYS = new JsonKeys() {
+        @Override
+        public String path() {
+            return "path";
+        }
+
+        @Override
+        public String primaryType() {
+            return "primaryType";
+        }
+
+        @Override
+        public String mixinTypes() {
+            return "mixinTypes";
+        }
+    };
+
+    @NotNull
+    public static ForcedRoot.JsonKeys keys() {
+        return KEYS;
+    }
 
     @Nullable
     private String path;
@@ -50,6 +82,7 @@ public final class ForcedRoot implements JavaxJson.ObjectConvertible, Comparable
 
     @NotNull
     private List<String> mixinTypes = Collections.emptyList();
+
 
     public @Nullable String getPath() {
         return path;
@@ -113,14 +146,15 @@ public final class ForcedRoot implements JavaxJson.ObjectConvertible, Comparable
      * @return a new forced root
      */
     public static @NotNull ForcedRoot fromJson(final @NotNull JsonObject json) {
+        final JsonKeys keys = keys();
         final ForcedRoot forcedRoot = new ForcedRoot();
-        if (json.containsKey(KEY_PATH)) {
-            forcedRoot.setPath(json.getString(KEY_PATH));
+        if (json.containsKey(keys.path())) {
+            forcedRoot.setPath(json.getString(keys.path()));
         }
-        if (json.containsKey(KEY_PRIMARY_TYPE)) {
-            forcedRoot.setPrimaryType(json.getString(KEY_PRIMARY_TYPE));
+        if (json.containsKey(keys.primaryType())) {
+            forcedRoot.setPrimaryType(json.getString(keys.primaryType()));
         }
-        optArray(json, KEY_MIXIN_TYPES).ifPresent(jsonArray -> {
+        optArray(json, keys.mixinTypes()).ifPresent(jsonArray -> {
             forcedRoot.setMixinTypes(mapArrayOfStrings(jsonArray, Function.identity()));
         });
         return forcedRoot;
@@ -145,9 +179,10 @@ public final class ForcedRoot implements JavaxJson.ObjectConvertible, Comparable
 
     @Override
     public JsonObject toJson() {
-        return obj().key(KEY_PATH).opt(this.path)
-                .key(KEY_PRIMARY_TYPE).opt(this.primaryType)
-                .key(KEY_MIXIN_TYPES).opt(this.mixinTypes)
+        final JsonKeys keys = keys();
+        return obj().key(keys.path()).opt(this.path)
+                .key(keys.primaryType()).opt(this.primaryType)
+                .key(keys.mixinTypes()).opt(this.mixinTypes)
                 .get();
     }
 
@@ -176,4 +211,6 @@ public final class ForcedRoot implements JavaxJson.ObjectConvertible, Comparable
     public String toString() {
         return toJson().toString();
     }
+
+
 }

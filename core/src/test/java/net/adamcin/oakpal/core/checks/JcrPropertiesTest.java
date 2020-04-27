@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Mark Adamcin
+ * Copyright 2020 Mark Adamcin
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,20 +16,27 @@
 
 package net.adamcin.oakpal.core.checks;
 
-import static net.adamcin.oakpal.core.JavaxJson.arr;
-import static net.adamcin.oakpal.core.JavaxJson.key;
-import static net.adamcin.oakpal.core.JavaxJson.obj;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import net.adamcin.oakpal.api.ProgressCheck;
+import net.adamcin.oakpal.api.Rule;
+import net.adamcin.oakpal.api.RuleType;
+import net.adamcin.oakpal.api.Severity;
+import net.adamcin.oakpal.core.CheckReport;
+import net.adamcin.oakpal.testing.TestPackageUtil;
+import net.adamcin.oakpal.testing.TestUtil;
+import org.junit.Assert;
+import org.junit.Test;
 
 import java.io.File;
+import java.util.Collections;
+import java.util.ResourceBundle;
 import java.util.regex.Pattern;
 
-import net.adamcin.oakpal.core.CheckReport;
-import net.adamcin.oakpal.core.ProgressCheck;
-import net.adamcin.oakpal.core.TestUtil;
-import net.adamcin.oakpal.testing.TestPackageUtil;
-import org.junit.Test;
+import static java.util.Collections.emptyList;
+import static net.adamcin.oakpal.api.JavaxJson.arr;
+import static net.adamcin.oakpal.api.JavaxJson.key;
+import static net.adamcin.oakpal.api.JavaxJson.obj;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 
 public class JcrPropertiesTest extends ProgressCheckTestBase {
 
@@ -42,7 +49,7 @@ public class JcrPropertiesTest extends ProgressCheckTestBase {
                     .get());
             CheckReport report = scanWithCheck(check, "double_properties.zip");
             logViolations("double_man, no scope", report);
-            assertEquals("no violations", 0, report.getViolations().size());
+            Assert.assertEquals("no violations", 0, report.getViolations().size());
             assertTrue("all violations have packageIds", report.getViolations().stream()
                     .allMatch(viol -> !viol.getPackages().isEmpty()));
         });
@@ -54,7 +61,7 @@ public class JcrPropertiesTest extends ProgressCheckTestBase {
                             .and(key("pattern", "/tmp/jcr:content").key("type", "allow")))
                     .get());
             CheckReport report = scanWithCheck(check, "double_properties.zip");
-            assertEquals("one violation", 1, report.getViolations().size());
+            Assert.assertEquals("one violation", 1, report.getViolations().size());
             assertTrue("all violations have packageIds", report.getViolations().stream()
                     .allMatch(viol -> !viol.getPackages().isEmpty()));
         });
@@ -67,7 +74,7 @@ public class JcrPropertiesTest extends ProgressCheckTestBase {
                     .get());
             CheckReport report = scanWithCheck(check, "double_properties.zip");
             logViolations("double_man, with scope", report);
-            assertEquals("no violations", 0, report.getViolations().size());
+            Assert.assertEquals("no violations", 0, report.getViolations().size());
             assertTrue("all violations have packageIds", report.getViolations().stream()
                     .allMatch(viol -> !viol.getPackages().isEmpty()));
         });
@@ -82,7 +89,7 @@ public class JcrPropertiesTest extends ProgressCheckTestBase {
                     .get());
             CheckReport report = scanWithCheck(check, "double_properties.zip");
             logViolations("double_nan, no scope", report);
-            assertEquals("no violations: " + report.getViolations(), 0, report.getViolations().size());
+            Assert.assertEquals("no violations: " + report.getViolations(), 0, report.getViolations().size());
             assertTrue("all violations have packageIds", report.getViolations().stream()
                     .allMatch(viol -> !viol.getPackages().isEmpty()));
         });
@@ -94,7 +101,7 @@ public class JcrPropertiesTest extends ProgressCheckTestBase {
                             .and(key("pattern", "/tmp/jcr:content").key("type", "allow")))
                     .get());
             CheckReport report = scanWithCheck(check, "double_properties.zip");
-            assertEquals("one violation: " + report.getViolations(), 1, report.getViolations().size());
+            Assert.assertEquals("one violation: " + report.getViolations(), 1, report.getViolations().size());
             assertTrue("all violations have packageIds", report.getViolations().stream()
                     .allMatch(viol -> !viol.getPackages().isEmpty()));
         });
@@ -107,7 +114,7 @@ public class JcrPropertiesTest extends ProgressCheckTestBase {
                     .get());
             CheckReport report = scanWithCheck(check, "double_properties.zip");
             logViolations("double_nan, with scope", report);
-            assertEquals("no violations: " + report.getViolations(), 0, report.getViolations().size());
+            Assert.assertEquals("no violations: " + report.getViolations(), 0, report.getViolations().size());
             assertTrue("all violations have packageIds", report.getViolations().stream()
                     .allMatch(viol -> !viol.getPackages().isEmpty()));
         });
@@ -123,7 +130,7 @@ public class JcrPropertiesTest extends ProgressCheckTestBase {
                     )
                     .get());
             CheckReport report = scanWithCheck(check, "double_properties.zip");
-            assertEquals("no violations: " + report.getViolations(), 0, report.getViolations().size());
+            Assert.assertEquals("no violations: " + report.getViolations(), 0, report.getViolations().size());
             assertTrue("all violations have packageIds", report.getViolations().stream()
                     .allMatch(viol -> !viol.getPackages().isEmpty()));
         });
@@ -135,7 +142,7 @@ public class JcrPropertiesTest extends ProgressCheckTestBase {
                     )
                     .get());
             CheckReport report = scanWithCheck(check, "double_properties.zip");
-            assertEquals("two violations: " + report.getViolations(), 2, report.getViolations().size());
+            Assert.assertEquals("two violations: " + report.getViolations(), 2, report.getViolations().size());
             assertTrue("all violations have packageIds", report.getViolations().stream()
                     .allMatch(viol -> !viol.getPackages().isEmpty()));
         });
@@ -148,7 +155,7 @@ public class JcrPropertiesTest extends ProgressCheckTestBase {
                     .key("denyNodeTypes", arr("sling:Folder"))
                     .get());
             CheckReport report = scanWithCheck(check, "double_properties.zip");
-            assertEquals("no violations: " + report.getViolations(), 0, report.getViolations().size());
+            Assert.assertEquals("no violations: " + report.getViolations(), 0, report.getViolations().size());
             assertTrue("all violations have packageIds", report.getViolations().stream()
                     .allMatch(viol -> !viol.getPackages().isEmpty()));
         });
@@ -157,7 +164,7 @@ public class JcrPropertiesTest extends ProgressCheckTestBase {
                     .key("denyNodeTypes", arr("nt:unstructured"))
                     .get());
             CheckReport report = scanWithCheck(check, "double_properties.zip");
-            assertEquals("two violations: " + report.getViolations(), 2, report.getViolations().size());
+            Assert.assertEquals("two violations: " + report.getViolations(), 2, report.getViolations().size());
             assertTrue("all violations have packageIds", report.getViolations().stream()
                     .allMatch(viol -> !viol.getPackages().isEmpty()));
         });
@@ -173,7 +180,7 @@ public class JcrPropertiesTest extends ProgressCheckTestBase {
                     )
                     .get());
             CheckReport report = scanWithCheck(check, "double_properties.zip");
-            assertEquals("two violations: " + report.getViolations(), 2, report.getViolations().size());
+            Assert.assertEquals("two violations: " + report.getViolations(), 2, report.getViolations().size());
             assertTrue("all violations have packageIds", report.getViolations().stream()
                     .allMatch(viol -> !viol.getPackages().isEmpty()));
         });
@@ -186,7 +193,7 @@ public class JcrPropertiesTest extends ProgressCheckTestBase {
                     )
                     .get());
             CheckReport report = scanWithCheck(check, "double_properties.zip");
-            assertEquals("two violations: " + report.getViolations(), 2, report.getViolations().size());
+            Assert.assertEquals("two violations: " + report.getViolations(), 2, report.getViolations().size());
             assertTrue("all violations have packageIds", report.getViolations().stream()
                     .allMatch(viol -> !viol.getPackages().isEmpty()));
         });
@@ -199,7 +206,7 @@ public class JcrPropertiesTest extends ProgressCheckTestBase {
                     )
                     .get());
             CheckReport report = scanWithCheck(check, "double_properties.zip");
-            assertEquals("no violations: " + report.getViolations(), 0, report.getViolations().size());
+            Assert.assertEquals("no violations: " + report.getViolations(), 0, report.getViolations().size());
             assertTrue("all violations have packageIds", report.getViolations().stream()
                     .allMatch(viol -> !viol.getPackages().isEmpty()));
         });
@@ -213,28 +220,28 @@ public class JcrPropertiesTest extends ProgressCheckTestBase {
             ProgressCheck check = new JcrProperties().newInstance(obj()
                     // intend to only check /apps/acme by ensuring scopePaths excludes /apps/aperture, which has the
                     // same jcr:title value
-                    .key("scopePaths", arr(new Rule(Rule.RuleType.INCLUDE, Pattern.compile("/apps/acme"))))
+                    .key("scopePaths", arr(new Rule(RuleType.INCLUDE, Pattern.compile("/apps/acme"))))
                     .key("properties", arr()
                             .val(obj()
                                     .key("name", "jcr:title")
-                                    .key("valueRules", arr(new Rule(Rule.RuleType.DENY, Pattern.compile("Acme"))))
+                                    .key("valueRules", arr(new Rule(RuleType.DENY, Pattern.compile("Acme"))))
                             )
                     )
                     .get());
             CheckReport report = scanWithCheck(check, playground);
-            assertEquals("one violation: " + report.getViolations(), 1, report.getViolations().size());
+            Assert.assertEquals("one violation: " + report.getViolations(), 1, report.getViolations().size());
         });
         TestUtil.testBlock(() -> {
             ProgressCheck check = new JcrProperties().newInstance(obj()
                     .key("properties", arr()
                             .val(obj()
                                     .key("name", "multiString")
-                                    .key("valueRules", arr(new Rule(Rule.RuleType.DENY, Pattern.compile("two"))))
+                                    .key("valueRules", arr(new Rule(RuleType.DENY, Pattern.compile("two"))))
                             )
                     )
                     .get());
             CheckReport report = scanWithCheck(check, playground);
-            assertEquals("two violation: " + report.getViolations(), 2, report.getViolations().size());
+            Assert.assertEquals("two violation: " + report.getViolations(), 2, report.getViolations().size());
         });
     }
 
@@ -253,7 +260,32 @@ public class JcrPropertiesTest extends ProgressCheckTestBase {
                     .get());
             CheckReport report = scanWithCheck(check, playground);
             // only /apps/acme has the incorrect singleString property
-            assertEquals("one violation: " + report.getViolations(), 1, report.getViolations().size());
+            Assert.assertEquals("one violation: " + report.getViolations(), 1, report.getViolations().size());
         });
+    }
+
+    @Test
+    public void testSetResourceBundle() {
+        final JcrProperties.ResourceBundleHolder resourceBundleHolder =
+                new JcrProperties.ResourceBundleHolder();
+        JcrPropertyConstraints constraints = new JcrPropertyConstraints("prop", false,
+                false, false, "nt:base", emptyList(), Severity.MAJOR,
+                resourceBundleHolder::getResourceBundle);
+        JcrProperties.Check check = new JcrProperties.Check(emptyList(), emptyList(), emptyList(),
+                Collections.singletonList(constraints), resourceBundleHolder);
+
+        final ResourceBundle fromHolder = resourceBundleHolder.getResourceBundle();
+        final ResourceBundle fromCheck = check.getResourceBundle();
+        assertSame("expect same resource bundle due to internal caching", fromHolder, fromCheck);
+
+        final ResourceBundle toSetForTest = ResourceBundle.getBundle(getClass().getName());
+        check.setResourceBundle(toSetForTest);
+        final ResourceBundle fromHolderAfterSet = resourceBundleHolder.getResourceBundle();
+        final ResourceBundle fromCheckAfterSet = check.getResourceBundle();
+        assertSame("expect same resource bundle after set", fromHolderAfterSet, fromCheckAfterSet);
+
+        final String milliString = String.valueOf(System.currentTimeMillis());
+        assertSame("same key returned from constraints when not in bundle",
+                milliString, constraints.getString(milliString));
     }
 }

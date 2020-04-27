@@ -16,6 +16,15 @@
 
 package net.adamcin.oakpal.core;
 
+import net.adamcin.oakpal.api.JavaxJson;
+import net.adamcin.oakpal.api.PathAction;
+import net.adamcin.oakpal.api.ProgressCheck;
+import net.adamcin.oakpal.api.ProgressCheckFactory;
+import net.adamcin.oakpal.api.ReportCollector;
+import net.adamcin.oakpal.api.Result;
+import net.adamcin.oakpal.api.Severity;
+import net.adamcin.oakpal.api.SimpleViolation;
+import net.adamcin.oakpal.api.Violation;
 import org.apache.jackrabbit.vault.fs.config.MetaInf;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.apache.jackrabbit.vault.packaging.PackageProperties;
@@ -43,6 +52,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.ResourceBundle;
 import java.util.Set;
 import java.util.jar.Manifest;
 
@@ -64,8 +74,8 @@ import static net.adamcin.oakpal.core.Util.isEmpty;
  * <dd>{@link ProgressCheck#identifySubpackage(PackageId, PackageId)}</dd>
  * <dt>beforeExtract(packageId, inspectSession, packageProperties, metaInf, subpackageIds)</dt>
  * <dd>{@link ProgressCheck#beforeExtract(PackageId, Session, PackageProperties, MetaInf, List)}</dd>
- * <dt>importedPath(packageId, path, node)</dt>
- * <dd>{@link ProgressCheck#importedPath(PackageId, String, Node)}</dd>
+ * <dt>importedPath(packageId, path, node, action)</dt>
+ * <dd>{@link ProgressCheck#importedPath(PackageId, String, Node, PathAction)}</dd>
  * <dt>deletedPath(packageId, path, inspectSession)</dt>
  * <dd>{@link ProgressCheck#deletedPath(PackageId, String, Session)}</dd>
  * <dt>afterExtract(packageId, inspectSession)</dt>
@@ -105,16 +115,35 @@ public final class ScriptProgressCheck implements ProgressCheck {
         this.scriptUrl = scriptUrl;
     }
 
-    private String getFilename() {
+    @Override
+    public @Nullable String getResourceBundleBaseName() {
+        return null;
+    }
+
+    @Override
+    public void setResourceBundle(final ResourceBundle resourceBundle) {
+        this.helper.setResourceBundle(resourceBundle);
+    }
+
+    ScriptHelper getHelper() {
+        return helper;
+    }
+
+    private String getScriptPath() {
         if (this.scriptUrl != null) {
-            final int lastSlash = this.scriptUrl.getPath().lastIndexOf("/");
-            if (lastSlash >= 0 && this.scriptUrl.getPath().length() > lastSlash + 1) {
-                return this.scriptUrl.getPath().substring(lastSlash + 1);
-            } else {
-                return this.scriptUrl.getPath();
-            }
+            return this.scriptUrl.getPath();
         } else {
             return FILENAME_INLINE_SCRIPT;
+        }
+    }
+
+    private String getFilename() {
+        final String scriptPath = this.getScriptPath();
+        final int lastSlash = scriptPath.lastIndexOf("/");
+        if (lastSlash >= 0 && scriptPath.length() > lastSlash + 1) {
+            return scriptPath.substring(lastSlash + 1);
+        } else {
+            return scriptPath;
         }
     }
 
@@ -224,8 +253,9 @@ public final class ScriptProgressCheck implements ProgressCheck {
     }
 
     @Override
-    public void importedPath(final PackageId packageId, final String path, final Node node) throws RepositoryException {
-        guardSessionHandler(INVOKE_ON_IMPORTED_PATH, handle -> handle.apply(packageId, path, node));
+    public void importedPath(final PackageId packageId, final String path, final Node node,
+                             final PathAction action) throws RepositoryException {
+        guardSessionHandler(INVOKE_ON_IMPORTED_PATH, handle -> handle.apply(packageId, path, node, action));
     }
 
     @Override
@@ -255,17 +285,30 @@ public final class ScriptProgressCheck implements ProgressCheck {
     @SuppressWarnings("WeakerAccess")
     public static class ScriptHelper {
         private final ReportCollector collector = new ReportCollector();
+        private ResourceBundle resourceBundle;
 
         public void minorViolation(String description, PackageId... packageIds) {
-            collector.reportViolation(new SimpleViolation(Violation.Severity.MINOR, description, packageIds));
+            collector.reportViolation(new SimpleViolation(Severity.MINOR, description, packageIds));
         }
 
         public void majorViolation(String description, PackageId... packageIds) {
-            collector.reportViolation(new SimpleViolation(Violation.Severity.MAJOR, description, packageIds));
+            collector.reportViolation(new SimpleViolation(Severity.MAJOR, description, packageIds));
         }
 
         public void severeViolation(String description, PackageId... packageIds) {
-            collector.reportViolation(new SimpleViolation(Violation.Severity.SEVERE, description, packageIds));
+            collector.reportViolation(new SimpleViolation(Severity.SEVERE, description, packageIds));
+        }
+
+        private void setResourceBundle(final ResourceBundle resourceBundle) {
+            this.resourceBundle = resourceBundle;
+        }
+
+        public String getString(final String key) {
+            if (key != null && resourceBundle != null && resourceBundle.containsKey(key)) {
+                return resourceBundle.getString(key);
+            } else {
+                return key;
+            }
         }
     }
 

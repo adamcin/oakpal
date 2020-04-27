@@ -20,9 +20,9 @@ import java.util.List;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
-import net.adamcin.oakpal.core.SimpleProgressCheck;
-import net.adamcin.oakpal.core.SimpleViolation;
-import net.adamcin.oakpal.core.Violation;
+import net.adamcin.oakpal.api.Severity;
+import net.adamcin.oakpal.api.SimpleProgressCheck;
+import net.adamcin.oakpal.api.SimpleViolation;
 import org.apache.jackrabbit.vault.fs.config.MetaInf;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.apache.jackrabbit.vault.packaging.PackageProperties;
@@ -34,7 +34,7 @@ public class SimpleJavaCheck extends SimpleProgressCheck {
                               final PackageProperties packageProperties, final MetaInf metaInf,
                               final List<PackageId> subpackages) throws RepositoryException {
 
-        reportViolation(new SimpleViolation(Violation.Severity.MINOR,
+        reportViolation(new SimpleViolation(Severity.MINOR,
                 packageProperties.getACHandling().toString(), packageId));
     }
 }

@@ -46,6 +46,10 @@
       "impl": "net.adamcin.oakpal.core.checks.Overlaps"
     },
     {
+      "name": "composite-store-alignment",
+      "impl": "net.adamcin.oakpal.core.checks.CompositeStoreAlignment"
+    },
+    {
       "name": "echo",
       "impl": "net.adamcin.oakpal.core.checks.Echo",
       "skip": true
@@ -83,6 +87,8 @@
                 <dd>see <a href="apidocs/net/adamcin/oakpal/core/checks/FilterSets.html">net.adamcin.oakpal.core.checks.FilterSets</a></dd>
                 <dt><code>overlaps</code> (<code>net.adamcin.oakpal.core/basic/overlaps</code>)</dt>
                 <dd>see <a href="apidocs/net/adamcin/oakpal/core/checks/Overlaps.html">net.adamcin.oakpal.core.checks.Overlaps</a></dd>
+                <dt><code>composite-store-alignment</code> (<code>net.adamcin.oakpal.core/basic/composite-store-alignment</code>)</dt>
+                <dd>see <a href="apidocs/net/adamcin/oakpal/core/checks/CompositeStoreAlignment.html">net.adamcin.oakpal.core.checks.CompositeStoreAlignment</a></dd>
                 <dt><code>echo</code> (<code>net.adamcin.oakpal.core/basic/echo</code>)</dt>
                 <dd>(skipped, template-only) see <a href="apidocs/net/adamcin/oakpal/core/checks/Echo.html">net.adamcin.oakpal.core.checks.Echo</a></dd>
                 <dt><code>jcrProperties</code> (<code>net.adamcin.oakpal.core/basic/jcrProperties</code>)</dt>

@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Mark Adamcin
+ * Copyright 2020 Mark Adamcin
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,11 +16,16 @@
 
 package net.adamcin.oakpal.core.checks;
 
-import net.adamcin.oakpal.core.ProgressCheck;
-import net.adamcin.oakpal.core.ProgressCheckFactory;
-import net.adamcin.oakpal.core.SimpleProgressCheck;
-import net.adamcin.oakpal.core.Violation;
+import net.adamcin.oakpal.api.PathAction;
+import net.adamcin.oakpal.api.ProgressCheck;
+import net.adamcin.oakpal.api.ProgressCheckFactory;
+import net.adamcin.oakpal.api.Rule;
+import net.adamcin.oakpal.api.Rules;
+import net.adamcin.oakpal.api.Severity;
+import net.adamcin.oakpal.api.SimpleProgressCheckFactoryCheck;
 import org.apache.jackrabbit.vault.packaging.PackageId;
+import org.jetbrains.annotations.NotNull;
+import org.osgi.annotation.versioning.ProviderType;
 
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
@@ -28,8 +33,8 @@ import javax.jcr.Session;
 import javax.json.JsonObject;
 import java.util.List;
 
-import static net.adamcin.oakpal.core.JavaxJson.arrayOrEmpty;
-import static net.adamcin.oakpal.core.JavaxJson.hasNonNull;
+import static net.adamcin.oakpal.api.JavaxJson.arrayOrEmpty;
+import static net.adamcin.oakpal.api.JavaxJson.hasNonNull;
 
 /**
  * Deny path imports/deletes by regular expression.
@@ -65,49 +70,83 @@ import static net.adamcin.oakpal.core.JavaxJson.hasNonNull;
  * </dl>
  */
 public final class Paths implements ProgressCheckFactory {
-    public static final String CONFIG_RULES = "rules";
-    public static final String CONFIG_DENY_ALL_DELETES = "denyAllDeletes";
-    public static final String CONFIG_SEVERITY = "severity";
-    public static final Violation.Severity DEFAULT_SEVERITY = Violation.Severity.MAJOR;
+    @ProviderType
+    public interface JsonKeys {
+        String rules();
+
+        String denyAllDeletes();
+
+        String severity();
+    }
+
+    private static final JsonKeys KEYS = new JsonKeys() {
+        @Override
+        public String rules() {
+            return "rules";
+        }
+
+        @Override
+        public String denyAllDeletes() {
+            return "denyAllDeletes";
+        }
+
+        @Override
+        public String severity() {
+            return "severity";
+        }
+    };
+
+    @NotNull
+    public static JsonKeys keys() {
+        return KEYS;
+    }
+
+    @Deprecated
+    public static final String CONFIG_RULES = keys().rules();
+    @Deprecated
+    public static final String CONFIG_DENY_ALL_DELETES = keys().denyAllDeletes();
+    @Deprecated
+    public static final String CONFIG_SEVERITY = keys().severity();
+
+    public static final Severity DEFAULT_SEVERITY = Severity.MAJOR;
 
     @Override
     public ProgressCheck newInstance(final JsonObject config) {
-        List<Rule> rules = Rule.fromJsonArray(arrayOrEmpty(config, CONFIG_RULES));
+        List<Rule> rules = Rules.fromJsonArray(arrayOrEmpty(config, keys().rules()));
 
-        final boolean denyAllDeletes = hasNonNull(config, CONFIG_DENY_ALL_DELETES)
-                && config.getBoolean(CONFIG_DENY_ALL_DELETES);
+        final boolean denyAllDeletes = hasNonNull(config, keys().denyAllDeletes())
+                && config.getBoolean(keys().denyAllDeletes());
 
-        final Violation.Severity severity = Violation.Severity.valueOf(
-                config.getString(CONFIG_SEVERITY, DEFAULT_SEVERITY.name()).toUpperCase());
+        final Severity severity = Severity.valueOf(
+                config.getString(keys().severity(), DEFAULT_SEVERITY.name()).toUpperCase());
 
         return new Check(rules, denyAllDeletes, severity);
     }
 
-    static final class Check extends SimpleProgressCheck {
+    static final class Check extends SimpleProgressCheckFactoryCheck<Paths> {
         private final List<Rule> rules;
         private final boolean denyAllDeletes;
-        private final Violation.Severity severity;
+        private final Severity severity;
 
-        Check(final List<Rule> rules, final boolean denyAllDeletes, final Violation.Severity severity) {
+        Check(final List<Rule> rules, final boolean denyAllDeletes, final Severity severity) {
+            super(Paths.class);
             this.rules = rules;
             this.denyAllDeletes = denyAllDeletes;
             this.severity = severity;
         }
 
         @Override
-        public String getCheckName() {
-            return Paths.class.getSimpleName();
-        }
-
-        @Override
-        public void importedPath(final PackageId packageId, final String path, final Node node)
+        public void importedPath(final PackageId packageId, final String path, final Node node,
+                                 final PathAction action)
                 throws RepositoryException {
 
-            Rule lastMatch = Rule.lastMatch(rules, path);
+            Rule lastMatch = Rules.lastMatch(rules, path);
             if (lastMatch.isDeny()) {
-                reportViolation(severity,
-                        String.format("imported path %s matches deny pattern %s", path,
-                                lastMatch.getPattern().pattern()), packageId);
+                reporting(violation -> violation
+                        .withSeverity(severity)
+                        .withPackage(packageId)
+                        .withDescription("imported path {0} matches deny pattern {1}")
+                        .withArgument(path, lastMatch.getPattern().pattern()));
             }
         }
 
@@ -115,14 +154,19 @@ public final class Paths implements ProgressCheckFactory {
         public void deletedPath(final PackageId packageId, final String path, final Session inspectSession)
                 throws RepositoryException {
             if (this.denyAllDeletes) {
-                reportViolation(severity,
-                        String.format("deleted path %s. All deletions are denied.", path), packageId);
+                reporting(violation -> violation
+                        .withSeverity(severity)
+                        .withPackage(packageId)
+                        .withDescription("deleted path {0}. All deletions are denied.")
+                        .withArgument(path));
             } else {
-                final Rule lastMatch = Rule.lastMatch(rules, path);
+                final Rule lastMatch = Rules.lastMatch(rules, path);
                 if (lastMatch.isDeny()) {
-                    reportViolation(severity,
-                            String.format("deleted path %s matches deny rule %s", path,
-                                    lastMatch.getPattern().pattern()), packageId);
+                    reporting(violation -> violation
+                            .withSeverity(severity)
+                            .withPackage(packageId)
+                            .withDescription("deleted path {0} matches deny rule {1}")
+                            .withArgument(path, lastMatch.getPattern().pattern()));
                 }
             }
         }

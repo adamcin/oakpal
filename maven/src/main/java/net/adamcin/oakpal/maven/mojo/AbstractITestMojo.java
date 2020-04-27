@@ -17,12 +17,17 @@
 package net.adamcin.oakpal.maven.mojo;
 
 import java.io.File;
+import java.text.MessageFormat;
 import java.util.List;
+import java.util.Locale;
+import java.util.ResourceBundle;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import net.adamcin.oakpal.api.Severity;
+import net.adamcin.oakpal.api.SimpleViolation;
 import net.adamcin.oakpal.core.CheckReport;
-import net.adamcin.oakpal.core.Violation;
+import net.adamcin.oakpal.api.Violation;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
@@ -54,9 +59,9 @@ abstract class AbstractITestMojo extends AbstractCommonMojo {
 
     /**
      * Specify the minimum violation severity level that will trigger plugin execution failure. Valid options are
-     * {@link net.adamcin.oakpal.core.Violation.Severity#MINOR},
-     * {@link net.adamcin.oakpal.core.Violation.Severity#MAJOR}, and
-     * {@link net.adamcin.oakpal.core.Violation.Severity#SEVERE}.
+     * {@link Severity#MINOR},
+     * {@link Severity#MAJOR}, and
+     * {@link Severity#SEVERE}.
      * <p>
      * FYI: FileVault Importer errors are reported as MAJOR by default.
      * </p>
@@ -64,7 +69,7 @@ abstract class AbstractITestMojo extends AbstractCommonMojo {
      * @since 0.1.0
      */
     @Parameter(defaultValue = "MAJOR")
-    protected Violation.Severity failOnSeverity = Violation.Severity.MAJOR;
+    protected Severity failOnSeverity = Severity.MAJOR;
 
     protected abstract boolean isIndividuallySkipped();
 

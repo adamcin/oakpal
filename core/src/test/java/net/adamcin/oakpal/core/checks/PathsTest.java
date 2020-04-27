@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Mark Adamcin
+ * Copyright 2020 Mark Adamcin
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,25 +16,30 @@
 
 package net.adamcin.oakpal.core.checks;
 
+import net.adamcin.oakpal.api.ProgressCheck;
+import net.adamcin.oakpal.api.Rule;
+import net.adamcin.oakpal.api.RuleType;
+import net.adamcin.oakpal.api.Severity;
+import net.adamcin.oakpal.api.Violation;
+import net.adamcin.oakpal.core.CheckReport;
+import net.adamcin.oakpal.testing.TestUtil;
+import org.junit.Assert;
+import org.junit.Test;
+
+import java.util.Collections;
+import java.util.Locale;
+import java.util.ResourceBundle;
+import java.util.regex.Pattern;
+
 import static java.util.Collections.singletonList;
-import static net.adamcin.oakpal.core.JavaxJson.arr;
-import static net.adamcin.oakpal.core.JavaxJson.key;
-import static org.junit.Assert.assertEquals;
+import static net.adamcin.oakpal.api.JavaxJson.arr;
+import static net.adamcin.oakpal.api.JavaxJson.key;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import java.util.Collections;
-import java.util.regex.Pattern;
-
-import net.adamcin.oakpal.core.CheckReport;
-import net.adamcin.oakpal.core.ProgressCheck;
-import net.adamcin.oakpal.core.TestUtil;
-import net.adamcin.oakpal.core.Violation;
-import org.junit.Test;
-
 public class PathsTest extends ProgressCheckTestBase {
 
-    private static final Rule denyEtc = new Rule(Rule.RuleType.DENY, Pattern.compile("/etc(/.*)?"));
+    private static final Rule denyEtc = new Rule(RuleType.DENY, Pattern.compile("/etc(/.*)?"));
 
     @Test
     public void testDefaultSeverity() throws Exception {
@@ -42,9 +47,9 @@ public class PathsTest extends ProgressCheckTestBase {
             ProgressCheck check = new Paths().newInstance(key("rules", arr(denyEtc)).get());
             CheckReport report = scanWithCheck(check, "test-package-with-etc.zip");
             logViolations("level_set:no_unsafe", report);
-            assertEquals("violations", 6, report.getViolations().size());
+            Assert.assertEquals("violations", 6, report.getViolations().size());
             assertTrue("all violations are MAJOR", report.getViolations().stream()
-                    .allMatch(viol -> viol.getSeverity().equals(Violation.Severity.MAJOR)));
+                    .allMatch(viol -> viol.getSeverity().equals(Severity.MAJOR)));
         });
     }
 
@@ -54,9 +59,9 @@ public class PathsTest extends ProgressCheckTestBase {
             ProgressCheck check = new Paths().newInstance(key("severity", "SEVERE").key("rules", arr(denyEtc)).get());
             CheckReport report = scanWithCheck(check, "test-package-with-etc.zip");
             logViolations("level_set:no_unsafe", report);
-            assertEquals("violations", 6, report.getViolations().size());
+            Assert.assertEquals("violations", 6, report.getViolations().size());
             assertTrue("all violations are SEVERE", report.getViolations().stream()
-                    .allMatch(viol -> viol.getSeverity().equals(Violation.Severity.SEVERE)));
+                    .allMatch(viol -> viol.getSeverity().equals(Severity.SEVERE)));
         });
     }
 
@@ -66,9 +71,9 @@ public class PathsTest extends ProgressCheckTestBase {
             ProgressCheck check = new Paths().newInstance(key("severity", "minor").key("rules", arr(denyEtc)).get());
             CheckReport report = scanWithCheck(check, "test-package-with-etc.zip");
             logViolations("level_set:no_unsafe", report);
-            assertEquals("violations", 6, report.getViolations().size());
+            Assert.assertEquals("violations", 6, report.getViolations().size());
             assertTrue("all violations are MINOR", report.getViolations().stream()
-                    .allMatch(viol -> viol.getSeverity().equals(Violation.Severity.MINOR)));
+                    .allMatch(viol -> viol.getSeverity().equals(Severity.MINOR)));
         });
     }
 
@@ -93,7 +98,8 @@ public class PathsTest extends ProgressCheckTestBase {
         allDeletesCheck.deletedPath(null, "/foo", null);
         assertFalse("reported violations should not be empty after deletedPath",
                 allDeletesCheck.getReportedViolations().isEmpty());
-        Paths.Check allDeletesCheckByConfig = (Paths.Check) new Paths().newInstance(key(Paths.CONFIG_DENY_ALL_DELETES, true).get());
+        Paths.Check allDeletesCheckByConfig = (Paths.Check) new Paths()
+                .newInstance(key(Paths.keys().denyAllDeletes(), true).get());
         assertTrue("reported violations should be empty before deletedPath",
                 allDeletesCheckByConfig.getReportedViolations().isEmpty());
         allDeletesCheckByConfig.deletedPath(null, "/foo", null);
@@ -101,7 +107,7 @@ public class PathsTest extends ProgressCheckTestBase {
                 allDeletesCheckByConfig.getReportedViolations().isEmpty());
 
         Paths.Check deletesByRuleCheck = new Paths.Check(
-                singletonList(new Rule(Rule.RuleType.ALLOW, Pattern.compile("/foo"))),
+                singletonList(new Rule(RuleType.ALLOW, Pattern.compile("/foo"))),
                 false, Paths.DEFAULT_SEVERITY);
 
         assertTrue("reported violations should be empty before deletedPath",
@@ -118,5 +124,19 @@ public class PathsTest extends ProgressCheckTestBase {
 
         assertFalse("reported violations should not be empty after deletedPath for /bar",
                 deletesByRuleCheck.getReportedViolations().isEmpty());
+    }
+
+    @Test
+    public void testDeletedPath_de() throws Exception {
+        Paths.Check allDeletesCheck = new Paths.Check(Collections.emptyList(), true, Paths.DEFAULT_SEVERITY);
+        allDeletesCheck.setResourceBundle(ResourceBundle.getBundle(allDeletesCheck.getResourceBundleBaseName(), Locale.GERMAN));
+
+        allDeletesCheck.deletedPath(null, "/foo", null);
+        assertFalse("reported violations should not be empty after deletedPath",
+                allDeletesCheck.getReportedViolations().isEmpty());
+        Violation violation = allDeletesCheck.getReportedViolations().iterator().next();
+        assertTrue("violation description should be in german: " + violation.getDescription(),
+                violation.getDescription().contains("gelöschte"));
+
     }
 }

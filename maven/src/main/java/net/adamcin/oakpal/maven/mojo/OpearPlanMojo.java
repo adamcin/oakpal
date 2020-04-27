@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
-import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.Optional;
@@ -13,7 +12,6 @@ import javax.json.JsonWriter;
 import javax.json.JsonWriterFactory;
 import javax.json.stream.JsonGenerator;
 
-import net.adamcin.oakpal.core.Fun;
 import net.adamcin.oakpal.core.OakpalPlan;
 import net.adamcin.oakpal.maven.component.OakpalComponentConfigurator;
 import org.apache.maven.plugin.MojoFailureException;
@@ -21,7 +19,6 @@ import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * Exports a plan builder configuration for inclusion in an opear file, using the {@link OpearPackageMojo}.

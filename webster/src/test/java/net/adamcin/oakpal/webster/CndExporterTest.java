@@ -23,8 +23,6 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.OutputStreamWriter;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -37,7 +35,7 @@ import javax.jcr.nodetype.NodeTypeManager;
 
 import net.adamcin.oakpal.core.JcrNs;
 import net.adamcin.oakpal.core.JsonCnd;
-import net.adamcin.oakpal.core.Result;
+import net.adamcin.oakpal.api.Result;
 import org.apache.jackrabbit.spi.commons.namespace.NamespaceMapping;
 import org.junit.Test;
 

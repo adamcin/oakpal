@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Mark Adamcin
+ * Copyright 2020 Mark Adamcin
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,113 +16,106 @@
 
 package net.adamcin.oakpal.core;
 
-import aQute.bnd.annotation.ConsumerType;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.jetbrains.annotations.NotNull;
 
 import javax.json.JsonObject;
 import java.util.Collection;
-import java.util.function.Predicate;
-
-import static net.adamcin.oakpal.core.JavaxJson.obj;
-import static net.adamcin.oakpal.core.ReportMapper.KEY_DESCRIPTION;
-import static net.adamcin.oakpal.core.ReportMapper.KEY_PACKAGES;
-import static net.adamcin.oakpal.core.ReportMapper.KEY_SEVERITY;
 
 /**
- * Report type for validations.
+ * @deprecated 2.0.0 use {@link net.adamcin.oakpal.api.Violation}
  */
-@ConsumerType
-public interface Violation extends JavaxJson.ObjectConvertible {
+@Deprecated
+public final class Violation {
 
     /**
-     * Levels of severity for violations detected during package scans.
+     * @deprecated 2.0.0 use {@link net.adamcin.oakpal.api.Severity}
      */
-    enum Severity {
+    @Deprecated
+    public enum Severity {
         /**
-         * Unlikely to disrupt application functionality. Appropriate for reporting violations of
-         * code or style conventions, or inconsistency between modes of installation.
+         * @deprecated 2.0.0 use {@link net.adamcin.oakpal.api.Severity#MINOR}
          */
-        MINOR(2),
-
+        @Deprecated
+        MINOR(net.adamcin.oakpal.api.Severity.MINOR),
         /**
-         * Likely to be the source of component instability. Appropriate for importer errors, mistaken
-         * assumptions about root path dependencies or namespaces, or failures related to unit testing of
-         * application packages.
+         * @deprecated 2.0.0 use {@link net.adamcin.oakpal.api.Severity#MAJOR}
          */
-        MAJOR(1),
-
+        @Deprecated
+        MAJOR(net.adamcin.oakpal.api.Severity.MAJOR),
         /**
-         * Likely to be the source of platform instability. Appropriate for reporting cross-package filter
-         * overlap, destructive ACL handling modes, destruction of authorable content, or security violations.
+         * @deprecated 2.0.0 use {@link net.adamcin.oakpal.api.Severity#SEVERE}
          */
-        SEVERE(0);
+        @Deprecated
+        SEVERE(net.adamcin.oakpal.api.Severity.SEVERE);
 
-        private final int ordinal;
+        private final net.adamcin.oakpal.api.Severity severity;
 
-        Severity(int ordinal) {
-            this.ordinal = ordinal;
+        Severity(final net.adamcin.oakpal.api.Severity severity) {
+            this.severity = severity;
         }
 
-        /**
-         * Runtime throwing function to lookup severity codes by name.
-         *
-         * @param name the severity level name
-         * @return the associated severity level
-         */
-        public static Severity byName(final @NotNull String name) {
+        public net.adamcin.oakpal.api.Severity getSeverity() {
+            return severity;
+        }
+
+        static Severity forSeverity(final @NotNull net.adamcin.oakpal.api.Severity severity) {
             for (Severity value : values()) {
-                if (value.name().equalsIgnoreCase(name)) {
+                if (value.severity == severity) {
                     return value;
                 }
             }
-            throw new IllegalArgumentException("Unknown severity level: " + name);
+            throw new IllegalArgumentException("Unknown severity level: " + severity.name());
         }
 
-        public boolean isLessSevereThan(Severity other) {
-            return this.ordinal > other.ordinal;
-        }
-
-        public Predicate<Severity> meetsMinimumSeverity() {
-            return other -> !other.isLessSevereThan(this);
-        }
-
-        public Severity maxSeverity(final @NotNull Severity other) {
-            return this.isLessSevereThan(other) ? other : this;
+        /**
+         * @deprecated 2.0.0 use {@link net.adamcin.oakpal.api.Severity#byName(String)}
+         */
+        @Deprecated
+        public static Severity byName(final @NotNull String name) {
+            final net.adamcin.oakpal.api.Severity severity = net.adamcin.oakpal.api.Severity.byName(name);
+            return forSeverity(severity);
         }
     }
 
     /**
-     * Describe the severity of the violation.
-     *
-     * @return the severity of the violation
+     * @deprecated 2.0.0 use {@link net.adamcin.oakpal.api.Violation#getDescription()}
      */
-    Severity getSeverity();
-
-    /**
-     * Provides a list of one or more Packages responsible for the violation.
-     *
-     * @return a list of package IDs responsible for the violation.
-     */
-    Collection<PackageId> getPackages();
-
-    /**
-     * Describes the nature of the violation.
-     *
-     * @return the description
-     */
-    String getDescription();
-
-    /**
-     * Serializes the Violation to a JsonObject.
-     *
-     * @return the json representation of the violation
-     */
-    @Override
-    default JsonObject toJson() {
-        return obj()
-                .key(KEY_SEVERITY).opt(this.getSeverity())
-                .key(KEY_DESCRIPTION).opt(this.getDescription())
-                .key(KEY_PACKAGES).opt(this.getPackages()).get();
+    @Deprecated
+    public static String getDescription(net.adamcin.oakpal.api.Violation violation) {
+        return violation.getDescription();
     }
+
+    /**
+     * @deprecated 2.0.0 use {@link net.adamcin.oakpal.api.Violation#getPackages()}
+     */
+    @Deprecated
+    public static Collection<PackageId> getPackages(net.adamcin.oakpal.api.Violation violation) {
+        return violation.getPackages();
+    }
+
+    /**
+     * @deprecated 2.0.0 use {@link net.adamcin.oakpal.api.Violation#getSeverity()}
+     */
+    @Deprecated
+    public static Severity getSeverity(net.adamcin.oakpal.api.Violation violation) {
+        return Severity.forSeverity(violation.getSeverity());
+    }
+
+    /**
+     * @deprecated 2.0.0 use {@link net.adamcin.oakpal.api.Violation#toString()}
+     */
+    @Deprecated
+    public static String toString(net.adamcin.oakpal.api.Violation violation) {
+        return violation.toString();
+    }
+
+    /**
+     * @deprecated 2.0.0 use {@link net.adamcin.oakpal.api.Violation#toJson()}
+     */
+    @Deprecated
+    public static JsonObject toJson(net.adamcin.oakpal.api.Violation violation) {
+        return violation.toJson();
+    }
+
 }

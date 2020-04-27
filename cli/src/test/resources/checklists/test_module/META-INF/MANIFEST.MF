@@ -1,0 +1,3 @@
+Manifest-Version: 1.0
+Oakpal-ModuleName: test
+Oakpal-Checklist: test-checklist.json

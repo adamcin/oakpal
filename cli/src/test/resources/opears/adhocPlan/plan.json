@@ -1,0 +1,8 @@
+{
+  "checks": [
+    {
+      "name": "simpleEcho",
+      "impl": "echo.js"
+    }
+  ]
+}

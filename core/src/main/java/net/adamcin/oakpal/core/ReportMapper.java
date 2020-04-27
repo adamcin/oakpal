@@ -16,7 +16,10 @@
 
 package net.adamcin.oakpal.core;
 
+import net.adamcin.oakpal.api.SimpleViolation;
+import net.adamcin.oakpal.api.Violation;
 import org.jetbrains.annotations.NotNull;
+import org.osgi.annotation.versioning.ProviderType;
 
 import javax.json.Json;
 import javax.json.JsonArray;
@@ -39,20 +42,43 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-import static net.adamcin.oakpal.core.JavaxJson.key;
-import static net.adamcin.oakpal.core.JavaxJson.mapArrayOfObjects;
-import static net.adamcin.oakpal.core.JavaxJson.optArray;
+import static net.adamcin.oakpal.api.JavaxJson.key;
+import static net.adamcin.oakpal.api.JavaxJson.mapArrayOfObjects;
+import static net.adamcin.oakpal.api.JavaxJson.optArray;
 
 /**
  * Serialize violations to/from json.
  */
 public final class ReportMapper {
-    public static final String KEY_REPORTS = "reports";
-    public static final String KEY_CHECK_NAME = "checkName";
-    public static final String KEY_VIOLATIONS = "violations";
-    public static final String KEY_DESCRIPTION = "description";
-    public static final String KEY_SEVERITY = "severity";
-    public static final String KEY_PACKAGES = "packages";
+    @ProviderType
+    public interface JsonKeys {
+        String reports();
+
+        String checkName();
+
+        String violations();
+    }
+
+    private static final JsonKeys KEYS = new JsonKeys() {
+        @Override
+        public String reports() {
+            return "reports";
+        }
+
+        @Override
+        public String checkName() {
+            return "checkName";
+        }
+
+        @Override
+        public String violations() {
+            return "violations";
+        }
+    };
+
+    public static JsonKeys keys() {
+        return KEYS;
+    }
 
     private ReportMapper() {
         /* No instantiation */
@@ -61,6 +87,7 @@ public final class ReportMapper {
     /**
      * Functional interface that indicates that the consuming method will open AND close the stream for reading.
      */
+    @ProviderType
     @FunctionalInterface
     public interface ReaderSupplier {
         Reader open() throws IOException;
@@ -69,6 +96,7 @@ public final class ReportMapper {
     /**
      * Functional interface that indicates that the consuming method will open AND close the stream for writing.
      */
+    @ProviderType
     @FunctionalInterface
     public interface WriterSupplier {
         Writer open() throws IOException;
@@ -87,7 +115,7 @@ public final class ReportMapper {
 
             JsonObject json = jsonReader.readObject();
 
-            List<CheckReport> reports = optArray(json, KEY_REPORTS)
+            List<CheckReport> reports = optArray(json, keys().reports())
                     .map(jsonReports -> mapArrayOfObjects(jsonReports, ReportMapper::reportFromJson))
                     .orElseGet(Collections::emptyList);
 
@@ -142,12 +170,13 @@ public final class ReportMapper {
     }
 
     /**
-     * Transforms a collection of CheckReports to a JsonArray assigned to a key {@link #KEY_REPORTS} in an outer object.
+     * Transforms a collection of CheckReports to a JsonArray assigned to a key {@link JsonKeys#reports()} in
+     * an outer object.
      *
      * @param reports the reports to serialize
      * @return a JsonObject with a JsonArray of CheckReport json objects
      */
     public static JsonObject reportsToJsonObject(final @NotNull Collection<CheckReport> reports) {
-        return key(KEY_REPORTS, reportsToJson(reports)).get();
+        return key(keys().reports(), reportsToJson(reports)).get();
     }
 }

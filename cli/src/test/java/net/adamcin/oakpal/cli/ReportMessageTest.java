@@ -16,14 +16,13 @@
 
 package net.adamcin.oakpal.cli;
 
-import net.adamcin.oakpal.core.CheckReport;
 import net.adamcin.oakpal.core.SimpleReport;
 import org.junit.Test;
 
 import javax.json.JsonObject;
 import java.util.Collections;
 
-import static net.adamcin.oakpal.core.JavaxJson.key;
+import static net.adamcin.oakpal.api.JavaxJson.key;
 import static org.junit.Assert.*;
 
 public class ReportMessageTest {

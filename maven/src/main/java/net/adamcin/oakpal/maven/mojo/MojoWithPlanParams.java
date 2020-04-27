@@ -1,25 +1,23 @@
 package net.adamcin.oakpal.maven.mojo;
 
 import net.adamcin.oakpal.core.ForcedRoot;
-import net.adamcin.oakpal.core.Fun;
+import net.adamcin.oakpal.api.Fun;
 import net.adamcin.oakpal.core.JcrNs;
 import net.adamcin.oakpal.core.JsonCnd;
 import net.adamcin.oakpal.core.NamespaceMappingRequest;
 import net.adamcin.oakpal.core.OakpalPlan;
-import net.adamcin.oakpal.core.Result;
+import net.adamcin.oakpal.api.Result;
 import net.adamcin.oakpal.core.SlingNodetypesScanner;
 import org.apache.jackrabbit.spi.QNodeTypeDefinition;
 import org.apache.jackrabbit.spi.commons.namespace.NamespaceMapping;
 import org.apache.jackrabbit.vault.fs.spi.NodeTypeSet;
 import org.apache.maven.model.Dependency;
-import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.project.MavenProject;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
-import java.io.IOException;
 import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;
@@ -28,13 +26,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static net.adamcin.oakpal.core.Fun.compose;
-import static net.adamcin.oakpal.core.Fun.uncheck1;
-import static net.adamcin.oakpal.core.JavaxJson.wrap;
+import static net.adamcin.oakpal.api.Fun.compose1;
+import static net.adamcin.oakpal.api.Fun.uncheck1;
+import static net.adamcin.oakpal.api.JavaxJson.wrap;
 
 interface MojoWithPlanParams extends MojoWithCommonParams, MojoWithRepositoryParams {
 
@@ -47,9 +44,9 @@ interface MojoWithPlanParams extends MojoWithCommonParams, MojoWithRepositoryPar
      * @return the appropriate base url for the plan
      */
     default @NotNull URL getPlanBaseUrl() {
-        return compose(File::toURI, uncheck1(URI::toURL)).apply(
+        return compose1(File::toURI, uncheck1(URI::toURL)).apply(
                 getProject()
-                        .flatMap(compose(MavenProject::getBasedir, Optional::ofNullable))
+                        .flatMap(compose1(MavenProject::getBasedir, Optional::ofNullable))
                         .map(File::getAbsoluteFile)
                         .orElse(new File(".").getAbsoluteFile()));
     }
@@ -173,7 +170,7 @@ interface MojoWithPlanParams extends MojoWithCommonParams, MojoWithRepositoryPar
         // get pre-install files
         final List<File> preInstall = getPreInstallFiles(params);
         planBuilder.withPreInstallUrls(preInstall.stream()
-                .map(compose(File::toURI, uncheck1(URI::toURL))).collect(Collectors.toList()));
+                .map(compose1(File::toURI, uncheck1(URI::toURL))).collect(Collectors.toList()));
 
         final NamespaceMapping planMapping = JsonCnd.toNamespaceMapping(params.getJcrNamespaces());
         planBuilder.withJcrPrivileges(JsonCnd.getPrivilegesFromJson(wrap(params.getJcrPrivileges()), planMapping));
@@ -188,7 +185,7 @@ interface MojoWithPlanParams extends MojoWithCommonParams, MojoWithRepositoryPar
         final NamespaceMappingRequest.Builder nsRequest = new NamespaceMappingRequest.Builder();
         params.getJcrNamespaces().stream().map(JcrNs::getPrefix).forEach(nsRequest::withRetainPrefix);
         params.getJcrPrivileges().stream().flatMap(JsonCnd::streamNsPrefix).forEach(nsRequest::withJCRName);
-        params.getForcedRoots().stream().flatMap(compose(ForcedRoot::getNamespacePrefixes, Stream::of))
+        params.getForcedRoots().stream().flatMap(compose1(ForcedRoot::getNamespacePrefixes, Stream::of))
                 .forEach(nsRequest::withJCRName);
         jcrNodetypes.stream().flatMap(JsonCnd::namedBy).forEach(nsRequest::withQName);
 

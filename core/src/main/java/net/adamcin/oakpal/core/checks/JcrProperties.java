@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Mark Adamcin
+ * Copyright 2020 Mark Adamcin
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,13 +16,21 @@
 
 package net.adamcin.oakpal.core.checks;
 
-import net.adamcin.oakpal.core.ProgressCheck;
-import net.adamcin.oakpal.core.ProgressCheckFactory;
-import net.adamcin.oakpal.core.SimpleProgressCheck;
+import net.adamcin.oakpal.api.PathAction;
+import net.adamcin.oakpal.api.ProgressCheck;
+import net.adamcin.oakpal.api.ProgressCheckFactory;
+import net.adamcin.oakpal.api.Rule;
+import net.adamcin.oakpal.api.RuleType;
+import net.adamcin.oakpal.api.Rules;
+import net.adamcin.oakpal.api.Severity;
+import net.adamcin.oakpal.api.SimpleProgressCheckFactoryCheck;
 import org.apache.jackrabbit.vault.fs.api.WorkspaceFilter;
 import org.apache.jackrabbit.vault.fs.config.MetaInf;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.apache.jackrabbit.vault.packaging.PackageProperties;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.osgi.annotation.versioning.ProviderType;
 
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
@@ -30,11 +38,13 @@ import javax.jcr.Session;
 import javax.jcr.nodetype.NodeTypeDefinition;
 import javax.json.JsonObject;
 import java.util.List;
+import java.util.MissingResourceException;
+import java.util.ResourceBundle;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static net.adamcin.oakpal.core.JavaxJson.arrayOrEmpty;
-import static net.adamcin.oakpal.core.JavaxJson.mapArrayOfStrings;
+import static net.adamcin.oakpal.api.JavaxJson.arrayOrEmpty;
+import static net.adamcin.oakpal.api.JavaxJson.mapArrayOfStrings;
 
 /**
  * A complex check for enforcing characteristics of JCR Properties of imported nodes and their descendants within the
@@ -44,7 +54,7 @@ import static net.adamcin.oakpal.core.JavaxJson.mapArrayOfStrings;
  * <dl>
  * <dt>{@code scopePaths} ({@link Rule}{@code []})</dt>
  * <dd>A list of rules, with each pattern matched against an import path, and the {@code type}
- * ({@link net.adamcin.oakpal.core.checks.Rule.RuleType}) of the last matching rule determines whether the matched
+ * ({@link RuleType}) of the last matching rule determines whether the matched
  * path is in scope for checking the properties on the node and its descendants.</dd>
  * <dt>{@code denyNodeTypes}</dt>
  * <dd>A list of nodeType strings, which specify primary or mixin types that should be disallowed. If matched, the path is
@@ -91,42 +101,110 @@ import static net.adamcin.oakpal.core.JavaxJson.mapArrayOfStrings;
  * </pre>
  */
 public final class JcrProperties implements ProgressCheckFactory {
-    public static final String CONFIG_SCOPE_PATHS = "scopePaths";
-    public static final String CONFIG_DENY_NODE_TYPES = "denyNodeTypes";
-    public static final String CONFIG_SCOPE_NODE_TYPES = "scopeNodeTypes";
-    public static final String CONFIG_PROPERTIES = "properties";
+    @ProviderType
+    public interface JsonKeys {
+        String scopePaths();
+
+        String denyNodeTypes();
+
+        String scopeNodeTypes();
+
+        String properties();
+    }
+
+    private static final JsonKeys KEYS = new JsonKeys() {
+        @Override
+        public String scopePaths() {
+            return "scopePaths";
+        }
+
+        @Override
+        public String denyNodeTypes() {
+            return "denyNodeTypes";
+        }
+
+        @Override
+        public String scopeNodeTypes() {
+            return "scopeNodeTypes";
+        }
+
+        @Override
+        public String properties() {
+            return "properties";
+        }
+    };
+
+    @NotNull
+    public static JsonKeys keys() {
+        return KEYS;
+    }
+
+    @Deprecated
+    public static final String CONFIG_SCOPE_PATHS = keys().scopePaths();
+    @Deprecated
+    public static final String CONFIG_DENY_NODE_TYPES = keys().denyNodeTypes();
+    @Deprecated
+    public static final String CONFIG_SCOPE_NODE_TYPES = keys().scopeNodeTypes();
+    @Deprecated
+    public static final String CONFIG_PROPERTIES = keys().properties();
 
     @Override
     public ProgressCheck newInstance(final JsonObject config) {
-        List<Rule> pathScope = Rule.fromJsonArray(arrayOrEmpty(config, CONFIG_SCOPE_PATHS));
+        List<Rule> pathScope = Rules.fromJsonArray(arrayOrEmpty(config, keys().scopePaths()));
 
-        List<String> denyNodeTypes = mapArrayOfStrings(arrayOrEmpty(config, CONFIG_DENY_NODE_TYPES));
-        List<String> nodeTypeScope = mapArrayOfStrings(arrayOrEmpty(config, CONFIG_SCOPE_NODE_TYPES));
+        List<String> denyNodeTypes = mapArrayOfStrings(arrayOrEmpty(config, keys().denyNodeTypes()));
+        List<String> nodeTypeScope = mapArrayOfStrings(arrayOrEmpty(config, keys().scopeNodeTypes()));
+        final ResourceBundleHolder resourceBundleHolder = new ResourceBundleHolder();
         List<JcrPropertyConstraints> propertyChecks = JcrPropertyConstraints
-                .fromJsonArray(arrayOrEmpty(config, CONFIG_PROPERTIES));
-        return new Check(pathScope, denyNodeTypes, nodeTypeScope, propertyChecks);
+                .fromJsonArray(resourceBundleHolder::getResourceBundle, arrayOrEmpty(config, keys().properties()));
+        return new Check(pathScope, denyNodeTypes, nodeTypeScope, propertyChecks, resourceBundleHolder);
     }
 
-    static final class Check extends SimpleProgressCheck {
+    static final class ResourceBundleHolder {
+        private ResourceBundle resourceBundle;
+
+        public ResourceBundle getResourceBundle() {
+            if (resourceBundle == null) {
+                resourceBundle = ResourceBundle.getBundle(JcrProperties.class.getName());
+            }
+            return resourceBundle;
+        }
+
+        public void setResourceBundle(final ResourceBundle resourceBundle) {
+            this.resourceBundle = resourceBundle;
+        }
+    }
+
+    static final class Check extends SimpleProgressCheckFactoryCheck<JcrProperties> {
         private final List<Rule> scopePaths;
         private final List<String> denyNodeTypes;
         private final List<String> scopeNodeTypes;
         private final List<JcrPropertyConstraints> propertyChecks;
+        private final ResourceBundleHolder resourceBundleHolder;
         private WorkspaceFilter wspFilter;
 
         Check(final List<Rule> scopePaths,
               final List<String> denyNodeTypes,
               final List<String> scopeNodeTypes,
-              final List<JcrPropertyConstraints> propertyChecks) {
+              final List<JcrPropertyConstraints> propertyChecks,
+              final ResourceBundleHolder resourceBundleHolder) {
+            super(JcrProperties.class);
             this.scopePaths = scopePaths;
             this.denyNodeTypes = denyNodeTypes;
             this.scopeNodeTypes = scopeNodeTypes;
             this.propertyChecks = propertyChecks;
+            this.resourceBundleHolder = resourceBundleHolder;
         }
 
         @Override
-        public String getCheckName() {
-            return JcrProperties.class.getSimpleName();
+        public void setResourceBundle(final ResourceBundle resourceBundle) {
+            super.setResourceBundle(resourceBundle);
+            resourceBundleHolder.setResourceBundle(resourceBundle);
+        }
+
+        @Override
+        protected @Nullable ResourceBundle getResourceBundle() throws MissingResourceException {
+            return super.getResourceBundle();
         }
 
         @Override
@@ -137,12 +215,13 @@ public final class JcrProperties implements ProgressCheckFactory {
         }
 
         @Override
-        public void importedPath(final PackageId packageId, final String path, final Node node) throws RepositoryException {
+        public void importedPath(final PackageId packageId, final String path, final Node node,
+                                 final PathAction action) throws RepositoryException {
             if (!wspFilter.contains(path)) {
                 return;
             }
 
-            final Rule lastMatch = Rule.lastMatch(scopePaths, path);
+            final Rule lastMatch = Rules.lastMatch(scopePaths, path);
             if (lastMatch.isInclude()) {
                 this.checkNode(packageId, node);
             }
@@ -151,14 +230,19 @@ public final class JcrProperties implements ProgressCheckFactory {
         void checkNode(final PackageId packageId, final Node node) throws RepositoryException {
             for (String denyNodeType : denyNodeTypes) {
                 if (node.isNodeType(denyNodeType)) {
-                    majorViolation(String.format("%s (t: %s, m: %s): denied node type %s",
+                    final Object[] arguments = new Object[]{
                             node.getPath(),
                             node.getPrimaryNodeType().getName(),
                             Stream.of(node.getMixinNodeTypes())
                                     .map(NodeTypeDefinition::getName)
                                     .collect(Collectors.toList()),
-                            denyNodeType),
-                            packageId);
+                            denyNodeType
+                    };
+                    reporting(violation -> violation
+                            .withSeverity(Severity.MAJOR)
+                            .withDescription("{0} (t: {1}, m: {2}): denied node type {3}")
+                            .withArgument(arguments)
+                            .withPackage(packageId));
                     return;
                 }
             }

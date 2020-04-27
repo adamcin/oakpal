@@ -33,7 +33,6 @@ import javax.jcr.query.QueryManager;
 import javax.jcr.version.Version;
 import javax.jcr.version.VersionManager;
 
-import net.adamcin.oakpal.core.Fun;
 import net.adamcin.oakpal.core.ListenerReadOnlyException;
 import net.adamcin.oakpal.core.jcrfacade.lock.LockManagerFacade;
 import net.adamcin.oakpal.core.jcrfacade.nodetype.NodeTypeManagerFacade;
@@ -42,7 +41,6 @@ import net.adamcin.oakpal.core.jcrfacade.query.QueryManagerFacade;
 import net.adamcin.oakpal.core.jcrfacade.version.VersionManagerFacade;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.JackrabbitWorkspace;
-import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 public class WorkspaceFacadeTest {

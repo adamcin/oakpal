@@ -16,22 +16,24 @@
 
 package net.adamcin.oakpal.core;
 
-import static net.adamcin.oakpal.core.JavaxJson.key;
-import static net.adamcin.oakpal.core.JavaxJson.obj;
+import net.adamcin.oakpal.api.PathAction;
+import net.adamcin.oakpal.api.ProgressCheck;
+import org.junit.Test;
+
+import javax.json.JsonObject;
+import javax.json.JsonValue;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import static net.adamcin.oakpal.api.JavaxJson.key;
+import static net.adamcin.oakpal.api.JavaxJson.obj;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
-
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import javax.json.JsonObject;
-import javax.json.JsonValue;
-
-import org.junit.Test;
 
 public class CheckSpecTest {
 
@@ -313,7 +315,7 @@ public class CheckSpecTest {
         CheckSpec inline = CheckSpec.fromJson(key("inlineScript", "function importedPath(packageId, path) { print(path); }").get());
         List<ProgressCheck> checks = Locator.loadFromCheckSpecs(Collections.singletonList(inline));
 
-        checks.get(0).importedPath(null, "/foo", null);
+        checks.get(0).importedPath(null, "/foo", null, PathAction.ADDED);
     }
 
     @Test
@@ -348,21 +350,22 @@ public class CheckSpecTest {
 
     @Test
     public void testFromJson() {
+        final CheckSpec.JsonKeys keys = CheckSpec.keys();
         final JsonObject specJson = obj()
-                .key(CheckSpec.KEY_NAME, CheckSpec.KEY_NAME)
-                .key(CheckSpec.KEY_IMPL, CheckSpec.KEY_IMPL)
-                .key(CheckSpec.KEY_INLINE_SCRIPT, CheckSpec.KEY_INLINE_SCRIPT)
-                .key(CheckSpec.KEY_INLINE_ENGINE, CheckSpec.KEY_INLINE_ENGINE)
-                .key(CheckSpec.KEY_CONFIG, key("foo", "bar"))
-                .key(CheckSpec.KEY_TEMPLATE, CheckSpec.KEY_TEMPLATE)
-                .key(CheckSpec.KEY_SKIP, true)
+                .key(keys.name(), keys.name())
+                .key(keys.impl(), keys.impl())
+                .key(keys.inlineScript(), keys.inlineScript())
+                .key(keys.inlineEngine(), keys.inlineEngine())
+                .key(keys.config(), key("foo", "bar"))
+                .key(keys.template(), keys.template())
+                .key(keys.skip(), true)
                 .get();
         final CheckSpec spec = CheckSpec.fromJson(specJson);
-        assertEquals("fromJson getName same", CheckSpec.KEY_NAME, spec.getName());
-        assertEquals("fromJson getImpl same", CheckSpec.KEY_IMPL, spec.getImpl());
-        assertEquals("fromJson getTemplate same", CheckSpec.KEY_TEMPLATE, spec.getTemplate());
-        assertEquals("fromJson getInlineScript same", CheckSpec.KEY_INLINE_SCRIPT, spec.getInlineScript());
-        assertEquals("fromJson getInlineEngine same", CheckSpec.KEY_INLINE_ENGINE, spec.getInlineEngine());
+        assertEquals("fromJson getName same", keys.name(), spec.getName());
+        assertEquals("fromJson getImpl same", keys.impl(), spec.getImpl());
+        assertEquals("fromJson getTemplate same", keys.template(), spec.getTemplate());
+        assertEquals("fromJson getInlineScript same", keys.inlineScript(), spec.getInlineScript());
+        assertEquals("fromJson getInlineEngine same", keys.inlineEngine(), spec.getInlineEngine());
         assertEquals("fromJson getConfig same", key("foo", "bar").get(), spec.getConfig());
         assertTrue("fromJson isSkip true", spec.isSkip());
         assertEquals("json should be equal", specJson, spec.toJson());
@@ -372,14 +375,15 @@ public class CheckSpecTest {
 
     @Test
     public void testCopyOf() {
+        final CheckSpec.JsonKeys keys = CheckSpec.keys();
         final JsonObject specJson = obj()
-                .key(CheckSpec.KEY_NAME, CheckSpec.KEY_NAME)
-                .key(CheckSpec.KEY_IMPL, CheckSpec.KEY_IMPL)
-                .key(CheckSpec.KEY_INLINE_SCRIPT, CheckSpec.KEY_INLINE_SCRIPT)
-                .key(CheckSpec.KEY_INLINE_ENGINE, CheckSpec.KEY_INLINE_ENGINE)
-                .key(CheckSpec.KEY_CONFIG, key("foo", "bar"))
-                .key(CheckSpec.KEY_TEMPLATE, CheckSpec.KEY_TEMPLATE)
-                .key(CheckSpec.KEY_SKIP, true)
+                .key(keys.name(), keys.name())
+                .key(keys.impl(), keys.impl())
+                .key(keys.inlineScript(), keys.inlineScript())
+                .key(keys.inlineEngine(), keys.inlineEngine())
+                .key(keys.config(), key("foo", "bar"))
+                .key(keys.template(), keys.template())
+                .key(keys.skip(), true)
                 .get();
         final CheckSpec spec = CheckSpec.fromJson(specJson);
         assertEquals("copy should equal copied", spec, CheckSpec.copyOf(spec));

@@ -16,12 +16,13 @@
 
 package net.adamcin.oakpal.webster.targets;
 
+import net.adamcin.oakpal.api.RuleType;
 import net.adamcin.oakpal.core.Checklist;
 import net.adamcin.oakpal.core.ForcedRoot;
 import net.adamcin.oakpal.core.JcrNs;
 import net.adamcin.oakpal.core.JsonCnd;
 import net.adamcin.oakpal.core.OakMachine;
-import net.adamcin.oakpal.core.checks.Rule;
+import net.adamcin.oakpal.api.Rule;
 import net.adamcin.oakpal.webster.TestUtil;
 import net.adamcin.oakpal.webster.WebsterTarget;
 import org.apache.jackrabbit.spi.commons.conversion.DefaultNamePathResolver;
@@ -43,10 +44,10 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
 
-import static net.adamcin.oakpal.core.Fun.uncheck1;
-import static net.adamcin.oakpal.core.JavaxJson.arr;
-import static net.adamcin.oakpal.core.JavaxJson.key;
-import static net.adamcin.oakpal.core.JavaxJson.obj;
+import static net.adamcin.oakpal.api.Fun.uncheck1;
+import static net.adamcin.oakpal.api.JavaxJson.arr;
+import static net.adamcin.oakpal.api.JavaxJson.key;
+import static net.adamcin.oakpal.api.JavaxJson.obj;
 import static net.adamcin.oakpal.webster.ChecklistExporter.SelectorType.NODETYPE;
 import static net.adamcin.oakpal.webster.ChecklistExporter.SelectorType.PATH;
 import static net.adamcin.oakpal.webster.ChecklistExporter.SelectorType.QUERY;
@@ -149,8 +150,8 @@ public class WebsterChecklistTargetTest {
                 //.key("jcrNamespaces", nsList)
                 .key("selectors", arr()
                         .val(key("type", "path").key("args", arr("/foo1", "/foo2"))))
-                .key("scopePaths", arr(new Rule(Rule.RuleType.INCLUDE, Pattern.compile("/foo2"))))
-                .key("nodeTypeFilters", arr(new Rule(Rule.RuleType.EXCLUDE, Pattern.compile(OakMachine.NS_PREFIX_OAKPAL + ":.*"))))
+                .key("scopePaths", arr(new Rule(RuleType.INCLUDE, Pattern.compile("/foo2"))))
+                .key("nodeTypeFilters", arr(new Rule(RuleType.EXCLUDE, Pattern.compile(OakMachine.NS_PREFIX_OAKPAL + ":.*"))))
                 .get());
         twoRootsOak.build().adminInitAndInspect(twoRootsTarget::perform);
         assertJsonFile(targetFile, json -> {
@@ -170,8 +171,8 @@ public class WebsterChecklistTargetTest {
                 .key("jcrNamespaces", nsList)
                 .key("selectors", arr()
                         .val(key("type", "path").key("args", arr("/foo1", "/foo2"))))
-                .key("scopePaths", arr(new Rule(Rule.RuleType.INCLUDE, Pattern.compile("/foo1"))))
-                .key("nodeTypeFilters", arr(new Rule(Rule.RuleType.EXCLUDE, Pattern.compile("oakpaltmp:.*"))))
+                .key("scopePaths", arr(new Rule(RuleType.INCLUDE, Pattern.compile("/foo1"))))
+                .key("nodeTypeFilters", arr(new Rule(RuleType.EXCLUDE, Pattern.compile("oakpaltmp:.*"))))
                 .key("updatePolicy", "replace")
                 .get());
         twoTypedRootsOak.build().adminInitAndInspect(twoTypedRootsTarget::perform);
@@ -212,7 +213,7 @@ public class WebsterChecklistTargetTest {
                         .val(key("type", "nodetype").key("args", arr("mix:title")))
                         .val(key("type", "query").key("args", arr("select * from [nt:unstructured] as nun where issamenode([nun], '/foo2')"))))
                 .key("nodeTypeFilters", arr()
-                        .val(new Rule(Rule.RuleType.INCLUDE, Pattern.compile("foo:mixin.*"))))
+                        .val(new Rule(RuleType.INCLUDE, Pattern.compile("foo:mixin.*"))))
                 .key("exportNodeTypes", arr(fooMixin2))
                 .get());
         oak.build().adminInitAndInspect(target::perform);

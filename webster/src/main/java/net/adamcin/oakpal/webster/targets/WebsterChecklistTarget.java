@@ -16,7 +16,7 @@
 
 package net.adamcin.oakpal.webster.targets;
 
-import static net.adamcin.oakpal.core.JavaxJson.obj;
+import static net.adamcin.oakpal.api.JavaxJson.obj;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -34,10 +34,11 @@ import javax.json.JsonArray;
 import javax.json.JsonObject;
 import javax.json.JsonReader;
 
+import net.adamcin.oakpal.api.Rules;
 import net.adamcin.oakpal.core.Checklist;
-import net.adamcin.oakpal.core.JavaxJson;
+import net.adamcin.oakpal.api.JavaxJson;
 import net.adamcin.oakpal.core.JcrNs;
-import net.adamcin.oakpal.core.checks.Rule;
+import net.adamcin.oakpal.api.Rule;
 import net.adamcin.oakpal.webster.ChecklistExporter;
 import net.adamcin.oakpal.webster.WebsterTarget;
 import org.slf4j.Logger;
@@ -58,7 +59,7 @@ final class WebsterChecklistTarget implements WebsterTarget {
     static final String KEY_UPDATE_POLICY = "updatePolicy";
     static final String KEY_EXPORT_NODETYPES = "exportNodeTypes";
 
-    static class Selector {
+    static final class Selector {
         private final ChecklistExporter.SelectorType type;
         private final String[] args;
 
@@ -158,11 +159,11 @@ final class WebsterChecklistTarget implements WebsterTarget {
             selectors.forEach(selector -> selector.selectOnExporter(exporter));
         }
         if (config.containsKey(KEY_SCOPE_PATHS)) {
-            List<Rule> scopePaths = Rule.fromJsonArray(config.getJsonArray(KEY_SCOPE_PATHS));
+            List<Rule> scopePaths = Rules.fromJsonArray(config.getJsonArray(KEY_SCOPE_PATHS));
             exporter.withScopePaths(scopePaths);
         }
         if (config.containsKey(KEY_NODE_TYPE_FILTERS)) {
-            List<Rule> nodeTypeFilters = Rule.fromJsonArray(config.getJsonArray(KEY_NODE_TYPE_FILTERS));
+            List<Rule> nodeTypeFilters = Rules.fromJsonArray(config.getJsonArray(KEY_NODE_TYPE_FILTERS));
             exporter.withNodeTypeFilters(nodeTypeFilters);
         }
         if (config.containsKey(KEY_JCR_NAMESPACES)) {

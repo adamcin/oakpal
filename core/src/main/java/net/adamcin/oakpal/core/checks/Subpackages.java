@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Mark Adamcin
+ * Copyright 2020 Mark Adamcin
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,17 +16,21 @@
 
 package net.adamcin.oakpal.core.checks;
 
-import net.adamcin.oakpal.core.ProgressCheck;
-import net.adamcin.oakpal.core.ProgressCheckFactory;
-import net.adamcin.oakpal.core.SimpleProgressCheck;
-import net.adamcin.oakpal.core.Violation;
+import net.adamcin.oakpal.api.ProgressCheck;
+import net.adamcin.oakpal.api.ProgressCheckFactory;
+import net.adamcin.oakpal.api.Rule;
+import net.adamcin.oakpal.api.Rules;
+import net.adamcin.oakpal.api.Severity;
+import net.adamcin.oakpal.api.SimpleProgressCheckFactoryCheck;
 import org.apache.jackrabbit.vault.packaging.PackageId;
+import org.jetbrains.annotations.NotNull;
+import org.osgi.annotation.versioning.ProviderType;
 
 import javax.json.JsonObject;
 import java.util.List;
 
-import static net.adamcin.oakpal.core.JavaxJson.arrayOrEmpty;
-import static net.adamcin.oakpal.core.JavaxJson.hasNonNull;
+import static net.adamcin.oakpal.api.JavaxJson.arrayOrEmpty;
+import static net.adamcin.oakpal.api.JavaxJson.hasNonNull;
 
 /**
  * Check for subpackage inclusion.
@@ -59,49 +63,72 @@ import static net.adamcin.oakpal.core.JavaxJson.hasNonNull;
  * </dl>
  */
 public final class Subpackages implements ProgressCheckFactory {
-    public static final String CONFIG_RULES = "rules";
-    public static final String CONFIG_DENY_ALL = "denyAll";
+    @ProviderType
+    public interface JsonKeys {
+        String rules();
+
+        String denyAll();
+    }
+
+    private static final JsonKeys KEYS = new JsonKeys() {
+        @Override
+        public String rules() {
+            return "rules";
+        }
+
+        @Override
+        public String denyAll() {
+            return "denyAll";
+        }
+    };
+
+    @NotNull
+    public static JsonKeys keys() {
+        return KEYS;
+    }
+
+    @Deprecated
+    public static final String CONFIG_RULES = keys().rules();
+    @Deprecated
+    public static final String CONFIG_DENY_ALL = keys().denyAll();
 
     @Override
     public ProgressCheck newInstance(final JsonObject config) {
-        List<Rule> rules = Rule.fromJsonArray(arrayOrEmpty(config, CONFIG_RULES));
+        List<Rule> rules = Rules.fromJsonArray(arrayOrEmpty(config, keys().rules()));
 
-        final boolean denyAll = hasNonNull(config, CONFIG_DENY_ALL) && config.getBoolean(CONFIG_DENY_ALL);
+        final boolean denyAll = hasNonNull(config, keys().denyAll()) && config.getBoolean(keys().denyAll());
 
         return new Check(rules, denyAll);
     }
 
-    static final class Check extends SimpleProgressCheck {
+    static final class Check extends SimpleProgressCheckFactoryCheck<Subpackages> {
         private final List<Rule> rules;
         private final boolean denyAll;
 
         Check(final List<Rule> rules, final boolean denyAll) {
+            super(Subpackages.class);
             this.rules = rules;
             this.denyAll = denyAll;
         }
 
         @Override
-        public String getCheckName() {
-            return Subpackages.class.getSimpleName();
-        }
-
-        @Override
         public void identifySubpackage(final PackageId packageId, final PackageId parentId) {
             if (denyAll) {
-                reportViolation(Violation.Severity.MAJOR,
-                        String.format("subpackage %s included by %s. no subpackages are allowed.",
-                                packageId, parentId), packageId);
+                reporting(violation -> violation
+                        .withSeverity(Severity.MAJOR)
+                        .withPackage(packageId)
+                        .withDescription("subpackage {0} included by {1}. no subpackages are allowed.")
+                        .withArgument(packageId, parentId));
             } else {
-                final Rule lastMatch = Rule.lastMatch(rules, packageId.toString());
+                final Rule lastMatch = Rules.lastMatch(rules, packageId.toString());
                 if (lastMatch.isDeny()) {
-                    reportViolation(Violation.Severity.MAJOR,
-                            String.format("subpackage %s included by %s matches deny pattern %s",
-                                    packageId.toString(), parentId.toString(),
-                                    lastMatch.getPattern().pattern()), packageId);
+                    reporting(violation -> violation
+                            .withSeverity(Severity.MAJOR)
+                            .withPackage(packageId)
+                            .withDescription("subpackage {0} included by {1} matches deny pattern {2}")
+                            .withArgument(packageId, parentId, lastMatch.getPattern().pattern()));
                 }
             }
         }
     }
-
-
 }

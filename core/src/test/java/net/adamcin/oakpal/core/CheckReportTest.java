@@ -30,6 +30,10 @@ import java.util.List;
 import javax.json.JsonArray;
 import javax.json.JsonObject;
 
+import net.adamcin.oakpal.api.JavaxJson;
+import net.adamcin.oakpal.api.Severity;
+import net.adamcin.oakpal.api.SimpleViolation;
+import net.adamcin.oakpal.api.Violation;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.junit.Test;
 
@@ -40,18 +44,18 @@ public class CheckReportTest {
         final CheckReport report = mock(CheckReport.class);
         final List<Violation> violations = new ArrayList<>();
         when(report.getViolations()).thenReturn(violations);
-        doCallRealMethod().when(report).getViolations(nullable(Violation.Severity.class));
+        doCallRealMethod().when(report).getViolations(nullable(Severity.class));
 
         assertEquals("violations size", 0, report.getViolations(null).size());
 
-        violations.add(new SimpleViolation(Violation.Severity.MINOR, "minor violation"));
-        violations.add(new SimpleViolation(Violation.Severity.MAJOR, "major violation"));
-        violations.add(new SimpleViolation(Violation.Severity.SEVERE, "severe violation"));
+        violations.add(new SimpleViolation(Severity.MINOR, "minor violation"));
+        violations.add(new SimpleViolation(Severity.MAJOR, "major violation"));
+        violations.add(new SimpleViolation(Severity.SEVERE, "severe violation"));
 
         assertEquals("violations size after populating", 3, report.getViolations(null).size());
-        assertEquals("violations size at or above minor", 3, report.getViolations(Violation.Severity.MINOR).size());
-        assertEquals("violations size at or above major", 2, report.getViolations(Violation.Severity.MAJOR).size());
-        assertEquals("violations size at or above severe", 1, report.getViolations(Violation.Severity.SEVERE).size());
+        assertEquals("violations size at or above minor", 3, report.getViolations(Severity.MINOR).size());
+        assertEquals("violations size at or above major", 2, report.getViolations(Severity.MAJOR).size());
+        assertEquals("violations size at or above severe", 1, report.getViolations(Severity.SEVERE).size());
     }
 
     @Test
@@ -60,18 +64,18 @@ public class CheckReportTest {
         final List<Violation> violations = new ArrayList<>();
         when(report.getViolations()).thenReturn(violations);
         when(report.getCheckName()).thenReturn("mock");
-        doCallRealMethod().when(report).getViolations(nullable(Violation.Severity.class));
+        doCallRealMethod().when(report).getViolations(nullable(Severity.class));
         doCallRealMethod().when(report).toJson();
         final PackageId fooId = PackageId.fromString("test:foo:1.0-SNAPSHOT");
         final PackageId barId = PackageId.fromString("test:bar:1.0-SNAPSHOT");
-        violations.add(new SimpleViolation(Violation.Severity.MINOR, "minor violation"));
-        violations.add(new SimpleViolation(Violation.Severity.MAJOR, "major violation", fooId));
-        violations.add(new SimpleViolation(Violation.Severity.SEVERE, "severe violation", fooId, barId));
+        violations.add(new SimpleViolation(Severity.MINOR, "minor violation"));
+        violations.add(new SimpleViolation(Severity.MAJOR, "major violation", fooId));
+        violations.add(new SimpleViolation(Severity.SEVERE, "severe violation", fooId, barId));
 
         JsonObject json = report.toJson();
         assertNotNull("json is not null", json);
-        assertEquals("checkName should be", "mock", json.getString(ReportMapper.KEY_CHECK_NAME));
-        JsonArray violationArray = json.getJsonArray(ReportMapper.KEY_VIOLATIONS);
+        assertEquals("checkName should be", "mock", json.getString(ReportMapper.keys().checkName()));
+        JsonArray violationArray = json.getJsonArray(ReportMapper.keys().violations());
         List<SimpleViolation> fromJson = JavaxJson.mapArrayOfObjects(violationArray, SimpleViolation::fromJson);
         assertEquals("fromJson should be an array of three simple violations", 3, fromJson.size());
         assertEquals("foo package is reported twice", 2,

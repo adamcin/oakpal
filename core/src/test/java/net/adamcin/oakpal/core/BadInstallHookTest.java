@@ -20,12 +20,12 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import net.adamcin.oakpal.api.Violation;
 import net.adamcin.oakpal.testing.TestPackageUtil;
 import org.junit.Test;
 
 import java.io.File;
 import java.util.Collection;
-import java.util.List;
 import java.util.Optional;
 
 public class BadInstallHookTest {
