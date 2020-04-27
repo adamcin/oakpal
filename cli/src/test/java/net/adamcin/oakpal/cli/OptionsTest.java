@@ -124,27 +124,27 @@ public class OptionsTest {
         final Result<Options> defaultOptionsResult = new Options.Builder().build(console);
         assertFalse("options build is successful", defaultOptionsResult.getError().isPresent());
         defaultOptionsResult.forEach(options -> {
-            assertNull("planFromFile is null by default", options.getPlanFromFile());
-            assertNull("planFromFileBaseDir is null by default", options.getPlanFromFileBaseDir());
+            assertNull("planFromFile is null by default", options.getPlanFile());
+            assertNull("planFromFileBaseDir is null by default", options.getPlanFileBaseDir());
         });
 
         final Result<Options> optionsResult = new Options.Builder()
-                .setPlanFromFile(new File("src/test/resources/opears/adhocPlan/plan.json")).build(console);
+                .setPlanFile(new File("src/test/resources/opears/adhocPlan/plan.json")).build(console);
         optionsResult.forEach(options -> {
-            assertTrue("planFromFile should be a file: " + options.getPlanFromFile().getAbsolutePath(),
-                    !options.getPlanFromFile().isDirectory());
-            assertNull("planFromFileBaseDir should be null", options.getPlanFromFileBaseDir());
+            assertTrue("planFromFile should be a file: " + options.getPlanFile().getAbsolutePath(),
+                    !options.getPlanFile().isDirectory());
+            assertNull("planFromFileBaseDir should be null", options.getPlanFileBaseDir());
         });
 
         final Result<Options> optionsWithBaseResult = new Options.Builder()
-                .setPlanFromFile(new File("src/test/resources/opears/adhocPlan/plan.json"))
-                .setPlanFromFileBaseDir(console.getCwd())
+                .setPlanFile(new File("src/test/resources/opears/adhocPlan/plan.json"))
+                .setPlanFileBaseDir(console.getCwd())
                 .build(console);
         optionsWithBaseResult.forEach(options -> {
-            assertTrue("planFromFile should be a file: " + options.getPlanFromFile().getAbsolutePath(),
-                    !options.getPlanFromFile().isDirectory());
-            assertTrue("planFromFileBaseDir should be a directory: " + options.getPlanFromFileBaseDir()
-                    .getAbsolutePath(), options.getPlanFromFileBaseDir().isDirectory());
+            assertTrue("planFromFile should be a file: " + options.getPlanFile().getAbsolutePath(),
+                    !options.getPlanFile().isDirectory());
+            assertTrue("planFromFileBaseDir should be a directory: " + options.getPlanFileBaseDir()
+                    .getAbsolutePath(), options.getPlanFileBaseDir().isDirectory());
         });
     }
 

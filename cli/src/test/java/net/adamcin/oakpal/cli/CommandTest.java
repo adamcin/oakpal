@@ -339,15 +339,15 @@ public class CommandTest {
 
         validator.expectSuccess(
                 args(
-                        "--plan-from-file", planFromFile.getAbsolutePath(),
-                        "--plan-from-file-base", planFromFile.getParentFile().getAbsolutePath(),
+                        "--plan-file", planFromFile.getAbsolutePath(),
+                        "--plan-file-base", planFromFile.getParentFile().getAbsolutePath(),
                         "--pre-install-file", contentPackageJar.getAbsolutePath(),
                         "--extend-classpath", testModuleJar.getAbsolutePath()),
                 options -> {
-                    assertEquals("expect plan from file",
-                            planFromFile.getAbsolutePath(), options.getPlanFromFile().getAbsolutePath());
-                    assertEquals("expect plan from file base dir",
-                            planFromFile.getParentFile().getAbsolutePath(), options.getPlanFromFileBaseDir().getAbsolutePath());
+                    assertEquals("expect plan file",
+                            planFromFile.getAbsolutePath(), options.getPlanFile().getAbsolutePath());
+                    assertEquals("expect plan file base dir",
+                            planFromFile.getParentFile().getAbsolutePath(), options.getPlanFileBaseDir().getAbsolutePath());
                     assertTrue("expect pre-install file", options.getPreInstallFiles().stream()
                             .anyMatch(file -> file.getAbsolutePath().equals(contentPackageJar.getAbsolutePath())));
                     assertTrue("expect classpath", options.getExtendedClassPathFiles().stream()
@@ -358,18 +358,18 @@ public class CommandTest {
 
         validator.expectSuccess(
                 args(
-                        "--plan-from-file", planFromFile.getAbsolutePath(),
-                        "--no-plan-from-file",
-                        "--plan-from-file-base", planFromFile.getParentFile().getAbsolutePath(),
-                        "--no-plan-from-file-base",
+                        "--plan-file", planFromFile.getAbsolutePath(),
+                        "--no-plan-file",
+                        "--plan-file-base", planFromFile.getParentFile().getAbsolutePath(),
+                        "--no-plan-file-base",
                         "--pre-install-file", contentPackageJar.getAbsolutePath(),
                         "--no-pre-install-file",
                         "--extend-classpath", testModuleJar.getAbsolutePath(),
                         "--no-extend-classpath"),
 
                 options -> {
-                    assertNull("expect null plan from file", options.getPlanFromFile());
-                    assertNull("expect null plan from file base dir", options.getPlanFromFileBaseDir());
+                    assertNull("expect null plan file", options.getPlanFile());
+                    assertNull("expect null plan file base dir", options.getPlanFileBaseDir());
                     assertFalse("expect no pre-install file", options.getPreInstallFiles().stream()
                             .anyMatch(file -> file.getAbsolutePath().equals(contentPackageJar.getAbsolutePath())));
                     assertFalse("expect no classpath", options.getExtendedClassPathFiles().stream()

@@ -38,11 +38,11 @@ final class Options {
     private final ClassLoader scanClassLoader;
     private final File cacheDir;
     private final File opearFile;
-    private final File planFromFile;
-    private final File planFromFileBaseDir;
+    private final String planName;
+    private final File planFile;
+    private final File planFileBaseDir;
     private final List<File> preInstallFiles;
     private final List<File> extendedClassPathFiles;
-    private final String planName;
     private final boolean noHooks;
     private final List<File> scanFiles;
     private final Function<StructuredMessage, IO<Nothing>> printer;
@@ -68,8 +68,8 @@ final class Options {
             final @NotNull File cacheDir,
             final @Nullable File opearFile,
             final @Nullable String planName,
-            final @Nullable File planFromFile,
-            final @Nullable File planFromFileBaseDir,
+            final @Nullable File planFile,
+            final @Nullable File planFileBaseDir,
             final @NotNull List<File> preInstallFiles,
             final @NotNull List<File> extendedClassPathFiles,
             final boolean noHooks,
@@ -84,8 +84,8 @@ final class Options {
         this.cacheDir = cacheDir;
         this.opearFile = opearFile;
         this.planName = planName;
-        this.planFromFile = planFromFile;
-        this.planFromFileBaseDir = planFromFileBaseDir;
+        this.planFile = planFile;
+        this.planFileBaseDir = planFileBaseDir;
         this.preInstallFiles = preInstallFiles;
         this.extendedClassPathFiles = extendedClassPathFiles;
         this.noHooks = noHooks;
@@ -130,12 +130,12 @@ final class Options {
         return planName;
     }
 
-    public @Nullable File getPlanFromFile() {
-        return planFromFile;
+    public @Nullable File getPlanFile() {
+        return planFile;
     }
 
-    public @Nullable File getPlanFromFileBaseDir() {
-        return planFromFileBaseDir;
+    public @Nullable File getPlanFileBaseDir() {
+        return planFileBaseDir;
     }
 
     public @NotNull List<File> getPreInstallFiles() {
@@ -190,8 +190,8 @@ final class Options {
         private boolean noPlan;
         private boolean noHooks;
         private String planName;
-        private File planFromFile;
-        private File planFromFileBaseDir;
+        private File planFile;
+        private File planFileBaseDir;
         private List<File> preInstallFiles = new ArrayList<>();
         private List<File> extendedClassPathFiles = new ArrayList<>();
         private File outFile;
@@ -235,13 +235,13 @@ final class Options {
             return this;
         }
 
-        public Builder setPlanFromFileBaseDir(final @Nullable File planFromFileBaseDir) {
-            this.planFromFileBaseDir = planFromFileBaseDir;
+        public Builder setPlanFileBaseDir(final @Nullable File planFileBaseDir) {
+            this.planFileBaseDir = planFileBaseDir;
             return this;
         }
 
-        public Builder setPlanFromFile(final @Nullable File planFromFile) {
-            this.planFromFile = planFromFile;
+        public Builder setPlanFile(final @Nullable File planFile) {
+            this.planFile = planFile;
             return this;
         }
 
@@ -292,7 +292,7 @@ final class Options {
 
         Result<Opear> buildOpear(final @NotNull Console console, final @NotNull File opearCache) {
             final Result<Opear> baseOpear;
-            if (planFromFile != null) {
+            if (planFile != null) {
                 baseOpear = buildAdhocOpear(console).map(Function.identity());
             } else {
                 baseOpear = buildOpearFile(console, opearCache).map(Function.identity());
@@ -301,7 +301,7 @@ final class Options {
         }
 
         Result<AdhocOpear> buildAdhocOpear(final @NotNull Console console) {
-            return AdhocOpear.fromPlanFile(planFromFile, planFromFileBaseDir);
+            return AdhocOpear.fromPlanFile(planFile, planFileBaseDir);
         }
 
         Result<OpearFile> buildOpearFile(final @NotNull Console console, final @NotNull File opearCache) {
@@ -352,8 +352,8 @@ final class Options {
                     .flatMap(planUrl -> getExtendedClassLoader(opear, getClass().getClassLoader())
                             .flatMap(classLoader -> messageWriter(console, outputJson, outFile).map(writer ->
                                     new Options(justHelp, justVersion, storeBlobs, planUrl,
-                                            classLoader, realCacheDir, opearFile, planName, planFromFile,
-                                            planFromFileBaseDir, preInstallFiles, extendedClassPathFiles,
+                                            classLoader, realCacheDir, opearFile, planName, planFile,
+                                            planFileBaseDir, preInstallFiles, extendedClassPathFiles,
                                             noHooks, scanFiles, writer, Optional.ofNullable(failOnSeverity)
                                             .orElse(DEFAULT_OPTIONS.failOnSeverity))))));
         }
