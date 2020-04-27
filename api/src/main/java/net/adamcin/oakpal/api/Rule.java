@@ -36,6 +36,7 @@ import java.util.regex.Pattern;
  * are assumed).</dd>
  * </dl>
  */
+@ProviderType
 public class Rule implements JsonObjectConvertible {
     @ProviderType
     public interface JsonKeys {
