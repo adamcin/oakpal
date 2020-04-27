@@ -50,6 +50,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static java.util.Optional.ofNullable;
 import static net.adamcin.oakpal.api.Fun.compose;
 
 /**
@@ -264,6 +265,22 @@ public final class JavaxJson {
     @SuppressWarnings("WeakerAccess")
     public static List<Object> unwrapArray(final JsonArray jsonArray) {
         return jsonArray.getValuesAs(JavaxJson::unwrap);
+    }
+
+    /**
+     * Merge an overlay json object's entries into a base json object, replacing values
+     * for duplicate keys.
+     *
+     * @param base    the base json object
+     * @param overlay the overlay json object
+     * @return a merged json object
+     */
+    public static @NotNull JsonObject shallowMergeObjects(final @Nullable JsonObject base,
+                                                          final @Nullable JsonObject overlay) {
+        JsonObjectBuilder init = Json.createObjectBuilder();
+        ofNullable(base).ifPresent(json -> json.forEach(init::add));
+        ofNullable(overlay).ifPresent(json -> json.forEach(init::add));
+        return init.build();
     }
 
     /**

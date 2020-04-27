@@ -14,9 +14,10 @@
  * limitations under the License.
  */
 
-package net.adamcin.oakpal.core;
+package net.adamcin.oakpal.core.opear;
 
 import net.adamcin.oakpal.api.Result;
+import net.adamcin.oakpal.core.OakpalPlan;
 import org.jetbrains.annotations.NotNull;
 import org.osgi.annotation.versioning.ProviderType;
 

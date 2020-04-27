@@ -11,6 +11,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -199,6 +200,29 @@ final class Command {
                 case "--plan":
                     builder.setNoPlan(isNoOpt);
                     builder.setPlanName(isNoOpt ? null : args[++i]);
+                    break;
+                case "-pf":
+                case "--plan-from-file":
+                    builder.setPlanFromFile(isNoOpt ? null : console.getCwd().toPath().resolve(args[++i]).toFile());
+                    break;
+                case "--plan-from-file-base":
+                    builder.setPlanFromFileBaseDir(isNoOpt ? null : console.getCwd().toPath().resolve(args[++i]).toFile());
+                    break;
+                case "-pi":
+                case "--pre-install-file":
+                    if (isNoOpt) {
+                        builder.setPreInstallFiles(Collections.emptyList());
+                    } else {
+                        builder.addPreInstallFile(console.getCwd().toPath().resolve(args[++i]).toFile());
+                    }
+                    break;
+                case "-xp":
+                case "--extend-classpath":
+                    if (isNoOpt) {
+                        builder.setExtendedClassPathFiles(Collections.emptyList());
+                    } else {
+                        builder.addExtendedClassPathFile(console.getCwd().toPath().resolve(args[++i]).toFile());
+                    }
                     break;
                 case "-s":
                 case "--severity-fail":

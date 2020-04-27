@@ -36,7 +36,7 @@ import javax.json.JsonWriterFactory;
 import javax.json.stream.JsonGenerator;
 
 import net.adamcin.oakpal.core.OakpalPlan;
-import net.adamcin.oakpal.core.Opear;
+import net.adamcin.oakpal.core.opear.Opear;
 import net.adamcin.oakpal.api.Result;
 import net.adamcin.oakpal.core.Util;
 import net.adamcin.oakpal.maven.component.OakpalComponentConfigurator;

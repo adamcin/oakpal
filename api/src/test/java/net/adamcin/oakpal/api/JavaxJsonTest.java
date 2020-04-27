@@ -50,6 +50,7 @@ import static net.adamcin.oakpal.api.JavaxJson.key;
 import static net.adamcin.oakpal.api.JavaxJson.mapArrayOfObjects;
 import static net.adamcin.oakpal.api.JavaxJson.mapArrayOfStrings;
 import static net.adamcin.oakpal.api.JavaxJson.mapObjectValues;
+import static net.adamcin.oakpal.api.JavaxJson.shallowMergeObjects;
 import static net.adamcin.oakpal.api.JavaxJson.obj;
 import static net.adamcin.oakpal.api.JavaxJson.objectOrEmpty;
 import static net.adamcin.oakpal.api.JavaxJson.optArray;
@@ -627,5 +628,52 @@ public class JavaxJsonTest {
                 hasNonNull(key("foo", null).get(), "foo"));
         assertTrue("hasNonNull for key with non-null json value",
                 hasNonNull(key("foo", "bar").get(), "foo"));
+    }
+
+    @Test
+    public void testShallowMergeObjects() {
+        assertEquals("expect empty object from nulls", JsonObject.EMPTY_JSON_OBJECT,
+                JavaxJson.shallowMergeObjects(null, null));
+
+        assertEquals("expect empty object from null and empty", JsonObject.EMPTY_JSON_OBJECT,
+                JavaxJson.shallowMergeObjects(null, JsonValue.EMPTY_JSON_OBJECT));
+
+        assertEquals("expect empty object from empty and null", JsonObject.EMPTY_JSON_OBJECT,
+                JavaxJson.shallowMergeObjects(JsonValue.EMPTY_JSON_OBJECT, null));
+
+        final JsonObject base = obj()
+                .key("baseKey", "unmodified")
+                .key("keyString", "base")
+                .key("keyObject", key("baseKey", "unmodified").key("keyString", "base"))
+                .get();
+
+        assertEquals("expect equal base for null overlay", base, shallowMergeObjects(base, null));
+        assertEquals("expect equal base for empty overlay", base, shallowMergeObjects(base,
+                JsonValue.EMPTY_JSON_OBJECT));
+        assertEquals("expect equal base as overlay with null base", base, shallowMergeObjects(null, base));
+        assertEquals("expect equal base as overlay with empty base", base,
+                shallowMergeObjects(JsonValue.EMPTY_JSON_OBJECT, base));
+
+        final JsonObject overlay = obj()
+                .key("overlayKey", "unmodified")
+                .key("keyString", "overlay")
+                .key("keyObject", key("overlayKey", "unmodified").key("keyString", "overlay"))
+                .get();
+
+        assertEquals("expect merged base <- overlay", obj()
+                        .key("baseKey", "unmodified")
+                        .key("overlayKey", "unmodified")
+                        .key("keyString", "overlay")
+                        .key("keyObject", key("overlayKey", "unmodified").key("keyString", "overlay"))
+                        .get(),
+                shallowMergeObjects(base, overlay));
+
+        assertEquals("expect merged overlay <- base", obj()
+                        .key("baseKey", "unmodified")
+                        .key("overlayKey", "unmodified")
+                        .key("keyString", "base")
+                        .key("keyObject", key("baseKey", "unmodified").key("keyString", "base"))
+                        .get(),
+                shallowMergeObjects(overlay, base));
     }
 }

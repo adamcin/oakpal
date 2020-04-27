@@ -354,7 +354,7 @@ public class CheckSpec implements JsonObjectConvertible {
             composite.setInlineEngine(null);
             composite.setImpl(this.getImpl());
         }
-        composite.setConfig(merge(that.getConfig(), this.getConfig()));
+        composite.setConfig(JavaxJson.shallowMergeObjects(that.getConfig(), this.getConfig()));
         return composite;
     }
 
@@ -409,21 +409,6 @@ public class CheckSpec implements JsonObjectConvertible {
         composite.setName(ofNullable(this.getName()).orElse(that.getName()));
         composite.setSkip(this.isSkip());
         return composite;
-    }
-
-    /**
-     * Merge an overlay json object's entries into a base json object, replacing values
-     * for duplicate keys.
-     *
-     * @param base    the base json object
-     * @param overlay the overlay json object
-     * @return a merged json object
-     */
-    static JsonObject merge(final JsonObject base, final JsonObject overlay) {
-        JsonObjectBuilder init = Json.createObjectBuilder();
-        ofNullable(base).ifPresent(json -> json.forEach(init::add));
-        ofNullable(overlay).ifPresent(json -> json.forEach(init::add));
-        return init.build();
     }
 
     /**

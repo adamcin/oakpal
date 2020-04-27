@@ -83,7 +83,9 @@
                                 Bundle-SymbolicName: net.adamcin.oakpal.core
                                 Automatic-Module-Name: net.adamcin.oakpal.core
                                 Oakpal-Checklist: OAKPAL-INF/checklists/basic.json
-                                Export-Package: net.adamcin.oakpal.core,net.adamcin.oakpal.core.checks
+                                Export-Package: net.adamcin.oakpal.core,\
+                                    net.adamcin.oakpal.core.checks,\
+                                    net.adamcin.oakpal.core.opear
                                 Private-Package: net.adamcin.oakpal.core.jcrfacade.*
                                 Import-Package: !aQute.*,*
                             ]]></bnd>

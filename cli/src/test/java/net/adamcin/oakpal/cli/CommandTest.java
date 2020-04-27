@@ -1,18 +1,25 @@
 package net.adamcin.oakpal.cli;
 
-import static net.adamcin.oakpal.api.Fun.uncheck0;
-import static net.adamcin.oakpal.api.JavaxJson.key;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.doCallRealMethod;
-import static org.mockito.Mockito.mock;
+import net.adamcin.oakpal.api.Nothing;
+import net.adamcin.oakpal.api.ReportCollector;
+import net.adamcin.oakpal.api.Result;
+import net.adamcin.oakpal.api.Severity;
+import net.adamcin.oakpal.api.SimpleViolation;
+import net.adamcin.oakpal.core.CheckReport;
+import net.adamcin.oakpal.core.FileBlobMemoryNodeStore;
+import net.adamcin.oakpal.core.ReportMapper;
+import net.adamcin.oakpal.core.SimpleReport;
+import net.adamcin.oakpal.testing.TestPackageUtil;
+import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
+import org.apache.jackrabbit.vault.packaging.PackageId;
+import org.jetbrains.annotations.NotNull;
+import org.junit.Before;
+import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import javax.json.JsonObject;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.PrintWriter;
@@ -27,26 +34,19 @@ import java.util.Stack;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import javax.json.JsonObject;
 
-import net.adamcin.oakpal.api.Severity;
-import net.adamcin.oakpal.core.CheckReport;
-import net.adamcin.oakpal.core.FileBlobMemoryNodeStore;
-import net.adamcin.oakpal.api.Nothing;
-import net.adamcin.oakpal.api.ReportCollector;
-import net.adamcin.oakpal.core.ReportMapper;
-import net.adamcin.oakpal.api.Result;
-import net.adamcin.oakpal.core.SimpleReport;
-import net.adamcin.oakpal.api.SimpleViolation;
-import net.adamcin.oakpal.testing.TestPackageUtil;
-import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
-import org.apache.jackrabbit.vault.packaging.PackageId;
-import org.jetbrains.annotations.NotNull;
-import org.junit.Before;
-import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static net.adamcin.oakpal.api.Fun.uncheck0;
+import static net.adamcin.oakpal.api.JavaxJson.key;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doCallRealMethod;
+import static org.mockito.Mockito.mock;
 
 public class CommandTest {
     private static final Logger LOGGER = LoggerFactory.getLogger(CommandTest.class);
@@ -318,6 +318,68 @@ public class CommandTest {
         validator.expectFailure(args("-f", notAJar.getAbsolutePath()));
     }
 
+
+    @Test
+    public void testParseArgs_adhocOpear() throws Exception {
+        final File testOutDir = new File(testOutputBaseDir, "testParseArgs_adhocOpear");
+        FileUtils.deleteDirectory(testOutDir);
+
+        final File testModuleSrc = new File("src/test/resources/checklists/test_module");
+        final File testModuleJar = new File(testOutDir, "test_module.jar");
+        TestPackageUtil.buildJarFromDir(testModuleSrc, testModuleJar, Collections.emptyMap());
+
+        final File contentPackageSrc = new File("src/test/resources/simple-content");
+        final File contentPackageJar = new File(testOutDir, "simple-content.zip");
+        TestPackageUtil.buildJarFromDir(contentPackageSrc, contentPackageJar, Collections.emptyMap());
+
+        final File planFromFile = new File("src/test/resources/opears/adhocPlan/plan.json");
+
+        final Console console = getMockConsole();
+        final OptionsValidator validator = new OptionsValidator(console);
+
+        validator.expectSuccess(
+                args(
+                        "--plan-from-file", planFromFile.getAbsolutePath(),
+                        "--plan-from-file-base", planFromFile.getParentFile().getAbsolutePath(),
+                        "--pre-install-file", contentPackageJar.getAbsolutePath(),
+                        "--extend-classpath", testModuleJar.getAbsolutePath()),
+                options -> {
+                    assertEquals("expect plan from file",
+                            planFromFile.getAbsolutePath(), options.getPlanFromFile().getAbsolutePath());
+                    assertEquals("expect plan from file base dir",
+                            planFromFile.getParentFile().getAbsolutePath(), options.getPlanFromFileBaseDir().getAbsolutePath());
+                    assertTrue("expect pre-install file", options.getPreInstallFiles().stream()
+                            .anyMatch(file -> file.getAbsolutePath().equals(contentPackageJar.getAbsolutePath())));
+                    assertTrue("expect classpath", options.getExtendedClassPathFiles().stream()
+                            .anyMatch(file -> file.getAbsolutePath().equals(testModuleJar.getAbsolutePath())));
+                    assertNotNull("expect test_module-handler.js", options.getScanClassLoader()
+                            .getResource("test_module-handler.js"));
+                });
+
+        validator.expectSuccess(
+                args(
+                        "--plan-from-file", planFromFile.getAbsolutePath(),
+                        "--no-plan-from-file",
+                        "--plan-from-file-base", planFromFile.getParentFile().getAbsolutePath(),
+                        "--no-plan-from-file-base",
+                        "--pre-install-file", contentPackageJar.getAbsolutePath(),
+                        "--no-pre-install-file",
+                        "--extend-classpath", testModuleJar.getAbsolutePath(),
+                        "--no-extend-classpath"),
+
+                options -> {
+                    assertNull("expect null plan from file", options.getPlanFromFile());
+                    assertNull("expect null plan from file base dir", options.getPlanFromFileBaseDir());
+                    assertFalse("expect no pre-install file", options.getPreInstallFiles().stream()
+                            .anyMatch(file -> file.getAbsolutePath().equals(contentPackageJar.getAbsolutePath())));
+                    assertFalse("expect no classpath", options.getExtendedClassPathFiles().stream()
+                            .anyMatch(file -> file.getAbsolutePath().equals(testModuleJar.getAbsolutePath())));
+                    assertNull("expect no test_module-handler.js", options.getScanClassLoader()
+                            .getResource("test_module-handler.js"));
+                });
+    }
+
+
     @Test
     public void testParseArgs_outputs() throws Exception {
         final Console console = getMockConsole();
@@ -403,7 +465,6 @@ public class CommandTest {
         validator.expectSuccess(args("-o", validOutFile.getPath()),
                 expectNotJson.apply(fileStack));
     }
-
 
     String captureOutput(final @NotNull BiFunction<Command, Function<Object, IO<Nothing>>, IO<Nothing>> commandStrategy) {
         final Command command = new Command();

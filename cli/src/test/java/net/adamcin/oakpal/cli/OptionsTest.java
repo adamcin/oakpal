@@ -1,36 +1,41 @@
 package net.adamcin.oakpal.cli;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.doCallRealMethod;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import net.adamcin.oakpal.api.Fun;
+import net.adamcin.oakpal.api.JavaxJson;
+import net.adamcin.oakpal.api.Result;
+import net.adamcin.oakpal.api.Severity;
+import net.adamcin.oakpal.core.InstallHookPolicy;
+import net.adamcin.oakpal.core.OakpalPlan;
+import net.adamcin.oakpal.testing.TestPackageUtil;
+import org.apache.commons.io.FileUtils;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
+import javax.json.Json;
+import javax.json.JsonObject;
+import javax.json.JsonReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.io.Reader;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import javax.json.Json;
-import javax.json.JsonObject;
-import javax.json.JsonReader;
+import java.util.Collections;
 
-import net.adamcin.oakpal.api.Severity;
-import net.adamcin.oakpal.core.InstallHookPolicy;
-import net.adamcin.oakpal.api.JavaxJson;
-import net.adamcin.oakpal.core.OakpalPlan;
-import net.adamcin.oakpal.api.Result;
-import org.apache.commons.io.FileUtils;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.doCallRealMethod;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class OptionsTest {
 
@@ -113,10 +118,82 @@ public class OptionsTest {
     }
 
     @Test
+    public void testAdhocOpear() {
+        final Console console = getMockConsole();
+        when(console.getCwd()).thenReturn(tempDir);
+        final Result<Options> defaultOptionsResult = new Options.Builder().build(console);
+        assertFalse("options build is successful", defaultOptionsResult.getError().isPresent());
+        defaultOptionsResult.forEach(options -> {
+            assertNull("planFromFile is null by default", options.getPlanFromFile());
+            assertNull("planFromFileBaseDir is null by default", options.getPlanFromFileBaseDir());
+        });
+
+        final Result<Options> optionsResult = new Options.Builder()
+                .setPlanFromFile(new File("src/test/resources/opears/adhocPlan/plan.json")).build(console);
+        optionsResult.forEach(options -> {
+            assertTrue("planFromFile should be a file: " + options.getPlanFromFile().getAbsolutePath(),
+                    !options.getPlanFromFile().isDirectory());
+            assertNull("planFromFileBaseDir should be null", options.getPlanFromFileBaseDir());
+        });
+
+        final Result<Options> optionsWithBaseResult = new Options.Builder()
+                .setPlanFromFile(new File("src/test/resources/opears/adhocPlan/plan.json"))
+                .setPlanFromFileBaseDir(console.getCwd())
+                .build(console);
+        optionsWithBaseResult.forEach(options -> {
+            assertTrue("planFromFile should be a file: " + options.getPlanFromFile().getAbsolutePath(),
+                    !options.getPlanFromFile().isDirectory());
+            assertTrue("planFromFileBaseDir should be a directory: " + options.getPlanFromFileBaseDir()
+                    .getAbsolutePath(), options.getPlanFromFileBaseDir().isDirectory());
+        });
+    }
+
+    @Test
+    public void testWithPreInstallFiles() throws Exception {
+        final File testOutDir = new File(tempDir, "testWithPreInstallFiles");
+        FileUtils.deleteDirectory(testOutDir);
+        final Console console = getMockConsole();
+        when(console.getCwd()).thenReturn(tempDir);
+        final Result<Options> defaultOptionsResult = new Options.Builder().build(console);
+        assertFalse("options build is successful", defaultOptionsResult.getError().isPresent());
+        defaultOptionsResult.forEach(options -> {
+            assertTrue("preInstallFiles is empty by default", options.getPreInstallFiles().isEmpty());
+            assertFalse("false hasOverrides", options.hasOverrides());
+            final OakpalPlan originalPlan = new OakpalPlan.Builder(null, null)
+                    .withPreInstallUrls(Collections.emptyList())
+                    .build();
+            final OakpalPlan overriddenPlan = options.applyOverrides(originalPlan);
+            assertSame("same plan with no overrides", originalPlan, overriddenPlan);
+            assertTrue("pre install urls is empty", overriddenPlan.getPreInstallUrls().isEmpty());
+        });
+
+        final File contentPackageSrc = new File("src/test/resources/simple-content");
+        final File contentPackageJar = new File(testOutDir, "simple-content.zip");
+        TestPackageUtil.buildJarFromDir(contentPackageSrc, contentPackageJar, Collections.emptyMap());
+
+        final Result<Options> optionsResult = new Options.Builder()
+                .addPreInstallFile(contentPackageJar).build(console);
+        optionsResult.forEach(options -> {
+            assertFalse("preInstallFiles is not empty", options.getPreInstallFiles().isEmpty());
+            assertTrue("true hasOverrides", options.hasOverrides());
+            final OakpalPlan originalPlan = new OakpalPlan.Builder(null, null)
+                    .withPreInstallUrls(Collections.emptyList())
+                    .build();
+            final OakpalPlan overriddenPlan = options.applyOverrides(originalPlan);
+            assertNotSame("not same plan", originalPlan, overriddenPlan);
+            assertFalse("pre install urls is not empty", overriddenPlan.getPreInstallUrls().isEmpty());
+            assertEquals("expect pre install file", contentPackageJar.getAbsolutePath(),
+                    Fun.result1(URL::toURI).apply(overriddenPlan.getPreInstallUrls().get(0))
+                            .map(Fun.compose(File::new, File::getAbsolutePath)).getOrDefault(""));
+        });
+    }
+
+    @Test
     public void testNoHooks() {
         final Console console = getMockConsole();
         when(console.getCwd()).thenReturn(tempDir);
-        Options.Builder builder = new Options.Builder().setOpearFile(new File("src/test/resources/opears/hooksPlan"));
+        final Options.Builder builder = new Options.Builder()
+                .setOpearFile(new File("src/test/resources/opears/hooksPlan"));
         final Result<Options> defaultOptionsResult = builder.build(console);
         assertFalse("options build is successful", defaultOptionsResult.getError().isPresent());
         defaultOptionsResult.forEach(options -> {
