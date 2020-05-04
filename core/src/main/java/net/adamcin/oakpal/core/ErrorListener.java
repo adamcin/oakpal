@@ -23,6 +23,7 @@ import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.osgi.annotation.versioning.ConsumerType;
 
 import java.net.URL;
+import java.util.List;
 
 /**
  * A single error handler is used during an OakPAL scan.
@@ -128,6 +129,28 @@ public interface ErrorListener extends ScanListener, ViolationReporter {
      * @param packageId the package which registered one or more install hooks
      */
     default void onProhibitedInstallHookRegistration(final PackageId packageId) {
+
+    }
+
+    /**
+     * Called for an IOException or RepoInitParsingException when parsing a repoinit url during
+     * {@code InitStage.initSession()}.
+     *
+     * @param e           the error thrown
+     * @param repoinitUrl the repoinit url
+     */
+    default void onRepoInitUrlError(final Throwable e, final URL repoinitUrl) {
+
+    }
+
+    /**
+     * Called for an IOException or RepoInitParsingException when parsing a list of repoinit scripts during
+     * {@code InitStage.initSession()}.
+     *
+     * @param e         the error thrown
+     * @param repoinits the repoinit scripts
+     */
+    default void onRepoInitInlineError(final Throwable e, final List<String> repoinits) {
 
     }
 }

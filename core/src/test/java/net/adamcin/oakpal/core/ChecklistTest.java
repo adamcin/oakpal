@@ -16,6 +16,27 @@
 
 package net.adamcin.oakpal.core;
 
+import net.adamcin.oakpal.api.JavaxJson;
+import org.apache.jackrabbit.api.JackrabbitSession;
+import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.spi.PrivilegeDefinition;
+import org.apache.jackrabbit.spi.QNodeTypeDefinition;
+import org.apache.jackrabbit.spi.commons.namespace.NamespaceMapping;
+import org.junit.Before;
+import org.junit.Test;
+
+import javax.json.Json;
+import javax.json.JsonArray;
+import javax.json.JsonObject;
+import javax.json.JsonReader;
+import java.io.File;
+import java.io.InputStream;
+import java.net.URL;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 import static net.adamcin.oakpal.api.JavaxJson.arr;
 import static net.adamcin.oakpal.api.JavaxJson.key;
 import static net.adamcin.oakpal.api.JavaxJson.obj;
@@ -24,25 +45,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-
-import java.io.File;
-import java.io.InputStream;
-import java.net.URL;
-import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import javax.json.Json;
-import javax.json.JsonArray;
-import javax.json.JsonObject;
-import javax.json.JsonReader;
-
-import net.adamcin.oakpal.api.JavaxJson;
-import org.apache.jackrabbit.spi.PrivilegeDefinition;
-import org.apache.jackrabbit.spi.QNodeTypeDefinition;
-import org.apache.jackrabbit.spi.commons.namespace.NamespaceMapping;
-import org.junit.Before;
-import org.junit.Test;
 
 public class ChecklistTest {
 
@@ -253,6 +255,19 @@ public class ChecklistTest {
     }
 
     @Test
+    public void testBuilderWithRepoInits() {
+        final Checklist.Builder builder = new Checklist.Builder("test");
+
+        final List<String> inputInits = Arrays.asList(
+                "create service user testBuilderWithRepoInits1",
+                "create service user testBuilderWithRepoInits2"
+        );
+
+        builder.withRepoInits(inputInits);
+        assertEquals("expect same repoInits", inputInits, builder.build().getRepoInits());
+    }
+
+    @Test
     public void testAsInitStage() throws Exception {
         Checklist.Builder builder = new Checklist.Builder("test");
         final URL cndA = cndAUrl;
@@ -288,6 +303,11 @@ public class ChecklistTest {
                         .key(ForcedRoot.keys().mixinTypes(), arr().val("bar:mixinType"))
                         .get()));
         builder.withForcedRoots(forcedRoots);
+        final List<String> repoInits = Arrays.asList(
+                "create service user testAsInitStage1",
+                "create service user testAsInitStage2"
+        );
+        builder.withRepoInits(repoInits);
         InitStage initStage = builder.build().asInitStage();
         final OakMachine machine = new OakMachine.Builder().withInitStage(initStage).build();
         machine.adminInitAndInspect(session -> {
@@ -305,6 +325,11 @@ public class ChecklistTest {
                     session.getNode("/test/bar").isNodeType("bar:primaryType"));
             assertTrue("/test/bar is a bar:mixinType",
                     session.getNode("/test/bar").isNodeType("bar:mixinType"));
+            UserManager userManager = ((JackrabbitSession) session).getUserManager();
+            assertNotNull("has principal testAsInitStage1",
+                    userManager.getAuthorizable("testAsInitStage1"));
+            assertNotNull("has principal testAsInitStage2",
+                    userManager.getAuthorizable("testAsInitStage2"));
         });
     }
 
@@ -358,11 +383,18 @@ public class ChecklistTest {
         final List<CheckSpec> checks = Arrays.asList(validSpec1, validSpec2);
         final JsonArray checksJson = JavaxJson.wrap(checks).asJsonArray();
         builder.withChecks(checks);
+        final List<String> repoInits = Arrays.asList(
+                "create service user testToJsonFromBuilder1",
+                "create service user testToJsonFromBuilder2"
+        );
+        final JsonArray repoInitsJson = JavaxJson.wrap(repoInits).asJsonArray();
+        builder.withRepoInits(repoInits);
         final Checklist checklist = builder.build();
         final Checklist.JsonKeys keys = Checklist.keys();
         final JsonObject expectJson = obj()
                 .key(keys.name(), "name")
                 .key(keys.checks(), checksJson)
+                .key(keys.repoInits(), repoInitsJson)
                 .key(keys.forcedRoots(), forcedRootsJson)
                 .key(keys.cndUrls(), cndUrlsJson)
                 .key(keys.jcrNodetypes(), nodetypesJson)

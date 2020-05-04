@@ -3,3 +3,5 @@ target/
 *.iml
 .mvn/wrapper/maven-wrapper.jar
 .oakpal-cache/
+pom.xml.versionsBackup
+dependency-reduced-pom.xml

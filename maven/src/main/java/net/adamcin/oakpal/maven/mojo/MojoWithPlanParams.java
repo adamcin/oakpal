@@ -166,6 +166,13 @@ interface MojoWithPlanParams extends MojoWithCommonParams, MojoWithRepositoryPar
         planBuilder.withForcedRoots(params.getForcedRoots());
         planBuilder.withEnablePreInstallHooks(params.isEnablePreInstallHooks());
         planBuilder.withInstallHookPolicy(params.getInstallHookPolicy());
+        planBuilder.withRepoInits(params.getRepoInits());
+        // get repoinit files
+        final List<File> repoInitFiles = params.getRepoInitFiles();
+        if (repoInitFiles != null) {
+            planBuilder.withRepoInitUrls(repoInitFiles.stream()
+                    .map(compose1(File::toURI, uncheck1(URI::toURL))).collect(Collectors.toList()));
+        }
 
         // get pre-install files
         final List<File> preInstall = getPreInstallFiles(params);

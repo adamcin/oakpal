@@ -215,6 +215,14 @@ final class Command {
                         builder.addPreInstallFile(console.getCwd().toPath().resolve(args[++i]).toFile());
                     }
                     break;
+                case "-ri":
+                case "--repoinit-file":
+                    if (isNoOpt) {
+                        builder.setRepoInitFiles(Collections.emptyList());
+                    } else {
+                        builder.addRepoInitFile(console.getCwd().toPath().resolve(args[++i]).toFile());
+                    }
+                    break;
                 case "-xp":
                 case "--extend-classpath":
                     if (isNoOpt) {

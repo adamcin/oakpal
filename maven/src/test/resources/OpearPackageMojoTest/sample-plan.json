@@ -2,6 +2,10 @@
   "preInstallUrls":[
     "oakpaltest:/target/test-packages/tmp_foo_bar.zip"
   ],
+  "repoInitUrls": [
+    "oakpaltest:/target/test-classes/OpearPackageMojoTest/repoinit1.txt",
+    "oakpaltest:/target/test-classes/OpearPackageMojoTest/repoinit2.txt"
+  ],
   "forcedRoots":[
     {
       "path":"/acme:test"

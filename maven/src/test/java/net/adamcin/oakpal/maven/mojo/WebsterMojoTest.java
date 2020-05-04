@@ -258,7 +258,7 @@ public class WebsterMojoTest {
     @Test(expected = MojoFailureException.class)
     public void testExecuteWebsterPlan_tempFails() throws Exception {
         final File testOutDir = new File(testOutBaseDir, "testExecuteWebsterPlan_tempFails");
-        FileUtils.deleteDirectory(testOutDir);
+        recursiveDeleteWithRetry(testOutDir);
         final File projectRoot = new File(testOutDir, "content-package");
         FileUtils.copyDirectory(new File(srcDir, "content-package"), projectRoot);
         WebsterMojo mojo = newMojo();
@@ -269,10 +269,21 @@ public class WebsterMojoTest {
         mojo.executeWebsterPlan(builder);
     }
 
+    private static void recursiveDeleteWithRetry(final File toDelete) throws IOException {
+        try {
+            FileUtils.deleteDirectory(toDelete);
+        } catch (IOException e) {
+            // retry if failed.
+            if (toDelete.exists()) {
+                FileUtils.deleteDirectory(toDelete);
+            }
+        }
+    }
+
     @Test(expected = MojoFailureException.class)
     public void testExecuteWebsterPlan_targetFails() throws Exception {
-        final File testOutDir = new File(testOutBaseDir, "testExecuteWebsterPlan_cleanTempFails");
-        FileUtils.deleteDirectory(testOutDir);
+        final File testOutDir = new File(testOutBaseDir, "testExecuteWebsterPlan_targetFails");
+        recursiveDeleteWithRetry(testOutDir);
         final File projectRoot = new File(testOutDir, "content-package");
         FileUtils.copyDirectory(new File(srcDir, "content-package"), projectRoot);
         final WebsterMojo mojo = newMojo();
@@ -290,7 +301,7 @@ public class WebsterMojoTest {
     @Test
     public void testExecuteWebsterPlan_cleanTempFails() throws Exception {
         final File testOutDir = new File(testOutBaseDir, "testExecuteWebsterPlan_cleanTempFails");
-        FileUtils.deleteDirectory(testOutDir);
+        recursiveDeleteWithRetry(testOutDir);
         final File projectRoot = new File(testOutDir, "content-package");
         FileUtils.copyDirectory(new File(srcDir, "content-package"), projectRoot);
         final WebsterMojo mojo = newMojo();

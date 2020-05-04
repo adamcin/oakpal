@@ -36,5 +36,9 @@
       "name": "emptyHandler",
       "impl": "emptyHandler.js"
     }
+  ],
+  "repoInits": [
+    "create system user simpleChecklistUser1",
+    "create system user simpleChecklistUser2"
   ]
 }

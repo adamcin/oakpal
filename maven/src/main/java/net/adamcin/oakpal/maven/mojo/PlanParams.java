@@ -1,13 +1,13 @@
 package net.adamcin.oakpal.maven.mojo;
 
-import java.io.File;
-import java.util.Collections;
-import java.util.List;
-
 import net.adamcin.oakpal.core.CheckSpec;
 import net.adamcin.oakpal.core.ForcedRoot;
 import net.adamcin.oakpal.core.InstallHookPolicy;
 import net.adamcin.oakpal.core.JcrNs;
+
+import java.io.File;
+import java.util.Collections;
+import java.util.List;
 
 public final class PlanParams implements PlanBuilderParams {
     private List<DependencyFilter> preInstallArtifacts = Collections.emptyList();
@@ -21,6 +21,8 @@ public final class PlanParams implements PlanBuilderParams {
     private List<String> checklists = Collections.emptyList();
     private boolean enablePreInstallHooks;
     private InstallHookPolicy installHookPolicy;
+    private List<String> repoInits = Collections.emptyList();
+    private List<File> repoInitFiles = Collections.emptyList();
 
     @Override
     public List<DependencyFilter> getPreInstallArtifacts() {
@@ -122,6 +124,24 @@ public final class PlanParams implements PlanBuilderParams {
     }
 
     @Override
+    public List<String> getRepoInits() {
+        return repoInits;
+    }
+
+    public void setRepoInits(final List<String> repoInits) {
+        this.repoInits = repoInits;
+    }
+
+    @Override
+    public List<File> getRepoInitFiles() {
+        return repoInitFiles;
+    }
+
+    public void setRepoInitFiles(final List<File> repoInitFiles) {
+        this.repoInitFiles = repoInitFiles;
+    }
+
+    @Override
     public String toString() {
         return "PlanParams{" +
                 "preInstallArtifacts=" + preInstallArtifacts +
@@ -135,6 +155,8 @@ public final class PlanParams implements PlanBuilderParams {
                 ", checklists=" + checklists +
                 ", enablePreInstallHooks=" + enablePreInstallHooks +
                 ", installHookPolicy=" + installHookPolicy +
+                ", repoInits=" + repoInits +
+                ", repoInitFiles=" + repoInitFiles +
                 '}';
     }
 }

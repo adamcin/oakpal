@@ -22,6 +22,7 @@ import javax.json.JsonReader;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -50,6 +51,10 @@ public final class OakpalPlan implements JsonObjectConvertible {
 
         String checks();
 
+        String repoInitUrls();
+
+        String repoInits();
+
         String forcedRoots();
 
         String jcrNamespaces();
@@ -74,6 +79,16 @@ public final class OakpalPlan implements JsonObjectConvertible {
         @Override
         public String checks() {
             return "checks";
+        }
+
+        @Override
+        public String repoInits() {
+            return "repoInits";
+        }
+
+        @Override
+        public String repoInitUrls() {
+            return "repoInitUrls";
         }
 
         @Override
@@ -149,6 +164,8 @@ public final class OakpalPlan implements JsonObjectConvertible {
     private final List<CheckSpec> checks;
     private final boolean enablePreInstallHooks;
     private final InstallHookPolicy installHookPolicy;
+    private final List<URL> repoInitUrls;
+    private final List<String> repoInits;
 
     private OakpalPlan(final @Nullable URL base,
                        final @Nullable JsonObject originalJson,
@@ -161,7 +178,9 @@ public final class OakpalPlan implements JsonObjectConvertible {
                        final @NotNull List<ForcedRoot> forcedRoots,
                        final @NotNull List<CheckSpec> checks,
                        final boolean enablePreInstallHooks,
-                       final @Nullable InstallHookPolicy installHookPolicy) {
+                       final @Nullable InstallHookPolicy installHookPolicy,
+                       final @NotNull List<URL> repoInitUrls,
+                       final @NotNull List<String> repoInits) {
         this.base = base;
         this.originalJson = originalJson;
         this.name = name;
@@ -174,6 +193,8 @@ public final class OakpalPlan implements JsonObjectConvertible {
         this.checks = checks;
         this.enablePreInstallHooks = enablePreInstallHooks;
         this.installHookPolicy = installHookPolicy;
+        this.repoInitUrls = repoInitUrls;
+        this.repoInits = repoInits;
     }
 
     public URL getBase() {
@@ -224,6 +245,14 @@ public final class OakpalPlan implements JsonObjectConvertible {
         return installHookPolicy;
     }
 
+    public List<URL> getRepoInitUrls() {
+        return repoInitUrls;
+    }
+
+    public List<String> getRepoInits() {
+        return repoInits;
+    }
+
     static URI relativizeToBaseParent(final @NotNull URI baseUri, final @NotNull URI uri) throws URISyntaxException {
         if (baseUri.isOpaque() || uri.isOpaque()) {
             return uri;
@@ -237,34 +266,45 @@ public final class OakpalPlan implements JsonObjectConvertible {
         }
     }
 
-    @Override
-    public JsonObject toJson() {
-        if (this.originalJson != null) {
-            return this.originalJson;
-        }
-
-        final List<String> preInstallStrings = new ArrayList<>();
-
-        if (!preInstallUrls.isEmpty()) {
-            preInstallStrings.addAll(Optional.ofNullable(base)
+    static List<String> relativizeUrlsForJson(final @Nullable URL base,
+                                              final @NotNull List<URL> urls,
+                                              final @NotNull String jsonKey) {
+        final List<String> strings = new ArrayList<>();
+        if (!urls.isEmpty()) {
+            strings.addAll(Optional.ofNullable(base)
                     .map(result1(URL::toURI))
                     .map(baseUriResult -> baseUriResult.flatMap(baseUri ->
-                            preInstallUrls.stream()
+                            urls.stream()
                                     .map(result1(URL::toURI))
                                     .map(uriResult -> uriResult
                                             .map(compose1(uncheck1(uri -> relativizeToBaseParent(baseUri, uri)),
                                                     URI::toString)))
                                     .collect(Result.tryCollect(Collectors.toList()))
                     ))
-                    .orElseGet(() -> Result.failure("Plan base URI is empty. preInstallUrls will not be relativized"))
-                    .getOrElse(() -> preInstallUrls.stream().map(URL::toExternalForm).collect(Collectors.toList())));
+                    .orElseGet(() -> Result.failure(MessageFormat
+                            .format("Plan base URI is empty. {0} will not be relativized", jsonKey)))
+                    .getOrElse(() -> urls.stream().map(URL::toExternalForm).collect(Collectors.toList())));
         }
+        return strings;
+    }
+
+    @Override
+    public JsonObject toJson() {
+        if (this.originalJson != null) {
+            return this.originalJson;
+        }
+
+        final List<String> preInstallStrings = relativizeUrlsForJson(base, preInstallUrls, keys().preInstallUrls());
+
+        final List<String> repoInitUrlStrings = relativizeUrlsForJson(base, repoInitUrls, keys().repoInitUrls());
 
         final NamespaceMapping mapping = JsonCnd.toNamespaceMapping(jcrNamespaces);
         return JavaxJson.obj()
                 .key(keys().preInstallUrls()).opt(preInstallStrings)
                 .key(keys().checklists()).opt(checklists)
                 .key(keys().checks()).opt(checks)
+                .key(keys().repoInitUrls()).opt(repoInitUrlStrings)
+                .key(keys().repoInits()).opt(repoInits)
                 .key(keys().forcedRoots()).opt(forcedRoots)
                 .key(keys().jcrNodetypes()).opt(JsonCnd.toJson(jcrNodetypes, mapping))
                 .key(keys().jcrPrivileges()).opt(JsonCnd.privilegesToJson(jcrPrivileges, mapping))
@@ -272,6 +312,11 @@ public final class OakpalPlan implements JsonObjectConvertible {
                 .key(keys().enablePreInstallHooks()).opt(enablePreInstallHooks, false)
                 .key(keys().installHookPolicy()).opt(installHookPolicy)
                 .get();
+    }
+
+    @Override
+    public String toString() {
+        return toJson().toString();
     }
 
     InitStage toInitStage() {
@@ -291,6 +336,10 @@ public final class OakpalPlan implements JsonObjectConvertible {
         for (ForcedRoot forcedRoot : forcedRoots) {
             builder = builder.withForcedRoot(forcedRoot);
         }
+
+        builder.withRepoInitUrls(repoInitUrls);
+
+        builder.withRepoInits(repoInits);
 
         return builder.build();
     }
@@ -343,6 +392,13 @@ public final class OakpalPlan implements JsonObjectConvertible {
         }
         if (hasNonNull(json, keys().checks())) {
             builder.withChecks(JavaxJson.mapArrayOfObjects(json.getJsonArray(keys().checks()), CheckSpec::fromJson));
+        }
+        if (hasNonNull(json, keys().repoInitUrls()) && builder.base != null) {
+            builder.withRepoInitUrls(JavaxJson.mapArrayOfStrings(json.getJsonArray(keys().repoInitUrls()),
+                    uncheck1(url -> new URL(builder.base, url))));
+        }
+        if (hasNonNull(json, keys().repoInits())) {
+            builder.withRepoInits(JavaxJson.mapArrayOfStrings(json.getJsonArray(keys().repoInits())));
         }
         if (hasNonNull(json, keys().forcedRoots())) {
             builder.withForcedRoots(JavaxJson.mapArrayOfObjects(json.getJsonArray(keys().forcedRoots()),
@@ -405,6 +461,8 @@ public final class OakpalPlan implements JsonObjectConvertible {
         private List<CheckSpec> checks = Collections.emptyList();
         private boolean enablePreInstallHooks;
         private InstallHookPolicy scanInstallHookPolicy;
+        private List<URL> repoInitUrls = Collections.emptyList();
+        private List<String> repoInits = Collections.emptyList();
 
         public Builder(final @Nullable URL base, final @Nullable String name) {
             this.base = base;
@@ -424,6 +482,8 @@ public final class OakpalPlan implements JsonObjectConvertible {
                     .withJcrPrivileges(plan.getJcrPrivileges())
                     .withEnablePreInstallHooks(plan.isEnablePreInstallHooks())
                     .withInstallHookPolicy(plan.getInstallHookPolicy())
+                    .withRepoInitUrls(plan.getRepoInitUrls())
+                    .withRepoInits(plan.getRepoInits())
                     .withPreInstallUrls(plan.getPreInstallUrls());
         }
 
@@ -434,6 +494,16 @@ public final class OakpalPlan implements JsonObjectConvertible {
 
         public Builder withPreInstallUrls(final @NotNull List<URL> preInstallUrls) {
             this.preInstallUrls = new ArrayList<>(preInstallUrls);
+            return this;
+        }
+
+        public Builder withRepoInitUrls(final @NotNull List<URL> repoInitUrls) {
+            this.repoInitUrls = new ArrayList<>(repoInitUrls);
+            return this;
+        }
+
+        public Builder withRepoInits(final @NotNull List<String> repoInits) {
+            this.repoInits = new ArrayList<>(repoInits);
             return this;
         }
 
@@ -474,7 +544,8 @@ public final class OakpalPlan implements JsonObjectConvertible {
 
         private OakpalPlan build(final @Nullable JsonObject originalJson) {
             return new OakpalPlan(base, originalJson, name, checklists, preInstallUrls, jcrNamespaces,
-                    jcrNodetypes, jcrPrivileges, forcedRoots, checks, enablePreInstallHooks, scanInstallHookPolicy);
+                    jcrNodetypes, jcrPrivileges, forcedRoots, checks, enablePreInstallHooks, scanInstallHookPolicy,
+                    repoInitUrls, repoInits);
         }
 
         public OakpalPlan build() {

@@ -4,5 +4,12 @@
       "name": "simpleEcho",
       "impl": "echo.js"
     }
+  ],
+  "repoInits": [
+    "create user simplePlan1",
+    "create user simplePlan2"
+  ],
+  "repoInitUrls": [
+    "repoinit1.txt"
   ]
 }

@@ -49,6 +49,8 @@ public class PlanParamsTest {
                 Collections.emptyList(), params.getChecks());
         assertEquals("expect checklists",
                 Collections.emptyList(), params.getChecklists());
+        assertEquals("expect repoInits",
+                Collections.emptyList(), params.getRepoInits());
 
         assertFalse("expect false slingNodeTypes", params.isSlingNodeTypes());
         assertFalse("expect false enablePreInstallHooks", params.isEnablePreInstallHooks());
@@ -100,6 +102,15 @@ public class PlanParamsTest {
         final List<String> expectChecklists = Collections.singletonList("checklist");
         params.setChecklists(expectChecklists);
         assertEquals("expect checklists", expectChecklists, params.getChecklists());
+
+        final List<String> expectRepoInits = Collections.singletonList("create user foo");
+        params.setRepoInits(expectRepoInits);
+        assertEquals("expect repoInits", expectRepoInits, params.getRepoInits());
+
+        final List<File> expectRepoInitFiles = Collections.singletonList(new File("."));
+        params.setRepoInitFiles(expectRepoInitFiles);
+        assertEquals("expect repoInitFiles",
+                expectRepoInitFiles, params.getRepoInitFiles());
     }
 
     @Test

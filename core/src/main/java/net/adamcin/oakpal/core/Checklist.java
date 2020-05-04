@@ -75,6 +75,8 @@ public final class Checklist implements JsonObjectConvertible {
 
         String forcedRoots();
 
+        String repoInits();
+
         String checks();
 
         List<String> orderedKeys();
@@ -84,6 +86,7 @@ public final class Checklist implements JsonObjectConvertible {
         private final List<String> allKeys = Arrays.asList(
                 name(),
                 checks(),
+                repoInits(),
                 forcedRoots(),
                 cndNames(),
                 cndUrls(),
@@ -124,6 +127,11 @@ public final class Checklist implements JsonObjectConvertible {
         @Override
         public String forcedRoots() {
             return "forcedRoots";
+        }
+
+        @Override
+        public String repoInits() {
+            return "repoInits";
         }
 
         @Override
@@ -170,6 +178,7 @@ public final class Checklist implements JsonObjectConvertible {
     private final List<PrivilegeDefinition> jcrPrivileges;
     private final List<ForcedRoot> forcedRoots;
     private final List<CheckSpec.ImmutableSpec> checks;
+    private final List<String> repoInits;
 
     Checklist(final @Nullable JsonObject originalJson,
               final @Nullable String moduleName,
@@ -179,7 +188,8 @@ public final class Checklist implements JsonObjectConvertible {
               final @NotNull List<QNodeTypeDefinition> jcrNodetypes,
               final @NotNull List<PrivilegeDefinition> jcrPrivileges,
               final @NotNull List<ForcedRoot> forcedRoots,
-              final @NotNull List<CheckSpec.ImmutableSpec> checks) {
+              final @NotNull List<CheckSpec.ImmutableSpec> checks,
+              final @NotNull List<String> repoInits) {
         this.originalJson = originalJson;
         this.moduleName = moduleName;
         this.name = name;
@@ -189,6 +199,7 @@ public final class Checklist implements JsonObjectConvertible {
         this.jcrPrivileges = jcrPrivileges;
         this.forcedRoots = forcedRoots;
         this.checks = checks;
+        this.repoInits = repoInits;
     }
 
 
@@ -234,8 +245,13 @@ public final class Checklist implements JsonObjectConvertible {
                 .collect(Collectors.toList());
     }
 
+    public List<String> getRepoInits() {
+        return repoInits;
+    }
+
     public InitStage asInitStage() {
         InitStage.Builder builder = new InitStage.Builder()
+                .withRepoInits(getRepoInits())
                 .withOrderedCndUrls(getCndUrls())
                 .withForcedRoots(getForcedRoots())
                 .withPrivileges(getJcrPrivilegeNames())
@@ -254,6 +270,7 @@ public final class Checklist implements JsonObjectConvertible {
         private List<PrivilegeDefinition> jcrPrivileges = new ArrayList<>();
         private List<ForcedRoot> forcedRoots = new ArrayList<>();
         private List<CheckSpec> checks = new ArrayList<>();
+        private List<String> repoInits = new ArrayList<>();
 
         Builder(final @NotNull String moduleName) {
             this.moduleName = moduleName;
@@ -296,6 +313,11 @@ public final class Checklist implements JsonObjectConvertible {
             return this;
         }
 
+        Builder withRepoInits(final @NotNull List<String> repoInits) {
+            this.repoInits.addAll(repoInits);
+            return this;
+        }
+
         boolean isValidCheckspec(final @NotNull CheckSpec check) {
             return !check.isAbstract()
                     && check.getName() != null
@@ -318,7 +340,8 @@ public final class Checklist implements JsonObjectConvertible {
                     Collections.unmodifiableList(forcedRoots),
                     Collections.unmodifiableList(checks.stream()
                             .map(CheckSpec::immutableCopyOf)
-                            .collect(Collectors.toList())));
+                            .collect(Collectors.toList())),
+                    Collections.unmodifiableList(repoInits));
         }
     }
 
@@ -363,6 +386,7 @@ public final class Checklist implements JsonObjectConvertible {
             return obj()
                     .key(jsonKeys.name()).opt(getName())
                     .key(jsonKeys.checks()).opt(checks)
+                    .key(jsonKeys.repoInits()).opt(getRepoInits())
                     .key(jsonKeys.forcedRoots()).opt(getForcedRoots())
                     .key(jsonKeys.cndUrls()).opt(getCndUrls())
                     .key(jsonKeys.jcrNodetypes()).opt(JsonCnd.toJson(getJcrNodetypes(), mapping))

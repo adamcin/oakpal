@@ -23,7 +23,8 @@ import org.codehaus.plexus.component.configurator.converters.lookup.ConverterLoo
 import org.codehaus.plexus.component.configurator.expression.ExpressionEvaluator;
 import org.codehaus.plexus.configuration.DefaultPlexusConfiguration;
 import org.codehaus.plexus.configuration.PlexusConfiguration;
-import org.codehaus.plexus.configuration.io.XmlPlexusConfigurationReader;
+import org.codehaus.plexus.configuration.xml.XmlPlexusConfiguration;
+import org.codehaus.plexus.util.xml.Xpp3DomBuilder;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Assert;
 import org.junit.Before;
@@ -208,7 +209,7 @@ public class JsonConverterTest {
             try (InputStreamReader reader =
                          new InputStreamReader(new FileInputStream(
                                  new File(testInputBaseDir, filename)), StandardCharsets.UTF_8)) {
-                return new XmlPlexusConfigurationReader().read(reader);
+                return new XmlPlexusConfiguration(Xpp3DomBuilder.build(reader));
             }
         }).get();
     }
