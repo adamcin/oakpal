@@ -31,7 +31,9 @@ import static org.mockito.Mockito.mock;
 
 import java.io.File;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -41,6 +43,7 @@ import javax.jcr.security.AccessControlException;
 import javax.json.JsonObject;
 import javax.json.JsonValue;
 
+import net.adamcin.oakpal.api.Violation;
 import org.apache.jackrabbit.api.JackrabbitWorkspace;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.spi.Name;
@@ -52,8 +55,11 @@ import org.apache.jackrabbit.spi.commons.namespace.NamespaceMapping;
 import org.apache.jackrabbit.spi.commons.privilege.PrivilegeDefinitionImpl;
 import org.junit.Before;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class InitStageTest {
+    private static final Logger LOGGER = LoggerFactory.getLogger(InitStageTest.class);
 
     private static final String NS_PREFIX = "foo";
     private static final String NS_URI = "http://foo.com";
@@ -64,13 +70,21 @@ public class InitStageTest {
     private static final File cndAFile = new File("src/test/resources/InitStageTest/a.cnd");
     private static final File cndBFile = new File("src/test/resources/InitStageTest/b.cnd");
 
+    private static final File repoinit1File = new File("src/test/resources/InitStageTest/repoinit1.txt");
+    private static final File repoinit2File = new File("src/test/resources/InitStageTest/repoinit2.txt");
     private URL cndAUrl;
     private URL cndBUrl;
+
+    private URL repoinit1Url;
+    private URL repoinit2Url;
+
 
     @Before
     public void setUp() throws Exception {
         cndAUrl = cndAFile.toURI().toURL();
         cndBUrl = cndBFile.toURI().toURL();
+        repoinit1Url = repoinit1File.toURI().toURL();
+        repoinit2Url = repoinit2File.toURI().toURL();
     }
 
     public static List<JcrNs> getNs() {
@@ -361,5 +375,64 @@ public class InitStageTest {
             assertTrue("manager should have type", manager.hasNodeType("b:primaryType"));
             assertTrue("manager should have type", manager.hasNodeType("b:mixinType"));
         });
+    }
+
+    @Test
+    public void testBuildWithRepoInitUrls() throws Exception {
+        final InitStage stage = new InitStage.Builder()
+                .withNs(getNs())
+                .withRepoInitUrls(Arrays.asList(cndAUrl, repoinit1Url, repoinit2Url))
+                .build();
+
+        final ErrorListener errorListener = new DefaultErrorListener();
+        new OakMachine.Builder()
+                .withErrorListener(errorListener)
+                .withInitStage(stage)
+                .build().adminInitAndInspect(session -> {
+            assertTrue("expect /apps node", session.nodeExists("/apps"));
+            assertTrue("expect /apps is sling:Folder", session.getNode("/apps").isNodeType("sling:Folder"));
+        });
+
+        assertEquals("expect one violation", 1, errorListener.getReportedViolations().size());
+    }
+
+    @Test
+    public void testBuildWithRepoInits() throws Exception {
+        final InitStage urlStage = new InitStage.Builder()
+                .withNs(getNs())
+                .withRepoInitUrls(Arrays.asList(repoinit1Url, repoinit2Url))
+                .build();
+
+        final InitStage badStage = new InitStage.Builder()
+                .withRepoInits(Arrays.asList(
+                        "create u2",
+                        "set ACL on /apps",
+                        "  allow jcr:read for u2",
+                        "end"
+                ))
+                .build();
+
+        final InitStage goodStage = new InitStage.Builder()
+                .withRepoInits(Arrays.asList(
+                        "create service user u1",
+                        "set ACL on /apps",
+                        "  allow jcr:read for u1",
+                        "end",
+                        "create path (sling:Folder) /libs"
+                        ))
+                .build();
+
+        final ErrorListener errorListener = new DefaultErrorListener();
+        new OakMachine.Builder()
+                .withErrorListener(errorListener)
+                .withInitStage(urlStage, badStage, goodStage)
+                .build().adminInitAndInspect(session -> {
+            assertTrue("expect /apps node", session.nodeExists("/apps"));
+            assertTrue("expect /apps is sling:Folder", session.getNode("/apps").isNodeType("sling:Folder"));
+            assertTrue("expect /libs node", session.nodeExists("/libs"));
+            assertTrue("expect /libs is sling:Folder", session.getNode("/libs").isNodeType("sling:Folder"));
+        });
+
+        assertEquals("expect one violation", 1, errorListener.getReportedViolations().size());
     }
 }

@@ -28,17 +28,21 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
+import org.apache.jackrabbit.oak.security.internal.SecurityProviderBuilder;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authentication.AuthenticationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
+import org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl.PrincipalBasedAuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.action.AccessControlAction;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 import org.apache.jackrabbit.vault.fs.api.ProgressTrackerListener;
@@ -50,6 +54,7 @@ import org.apache.jackrabbit.vault.packaging.PackageException;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.apache.jackrabbit.vault.packaging.Packaging;
 import org.apache.jackrabbit.vault.packaging.VaultPackage;
+import org.apache.sling.repoinit.parser.RepoInitParsingException;
 import org.jetbrains.annotations.NotNull;
 
 import javax.jcr.Node;
@@ -64,6 +69,7 @@ import javax.jcr.version.OnParentVersionAction;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.Reader;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -79,6 +85,8 @@ import java.util.stream.Collectors;
 
 import static net.adamcin.oakpal.api.Fun.uncheck1;
 import static net.adamcin.oakpal.api.Fun.uncheckVoid1;
+import static net.adamcin.oakpal.core.repoinit.DefaultRepoInitFactory.newDefaultRepoInitProcessor;
+import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_SECURITY_NAME;
 
 /**
  * Entry point for OakPAL Acceptance Library. See {@link ProgressCheck} for the event listener interface.
@@ -113,6 +121,8 @@ public final class OakMachine {
 
     private final SubpackageSilencer subpackageSilencer;
 
+    private final RepoInitProcessor repoInitProcessor;
+
     private OakMachine(final Packaging packagingService,
                        final List<ProgressCheck> progressChecks,
                        final ErrorListener errorListener,
@@ -124,7 +134,8 @@ public final class OakMachine {
                        final boolean enablePreInstallHooks,
                        final InstallHookPolicy scanInstallHookPolicy,
                        final Supplier<NodeStore> nodeStoreSupplier,
-                       final SubpackageSilencer subpackageSilencer) {
+                       final SubpackageSilencer subpackageSilencer,
+                       final RepoInitProcessor repoInitProcessor) {
         this.packagingService = packagingService != null ? packagingService : newOakpalPackagingService();
         this.progressChecks = progressChecks;
         this.errorListener = errorListener;
@@ -137,6 +148,18 @@ public final class OakMachine {
         this.scanInstallHookPolicy = scanInstallHookPolicy;
         this.nodeStoreSupplier = nodeStoreSupplier != null ? nodeStoreSupplier : MemoryNodeStore::new;
         this.subpackageSilencer = subpackageSilencer != null ? subpackageSilencer : (packageId, parentId) -> false;
+        this.repoInitProcessor = repoInitProcessor != null
+                ? repoInitProcessor
+                : newDefaultRepoInitProcessor(Util.getDefaultClassLoader());
+    }
+
+    /**
+     * Functional interface for a repoinit processor that unifies the RepoInitParser and JcrRepoInitOpsProcessor
+     * signatures.
+     */
+    @FunctionalInterface
+    public interface RepoInitProcessor {
+        void apply(Session admin, Reader repoInitReader) throws RepoInitParsingException;
     }
 
     /**
@@ -427,7 +450,8 @@ public final class OakMachine {
                     enablePreInstallHooks,
                     scanInstallHookPolicy,
                     nodeStoreSupplier,
-                    subpackageSilencer);
+                    subpackageSilencer,
+                    null);
         }
     }
 
@@ -517,7 +541,7 @@ public final class OakMachine {
             final JcrPackageManager manager = packagingService.getPackageManager(admin);
 
             for (InitStage initStage : this.initStages) {
-                initStage.initSession(admin, getErrorListener());
+                initStage.initSession(admin, getErrorListener(), repoInitProcessor);
             }
 
             for (final URL url : preInstallUrls) {
@@ -552,7 +576,7 @@ public final class OakMachine {
      * <ol>
      * <li>{@link #initRepository()} creates an fresh Oak repository.</li>
      * <li>{@link #loginAdmin(Repository)} opens an admin user JCR session.</li>
-     * <li>{@link InitStage#initSession(Session, ErrorListener)} is called for each registered {@link InitStage}</li>
+     * <li>{@code InitStage.initSession(Session, ErrorListener, RepoInitProcessor)} is called for each registered {@link InitStage}</li>
      * <li>{@link #processPackageFile(Session, JcrPackageManager, boolean, File)} is performed for each of the
      * {@link #preInstallUrls}</li>
      * <li>Each registered {@link ProgressCheck} receives a {@link ProgressCheck#startedScan()} event.</li>
@@ -582,7 +606,7 @@ public final class OakMachine {
             final JcrPackageManager manager = packagingService.getPackageManager(admin);
 
             for (final InitStage initStage : this.initStages) {
-                initStage.initSession(admin, getErrorListener());
+                initStage.initSession(admin, getErrorListener(), repoInitProcessor);
             }
 
             for (final URL url : preInstallUrls) {
@@ -839,7 +863,8 @@ public final class OakMachine {
 
     private Repository initRepository() throws RepositoryException {
         final NodeStore nodeStore = nodeStoreSupplier.get();
-        final Jcr jcr = nodeStore == null ? new Jcr() : new Jcr(nodeStore);
+        final Oak oak = nodeStore == null ? new Oak() : new Oak(nodeStore);
+        final Jcr jcr = new Jcr(oak);
 
         Properties userProps = new Properties();
         userProps.put(UserConstants.PARAM_USER_PATH, "/home/users");
@@ -860,7 +885,9 @@ public final class OakMachine {
         securityProps.put(AuthorizationConfiguration.NAME, ConfigurationParameters.of(authzProps));
         securityProps.put(AuthenticationConfiguration.NAME, ConfigurationParameters.of(authnProps));
 
-        jcr.with(new SecurityProviderImpl(ConfigurationParameters.of(securityProps)));
+        jcr.with(SecurityProviderBuilder.newBuilder()
+                .with(ConfigurationParameters.of(securityProps))
+                .build());
 
         RepositoryInitializer homeCreator = builder -> {
             NodeBuilder home = authzPath(builder, "home");

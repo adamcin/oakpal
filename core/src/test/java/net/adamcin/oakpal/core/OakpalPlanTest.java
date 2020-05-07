@@ -50,10 +50,14 @@ import java.util.List;
 import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
+import static net.adamcin.oakpal.api.Fun.uncheck1;
 import static net.adamcin.oakpal.api.JavaxJson.arr;
 import static net.adamcin.oakpal.api.JavaxJson.key;
 import static net.adamcin.oakpal.api.JavaxJson.obj;
+import static net.adamcin.oakpal.api.JavaxJson.parseFromArray;
 import static net.adamcin.oakpal.api.JavaxJson.wrap;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -249,6 +253,16 @@ public class OakpalPlanTest {
         final URL url2 = new URL("http://foo.com/foo2.zip");
         final List<URL> expectPreInstallUrls = Arrays.asList(url1, url2);
 
+        final URL expectComparisonUrl = new URL(baseUrl, "fullPlan.json");
+        final List<URL> expectRepoInitUrls = Stream.of("repoinit1.txt", "repoinit2.txt")
+                .map(uncheck1(url -> new URL(expectComparisonUrl, url)))
+                .collect(Collectors.toList());
+        final List<String> expectRepoInits = Arrays.asList(
+                "create service user fullPlanUser",
+                "set ACL on /apps",
+                "  allow jcr:read for fullPlanUser",
+                "end");
+
         final OakpalPlan base = builder()
                 .withChecklists(expectChecklists)
                 .withChecks(expectChecks)
@@ -259,9 +273,11 @@ public class OakpalPlanTest {
                 .withEnablePreInstallHooks(true)
                 .withInstallHookPolicy(expectPolicy)
                 .withPreInstallUrls(expectPreInstallUrls)
+                .withRepoInitUrls(expectRepoInitUrls)
+                .withRepoInits(expectRepoInits)
                 .build();
 
-        final OakpalPlan derived = builder().startingWithPlan(base).build();
+        final OakpalPlan derived = builder(expectComparisonUrl).startingWithPlan(base).build();
         assertEquals("expect checklists", expectChecklists, derived.getChecklists());
         assertEquals("expect checks", expectChecks, derived.getChecks());
         assertEquals("expect forcedRoots", expectRoots, derived.getForcedRoots());
@@ -271,14 +287,31 @@ public class OakpalPlanTest {
         assertTrue("expect enablePreInstallHook", derived.isEnablePreInstallHooks());
         assertSame("expect installHooksPolicy", expectPolicy, derived.getInstallHookPolicy());
         assertEquals("expect preInstallUrls", expectPreInstallUrls, derived.getPreInstallUrls());
+        assertEquals("expect repoInitUrls", expectRepoInitUrls, derived.getRepoInitUrls());
+        assertEquals("expect repoInits", expectRepoInits, derived.getRepoInits());
         assertNull("expect builder originalJson is null", derived.getOriginalJson());
 
-        final URL expectComparisonUrl = new URL(baseUrl, "fullPlan.json");
         try (InputStream input = expectComparisonUrl.openStream();
              JsonReader reader = Json.createReader(input)) {
             final JsonObject expectJson = reader.readObject();
             assertEquals("expect fromJson originalJson is", expectJson, derived.toJson());
         }
+    }
+
+    @Test
+    public void testBuilder_toJson_noBase() throws Exception {
+        final URL expectComparisonUrl = new URL(baseUrl, "fullPlan.json");
+        final List<URL> expectRepoInitUrls = Stream.of("repoinit1.txt", "repoinit2.txt")
+                .map(uncheck1(url -> new URL(expectComparisonUrl, url)))
+                .collect(Collectors.toList());
+        final OakpalPlan plan = builder()
+                .withRepoInitUrls(expectRepoInitUrls)
+                .build();
+        assertEquals("expect toJson has absolute urls", expectRepoInitUrls,
+                parseFromArray(plan.toJson().getJsonArray(OakpalPlan.keys().repoInitUrls()), URL::new, null));
+
+        final String expectJsonString = key(OakpalPlan.keys().repoInitUrls(), expectRepoInitUrls).get().toString();
+        assertEquals("expect toString is the same as toJson", expectJsonString, plan.toString());
     }
 
     @Test
@@ -306,8 +339,17 @@ public class OakpalPlanTest {
         final URL url1 = new URL("http://foo.com/foo1.zip");
         final URL url2 = new URL("http://foo.com/foo2.zip");
         final List<URL> expectPreInstallUrls = Arrays.asList(url1, url2);
-
         final URL expectBaseUrl = new URL(baseUrl, "fullPlan.json");
+
+        final List<URL> expectRepoInitUrls = Stream.of("repoinit1.txt", "repoinit2.txt")
+                .map(uncheck1(url -> new URL(expectBaseUrl, url)))
+                .collect(Collectors.toList());
+        final List<String> expectRepoInits = Arrays.asList(
+                "create service user fullPlanUser",
+                "set ACL on /apps",
+                "  allow jcr:read for fullPlanUser",
+                "end");
+
         final OakpalPlan derived = builder(expectBaseUrl)
                 .withChecklists(expectChecklists)
                 .withChecks(expectChecks)
@@ -318,11 +360,15 @@ public class OakpalPlanTest {
                 .withEnablePreInstallHooks(true)
                 .withInstallHookPolicy(expectPolicy)
                 .withPreInstallUrls(expectPreInstallUrls)
+                .withRepoInitUrls(expectRepoInitUrls)
+                .withRepoInits(expectRepoInits)
                 .build();
         try (InputStream input = expectBaseUrl.openStream();
              JsonReader reader = Json.createReader(input)) {
             final JsonObject expectJson = reader.readObject();
             assertEquals("expect fromJson originalJson is", expectJson, derived.toJson());
+            assertEquals("expect toString is the same as toJson",
+                    expectJson.toString(), derived.toString());
         }
     }
 

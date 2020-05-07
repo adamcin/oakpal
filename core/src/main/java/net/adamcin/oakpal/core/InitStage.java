@@ -32,7 +32,12 @@ import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.nodetype.NodeTypeDefinition;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.io.StringReader;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -56,6 +61,10 @@ import static net.adamcin.oakpal.core.OakMachine.NT_UNDECLARED;
  * Encapsulation of JCR initialization parameters for multistage inits.
  */
 public final class InitStage {
+    private final List<String> repoInits;
+
+    private final List<URL> repoInitUrls;
+
     private final List<URL> unorderedCndUrls;
 
     private final List<URL> orderedCndUrls;
@@ -71,13 +80,17 @@ public final class InitStage {
 
     private final Map<String, ForcedRoot> forcedRoots;
 
-    private InitStage(final List<URL> unorderedCndUrls,
+    private InitStage(final List<String> repoInits,
+                      final List<URL> repoInitUrls,
+                      final List<URL> unorderedCndUrls,
                       final List<URL> orderedCndUrls,
                       final List<QNodeTypeDefinition> qNodeTypes,
                       final Map<String, String> namespaces,
                       final Set<PrivilegeDefinition> privileges,
                       final Set<String> privilegeNames,
                       final Map<String, ForcedRoot> forcedRoots) {
+        this.repoInits = repoInits;
+        this.repoInitUrls = repoInitUrls;
         this.unorderedCndUrls = unorderedCndUrls;
         this.orderedCndUrls = orderedCndUrls;
         this.qNodeTypes = qNodeTypes;
@@ -103,6 +116,10 @@ public final class InitStage {
         private List<URL> unorderedCndUrls = new ArrayList<>();
 
         private List<URL> orderedCndUrls = new ArrayList<>();
+
+        private List<URL> repoInitUrls = new ArrayList<>();
+
+        private List<String> repoInits = new ArrayList<>();
 
         private List<QNodeTypeDefinition> qNodeTypes = new ArrayList<>();
 
@@ -293,17 +310,46 @@ public final class InitStage {
         }
 
         /**
+         * Provide a list of repoinit URLs to apply, in order. The scripts at these urls will be evaluated individually,
+         * after the structured JCR definitions and prior to evaluation
+         *
+         * @param repoInitUrls the list of repoinit URLs.
+         * @return my builder self
+         */
+        public Builder withRepoInitUrls(final @NotNull List<URL> repoInitUrls) {
+            this.repoInitUrls = new ArrayList<>(repoInitUrls);
+            return this;
+        }
+
+        /**
+         * Provide a list of inline repoinit scripts, replacing any that have already been added. All inline repoinit
+         * scripts provided to an InitStage are joined together with newlines and executed together as a single repoinit
+         * script.
+         *
+         * @param repoInits the repoinit scripts
+         * @return my builder self
+         */
+        public Builder withRepoInits(final @NotNull List<String> repoInits) {
+            this.repoInits = new ArrayList<>(repoInits);
+            return this;
+        }
+
+        /**
          * Construct an {@link InitStage} from the {@link Builder} state.
          *
          * @return an {@link InitStage}
          */
         public InitStage build() {
-            return new InitStage(unorderedCndUrls, orderedCndUrls, qNodeTypes,
+            return new InitStage(repoInits, repoInitUrls, unorderedCndUrls, orderedCndUrls, qNodeTypes,
                     namespaces, privileges, privilegeNames, forcedRoots);
         }
     }
 
-    void initSession(final Session admin, final ErrorListener errorListener) throws RepositoryException {
+    void initSession(final Session admin, final ErrorListener errorListener,
+                     final OakMachine.RepoInitProcessor repoInitProcessor)
+            throws RepositoryException {
+
+
         final CNDURLInstaller cndInstaller = new CNDURLInstaller(errorListener,
                 this.unorderedCndUrls, this.orderedCndUrls);
 
@@ -392,5 +438,22 @@ public final class InitStage {
                         admin.refresh(false);
                     }
                 }));
+
+        repoInitUrls.stream().forEachOrdered(repoinitUrl -> {
+            try (final InputStream repoinitInput = repoinitUrl.openStream();
+                 final Reader repoinitReader = new InputStreamReader(repoinitInput, StandardCharsets.UTF_8)) {
+                repoInitProcessor.apply(admin, repoinitReader);
+            } catch (Exception e) {
+                errorListener.onRepoInitUrlError(e, repoinitUrl);
+            }
+        });
+
+        if (!repoInits.isEmpty()) {
+            try (Reader repoinitReader = new StringReader(String.join("\n", repoInits))) {
+                repoInitProcessor.apply(admin, repoinitReader);
+            } catch (Exception e) {
+                errorListener.onRepoInitInlineError(e, repoInits);
+            }
+        }
     }
 }

@@ -17,6 +17,7 @@
 package net.adamcin.oakpal.maven.mojo;
 
 import net.adamcin.oakpal.api.Fun;
+import net.adamcin.oakpal.api.JavaxJson;
 import net.adamcin.oakpal.core.OakpalPlan;
 import net.adamcin.oakpal.api.Result;
 import net.adamcin.oakpal.core.Util;
@@ -44,6 +45,7 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -139,6 +141,7 @@ public class OpearPackageMojoTest {
         targetClasses.mkdirs();
         final Build build = mock(Build.class);
         when(project.getBuild()).thenReturn(build);
+        when(build.getDirectory()).thenReturn(target.getPath());
         when(build.getOutputDirectory()).thenReturn(targetClasses.getPath());
         FileUtils.copyFile(new File(srcDir, "echo.js"), new File(targetClasses, "echo.js"));
 
@@ -459,6 +462,7 @@ public class OpearPackageMojoTest {
         targetClasses.mkdirs();
         final Build build = mock(Build.class);
         when(project.getBuild()).thenReturn(build);
+        when(build.getDirectory()).thenReturn(target.getPath());
         when(build.getOutputDirectory()).thenReturn(targetClasses.getPath());
         FileUtils.copyFile(new File(srcDir, "echo.js"), new File(targetClasses, "echo.js"));
 
@@ -583,6 +587,7 @@ public class OpearPackageMojoTest {
         targetClasses.mkdirs();
         final Build build = mock(Build.class);
         when(project.getBuild()).thenReturn(build);
+        when(build.getDirectory()).thenReturn(target.getPath());
         when(build.getOutputDirectory()).thenReturn(targetClasses.getPath());
         FileUtils.copyFile(new File(srcDir, "echo.js"), new File(targetClasses, "echo.js"));
 
@@ -1016,9 +1021,20 @@ public class OpearPackageMojoTest {
         final File preInstallPackage = TestPackageUtil.prepareTestPackage(preInstallFilename);
         final URL preInstallUrl = new URL("oakpaltest:/target/test-packages/" + preInstallPackage.getName());
 
+        final URL repoInitUrl1 = new URL("oakpaltest:/target/test-classes/OpearPackageMojoTest/repoinit1.txt");
+        final URL repoInitUrl2 = new URL("oakpaltest:/target/test-classes/OpearPackageMojoTest/repoinit2.txt");
+
         final String rewrittenName = "my-plan.json";
         final String rewrittenPreInstallName = "my_preinstall.zip";
-        OakpalPlan rewritten = OpearPackageMojo.rewritePlan(copyTarget, Collections.singletonMap(preInstallUrl, rewrittenPreInstallName), simplePlan, rewrittenName);
+        final String rewrittenRepoInitName1 = "repoinit1.txt";
+        final String rewrittenRepoInitName2 = "repoinit2.txt";
+        final List<String> rewrittenRepoInitNames = Arrays.asList(rewrittenRepoInitName1, rewrittenRepoInitName2);
+
+        final Map<URL, String> rewrites = new HashMap<>();
+        rewrites.put(preInstallUrl, rewrittenPreInstallName);
+        rewrites.put(repoInitUrl1, rewrittenRepoInitName1);
+        rewrites.put(repoInitUrl2, rewrittenRepoInitName2);
+        OakpalPlan rewritten = OpearPackageMojo.rewritePlan(copyTarget, rewrites, simplePlan, rewrittenName);
 
         assertEquals("expect new preinstall url",
                 new File(copyTarget, rewrittenPreInstallName).getAbsoluteFile().toURI().toURL(),
@@ -1026,6 +1042,16 @@ public class OpearPackageMojoTest {
 
         assertEquals("expect relativized preinstall url", rewrittenPreInstallName,
                 rewritten.toJson().getJsonArray("preInstallUrls").getString(0));
+
+        assertEquals("expect new repoInitUrl1",
+                new File(copyTarget, rewrittenRepoInitName1).getAbsoluteFile().toURI().toURL(),
+                rewritten.getRepoInitUrls().get(0));
+        assertEquals("expect new repoInitUrl2",
+                new File(copyTarget, rewrittenRepoInitName2).getAbsoluteFile().toURI().toURL(),
+                rewritten.getRepoInitUrls().get(1));
+
+        assertEquals("expect relativized repoInitUrls", rewrittenRepoInitNames,
+                JavaxJson.unwrapArray(rewritten.toJson().getJsonArray("repoInitUrls")));
     }
 
     @Test

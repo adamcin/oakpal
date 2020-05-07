@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com)
 
 ## [Unreleased]
 
+### Added
+
+- Added repoinit support for init stages adapted from plans and checklists.
+
 ## [2.0.0] - 2020-04-27
 
 ### Added

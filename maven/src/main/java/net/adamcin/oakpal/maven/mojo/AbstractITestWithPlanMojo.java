@@ -16,11 +16,6 @@
 
 package net.adamcin.oakpal.maven.mojo;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-
 import net.adamcin.oakpal.api.ProgressCheck;
 import net.adamcin.oakpal.api.ProgressCheckFactory;
 import net.adamcin.oakpal.core.AbortedScanException;
@@ -37,6 +32,13 @@ import net.adamcin.oakpal.maven.component.JsonConverter;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.jetbrains.annotations.NotNull;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
 
 /**
  * Base scan class defining scanner parameters.
@@ -332,8 +334,47 @@ abstract class AbstractITestWithPlanMojo extends AbstractITestMojo implements Pl
     @Parameter(defaultValue = "${project.build.directory}/oakpal-plugin/blobs")
     protected String blobStorePath;
 
+    /**
+     * Specify an inline repoinit script. This will be applied after all other state initialization parameters,
+     * including {@code repoInitFiles}.
+     * See https://sling.apache.org/documentation/bundles/repository-initialization.html .
+     * <p>Examples:</p>
+     * <pre>
+     * &lt;repoInit&gt;
+     *   create path /apps
+     *   create path (sling:Folder) /content/dam
+     * &lt;/repoInit&gt;
+     * </pre>
+     * <pre>
+     * &lt;repoInit&gt;
+     *   &lt;![CDATA[
+     *     register nodetypes
+     *     &lt;&lt;===
+     *     &lt;'sling'='http://sling.apache.org/jcr/sling/1.0'&gt;
+     *     [sling:Folder] &gt; nt:folder, nt:unstructured
+     *     ===&gt;&gt;
+     *   ]]&gt;
+     * &lt;/repoInit&gt;
+     * </pre>
+     *
+     * @since 2.1.0
+     */
+    @Parameter(property = "repoInit")
+    protected String repoInit;
+
+    /**
+     * Specify a list of file paths to repoinit scripts. These will be applied in the configured order prior to any
+     * instructions specified in the inline {@code repoInit} parameter, but only after applying all the other state
+     * initialization parameters like {@code jcrNamespaces}, {@code jcrPrivileges}, {@code preInstallArtifacts}, etc.
+     * See https://sling.apache.org/documentation/bundles/repository-initialization.html .
+     *
+     * @since 2.1.0
+     */
+    @Parameter(property = "repoInitFiles")
+    protected List<File> repoInitFiles = new ArrayList<>();
+
     @Override
-    public final PlanBuilderParams getPlanBuilderParams() {
+    public final @NotNull PlanBuilderParams getPlanBuilderParams() {
         return this;
     }
 
@@ -390,6 +431,17 @@ abstract class AbstractITestWithPlanMojo extends AbstractITestMojo implements Pl
     @Override
     public InstallHookPolicy getInstallHookPolicy() {
         return installHookPolicy;
+    }
+
+    @Override
+    public List<String> getRepoInits() {
+        return Optional.ofNullable(repoInit)
+                .map(Collections::singletonList).orElse(Collections.emptyList());
+    }
+
+    @Override
+    public List<File> getRepoInitFiles() {
+        return repoInitFiles;
     }
 
     protected void performScan(final @NotNull List<File> scanFiles) throws MojoFailureException {

@@ -334,6 +334,8 @@ public class CommandTest {
 
         final File planFromFile = new File("src/test/resources/opears/adhocPlan/plan.json");
 
+        final File repoInitFile2 = new File("src/test/resources/opears/adhocPlan/repoinit2.txt");
+
         final Console console = getMockConsole();
         final OptionsValidator validator = new OptionsValidator(console);
 
@@ -342,6 +344,7 @@ public class CommandTest {
                         "--plan-file", planFromFile.getAbsolutePath(),
                         "--plan-file-base", planFromFile.getParentFile().getAbsolutePath(),
                         "--pre-install-file", contentPackageJar.getAbsolutePath(),
+                        "--repoinit-file", repoInitFile2.getAbsolutePath(),
                         "--extend-classpath", testModuleJar.getAbsolutePath()),
                 options -> {
                     assertEquals("expect plan file",
@@ -350,6 +353,8 @@ public class CommandTest {
                             planFromFile.getParentFile().getAbsolutePath(), options.getPlanFileBaseDir().getAbsolutePath());
                     assertTrue("expect pre-install file", options.getPreInstallFiles().stream()
                             .anyMatch(file -> file.getAbsolutePath().equals(contentPackageJar.getAbsolutePath())));
+                    assertTrue("expect repoinit file", options.getRepoInitFiles().stream()
+                            .anyMatch(file -> file.getAbsolutePath().equals(repoInitFile2.getAbsolutePath())));
                     assertTrue("expect classpath", options.getExtendedClassPathFiles().stream()
                             .anyMatch(file -> file.getAbsolutePath().equals(testModuleJar.getAbsolutePath())));
                     assertNotNull("expect test_module-handler.js", options.getScanClassLoader()
@@ -364,6 +369,8 @@ public class CommandTest {
                         "--no-plan-file-base",
                         "--pre-install-file", contentPackageJar.getAbsolutePath(),
                         "--no-pre-install-file",
+                        "--repoinit-file", repoInitFile2.getAbsolutePath(),
+                        "--no-repoinit-file",
                         "--extend-classpath", testModuleJar.getAbsolutePath(),
                         "--no-extend-classpath"),
 
@@ -372,6 +379,8 @@ public class CommandTest {
                     assertNull("expect null plan file base dir", options.getPlanFileBaseDir());
                     assertFalse("expect no pre-install file", options.getPreInstallFiles().stream()
                             .anyMatch(file -> file.getAbsolutePath().equals(contentPackageJar.getAbsolutePath())));
+                    assertFalse("expect no repoinit file", options.getRepoInitFiles().stream()
+                            .anyMatch(file -> file.getAbsolutePath().equals(repoInitFile2.getAbsolutePath())));
                     assertFalse("expect no classpath", options.getExtendedClassPathFiles().stream()
                             .anyMatch(file -> file.getAbsolutePath().equals(testModuleJar.getAbsolutePath())));
                     assertNull("expect no test_module-handler.js", options.getScanClassLoader()

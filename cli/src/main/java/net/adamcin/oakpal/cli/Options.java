@@ -1,5 +1,6 @@
 package net.adamcin.oakpal.cli;
 
+import net.adamcin.oakpal.api.Fun;
 import net.adamcin.oakpal.api.Nothing;
 import net.adamcin.oakpal.api.Result;
 import net.adamcin.oakpal.api.Severity;
@@ -12,11 +13,16 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -25,6 +31,7 @@ import java.util.jar.JarFile;
 import java.util.stream.Collectors;
 
 import static net.adamcin.oakpal.api.Fun.compose1;
+import static net.adamcin.oakpal.api.Fun.constantly1;
 import static net.adamcin.oakpal.api.Fun.result1;
 
 final class Options {
@@ -42,6 +49,7 @@ final class Options {
     private final File planFile;
     private final File planFileBaseDir;
     private final List<File> preInstallFiles;
+    private final List<File> repoInitFiles;
     private final List<File> extendedClassPathFiles;
     private final boolean noHooks;
     private final List<File> scanFiles;
@@ -53,6 +61,7 @@ final class Options {
                 OakpalPlan.BASIC_PLAN_URL, Options.class.getClassLoader(),
                 new File(System.getProperty("java.io.tmpdir")),
                 null, null, null, null,
+                Collections.emptyList(),
                 Collections.emptyList(),
                 Collections.emptyList(), false,
                 Collections.emptyList(),
@@ -71,6 +80,7 @@ final class Options {
             final @Nullable File planFile,
             final @Nullable File planFileBaseDir,
             final @NotNull List<File> preInstallFiles,
+            final @NotNull List<File> repoInitFiles,
             final @NotNull List<File> extendedClassPathFiles,
             final boolean noHooks,
             final @NotNull List<File> scanFiles,
@@ -87,6 +97,7 @@ final class Options {
         this.planFile = planFile;
         this.planFileBaseDir = planFileBaseDir;
         this.preInstallFiles = preInstallFiles;
+        this.repoInitFiles = repoInitFiles;
         this.extendedClassPathFiles = extendedClassPathFiles;
         this.noHooks = noHooks;
         this.scanFiles = scanFiles;
@@ -142,6 +153,10 @@ final class Options {
         return preInstallFiles;
     }
 
+    public @NotNull List<File> getRepoInitFiles() {
+        return repoInitFiles;
+    }
+
     public @NotNull List<File> getExtendedClassPathFiles() {
         return extendedClassPathFiles;
     }
@@ -159,7 +174,7 @@ final class Options {
     }
 
     boolean hasOverrides() {
-        return noHooks || !getPreInstallFiles().isEmpty();
+        return noHooks || !getPreInstallFiles().isEmpty() || !getRepoInitFiles().isEmpty();
     }
 
     public OakpalPlan applyOverrides(final @NotNull OakpalPlan basePlan) {
@@ -172,6 +187,18 @@ final class Options {
                         .collect(Result.tryCollect(Collectors.toList())).forEach(allUrls::addAll);
                 overridePlan.withPreInstallUrls(allUrls);
             }
+            if (!getRepoInitFiles().isEmpty()) {
+                List<URL> allUrls = new ArrayList<>(basePlan.getRepoInitUrls());
+                if (!basePlan.getRepoInits().isEmpty()) {
+                    cacheRepoInits(getCacheDir(), basePlan.getRepoInits()).forEach(repoInitUrl -> {
+                        allUrls.add(repoInitUrl);
+                        overridePlan.withRepoInits(Collections.emptyList());
+                    });
+                }
+                getRepoInitFiles().stream().map(compose1(File::toURI, result1(URI::toURL)))
+                        .collect(Result.tryCollect(Collectors.toList())).forEach(allUrls::addAll);
+                overridePlan.withRepoInitUrls(allUrls);
+            }
             if (isNoHooks()) {
                 overridePlan.withInstallHookPolicy(InstallHookPolicy.SKIP);
                 overridePlan.withEnablePreInstallHooks(false);
@@ -180,6 +207,47 @@ final class Options {
         } else {
             return basePlan;
         }
+    }
+
+    static byte[] getRepoInitBytes(final List<String> repoInits) {
+        return String.join("\n", repoInits).getBytes(StandardCharsets.UTF_8);
+    }
+
+    static Result<String> fileNameForRepoInitBytes(final byte[] repoInitBytes) {
+        return result1((Fun.ThrowingFunction<? super String, MessageDigest>) MessageDigest::getInstance)
+                .apply("SHA-1")
+                .map(digest -> digest.digest(repoInitBytes))
+                .map(Base64.getUrlEncoder()::encodeToString);
+    }
+
+    static Result<Nothing> writeToStream(final @NotNull byte[] bytesToWrite,
+                                         final @NotNull Fun.ThrowingSupplier<OutputStream> streamSupplier) {
+        try (OutputStream out = streamSupplier.tryGet()) {
+            out.write(bytesToWrite);
+            return Result.success(Nothing.instance);
+        } catch (Exception e) {
+            return Result.failure(e);
+        }
+    }
+
+    static Result<URL> cacheRepoInits(final @NotNull File cacheDir, final @NotNull List<String> repoInits) {
+        if (repoInits.isEmpty()) {
+            return Result.failure("refusing to cache empty repoinit script");
+        }
+        final byte[] repoInitBytes = getRepoInitBytes(repoInits);
+        final File parentDir = cacheDir.toPath().resolve("repoinits").toFile();
+        parentDir.mkdirs();
+        return fileNameForRepoInitBytes(repoInitBytes)
+                .map(fileName -> new File(parentDir, fileName))
+                .flatMap(cacheFile -> {
+                    final Result<URL> cacheFileUrl = compose1(File::toURI, result1(URI::toURL)).apply(cacheFile);
+                    if (cacheFile.exists()) {
+                        return cacheFileUrl;
+                    } else {
+                        return writeToStream(repoInitBytes, () -> new FileOutputStream(cacheFile))
+                                .flatMap(constantly1(() -> cacheFileUrl));
+                    }
+                });
     }
 
     static final class Builder {
@@ -193,6 +261,7 @@ final class Options {
         private File planFile;
         private File planFileBaseDir;
         private List<File> preInstallFiles = new ArrayList<>();
+        private List<File> repoInitFiles = new ArrayList<>();
         private List<File> extendedClassPathFiles = new ArrayList<>();
         private File outFile;
         private File cacheDir;
@@ -252,6 +321,16 @@ final class Options {
 
         public Builder addPreInstallFile(final @NotNull File preInstallFile) {
             this.preInstallFiles.add(preInstallFile);
+            return this;
+        }
+
+        public Builder setRepoInitFiles(final @NotNull List<File> repoInitFiles) {
+            this.repoInitFiles = repoInitFiles;
+            return this;
+        }
+
+        public Builder addRepoInitFile(final @NotNull File repoInitFile) {
+            this.repoInitFiles.add(repoInitFile);
             return this;
         }
 
@@ -353,7 +432,7 @@ final class Options {
                             .flatMap(classLoader -> messageWriter(console, outputJson, outFile).map(writer ->
                                     new Options(justHelp, justVersion, storeBlobs, planUrl,
                                             classLoader, realCacheDir, opearFile, planName, planFile,
-                                            planFileBaseDir, preInstallFiles, extendedClassPathFiles,
+                                            planFileBaseDir, preInstallFiles, repoInitFiles, extendedClassPathFiles,
                                             noHooks, scanFiles, writer, Optional.ofNullable(failOnSeverity)
                                             .orElse(DEFAULT_OPTIONS.failOnSeverity))))));
         }

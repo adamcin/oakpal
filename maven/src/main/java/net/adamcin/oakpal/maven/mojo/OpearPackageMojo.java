@@ -49,6 +49,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static net.adamcin.oakpal.api.Fun.compose1;
 import static net.adamcin.oakpal.api.Fun.composeTest1;
@@ -296,7 +297,9 @@ public class OpearPackageMojo extends AbstractCommonMojo {
 
         final Result<Map<URL, String>> renamedResult = allPlansResult
                 .flatMap(plans -> copyUrlStreams(toDir, plans.stream()
-                        .flatMap(compose1(OakpalPlan::getPreInstallUrls, List::stream))
+                        .flatMap(plan -> Stream.concat(
+                                plan.getPreInstallUrls().stream(),
+                                plan.getRepoInitUrls().stream()))
                         .collect(Collectors.toList())));
         final Result<Map<String, OakpalPlan>> rewrittenResult = renamedResult.flatMap(renamed ->
                 allPlansResult.map(allPlans -> allPlans.stream()
@@ -316,6 +319,9 @@ public class OpearPackageMojo extends AbstractCommonMojo {
                         .apply(new File(toDir, filename)), filename)
                 .startingWithPlan(plan)
                 .withPreInstallUrls(plan.getPreInstallUrls().stream()
+                        .map(compose1(renamed::get, uncheck1(name -> new File(toDir, name).toURI().toURL())))
+                        .collect(Collectors.toList()))
+                .withRepoInitUrls(plan.getRepoInitUrls().stream()
                         .map(compose1(renamed::get, uncheck1(name -> new File(toDir, name).toURI().toURL())))
                         .collect(Collectors.toList()))
                 .build();

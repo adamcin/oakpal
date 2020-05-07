@@ -31,6 +31,7 @@ import javax.jcr.PathNotFoundException;
 import java.net.URL;
 import java.text.MessageFormat;
 import java.util.Collection;
+import java.util.List;
 import java.util.MissingResourceException;
 import java.util.Optional;
 import java.util.ResourceBundle;
@@ -192,5 +193,24 @@ public class DefaultErrorListener implements ErrorListener {
         reportViolation(
                 new SimpleViolation(Severity.MAJOR,
                         getString("Policy prohibits the use of InstallHooks in packages"), packageId));
+    }
+
+    @Override
+    public void onRepoInitUrlError(final Throwable e, final URL repoinitUrl) {
+        final String message = MessageFormat.format(getString("repoinit url error ({0}): {1} \"{2}\""),
+                String.valueOf(repoinitUrl), e.getClass().getName(), e.getMessage());
+        LOGGER.trace("[onRepoInitUrlError] stack trace for: " + message, e);
+        reportViolation(new SimpleViolation(Severity.MAJOR, message));
+    }
+
+    @Override
+    public void onRepoInitInlineError(final Throwable e, final List<String> repoinits) {
+        final String firstLine = repoinits == null || repoinits.isEmpty()
+                ? "<empty>"
+                : repoinits.get(0).split("\\r?\\n")[0] + "...";
+        final String message = MessageFormat.format(getString("repoinit inline error ({0}): {1} \"{2}\""),
+                firstLine, e.getClass().getName(), e.getMessage());
+        LOGGER.trace("[onRepoInitInlineError] stack trace for: " + message, e);
+        reportViolation(new SimpleViolation(Severity.MAJOR, message));
     }
 }

@@ -40,10 +40,10 @@ a couple important differences:
   alternatives for some _plan_ parameters trade determinism for developer 
   flexibility. Because checklists are designed to be reusable and shareable,
   scan-time discovery and alternative parameters have been largely disallowed.
-  * Plans can specify pre-install packages, which provide much greater power
-  over the definition of initial repository state, but which carry a lot 
-  more overhead that hinders reusability, in the form of download size and 
-  lack of visibilty on changes to encapsulated content over time.
+  * Plans can specify pre-install packages and repoinit URLs, which provide 
+  much greater power over the definition of initial repository state, but which 
+  carry a lot more overhead that hinders reusability, in the form of download 
+  size and lack of visibilty on changes to encapsulated content over time.
 
 ## Enter *OPEAR* and the reusable _plan_
 

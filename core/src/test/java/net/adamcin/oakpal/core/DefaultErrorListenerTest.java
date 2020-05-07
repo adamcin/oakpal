@@ -114,4 +114,14 @@ public class DefaultErrorListenerTest {
     public void testOnProhibitedInstallHookRegistration() {
         new DefaultErrorListener().onProhibitedInstallHookRegistration(null);
     }
+
+    @Test
+    public void testOnRepoInitUrlError() {
+        new DefaultErrorListener().onRepoInitUrlError(simpleCause, null);
+    }
+
+    @Test
+    public void testOnRepoInitInlineError() {
+        new DefaultErrorListener().onRepoInitInlineError(simpleCause, null);
+    }
 }

@@ -16,9 +16,9 @@
 
 package net.adamcin.oakpal.maven.mojo;
 
+import net.adamcin.oakpal.api.Fun;
 import net.adamcin.oakpal.core.CheckSpec;
 import net.adamcin.oakpal.core.ForcedRoot;
-import net.adamcin.oakpal.api.Fun;
 import net.adamcin.oakpal.core.InstallHookPolicy;
 import net.adamcin.oakpal.core.JsonCnd;
 import net.adamcin.oakpal.core.OakpalPlan;
@@ -47,6 +47,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static net.adamcin.oakpal.api.Fun.compose1;
 import static net.adamcin.oakpal.api.Fun.entriesToMap;
 import static net.adamcin.oakpal.api.Fun.uncheck1;
 import static net.adamcin.oakpal.api.Fun.zipKeysWithValueFunc;
@@ -65,6 +66,7 @@ import static org.mockito.Mockito.when;
 
 public class MojoWithPlanParamsTest {
     private final File testOutBaseDir = new File("target/test-out/MojoWithPlanParamsTest");
+    private final File srcDir = new File("src/test/resources/MojoWithPlanParamsTest");
 
     @Before
     public void setUp() throws Exception {
@@ -133,6 +135,12 @@ public class MojoWithPlanParamsTest {
         when(params.getForcedRoots()).thenReturn(expectForcedRoots);
         final InstallHookPolicy expectPolicy = InstallHookPolicy.PROHIBIT;
         when(params.getInstallHookPolicy()).thenReturn(expectPolicy);
+        final List<String> expectRepoInits = Arrays.asList("create user testBuildPlan1", "create user testBuildPlan2");
+        when(params.getRepoInits()).thenReturn(expectRepoInits);
+        final List<File> expectRepoInitFiles = Arrays.asList(
+                new File(srcDir, "repoinit1.txt"),
+                new File(srcDir, "repoinit2.txt"));
+        when(params.getRepoInitFiles()).thenReturn(expectRepoInitFiles);
 
         final OakpalPlan plan = mojo.buildPlan();
         assertNotNull("expect plan", plan);
@@ -142,11 +150,15 @@ public class MojoWithPlanParamsTest {
         assertEquals("expect checks", expectChecks, plan.getChecks());
         assertEquals("expect forcedRoots", expectForcedRoots, plan.getForcedRoots());
         assertSame("expect installHookPolicy", expectPolicy, plan.getInstallHookPolicy());
+        assertEquals("expect repoInits", expectRepoInits, plan.getRepoInits());
+        assertEquals("expect repoInitUrls", expectRepoInitFiles.stream()
+                        .map(compose1(uncheck1(File::toURI), uncheck1(URI::toURL)))
+                        .collect(Collectors.toList()),
+                plan.getRepoInitUrls());
     }
 
     @Test
     public void testAggregateCnds() throws Exception {
-        final File srcDir = new File("src/test/resources/MojoWithPlanParamsTest");
         final File testOutDir = new File(testOutBaseDir, "testAggregateCnds").getAbsoluteFile();
         FileUtils.deleteDirectory(testOutDir);
         testOutDir.mkdirs();

@@ -17,6 +17,16 @@
       "impl": "OakpalPlanTest/checkNothing.js"
     }
   ],
+  "repoInitUrls": [
+    "repoinit1.txt",
+    "repoinit2.txt"
+  ],
+  "repoInits": [
+    "create service user fullPlanUser",
+    "set ACL on /apps",
+    "  allow jcr:read for fullPlanUser",
+    "end"
+  ],
   "forcedRoots": [
     {
       "path": "/root1"

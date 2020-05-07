@@ -30,4 +30,8 @@ public interface PlanBuilderParams {
     boolean isEnablePreInstallHooks();
 
     InstallHookPolicy getInstallHookPolicy();
+
+    List<String> getRepoInits();
+
+    List<File> getRepoInitFiles();
 }

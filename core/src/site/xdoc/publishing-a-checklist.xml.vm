@@ -56,15 +56,16 @@
             }
         }
     ],
+    "repoInits": [
+        "create path (nt:folder) /apps",
+        "create path (nt:folder) /libs"
+    ],
     "forcedRoots: [
         {
             "path": "/content/acme",
             "primaryType": "sling:Folder",
             "mixinTypes": []
         }
-    ],
-    "cndNames": [
-        "OAKPAL-INF/nodetypes/acme.cnd"
     ],
     "jcrNodetypes": {
         "sling:ResourceSuperType": {
@@ -100,15 +101,23 @@
                 implementations, you can specify an optional <code>config</code> object to
                 serve as a default configuration when this check spec is loaded.
             </p>
+            <p>For a real example, refer to the <a href="the-basic-checklist.html">the basic checklist</a>.
+            </p>
             <p>
                 A checklist may also specify a few optional properties that the <tt>OakMachine</tt> can load before each
                 scan as an <tt>InitStage</tt>. When the checklist is actively selected in the maven plugin, these resources
-                will be used to to initialize the repository to a state that serves as a starting context for checks.
+                will be used to to initialize the repository to a state that serves as a starting context for checks. They
+                will be applied in the order they are listed below.
             </p>
             <dl>
                 <dt><tt>cndNames</tt></dt>
                 <dd>Specify an array of CND (compact nodetype definition) files that should be installed in the repository
-                    prior to the scan</dd>
+                    prior to the scan. These can be either absolute (identified as containing a colon <tt>:</tt>), or
+                    relative to the root of jar containing the checklist.</dd>
+                <dt><tt>cndUrls</tt></dt>
+                <dd>Specify an array of URLs to CND (compact nodetype definition) files that should be installed in the
+                    repository prior to the scan. These are always assumed to be absolute URLs, and an element will be
+                    ignored if an exception is thrown by <tt>new java.net.URL(element)</tt>.</dd>
                 <dt><tt>jcrNamespaces</tt></dt>
                 <dd>Specify a list of JCR namespace prefix-to-uri mappings in order to register new ones, or to remap
                     a registered namespace to a different prefix in the scan session.</dd>
@@ -116,14 +125,20 @@
                 <dd>Register a set of node types to support creation of forced roots prior to the scan.</dd>
                 <dt><tt>jcrPrivileges</tt></dt>
                 <dd>Register a list of JCR privileges to support the installation of rep:policy nodes that reference
-                    them.</dd>
+                    them. This can be either a list of strings, each interpreted as a non-abstract, non-aggregate
+                    privilege, or an object, where each key is interpreted as a privilege name, and the associated value
+                    is an object in the form of <tt>{ "abstract": boolean, "aggregateNames": [ ... ] }</tt>.
+                </dd>
                 <dt><tt>forcedRoots</tt></dt>
                 <dd>Specify a list of root paths to create (akin to using <tt>mkdir -p</tt>), and optionally specify a
                     primary type and/or a list of mixin types to apply to the leaf node. Intermediate paths will be
                     created as <tt>nt:unstructured</tt> nodes.</dd>
+                <dt><tt>repoInits</tt></dt>
+                <dd>Specify a list of zero or more inline repoinit scripts, which are ultimately concatenated and
+                    evaluated together as a single repoinit script. See
+                    <a href="https://sling.apache.org/documentation/bundles/repository-initialization.html#the-repoinit-repository-initialization-language-1">
+                        The 'repoinit' Repository Initialization Language</a>.</dd>
             </dl>
-            <p>For a real example, refer to the <a href="the-basic-checklist.html">the basic checklist</a>.
-            </p>
         </section>
     </body>
 </document>

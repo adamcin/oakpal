@@ -116,7 +116,7 @@ public class JcrFactoryTest {
         }
     }
 
-    private void recursiveDeleteWithRetry(final File toDelete) throws IOException {
+    private static void recursiveDeleteWithRetry(final File toDelete) throws IOException {
         try {
             FileUtils.deleteDirectory(toDelete);
         } catch (IOException e) {
