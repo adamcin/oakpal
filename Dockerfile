@@ -1,7 +1,7 @@
-FROM maven:3.6.1-jdk-8 AS build
+FROM maven:3.6.3-jdk-8 AS build
 ADD . /app
 WORKDIR /app
-RUN mvn clean install -pl testing,core,cli
+RUN mvn -B clean install -am -pl cli
 
 FROM adoptopenjdk/openjdk14-openj9:alpine-slim
 RUN mkdir -p /app/oakpal-cli
