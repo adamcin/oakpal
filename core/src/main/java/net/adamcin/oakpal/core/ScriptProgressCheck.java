@@ -24,6 +24,8 @@ import net.adamcin.oakpal.api.ReportCollector;
 import net.adamcin.oakpal.api.Result;
 import net.adamcin.oakpal.api.Severity;
 import net.adamcin.oakpal.api.SimpleViolation;
+import net.adamcin.oakpal.api.SlingInstallable;
+import net.adamcin.oakpal.api.SlingSimulator;
 import net.adamcin.oakpal.api.Violation;
 import org.apache.jackrabbit.vault.fs.config.MetaInf;
 import org.apache.jackrabbit.vault.packaging.PackageId;
@@ -66,12 +68,12 @@ import static net.adamcin.oakpal.core.Util.isEmpty;
  * <dl>
  * <dt>getCheckName()</dt>
  * <dd>{@link ProgressCheck#getCheckName()}</dd>
+ * <dt>simulateSling(slingSimulator, runModes)</dt>
+ * <dd>{@link ProgressCheck#simulateSling(SlingSimulator, Set)} ()}</dd>
  * <dt>startedScan()</dt>
  * <dd>{@link ProgressCheck#startedScan()}</dd>
  * <dt>identifyPackage(packageId, packageFile)</dt>
  * <dd>{@link ProgressCheck#identifyPackage(PackageId, File)}</dd>
- * <dt>identifySubpackage(packageId, parentPackageId)</dt>
- * <dd>{@link ProgressCheck#identifySubpackage(PackageId, PackageId)}</dd>
  * <dt>beforeExtract(packageId, inspectSession, packageProperties, metaInf, subpackageIds)</dt>
  * <dd>{@link ProgressCheck#beforeExtract(PackageId, Session, PackageProperties, MetaInf, List)}</dd>
  * <dt>importedPath(packageId, path, node, action)</dt>
@@ -80,6 +82,16 @@ import static net.adamcin.oakpal.core.Util.isEmpty;
  * <dd>{@link ProgressCheck#deletedPath(PackageId, String, Session)}</dd>
  * <dt>afterExtract(packageId, inspectSession)</dt>
  * <dd>{@link ProgressCheck#afterExtract(PackageId, Session)}</dd>
+ * <dt>identifySubpackage(packageId, parentPackageId)</dt>
+ * <dd>{@link ProgressCheck#identifySubpackage(PackageId, PackageId)}</dd>
+ * <dt>beforeSlingInstall(packageId, slingInstallable, inspectSession)</dt>
+ * <dd>{@link ProgressCheck#beforeSlingInstall(PackageId, SlingInstallable, Session)}</dd>
+ * <dt>identifyEmbeddedPackage(packageId, parentPackageId, jcrPath)</dt>
+ * <dd>{@link ProgressCheck#identifyEmbeddedPackage(PackageId, PackageId, String)}</dd>
+ * <dt>afterSlingInstall(packageId, slingInstallable, inspectSession)</dt>
+ * <dd>{@link ProgressCheck#appliedRepoInitScripts(PackageId, SlingInstallable, Session)}</dd>
+ * <dt>afterScanPackage(packageId, inspectSession)</dt>
+ * <dd>{@link ProgressCheck#afterScanPackage(PackageId, Session)}</dd>
  * <dt>finishedScan()</dt>
  * <dd>{@link ProgressCheck#finishedScan()}</dd>
  * </dl>
@@ -92,13 +104,18 @@ public final class ScriptProgressCheck implements ProgressCheck {
     public static final String BINDING_CHECK_CONFIG = "config";
     public static final String FILENAME_INLINE_SCRIPT = "_inlineScript_";
     public static final String INVOKE_ON_STARTED_SCAN = "startedScan";
+    public static final String INVOKE_ON_SIMULATE_SLING = "simulateSling";
     public static final String INVOKE_ON_IDENTIFY_PACKAGE = "identifyPackage";
-    public static final String INVOKE_ON_IDENTIFY_SUBPACKAGE = "identifySubpackage";
     public static final String INVOKE_ON_READ_MANIFEST = "readManifest";
     public static final String INVOKE_ON_BEFORE_EXTRACT = "beforeExtract";
     public static final String INVOKE_ON_IMPORTED_PATH = "importedPath";
     public static final String INVOKE_ON_DELETED_PATH = "deletedPath";
     public static final String INVOKE_ON_AFTER_EXTRACT = "afterExtract";
+    public static final String INVOKE_ON_IDENTIFY_SUBPACKAGE = "identifySubpackage";
+    public static final String INVOKE_ON_BEFORE_SLING_INSTALL = "beforeSlingInstall";
+    public static final String INVOKE_ON_IDENTIFY_EMBEDDED_PACKAGE = "identifyEmbeddedPackage";
+    public static final String INVOKE_ON_AFTER_SLING_INSTALL = "afterSlingInstall";
+    public static final String INVOKE_ON_AFTER_SCAN_PACKAGE = "afterScanPackage";
     public static final String INVOKE_ON_FINISHED_SCAN = "finishedScan";
     public static final String INVOKE_GET_CHECK_NAME = "getCheckName";
 
@@ -224,6 +241,11 @@ public final class ScriptProgressCheck implements ProgressCheck {
     }
 
     @Override
+    public void simulateSling(final SlingSimulator slingSimulator, final Set<String> runModes) {
+        guardHandler(INVOKE_ON_SIMULATE_SLING, handle -> handle.apply(slingSimulator, runModes));
+    }
+
+    @Override
     public void startedScan() {
         helper.collector.clearViolations();
         guardHandler(INVOKE_ON_STARTED_SCAN, HandlerHandle::apply);
@@ -234,10 +256,6 @@ public final class ScriptProgressCheck implements ProgressCheck {
         guardHandler(INVOKE_ON_IDENTIFY_PACKAGE, handle -> handle.apply(packageId, file));
     }
 
-    @Override
-    public void identifySubpackage(final PackageId packageId, final PackageId parentId) {
-        guardHandler(INVOKE_ON_IDENTIFY_SUBPACKAGE, handle -> handle.apply(packageId, parentId));
-    }
 
     @Override
     public void readManifest(final PackageId packageId, final Manifest manifest) {
@@ -248,8 +266,9 @@ public final class ScriptProgressCheck implements ProgressCheck {
     public void beforeExtract(final PackageId packageId, final Session inspectSession,
                               final PackageProperties packageProperties, final MetaInf metaInf,
                               final List<PackageId> subpackages) throws RepositoryException {
-        guardSessionHandler(INVOKE_ON_BEFORE_EXTRACT, handle -> handle.apply(packageId, inspectSession, packageProperties,
-                metaInf, subpackages.toArray(new PackageId[0])));
+        guardSessionHandler(INVOKE_ON_BEFORE_EXTRACT,
+                handle -> handle.apply(packageId, inspectSession, packageProperties,
+                        metaInf, subpackages.toArray(new PackageId[0])));
     }
 
     @Override
@@ -267,6 +286,39 @@ public final class ScriptProgressCheck implements ProgressCheck {
     @Override
     public void afterExtract(final PackageId packageId, final Session inspectSession) throws RepositoryException {
         guardSessionHandler(INVOKE_ON_AFTER_EXTRACT, handle -> handle.apply(packageId, inspectSession));
+    }
+
+    @Override
+    public void identifySubpackage(final PackageId packageId, final PackageId parentId) {
+        guardHandler(INVOKE_ON_IDENTIFY_SUBPACKAGE, handle -> handle.apply(packageId, parentId));
+    }
+
+    @Override
+    public void beforeSlingInstall(final PackageId lastPackage,
+                                   final SlingInstallable slingInstallable,
+                                   final Session inspectSession) throws RepositoryException {
+        guardSessionHandler(INVOKE_ON_BEFORE_SLING_INSTALL,
+                handle -> handle.apply(lastPackage, slingInstallable, inspectSession));
+    }
+
+    @Override
+    public void identifyEmbeddedPackage(final PackageId packageId,
+                                        final PackageId parentId,
+                                        final String jcrPath) {
+        guardHandler(INVOKE_ON_IDENTIFY_EMBEDDED_PACKAGE, handle -> handle.apply(packageId, parentId, jcrPath));
+    }
+
+    @Override
+    public void appliedRepoInitScripts(final PackageId lastPackage,
+                                       final SlingInstallable slingInstallable,
+                                       final Session inspectSession) throws RepositoryException {
+        guardSessionHandler(INVOKE_ON_AFTER_SLING_INSTALL,
+                handle -> handle.apply(lastPackage, slingInstallable, inspectSession));
+    }
+
+    @Override
+    public void afterScanPackage(final PackageId packageId, final Session inspectSession) throws RepositoryException {
+        guardSessionHandler(INVOKE_ON_AFTER_SCAN_PACKAGE, handle -> handle.apply(packageId, inspectSession));
     }
 
     @Override

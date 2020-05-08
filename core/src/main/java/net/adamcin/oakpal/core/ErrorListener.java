@@ -19,6 +19,8 @@ package net.adamcin.oakpal.core;
 import net.adamcin.oakpal.api.ProgressCheck;
 import net.adamcin.oakpal.api.ScanListener;
 import net.adamcin.oakpal.api.ViolationReporter;
+import net.adamcin.oakpal.api.EmbeddedPackageInstallable;
+import net.adamcin.oakpal.api.RepoInitScriptsInstallable;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.osgi.annotation.versioning.ConsumerType;
 
@@ -34,91 +36,91 @@ public interface ErrorListener extends ScanListener, ViolationReporter {
     /**
      * Called for each unresolved error thrown during node type definition auto-installation.
      *
-     * @param e        the error.
+     * @param error    the error.
      * @param resource the classpath resource of the failed Sling-Nodetypes entry.
      */
-    default void onNodeTypeRegistrationError(final Throwable e, final URL resource) {
+    default void onNodeTypeRegistrationError(final Throwable error, final URL resource) {
     }
 
     /**
      * Called for each unresolved error thrown during JCR namespace prefix registration.
      *
-     * @param e      the error.
+     * @param error  the error.
      * @param prefix the prefix being registered.
      * @param uri    the uri being registered.
      */
-    default void onJcrNamespaceRegistrationError(final Throwable e, final String prefix, final String uri) {
+    default void onJcrNamespaceRegistrationError(final Throwable error, final String prefix, final String uri) {
     }
 
     /**
      * Called for each unresolved error thrown during JCR privilege registration.
      *
-     * @param e            the error.
+     * @param error        the error.
      * @param jcrPrivilege the jcrPrivilege being registered.
      */
-    default void onJcrPrivilegeRegistrationError(final Throwable e, final String jcrPrivilege) {
+    default void onJcrPrivilegeRegistrationError(final Throwable error, final String jcrPrivilege) {
     }
 
     /**
      * Called for each error thrown during creation of a forced JCR root.
      *
-     * @param e          the error.
+     * @param error      the error.
      * @param forcedRoot the root path being created.
      */
-    default void onForcedRootCreationError(final Throwable e, final ForcedRoot forcedRoot) {
+    default void onForcedRootCreationError(final Throwable error, final ForcedRoot forcedRoot) {
     }
 
     /**
      * Called when a {@link ProgressCheck} throws an exception.
      *
-     * @param e         the error
+     * @param error     the error
      * @param listener  the listener
      * @param packageId the current package id
      */
-    default void onListenerException(final Exception e, final ProgressCheck listener, final PackageId packageId) {
+    default void onListenerException(final Exception error, final ProgressCheck listener, final PackageId packageId) {
 
     }
 
     /**
      * Called when a {@link ProgressCheck} throws an exception when handling an imported path.
      *
-     * @param e         the error
+     * @param error     the error
      * @param handler   the handler
      * @param packageId the current package id
      * @param path      the current path
      */
-    default void onListenerPathException(final Exception e, final ProgressCheck handler, final PackageId packageId, final String path) {
+    default void onListenerPathException(final Exception error, final ProgressCheck handler, final PackageId packageId, final String path) {
 
     }
 
     /**
      * Called when the package FileVault importer encounters an error such as an XML syntax exception.
      *
-     * @param e         the caught exception
+     * @param error     the caught exception
      * @param packageId the current package ID
      * @param path      the related repository path, if applicable
      */
-    default void onImporterException(final Exception e, final PackageId packageId, final String path) {
+    default void onImporterException(final Exception error, final PackageId packageId, final String path) {
 
     }
 
     /**
      * Called when an exception was thrown when attempting to open or extract a package.
      *
-     * @param e         the Exception that was thrown
+     * @param error     the Exception that was thrown
      * @param packageId the offending package id
      */
-    default void onSubpackageException(final Exception e, final PackageId packageId) {
+    default void onSubpackageException(final Exception error, final PackageId packageId) {
 
     }
 
     /**
      * Called when an exception is thrown when attempting to register install hooks for a particular package.
      *
-     * @param e         the error thrown
+     * @param error     the error thrown
      * @param packageId the package attempting to register install hooks
      */
-    default void onInstallHookError(final Throwable e, final PackageId packageId) {
+    default void onInstallHookError(final Throwable error, final PackageId packageId) {
 
     }
 
@@ -136,10 +138,10 @@ public interface ErrorListener extends ScanListener, ViolationReporter {
      * Called for an IOException or RepoInitParsingException when parsing a repoinit url during
      * {@code InitStage.initSession()}.
      *
-     * @param e           the error thrown
+     * @param error       the error thrown
      * @param repoinitUrl the repoinit url
      */
-    default void onRepoInitUrlError(final Throwable e, final URL repoinitUrl) {
+    default void onRepoInitUrlError(final Throwable error, final URL repoinitUrl) {
 
     }
 
@@ -147,10 +149,35 @@ public interface ErrorListener extends ScanListener, ViolationReporter {
      * Called for an IOException or RepoInitParsingException when parsing a list of repoinit scripts during
      * {@code InitStage.initSession()}.
      *
-     * @param e         the error thrown
+     * @param error     the error thrown
      * @param repoinits the repoinit scripts
      */
-    default void onRepoInitInlineError(final Throwable e, final List<String> repoinits) {
+    default void onRepoInitInlineError(final Throwable error, final List<String> repoinits) {
+
+    }
+
+    /**
+     * Called for an IOException or RepoInitParsingException when parsing an installable repoinit script submitted
+     * to a {@link net.adamcin.oakpal.api.SlingSimulator}.
+     *
+     * @param error        the error thrown
+     * @param failedScript the script that failed
+     * @param installable  the repoinit scripts installable
+     */
+    default void onSlingRepoInitScriptsError(final Throwable error,
+                                             final String failedScript,
+                                             final RepoInitScriptsInstallable installable) {
+    }
+
+    /**
+     * Called for an IOException, PackageException, or RepositoryException when installing an embedded package submitted
+     * to a {@link net.adamcin.oakpal.api.SlingSimulator}.
+     *
+     * @param error       the error thrown
+     * @param installable the subpackage installable
+     */
+    default void onSlingEmbeddedPackageError(final Throwable error,
+                                             final EmbeddedPackageInstallable installable) {
 
     }
 }

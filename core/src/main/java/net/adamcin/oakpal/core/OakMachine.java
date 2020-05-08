@@ -19,6 +19,12 @@ package net.adamcin.oakpal.core;
 import net.adamcin.oakpal.api.Fun;
 import net.adamcin.oakpal.api.PathAction;
 import net.adamcin.oakpal.api.ProgressCheck;
+import net.adamcin.oakpal.api.SilenceableCheck;
+import net.adamcin.oakpal.api.SlingInstallable;
+import net.adamcin.oakpal.core.sling.DefaultSlingSimulator;
+import net.adamcin.oakpal.api.EmbeddedPackageInstallable;
+import net.adamcin.oakpal.api.RepoInitScriptsInstallable;
+import net.adamcin.oakpal.core.sling.SlingSimulatorBackend;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.commons.cnd.DefinitionBuilderFactory;
@@ -67,15 +73,20 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
+import java.io.StringReader;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.Set;
+import java.util.function.BiConsumer;
 import java.util.function.BiPredicate;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.jar.JarInputStream;
 import java.util.jar.Manifest;
@@ -120,6 +131,10 @@ public final class OakMachine {
 
     private final RepoInitProcessor repoInitProcessor;
 
+    private final SlingSimulatorBackend slingSimulator;
+
+    private final Set<String> runModes;
+
     private OakMachine(final Packaging packagingService,
                        final List<ProgressCheck> progressChecks,
                        final ErrorListener errorListener,
@@ -132,7 +147,9 @@ public final class OakMachine {
                        final InstallHookPolicy scanInstallHookPolicy,
                        final Supplier<NodeStore> nodeStoreSupplier,
                        final SubpackageSilencer subpackageSilencer,
-                       final RepoInitProcessor repoInitProcessor) {
+                       final RepoInitProcessor repoInitProcessor,
+                       final SlingSimulatorBackend slingSimulator,
+                       final Set<String> runModes) {
         this.packagingService = packagingService != null ? packagingService : newOakpalPackagingService();
         this.progressChecks = progressChecks;
         this.errorListener = errorListener;
@@ -148,6 +165,10 @@ public final class OakMachine {
         this.repoInitProcessor = repoInitProcessor != null
                 ? repoInitProcessor
                 : newDefaultRepoInitProcessor(Util.getDefaultClassLoader());
+        this.slingSimulator = slingSimulator != null ? slingSimulator : DefaultSlingSimulator.instance();
+        this.runModes = runModes != null
+                ? Collections.unmodifiableSet(new LinkedHashSet<>(runModes))
+                : Collections.emptySet();
     }
 
     /**
@@ -186,6 +207,12 @@ public final class OakMachine {
         private Supplier<NodeStore> nodeStoreSupplier;
 
         private SubpackageSilencer subpackageSilencer;
+
+        private RepoInitProcessor repoInitProcesser;
+
+        private SlingSimulatorBackend slingSimulator;
+
+        private Set<String> runModes;
 
         /**
          * Provide a {@link Packaging} service for use in retrieving a {@link JcrPackageManager} for an admin session.
@@ -431,6 +458,43 @@ public final class OakMachine {
         }
 
         /**
+         * Provide a RepoInitProcessor.
+         *
+         * @param repoInitProcesser the repoinit processor
+         * @return my builder self
+         * @since 2.1.0
+         */
+        public Builder withRepoInitProcesser(final RepoInitProcessor repoInitProcesser) {
+            this.repoInitProcesser = repoInitProcesser;
+            return this;
+        }
+
+        /**
+         * Provide a sling simulator
+         *
+         * @param slingSimulator the sling simulator backend
+         * @return my builder self
+         * @since 2.1.0
+         */
+        public Builder withSlingSimulator(final SlingSimulatorBackend slingSimulator) {
+            this.slingSimulator = slingSimulator;
+            return this;
+        }
+
+
+        /**
+         * Provide a set of simulated sling run modes.
+         *
+         * @param runModes the set of sling run modes
+         * @return my builder self
+         * @since 2.1.0
+         */
+        public Builder withRunModes(final Set<String> runModes) {
+            this.runModes = runModes;
+            return this;
+        }
+
+        /**
          * Construct a {@link OakMachine} from the {@link Builder} state.
          *
          * @return a {@link OakMachine}
@@ -448,7 +512,9 @@ public final class OakMachine {
                     scanInstallHookPolicy,
                     nodeStoreSupplier,
                     subpackageSilencer,
-                    null);
+                    repoInitProcesser,
+                    slingSimulator,
+                    runModes);
         }
     }
 
@@ -541,6 +607,8 @@ public final class OakMachine {
                 initStage.initSession(admin, getErrorListener(), repoInitProcessor);
             }
 
+            initSlingSimulator(admin, manager, errorListener);
+
             for (final URL url : preInstallUrls) {
                 processPackageUrl(admin, manager, true, url);
             }
@@ -553,6 +621,12 @@ public final class OakMachine {
 
             shutdownRepository(scanRepo);
         }
+    }
+
+    void initSlingSimulator(final Session admin, final JcrPackageManager manager, final ErrorListener errorListener) {
+        slingSimulator.setSession(admin);
+        slingSimulator.setPackageManager(manager);
+        slingSimulator.setErrorListener(getErrorListener());
     }
 
     /**
@@ -606,11 +680,14 @@ public final class OakMachine {
                 initStage.initSession(admin, getErrorListener(), repoInitProcessor);
             }
 
+            initSlingSimulator(admin, manager, errorListener);
+            progressChecks.forEach(check -> check.simulateSling(slingSimulator, runModes));
+            slingSimulator.startedScan();
+            progressChecks.forEach(ProgressCheck::startedScan);
+
             for (final URL url : preInstallUrls) {
                 processPackageUrl(admin, manager, true, url);
             }
-
-            progressChecks.forEach(ProgressCheck::startedScan);
 
             if (files != null) {
                 for (final File file : files) {
@@ -622,6 +699,7 @@ public final class OakMachine {
             throw new AbortedScanException(e);
         } finally {
             progressChecks.forEach(ProgressCheck::finishedScan);
+            slingSimulator.finishedScan();
 
             if (admin != null) {
                 admin.logout();
@@ -634,7 +712,6 @@ public final class OakMachine {
 
         List<CheckReport> reports = new ArrayList<>();
         reports.add(SimpleReport.generateReport(getErrorListener()));
-
         List<CheckReport> listenerReports = progressChecks.stream()
                 .map(SimpleReport::generateReport)
                 .collect(Collectors.toList());
@@ -690,24 +767,21 @@ public final class OakMachine {
             throws IOException, PackageException, RepositoryException {
 
         final PackageId packageId = jcrPackage.getPackage().getId();
-
-        if (!preInstall) {
-            Optional.ofNullable(jcrPackage.getData()).map(uncheck1(Property::getBinary)).ifPresent(
-                    uncheckVoid1(binary -> {
-                        try (InputStream input = binary.getStream();
-                             JarInputStream jarInput = new JarInputStream(input)) {
-                            final Manifest manifest = jarInput.getManifest();
-                            if (manifest != null) {
-                                progressChecks.forEach(handler ->
-                                        handler.readManifest(packageId, new Manifest(manifest)));
-                            }
+        Optional.ofNullable(jcrPackage.getData()).map(uncheck1(Property::getBinary)).ifPresent(
+                uncheckVoid1(binary -> {
+                    try (InputStream input = binary.getStream();
+                         JarInputStream jarInput = new JarInputStream(input)) {
+                        final Manifest manifest = jarInput.getManifest();
+                        if (manifest != null) {
+                            propagateCheckPackageEvent(preInstall, packageId,
+                                    handler -> handler.readManifest(packageId, new Manifest(manifest)));
                         }
-                    }));
-        }
+                    }
+                }));
 
         final Session inspectSession = Util.wrapSessionReadOnly(admin);
         final ProgressTrackerListener tracker =
-                new ImporterListenerAdapter(packageId, progressChecks, inspectSession, preInstall);
+                new ImporterListenerAdapter(packageId, inspectSession, preInstall);
 
         InternalImportOptions options = new InternalImportOptions(packageId, Packaging.class.getClassLoader());
         options.setNonRecursive(true);
@@ -734,16 +808,9 @@ public final class OakMachine {
             throw new PackageException("Package is not valid: " + packageId);
         }
 
-        if (!preInstall) {
-            progressChecks.forEach(handler -> {
-                try {
-                    handler.beforeExtract(packageId, inspectSession,
-                            vaultPackage.getProperties(), vaultPackage.getMetaInf(), subpacks);
-                } catch (final Exception e) {
-                    getErrorListener().onListenerException(e, handler, packageId);
-                }
-            });
-        }
+        propagateCheckPackageEvent(preInstall, packageId, handler ->
+                handler.beforeExtract(packageId, inspectSession, vaultPackage.getProperties(),
+                        vaultPackage.getMetaInf(), subpacks));
 
         jcrPackage.extract(options);
         admin.save();
@@ -761,15 +828,7 @@ public final class OakMachine {
 
         jcrPackage.close();
 
-        if (!preInstall) {
-            progressChecks.forEach(handler -> {
-                try {
-                    handler.afterExtract(packageId, inspectSession);
-                } catch (final Exception e) {
-                    getErrorListener().onListenerException(e, handler, packageId);
-                }
-            });
-        }
+        propagateCheckPackageEvent(preInstall, packageId, handler -> handler.afterExtract(packageId, inspectSession));
 
         for (PackageId subpackId : installableSubpacks) {
             processSubpackage(admin, manager, subpackId, packageId,
@@ -777,48 +836,144 @@ public final class OakMachine {
         }
     }
 
-    final void processSubpackage(Session admin, JcrPackageManager manager,
-                                 PackageId packageId, PackageId parentId, final boolean preInstall)
-            throws RepositoryException {
-        try (JcrPackage jcrPackage = manager.open(packageId)) {
-
-            if (!preInstall) {
-                progressChecks.forEach(handler -> {
-                    try {
-                        handler.identifySubpackage(packageId, parentId);
-                    } catch (final Exception e) {
-                        getErrorListener().onListenerException(e, handler, packageId);
-                    }
-                });
+    static Consumer<ProgressCheck>
+    newProgressCheckEventConsumer(final boolean silenced,
+                                  final @NotNull Fun.ThrowingConsumer<ProgressCheck> checkVisitor,
+                                  final @NotNull BiConsumer<ProgressCheck, Exception> onError) {
+        Consumer<ProgressCheck> consumer = check -> {
+            try {
+                if (silenced && check instanceof SilenceableCheck) {
+                    ((SilenceableCheck) check).setSilenced(silenced);
+                }
+                if (!silenced || check instanceof SilenceableCheck) {
+                    checkVisitor.tryAccept(check);
+                }
+            } catch (final Exception e) {
+                if (!silenced) {
+                    onError.accept(check, e);
+                }
             }
+        };
+        return consumer.andThen(check -> {
+            if (silenced && check instanceof SilenceableCheck) {
+                ((SilenceableCheck) check).setSilenced(false);
+            }
+        });
+    }
 
-            processPackage(admin, manager, jcrPackage, preInstall);
+    final void propagateCheckPackageEvent(final boolean silenced,
+                                          final @NotNull PackageId packageId,
+                                          final @NotNull Fun.ThrowingConsumer<ProgressCheck> checkVisitor) {
+        final Consumer<ProgressCheck> checkConsumer = newProgressCheckEventConsumer(silenced, checkVisitor,
+                (check, error) -> getErrorListener().onListenerException(error, check, packageId));
+        progressChecks.forEach(checkConsumer);
+    }
 
+    final void propagateCheckPathEvent(final boolean silenced,
+                                       final @NotNull PackageId packageId,
+                                       final @NotNull String path,
+                                       final @NotNull Fun.ThrowingConsumer<ProgressCheck> checkVisitor) {
+        final Consumer<ProgressCheck> checkConsumer = newProgressCheckEventConsumer(silenced, checkVisitor,
+                (check, error) -> getErrorListener().onListenerPathException(error, check, packageId, path));
+        progressChecks.forEach(checkConsumer);
+    }
+
+    final void internalProcessSubpackage(final @NotNull Session admin,
+                                         final @NotNull JcrPackageManager manager,
+                                         final @NotNull PackageId packageId,
+                                         final boolean preInstall,
+                                         final @NotNull Fun.ThrowingSupplier<JcrPackage> jcrPackageSupplier,
+                                         final @NotNull Fun.ThrowingConsumer<ProgressCheck> identifyEvent,
+                                         final @NotNull Consumer<Exception> onError) throws RepositoryException {
+        try (JcrPackage jcrPackage = jcrPackageSupplier.tryGet()) {
+            if (jcrPackage != null) {
+                propagateCheckPackageEvent(preInstall, packageId, identifyEvent);
+
+                processPackage(admin, manager, jcrPackage, preInstall);
+            } else {
+                throw new PackageException("JcrPackageManager returned null package");
+            }
         } catch (IOException | PackageException | RepositoryException e) {
-            getErrorListener().onSubpackageException(e, packageId);
+            onError.accept(e);
             admin.refresh(false);
+        } catch (Exception e) {
+            onError.accept(e);
         }
     }
 
-    private void processUploadedPackage(final Session admin,
-                                        final JcrPackageManager manager,
+    final void processSubpackage(final @NotNull Session admin,
+                                 final @NotNull JcrPackageManager manager,
+                                 final @NotNull PackageId packageId,
+                                 final @NotNull PackageId parentId,
+                                 final boolean preInstall) throws RepositoryException {
+        internalProcessSubpackage(admin, manager, packageId, preInstall,
+                () -> manager.open(packageId),
+                check -> check.identifySubpackage(packageId, parentId),
+                error -> getErrorListener().onSubpackageException(error, packageId));
+    }
+
+    final void processEmbeddedPackage(final @NotNull Session admin,
+                                      final @NotNull JcrPackageManager manager,
+                                      final @NotNull EmbeddedPackageInstallable installable,
+                                      final boolean preInstall) throws RepositoryException {
+        final Consumer<Exception> onError =
+                error -> getErrorListener().onSlingEmbeddedPackageError(error, installable);
+        Fun.ThrowingSupplier<JcrPackage> supplier = slingSimulator.openEmbeddedPackage(installable);
+        if (supplier != null) {
+            internalProcessSubpackage(admin, manager, installable.getEmbeddedId(), preInstall, supplier,
+                    check -> check.identifyEmbeddedPackage(
+                            installable.getEmbeddedId(),
+                            installable.getParentId(),
+                            installable.getJcrPath()),
+                    onError);
+        }
+    }
+
+    private void processUploadedPackage(final @NotNull Session admin,
+                                        final @NotNull JcrPackageManager manager,
                                         final boolean preInstall,
-                                        final JcrPackage jcrPackage) throws IOException, PackageException, RepositoryException {
+                                        final @NotNull JcrPackage jcrPackage)
+            throws IOException, PackageException, RepositoryException {
         final VaultPackage vaultPackage = jcrPackage.getPackage();
         final PackageId packageId = vaultPackage.getId();
         final File packageFile = vaultPackage.getFile();
-
-        if (!preInstall) {
-            progressChecks.forEach(handler -> {
-                try {
-                    handler.identifyPackage(packageId, packageFile);
-                } catch (Exception e) {
-                    getErrorListener().onListenerException(e, handler, packageId);
-                }
-            });
-        }
-
+        propagateCheckPackageEvent(preInstall, packageId,
+                handler -> handler.identifyPackage(packageId, packageFile));
         processPackage(admin, manager, jcrPackage, preInstall);
+        processInstallableQueue(admin, manager, packageId, preInstall);
+        propagateCheckPackageEvent(preInstall, packageId,
+                handler -> handler.afterScanPackage(packageId, Util.wrapSessionReadOnly(admin)));
+
+    }
+
+    void processInstallableQueue(final @NotNull Session admin,
+                                 final @NotNull JcrPackageManager manager,
+                                 final @NotNull PackageId lastPackageId,
+                                 final boolean preInstall) throws RepositoryException {
+        final Session inspectSession = Util.wrapSessionReadOnly(admin);
+        SlingInstallable dequeued = slingSimulator.dequeueInstallable();
+        while (dequeued != null) {
+            final SlingInstallable installable = dequeued;
+            propagateCheckPackageEvent(preInstall, installable.getParentId(),
+                    check -> check.beforeSlingInstall(lastPackageId, installable, inspectSession));
+            if (installable instanceof RepoInitScriptsInstallable) {
+                for (final String repoInitScript :
+                        slingSimulator.openRepoInitScripts((RepoInitScriptsInstallable) installable)) {
+                    try (Reader reader = new StringReader(repoInitScript)) {
+                        repoInitProcessor.apply(admin, reader);
+                    } catch (final Exception e) {
+                        getErrorListener().onSlingRepoInitScriptsError(e, repoInitScript,
+                                (RepoInitScriptsInstallable) installable);
+                    }
+                }
+            } else if (installable instanceof EmbeddedPackageInstallable) {
+                processEmbeddedPackage(admin, manager, (EmbeddedPackageInstallable) installable, preInstall);
+            }
+            propagateCheckPackageEvent(preInstall, installable.getParentId(),
+                    check -> check.appliedRepoInitScripts(lastPackageId, installable, inspectSession));
+            // do this at the end of the while scope, obviously.
+            dequeued = slingSimulator.dequeueInstallable();
+        }
     }
 
     final void processPackageUrl(final @NotNull Session admin,
@@ -942,56 +1097,46 @@ public final class OakMachine {
     final class ImporterListenerAdapter implements ProgressTrackerListener {
         private final PackageId packageId;
 
-        private final List<ProgressCheck> handlers;
-
         private final Session session;
 
-        private final boolean preInstall;
+        private final boolean silenced;
 
-        ImporterListenerAdapter(PackageId packageId, List<ProgressCheck> handlers, Session session, boolean preInstall) {
+        ImporterListenerAdapter(PackageId packageId, Session session, boolean silenced) {
             this.packageId = packageId;
-            this.handlers = handlers;
             this.session = session;
-            this.preInstall = preInstall;
+            this.silenced = silenced;
         }
 
         @Override
         public void onMessage(Mode mode, String action, String path) {
-            if (preInstall) {
-                return;
-            }
             // NOP("-"), MOD("U"), REP("R"), ERR("E"), ADD("A"), DEL("D"), MIS("!")
             if (path != null && path.startsWith("/")) {
                 if ("D".equals(action)) { // deleted
-                    handlers.forEach(handler -> {
-                        try {
-                            handler.deletedPath(packageId, path, session);
-                        } catch (final Exception e) {
-                            OakMachine.this.getErrorListener().onListenerPathException(e, handler, packageId, path);
-                        }
-                    });
+                    propagateCheckPathEvent(silenced, packageId, path,
+                            check -> check.deletedPath(packageId, path, session));
                 } else if ("ARU-".contains(action)) { // added, replaced, updated
                     try {
                         Node node = session.getNode(path);
-                        handlers.forEach(handler -> {
-                            try {
-                                handler.importedPath(packageId, path, node, PathAction.fromShortCode(action));
-                            } catch (final Exception e) {
-                                OakMachine.this.getErrorListener().onListenerPathException(e, handler, packageId, path);
-                            }
-                        });
+                        propagateCheckPathEvent(silenced, packageId, path, check ->
+                                check.importedPath(packageId, path, node, PathAction.fromShortCode(action)));
                     } catch (RepositoryException e) {
-                        OakMachine.this.getErrorListener().onImporterException(e, packageId, path);
+                        if (!silenced) {
+                            getErrorListener().onImporterException(e, packageId, path);
+                        }
                     }
                 } else if ("E".equals(action)) {
-                    onError(mode, path, new RuntimeException("Unknown error"));
+                    if (!silenced) {
+                        onError(mode, path, new RuntimeException("Unknown error"));
+                    }
                 }
             }
         }
 
         @Override
         public void onError(Mode mode, String path, Exception e) {
-            OakMachine.this.getErrorListener().onImporterException(e, packageId, path);
+            if (!silenced) {
+                getErrorListener().onImporterException(e, packageId, path);
+            }
         }
     }
 

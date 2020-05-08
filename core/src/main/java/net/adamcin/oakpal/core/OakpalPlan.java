@@ -25,6 +25,7 @@ import java.net.URL;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
@@ -47,6 +48,8 @@ import static net.adamcin.oakpal.api.JavaxJson.hasNonNull;
 public final class OakpalPlan implements JsonObjectConvertible {
     @ProviderType
     public interface JsonKeys {
+        String runModes();
+
         String checklists();
 
         String checks();
@@ -71,6 +74,11 @@ public final class OakpalPlan implements JsonObjectConvertible {
     }
 
     private static final JsonKeys KEYS = new JsonKeys() {
+        @Override
+        public String runModes() {
+            return "runModes";
+        }
+
         @Override
         public String checklists() {
             return "checklists";
@@ -155,6 +163,7 @@ public final class OakpalPlan implements JsonObjectConvertible {
     private final URL base;
     private final String name;
     private final JsonObject originalJson;
+    private final List<String> runModes;
     private final List<String> checklists;
     private final List<URL> preInstallUrls;
     private final List<JcrNs> jcrNamespaces;
@@ -170,6 +179,7 @@ public final class OakpalPlan implements JsonObjectConvertible {
     private OakpalPlan(final @Nullable URL base,
                        final @Nullable JsonObject originalJson,
                        final @NotNull String name,
+                       final @NotNull List<String> runModes,
                        final @NotNull List<String> checklists,
                        final @NotNull List<URL> preInstallUrls,
                        final @NotNull List<JcrNs> jcrNamespaces,
@@ -184,6 +194,7 @@ public final class OakpalPlan implements JsonObjectConvertible {
         this.base = base;
         this.originalJson = originalJson;
         this.name = name;
+        this.runModes = runModes;
         this.checklists = checklists;
         this.preInstallUrls = preInstallUrls;
         this.jcrNamespaces = jcrNamespaces;
@@ -207,6 +218,10 @@ public final class OakpalPlan implements JsonObjectConvertible {
 
     public JsonObject getOriginalJson() {
         return originalJson;
+    }
+
+    public List<String> getRunModes() {
+        return runModes;
     }
 
     public List<String> getChecklists() {
@@ -301,6 +316,7 @@ public final class OakpalPlan implements JsonObjectConvertible {
         final NamespaceMapping mapping = JsonCnd.toNamespaceMapping(jcrNamespaces);
         return JavaxJson.obj()
                 .key(keys().preInstallUrls()).opt(preInstallStrings)
+                .key(keys().runModes()).opt(runModes)
                 .key(keys().checklists()).opt(checklists)
                 .key(keys().checks()).opt(checks)
                 .key(keys().repoInitUrls()).opt(repoInitUrlStrings)
@@ -370,6 +386,7 @@ public final class OakpalPlan implements JsonObjectConvertible {
                 .withPreInstallUrls(preInstallUrls)
                 .withInstallHookPolicy(installHookPolicy)
                 .withInstallHookClassLoader(classLoader)
+                .withRunModes(new HashSet<>(getRunModes()))
                 .withEnablePreInstallHooks(enablePreInstallHooks);
     }
 
@@ -463,6 +480,7 @@ public final class OakpalPlan implements JsonObjectConvertible {
         private InstallHookPolicy scanInstallHookPolicy;
         private List<URL> repoInitUrls = Collections.emptyList();
         private List<String> repoInits = Collections.emptyList();
+        private List<String> runModes = Collections.emptyList();
 
         public Builder(final @Nullable URL base, final @Nullable String name) {
             this.base = base;
@@ -542,8 +560,13 @@ public final class OakpalPlan implements JsonObjectConvertible {
             return this;
         }
 
+        public Builder withRunModes(final @NotNull List<String> runModes) {
+            this.runModes = new ArrayList<>(runModes);
+            return this;
+        }
+
         private OakpalPlan build(final @Nullable JsonObject originalJson) {
-            return new OakpalPlan(base, originalJson, name, checklists, preInstallUrls, jcrNamespaces,
+            return new OakpalPlan(base, originalJson, name, runModes, checklists, preInstallUrls, jcrNamespaces,
                     jcrNodetypes, jcrPrivileges, forcedRoots, checks, enablePreInstallHooks, scanInstallHookPolicy,
                     repoInitUrls, repoInits);
         }

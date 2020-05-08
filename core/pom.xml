@@ -85,7 +85,9 @@
                                 Oakpal-Checklist: OAKPAL-INF/checklists/basic.json
                                 Export-Package: net.adamcin.oakpal.core,\
                                     net.adamcin.oakpal.core.checks,\
-                                    net.adamcin.oakpal.core.opear
+                                    net.adamcin.oakpal.core.sling,\
+                                    net.adamcin.oakpal.core.opear,\
+                                    net.adamcin.oakpal.core.repoinit
                                 Private-Package: net.adamcin.oakpal.core.jcrfacade.*
                                 Import-Package: !aQute.*,\
                                     !org.apache.sling.jcr.repoinit.*,\
@@ -131,6 +133,7 @@
                                 <includes>
                                     <include>biz.aQute.bnd:bndlib</include>
                                     <include>org.apache.sling:org.apache.sling.jcr.repoinit</include>
+                                    <include>org.apache.sling:org.apache.sling.installer.core</include>
                                 </includes>
                             </artifactSet>
                             <filters>
@@ -151,6 +154,13 @@
                                     <artifact>org.apache.sling:org.apache.sling.jcr.repoinit</artifact>
                                     <includes>
                                         <include>org/apache/sling/jcr/repoinit/**</include>
+                                </includes>
+                            </filter>
+                                <filter>
+                                    <artifact>org.apache.sling:org.apache.sling.installer.core</artifact>
+                                    <includes>
+                                        <include>org/apache/sling/installer/api/InstallableResource*</include>
+                                        <include>org/apache/sling/installer/core/impl/InternalResource*</include>
                                     </includes>
                                 </filter>
                             </filters>
@@ -162,6 +172,14 @@
                                 <relocation>
                                     <pattern>org.apache.sling.jcr.repoinit</pattern>
                                     <shadedPattern>net.adamcin.oakpal.shaded.repoinit</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.apache.felix</pattern>
+                                    <shadedPattern>net.adamcin.oakpal.shaded.felix</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.apache.sling.installer</pattern>
+                                    <shadedPattern>net.adamcin.oakpal.shaded.sling.installer</shadedPattern>
                                 </relocation>
                             </relocations>
                         </configuration>
@@ -243,6 +261,12 @@
         <dependency>
             <groupId>biz.aQute.bnd</groupId>
             <artifactId>bndlib</artifactId>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.sling</groupId>
+            <artifactId>org.apache.sling.installer.core</artifactId>
+            <version>3.9.0</version>
             <scope>compile</scope>
         </dependency>
         <dependency>

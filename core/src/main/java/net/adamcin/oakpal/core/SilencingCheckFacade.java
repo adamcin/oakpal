@@ -18,7 +18,6 @@ package net.adamcin.oakpal.core;
 
 import net.adamcin.oakpal.api.PathAction;
 import net.adamcin.oakpal.api.ProgressCheck;
-import net.adamcin.oakpal.api.ProgressCheckFactory;
 import net.adamcin.oakpal.api.SilenceableCheck;
 import net.adamcin.oakpal.api.SlingInstallable;
 import net.adamcin.oakpal.api.SlingSimulator;
@@ -40,32 +39,21 @@ import java.util.Set;
 import java.util.jar.Manifest;
 
 /**
- * Internal facade class which serves to:
- * 1) ensure that a configured checkName is actually respected
- * 2) guard {@link ProgressCheckFactory}s from being externally re-configured during a scan
+ * Internal facade class which serves to forcibly silence the wrapped {@link ProgressCheck} by not passing events when
+ * silenced.
  */
-class ProgressCheckAliasFacade implements SilenceableCheck {
+class SilencingCheckFacade implements SilenceableCheck {
 
-    private final SilenceableCheck wrapped;
-    private final String alias;
+    private final ProgressCheck wrapped;
+    private boolean silenced;
 
-    ProgressCheckAliasFacade(final @NotNull ProgressCheck wrapped,
-                             final @Nullable String alias) {
-        if (wrapped instanceof SilenceableCheck) {
-            this.wrapped = (SilenceableCheck) wrapped;
-        } else {
-            this.wrapped = new SilencingCheckFacade(wrapped);
-        }
-        this.alias = alias;
+    SilencingCheckFacade(final @NotNull ProgressCheck wrapped) {
+        this.wrapped = wrapped;
     }
 
     @Override
     public String getCheckName() {
-        if (alias != null) {
-            return alias;
-        } else {
-            return wrapped.getCheckName();
-        }
+        return wrapped.getCheckName();
     }
 
     @Override
@@ -79,18 +67,13 @@ class ProgressCheckAliasFacade implements SilenceableCheck {
     }
 
     @Override
+    public void setSilenced(final boolean silenced) {
+        this.silenced = silenced;
+    }
+
+    @Override
     public Collection<Violation> getReportedViolations() {
         return wrapped.getReportedViolations();
-    }
-
-    @Override
-    public void startedScan() {
-        wrapped.startedScan();
-    }
-
-    @Override
-    public void setSilenced(final boolean silenced) {
-        wrapped.setSilenced(silenced);
     }
 
     @Override
@@ -99,71 +82,104 @@ class ProgressCheckAliasFacade implements SilenceableCheck {
     }
 
     @Override
-    public void identifyPackage(final PackageId packageId, final File file) {
-        wrapped.identifyPackage(packageId, file);
-    }
-
-    @Override
-    public void readManifest(final PackageId packageId, final Manifest manifest) {
-        wrapped.readManifest(packageId, manifest);
-    }
-
-    @Override
-    public void beforeExtract(final PackageId packageId, final Session inspectSession,
-                              final PackageProperties packageProperties, final MetaInf metaInf,
-                              final List<PackageId> subpackages) throws RepositoryException {
-        wrapped.beforeExtract(packageId, inspectSession, packageProperties, metaInf, subpackages);
-    }
-
-    @Override
-    public void importedPath(final PackageId packageId, final String path, final Node node,
-                             final PathAction action) throws RepositoryException {
-        wrapped.importedPath(packageId, path, node, action);
-    }
-
-    @Override
-    public void deletedPath(final PackageId packageId, final String path, final Session inspectSession)
-            throws RepositoryException {
-        wrapped.deletedPath(packageId, path, inspectSession);
-    }
-
-    @Override
-    public void afterExtract(final PackageId packageId, final Session inspectSession) throws RepositoryException {
-        wrapped.afterExtract(packageId, inspectSession);
-    }
-
-    @Override
-    public void identifySubpackage(final PackageId packageId, final PackageId parentId) {
-        wrapped.identifySubpackage(packageId, parentId);
-    }
-
-    @Override
-    public void beforeSlingInstall(final PackageId lastPackage,
-                                   final SlingInstallable slingInstallable,
-                                   final Session inspectSession) throws RepositoryException {
-        wrapped.beforeSlingInstall(lastPackage, slingInstallable, inspectSession);
-    }
-
-    @Override
-    public void identifyEmbeddedPackage(final PackageId packageId, final PackageId parentId, final String jcrPath) {
-        wrapped.identifyEmbeddedPackage(packageId, parentId, jcrPath);
-    }
-
-    @Override
-    public void appliedRepoInitScripts(final PackageId lastPackage,
-                                       final SlingInstallable slingInstallable,
-                                       final Session inspectSession) throws RepositoryException {
-        wrapped.appliedRepoInitScripts(lastPackage, slingInstallable, inspectSession);
-    }
-
-    @Override
-    public void afterScanPackage(final PackageId packageId, final Session inspectSession) throws RepositoryException {
-        wrapped.afterScanPackage(packageId, inspectSession);
+    public void startedScan() {
+        wrapped.startedScan();
     }
 
     @Override
     public void finishedScan() {
         wrapped.finishedScan();
     }
+
+    //**********************
+    // SILENCEABLE EVENTS...
+    //**********************
+
+    @Override
+    public void identifyPackage(final PackageId packageId, final File file) {
+        if (!silenced) {
+            wrapped.identifyPackage(packageId, file);
+        }
+    }
+
+    @Override
+    public void readManifest(final PackageId packageId, final Manifest manifest) {
+        if (!silenced) {
+            wrapped.readManifest(packageId, manifest);
+        }
+    }
+
+    @Override
+    public void beforeExtract(final PackageId packageId, final Session inspectSession,
+                              final PackageProperties packageProperties, final MetaInf metaInf,
+                              final List<PackageId> subpackages) throws RepositoryException {
+        if (!silenced) {
+            wrapped.beforeExtract(packageId, inspectSession, packageProperties, metaInf, subpackages);
+        }
+    }
+
+    @Override
+    public void importedPath(final PackageId packageId, final String path, final Node node,
+                             final PathAction action) throws RepositoryException {
+        if (!silenced) {
+            wrapped.importedPath(packageId, path, node, action);
+        }
+    }
+
+    @Override
+    public void deletedPath(final PackageId packageId, final String path, final Session inspectSession)
+            throws RepositoryException {
+        if (!silenced) {
+            wrapped.deletedPath(packageId, path, inspectSession);
+        }
+    }
+
+    @Override
+    public void afterExtract(final PackageId packageId, final Session inspectSession) throws RepositoryException {
+        if (!silenced) {
+            wrapped.afterExtract(packageId, inspectSession);
+        }
+    }
+
+    @Override
+    public void identifySubpackage(final PackageId packageId, final PackageId parentId) {
+        if (!silenced) {
+            wrapped.identifySubpackage(packageId, parentId);
+        }
+    }
+
+    @Override
+    public void beforeSlingInstall(final PackageId lastPackage,
+                                   final SlingInstallable slingInstallable,
+                                   final Session inspectSession) throws RepositoryException {
+        if (!silenced) {
+            wrapped.beforeSlingInstall(lastPackage, slingInstallable, inspectSession);
+        }
+    }
+
+    @Override
+    public void identifyEmbeddedPackage(final PackageId packageId, final PackageId parentId, final String jcrPath) {
+        if (!silenced) {
+            wrapped.identifyEmbeddedPackage(packageId, parentId, jcrPath);
+        }
+    }
+
+    @Override
+    public void appliedRepoInitScripts(final PackageId lastPackage,
+                                       final SlingInstallable slingInstallable,
+                                       final Session inspectSession) throws RepositoryException {
+        if (!silenced) {
+            wrapped.appliedRepoInitScripts(lastPackage, slingInstallable, inspectSession);
+        }
+    }
+
+    @Override
+    public void afterScanPackage(final PackageId packageId, final Session inspectSession) throws RepositoryException {
+        if (!silenced) {
+            wrapped.afterScanPackage(packageId, inspectSession);
+        }
+    }
+
+
 }
 
