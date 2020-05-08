@@ -69,12 +69,27 @@ public interface ProgressCheck extends ScanListener, ViolationReporter {
 
     /**
      * Called after each subpackage is opened. Track subsequent events using the package ID provided to this method.
+     * This method is not called if {@link #identifySubpackage(PackageId, PackageId, String)} is overridden.
      *
      * @param packageId the package ID of the newly opened subpackage
      * @param parentId  the package ID of the parent package.
+     * @deprecated 2.1.0 implement {@link #identifySubpackage(PackageId, PackageId, String)} instead
      */
+    @Deprecated
     default void identifySubpackage(PackageId packageId, PackageId parentId) {
 
+    }
+
+    /**
+     * Called after each subpackage is opened. Track subsequent events using the package ID provided to this method.
+     *
+     * @param packageId the package ID of the newly opened subpackage
+     * @param parentId  the package ID of the parent package.
+     * @param jcrPath   the JCR path of this subpackage within the parent package
+     * @since 2.1.0
+     */
+    default void identifySubpackage(PackageId packageId, PackageId parentId, String jcrPath) {
+        this.identifySubpackage(packageId, parentId);
     }
 
     /**

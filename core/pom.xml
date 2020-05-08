@@ -85,7 +85,9 @@
                                 Oakpal-Checklist: OAKPAL-INF/checklists/basic.json
                                 Export-Package: net.adamcin.oakpal.core,\
                                     net.adamcin.oakpal.core.checks,\
-                                    net.adamcin.oakpal.core.opear
+                                    net.adamcin.oakpal.core.installable,\
+                                    net.adamcin.oakpal.core.opear,\
+                                    net.adamcin.oakpal.core.repoinit
                                 Private-Package: net.adamcin.oakpal.core.jcrfacade.*
                                 Import-Package: !aQute.*,*
                             ]]></bnd>

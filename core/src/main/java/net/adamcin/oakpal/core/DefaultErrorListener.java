@@ -96,95 +96,95 @@ public class DefaultErrorListener implements ErrorListener {
     }
 
     @Override
-    public void onNodeTypeRegistrationError(final Throwable e, final URL resource) {
-        if (e.getCause() != null) {
-            onNodeTypeRegistrationError(e.getCause(), resource);
+    public void onNodeTypeRegistrationError(final Throwable error, final URL resource) {
+        if (error.getCause() != null) {
+            onNodeTypeRegistrationError(error.getCause(), resource);
         } else {
             final String message = MessageFormat.format(getString("NodeType registration error ({0}): {1} \"{2}\""),
-                    String.valueOf(resource), e.getClass().getName(), e.getMessage());
-            LOGGER.trace("[onNodeTypeRegistrationError] stack trace for: " + message, e);
+                    String.valueOf(resource), error.getClass().getName(), error.getMessage());
+            LOGGER.trace("[onNodeTypeRegistrationError] stack trace for: " + message, error);
             reportViolation(new SimpleViolation(Severity.MAJOR, message));
         }
     }
 
     @Override
-    public void onJcrNamespaceRegistrationError(final Throwable e, final String prefix, final String uri) {
-        if (e.getCause() != null) {
-            onJcrNamespaceRegistrationError(e.getCause(), prefix, uri);
+    public void onJcrNamespaceRegistrationError(final Throwable error, final String prefix, final String uri) {
+        if (error.getCause() != null) {
+            onJcrNamespaceRegistrationError(error.getCause(), prefix, uri);
         } else {
             final String message = MessageFormat.format(getString("JCR namespace registration error ({0}={1}): {2} \"{3}\""),
-                    prefix, uri, e.getClass().getName(), e.getMessage());
-            LOGGER.trace("[onJcrNamespaceRegistrationError] stack trace for: " + message, e);
+                    prefix, uri, error.getClass().getName(), error.getMessage());
+            LOGGER.trace("[onJcrNamespaceRegistrationError] stack trace for: " + message, error);
             reportViolation(new SimpleViolation(Severity.MAJOR, message));
         }
     }
 
     @Override
-    public void onJcrPrivilegeRegistrationError(final Throwable e, final String jcrPrivilege) {
-        if (e.getCause() != null) {
-            onJcrPrivilegeRegistrationError(e.getCause(), jcrPrivilege);
+    public void onJcrPrivilegeRegistrationError(final Throwable error, final String jcrPrivilege) {
+        if (error.getCause() != null) {
+            onJcrPrivilegeRegistrationError(error.getCause(), jcrPrivilege);
         } else {
             final String message = MessageFormat.format(getString("JCR privilege registration error ({0}): {1} \"{2}\""),
-                    jcrPrivilege, e.getClass().getName(), e.getMessage());
-            LOGGER.trace("[onJcrPrivilegeRegistrationError] stack trace for: " + message, e);
+                    jcrPrivilege, error.getClass().getName(), error.getMessage());
+            LOGGER.trace("[onJcrPrivilegeRegistrationError] stack trace for: " + message, error);
             reportViolation(new SimpleViolation(Severity.MAJOR, message));
         }
     }
 
     @Override
-    public void onForcedRootCreationError(final Throwable e, final ForcedRoot forcedRoot) {
-        if (e.getCause() != null) {
-            onForcedRootCreationError(e.getCause(), forcedRoot);
+    public void onForcedRootCreationError(final Throwable error, final ForcedRoot forcedRoot) {
+        if (error.getCause() != null) {
+            onForcedRootCreationError(error.getCause(), forcedRoot);
         } else {
             final String message = MessageFormat.format(getString("Forced root creation error ({0}): {1} \"{2}\""),
-                    forcedRoot, e.getClass().getName(), e.getMessage());
-            LOGGER.trace("[onForcedRootCreationError] stack trace for: " + message, e);
+                    forcedRoot, error.getClass().getName(), error.getMessage());
+            LOGGER.trace("[onForcedRootCreationError] stack trace for: " + message, error);
             reportViolation(new SimpleViolation(Severity.MAJOR, message));
         }
     }
 
     @Override
-    public void onListenerException(final Exception e, final ProgressCheck listener, final PackageId packageId) {
+    public void onListenerException(final Exception error, final ProgressCheck listener, final PackageId packageId) {
         final String message = MessageFormat.format(getString("Listener error ({0}): {1} \"{2}\""),
                 Optional.ofNullable(listener).map(lstr -> lstr.getClass().getName()).orElse(null),
-                e.getClass().getName(), e.getMessage());
-        LOGGER.trace("[onListenerException] stack trace for: " + message, e);
+                error.getClass().getName(), error.getMessage());
+        LOGGER.trace("[onListenerException] stack trace for: " + message, error);
         reportViolation(new SimpleViolation(Severity.MAJOR, message, packageId));
     }
 
     @Override
-    public void onSubpackageException(final Exception e, final PackageId packageId) {
+    public void onSubpackageException(final Exception error, final PackageId packageId) {
         final String message = MessageFormat.format(getString("Package error: {0} \"{1}\""),
-                e.getClass().getName(), e.getMessage());
-        LOGGER.trace("[onSubpackageException] stack trace for: " + message, e);
+                error.getClass().getName(), error.getMessage());
+        LOGGER.trace("[onSubpackageException] stack trace for: " + message, error);
         reportViolation(new SimpleViolation(Severity.MAJOR, message, packageId));
     }
 
     @Override
-    public void onImporterException(final Exception e, final PackageId packageId, final String path) {
+    public void onImporterException(final Exception error, final PackageId packageId, final String path) {
         // Ignore PathNotFoundException, as it is thrown A LOT
-        if (!(e instanceof PathNotFoundException)) {
+        if (!(error instanceof PathNotFoundException)) {
             final String message = MessageFormat.format(getString("{0} - Importer error: {1} \"{2}\""),
-                    path, e.getClass().getName(), e.getMessage());
-            LOGGER.trace("[onImporterException] stack trace for: " + message, e);
+                    path, error.getClass().getName(), error.getMessage());
+            LOGGER.trace("[onImporterException] stack trace for: " + message, error);
             reportViolation(new SimpleViolation(Severity.MAJOR, message, packageId));
         }
     }
 
     @Override
-    public void onListenerPathException(final Exception e, final ProgressCheck handler,
+    public void onListenerPathException(final Exception error, final ProgressCheck handler,
                                         final PackageId packageId, final String path) {
         final String message = MessageFormat.format(getString("{0} - Listener error: {1} \"{2}\""),
-                path, e.getClass().getName(), e.getMessage());
-        LOGGER.trace("[onListenerPathException] stack trace for: " + message, e);
+                path, error.getClass().getName(), error.getMessage());
+        LOGGER.trace("[onListenerPathException] stack trace for: " + message, error);
         reportViolation(new SimpleViolation(Severity.MAJOR, message, packageId));
     }
 
     @Override
-    public void onInstallHookError(final Throwable e, final PackageId packageId) {
+    public void onInstallHookError(final Throwable error, final PackageId packageId) {
         final String message = MessageFormat.format(getString("InstallHook error: {0} \"{1}\""),
-                Optional.ofNullable(e.getCause()).orElse(e).getClass().getName(), e.getMessage());
-        LOGGER.trace("[onInstallHookError] stack trace for: " + message, e);
+                Optional.ofNullable(error.getCause()).orElse(error).getClass().getName(), error.getMessage());
+        LOGGER.trace("[onInstallHookError] stack trace for: " + message, error);
         reportViolation(new SimpleViolation(Severity.MAJOR, message, packageId));
     }
 
@@ -196,21 +196,21 @@ public class DefaultErrorListener implements ErrorListener {
     }
 
     @Override
-    public void onRepoInitUrlError(final Throwable e, final URL repoinitUrl) {
+    public void onRepoInitUrlError(final Throwable error, final URL repoinitUrl) {
         final String message = MessageFormat.format(getString("repoinit url error ({0}): {1} \"{2}\""),
-                String.valueOf(repoinitUrl), e.getClass().getName(), e.getMessage());
-        LOGGER.trace("[onRepoInitUrlError] stack trace for: " + message, e);
+                String.valueOf(repoinitUrl), error.getClass().getName(), error.getMessage());
+        LOGGER.trace("[onRepoInitUrlError] stack trace for: " + message, error);
         reportViolation(new SimpleViolation(Severity.MAJOR, message));
     }
 
     @Override
-    public void onRepoInitInlineError(final Throwable e, final List<String> repoinits) {
+    public void onRepoInitInlineError(final Throwable error, final List<String> repoinits) {
         final String firstLine = repoinits == null || repoinits.isEmpty()
                 ? "<empty>"
                 : repoinits.get(0).split("\\r?\\n")[0] + "...";
         final String message = MessageFormat.format(getString("repoinit inline error ({0}): {1} \"{2}\""),
-                firstLine, e.getClass().getName(), e.getMessage());
-        LOGGER.trace("[onRepoInitInlineError] stack trace for: " + message, e);
+                firstLine, error.getClass().getName(), error.getMessage());
+        LOGGER.trace("[onRepoInitInlineError] stack trace for: " + message, error);
         reportViolation(new SimpleViolation(Severity.MAJOR, message));
     }
 }

@@ -52,6 +52,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.ResourceBundle;
 import java.util.Set;
 import java.util.jar.Manifest;
@@ -236,7 +237,13 @@ public final class ScriptProgressCheck implements ProgressCheck {
 
     @Override
     public void identifySubpackage(final PackageId packageId, final PackageId parentId) {
-        guardHandler(INVOKE_ON_IDENTIFY_SUBPACKAGE, handle -> handle.apply(packageId, parentId));
+        this.identifySubpackage(packageId, parentId, Optional.ofNullable(packageId)
+                .map(pid -> pid.getInstallationPath() + ".zip").orElse(null));
+    }
+
+    @Override
+    public void identifySubpackage(final PackageId packageId, final PackageId parentId, final String jcrPath) {
+        guardHandler(INVOKE_ON_IDENTIFY_SUBPACKAGE, handle -> handle.apply(packageId, parentId, jcrPath));
     }
 
     @Override

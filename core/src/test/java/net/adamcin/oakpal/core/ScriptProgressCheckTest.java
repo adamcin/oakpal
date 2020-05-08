@@ -40,15 +40,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.PropertyResourceBundle;
-import java.util.ResourceBundle;
 import java.util.jar.Manifest;
 
 import static net.adamcin.oakpal.api.Fun.toEntry;
-import static net.adamcin.oakpal.api.Fun.tryOrDefault1;
 import static net.adamcin.oakpal.api.JavaxJson.key;
 import static net.adamcin.oakpal.api.JavaxJson.obj;
 import static org.junit.Assert.assertEquals;
@@ -273,15 +270,27 @@ public class ScriptProgressCheckTest {
 
         final PackageId arg1 = PackageId.fromString("my_packages:example:1.0");
         final PackageId arg2 = PackageId.fromString("my_packages:other-example:1.0");
+        final String arg3Deprecated = arg1.getInstallationPath() + ".zip";
+        final String arg3 = "/apps/mine/author-packages/install/" + arg1.getDownloadName();
 
         check.identifySubpackage(arg1, arg2);
+        Map.Entry<String, Object[]> callDeprecated = argRecord.stream()
+                .filter(entry -> "identifySubpackage".equals(entry.getKey()) && entry.getValue().length == 4).findFirst()
+                .orElse(null);
+        assertNotNull("expect call for identifySubpackage", callDeprecated);
+        assertSame("same arg1", arg1, callDeprecated.getValue()[1]);
+        assertSame("same arg2", arg2, callDeprecated.getValue()[2]);
+        assertEquals("same arg3", arg3Deprecated, callDeprecated.getValue()[3]);
 
+        argRecord.clear();
+        check.identifySubpackage(arg1, arg2, arg3);
         Map.Entry<String, Object[]> call = argRecord.stream()
-                .filter(entry -> "identifySubpackage".equals(entry.getKey()) && entry.getValue().length == 3).findFirst()
+                .filter(entry -> "identifySubpackage".equals(entry.getKey()) && entry.getValue().length == 4).findFirst()
                 .orElse(null);
         assertNotNull("expect call for identifySubpackage", call);
         assertSame("same arg1", arg1, call.getValue()[1]);
         assertSame("same arg2", arg2, call.getValue()[2]);
+        assertSame("same arg3", arg3, call.getValue()[3]);
     }
 
     @Test

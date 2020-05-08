@@ -17,9 +17,14 @@
 package net.adamcin.oakpal.core;
 
 import junitx.util.PrivateAccessor;
+import net.adamcin.oakpal.api.Fun;
 import net.adamcin.oakpal.api.PathAction;
 import net.adamcin.oakpal.api.ProgressCheck;
 import net.adamcin.oakpal.api.SimpleProgressCheck;
+import net.adamcin.oakpal.api.SimpleViolation;
+import net.adamcin.oakpal.core.installable.JcrInstallWatcher;
+import net.adamcin.oakpal.core.installable.RepoInitInstallable;
+import net.adamcin.oakpal.core.installable.SubpackageInstallable;
 import net.adamcin.oakpal.testing.TestPackageUtil;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
@@ -41,6 +46,7 @@ import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.apache.jackrabbit.vault.packaging.PackageProperties;
 import org.apache.jackrabbit.vault.packaging.Packaging;
 import org.apache.jackrabbit.vault.packaging.impl.PackagingImpl;
+import org.apache.sling.repoinit.parser.RepoInitParsingException;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
@@ -55,6 +61,7 @@ import javax.jcr.Session;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.InputStream;
+import java.io.Reader;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -66,13 +73,18 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.jar.Manifest;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static net.adamcin.oakpal.api.Fun.compose1;
+import static net.adamcin.oakpal.api.Fun.constantly1;
 import static net.adamcin.oakpal.api.Fun.toEntry;
 import static net.adamcin.oakpal.api.Fun.uncheck1;
 import static net.adamcin.oakpal.api.Fun.uncheckVoid1;
@@ -155,6 +167,17 @@ public class OakMachineTest {
             assertEquals("expect namespace uri",
                     session.getNamespaceURI("foo"), "http://foo.com");
         });
+    }
+
+    @Test
+    public void testBuildWithInstallWatcher() throws Exception {
+        final File testPackage = TestPackageUtil.prepareTestPackage("null-dependency-test.zip");
+        final JcrInstallWatcher watcher = mock(JcrInstallWatcher.class);
+        when(watcher.getCheckName()).thenReturn("testWatcher");
+        when(watcher.getReportedViolations())
+                .thenReturn(Collections.singletonList(SimpleViolation.builder().build()));
+        assertTrue("no errors", builder().withInstallWatcher(watcher).build()
+                .scanPackage(testPackage).get(0).getViolations().isEmpty());
     }
 
     @Test
@@ -534,7 +557,8 @@ public class OakMachineTest {
         final ErrorListener errorListener = mock(ErrorListener.class);
         doThrow(RuntimeException.class).when(check).identifySubpackage(
                 any(PackageId.class),
-                any(PackageId.class)
+                any(PackageId.class),
+                any(String.class)
         );
         final CompletableFuture<Exception> eLatch = new CompletableFuture<>();
         final CompletableFuture<ProgressCheck> handlerLatch = new CompletableFuture<>();
@@ -589,7 +613,7 @@ public class OakMachineTest {
         final Map<PackageId, PackageId> subToParent = new LinkedHashMap<>();
         final ProgressCheck check = mock(ProgressCheck.class);
         doAnswer(call -> subToParent.put(call.getArgument(0), call.getArgument(1)))
-                .when(check).identifySubpackage(any(PackageId.class), any(PackageId.class));
+                .when(check).identifySubpackage(any(PackageId.class), any(PackageId.class), any(String.class));
         builder().withProgressCheck(check).build().scanPackage(testPackage);
         assertEquals("expect ids", expectIds, subToParent);
     }
@@ -614,6 +638,257 @@ public class OakMachineTest {
         assertTrue("error is of type", eLatch.getNow(null) instanceof RepositoryException);
         assertEquals("package id is", sub1, idLatch.getNow(null));
 
+    }
+
+    @Test(expected = RepositoryException.class)
+    public void testProcessSubpackage_bubbledRepositoryException() throws Exception {
+        final JcrPackageManager manager = mock(JcrPackageManager.class);
+        doThrow(RepositoryException.class).when(manager).open(any(PackageId.class));
+        final PackageId root = PackageId.fromString("my_packages:subsubtest");
+        final PackageId sub1 = PackageId.fromString("my_packages:subtest");
+        final Session session = mock(Session.class);
+        doThrow(RepositoryException.class).when(session).refresh(anyBoolean());
+        final CompletableFuture<Exception> eLatch = new CompletableFuture<>();
+        final CompletableFuture<PackageId> idLatch = new CompletableFuture<>();
+        final ErrorListener errorListener = mock(ErrorListener.class);
+        doAnswer(call -> {
+            eLatch.complete(call.getArgument(0, Exception.class));
+            idLatch.complete(call.getArgument(1, PackageId.class));
+            return true;
+        }).when(errorListener).onSubpackageException(any(Exception.class), any(PackageId.class));
+        builder().withErrorListener(errorListener).build()
+                .processSubpackage(session, manager, sub1, root, false);
+    }
+
+    @Test
+    public void testProcessSubpackageInstallable_onSubpackageException() throws Exception {
+        final JcrPackageManager manager = mock(JcrPackageManager.class);
+        doThrow(RepositoryException.class).when(manager).open(any(PackageId.class));
+        final PackageId root = PackageId.fromString("my_packages:subsubtest");
+        final PackageId sub1 = PackageId.fromString("my_packages:subtest");
+        final String jcrPath = "/some/path";
+        final SubpackageInstallable installable = new SubpackageInstallable(root, jcrPath, sub1);
+        final Session session = mock(Session.class);
+        final CompletableFuture<Exception> eLatch = new CompletableFuture<>();
+        final CompletableFuture<PackageId> idLatch = new CompletableFuture<>();
+        final CompletableFuture<SubpackageInstallable> installableLatch = new CompletableFuture<>();
+        final ErrorListener errorListener = mock(ErrorListener.class);
+        doAnswer(call -> {
+            eLatch.complete(call.getArgument(0, Exception.class));
+            idLatch.complete(call.getArgument(1, PackageId.class));
+            installableLatch.complete(call.getArgument(2, SubpackageInstallable.class));
+            return true;
+        }).when(errorListener).onInstallableSubpackageError(any(Exception.class), any(PackageId.class),
+                any(SubpackageInstallable.class));
+
+        final JcrInstallWatcher installWatcher = mock(JcrInstallWatcher.class);
+        when(installWatcher.openSubpackageInstallable(installable, session, manager))
+                .thenReturn(Optional.of(() -> manager.open(sub1)));
+        builder()
+                .withInstallWatcher(installWatcher)
+                .withErrorListener(errorListener).build()
+                .processSubpackageInstallable(session, manager, root, installable, false);
+        assertTrue("error is of type", eLatch.getNow(null) instanceof RepositoryException);
+        assertEquals("package id is", root, idLatch.getNow(null));
+        assertSame("expect same installable", installable, installableLatch.getNow(null));
+    }
+
+    @Test(expected = RepositoryException.class)
+    public void testProcessSubpackageInstallable_bubbledRepositoryException() throws Exception {
+        final JcrPackageManager manager = mock(JcrPackageManager.class);
+        doThrow(RepositoryException.class).when(manager).open(any(PackageId.class));
+        final PackageId root = PackageId.fromString("my_packages:subsubtest");
+        final PackageId sub1 = PackageId.fromString("my_packages:subtest");
+        final String jcrPath = "/some/path";
+        final SubpackageInstallable installable = new SubpackageInstallable(root, jcrPath, sub1);
+        final Session session = mock(Session.class);
+        doThrow(RepositoryException.class).when(session).refresh(anyBoolean());
+        final CompletableFuture<Exception> eLatch = new CompletableFuture<>();
+        final CompletableFuture<PackageId> idLatch = new CompletableFuture<>();
+        final CompletableFuture<SubpackageInstallable> installableLatch = new CompletableFuture<>();
+        final ErrorListener errorListener = mock(ErrorListener.class);
+        doAnswer(call -> {
+            eLatch.complete(call.getArgument(0, Exception.class));
+            idLatch.complete(call.getArgument(1, PackageId.class));
+            installableLatch.complete(call.getArgument(2, SubpackageInstallable.class));
+            return true;
+        }).when(errorListener).onInstallableSubpackageError(any(Exception.class), any(PackageId.class),
+                any(SubpackageInstallable.class));
+
+        final JcrInstallWatcher installWatcher = mock(JcrInstallWatcher.class);
+        when(installWatcher.openSubpackageInstallable(installable, session, manager))
+                .thenReturn(Optional.of(() -> manager.open(sub1)));
+        builder()
+                .withInstallWatcher(installWatcher)
+                .withErrorListener(errorListener).build()
+                .processSubpackageInstallable(session, manager, root, installable, false);
+    }
+
+    @Test
+    public void testInternalProcessSubpackage_nullPackage() throws Exception {
+        final JcrPackageManager manager = mock(JcrPackageManager.class);
+        when(manager.open(any(PackageId.class))).thenReturn(null);
+        final PackageId root = PackageId.fromString("my_packages:subsubtest");
+        final PackageId sub1 = PackageId.fromString("my_packages:subtest");
+        final CompletableFuture<Boolean> refreshedLatch = new CompletableFuture<>();
+        final Session session = mock(Session.class);
+        doAnswer(call -> refreshedLatch.complete(call.getArgument(0)))
+                .when(session).refresh(anyBoolean());
+        final CompletableFuture<Exception> eLatch = new CompletableFuture<>();
+        final CompletableFuture<PackageId> idLatch = new CompletableFuture<>();
+        final ErrorListener errorListener = mock(ErrorListener.class);
+        doAnswer(call -> {
+            eLatch.complete(call.getArgument(0, Exception.class));
+            idLatch.complete(call.getArgument(1, PackageId.class));
+            return true;
+        }).when(errorListener).onSubpackageException(any(Exception.class), any(PackageId.class));
+        builder().withErrorListener(errorListener).build()
+                .internalProcessSubpackage(session, manager, sub1, root, false,
+                        () -> manager.open(sub1), constantly1(() -> "/some/path"),
+                        error -> errorListener.onSubpackageException(error, sub1));
+        assertTrue("error is of type", eLatch.getNow(null) instanceof PackageException);
+        assertEquals("package id is", sub1, idLatch.getNow(null));
+        assertFalse("expect session.refresh(false)", refreshedLatch.getNow(true));
+    }
+
+    @Test
+    public void testInternalProcessSubpackage_throwsRuntimeException() throws Exception {
+        final JcrPackageManager manager = mock(JcrPackageManager.class);
+        doThrow(RuntimeException.class).when(manager).open(any(PackageId.class));
+        final PackageId root = PackageId.fromString("my_packages:subsubtest");
+        final PackageId sub1 = PackageId.fromString("my_packages:subtest");
+        final CompletableFuture<Boolean> refreshedLatch = new CompletableFuture<>();
+        final Session session = mock(Session.class);
+        doAnswer(call -> refreshedLatch.complete(call.getArgument(0)))
+                .when(session).refresh(anyBoolean());
+        final CompletableFuture<Exception> eLatch = new CompletableFuture<>();
+        final CompletableFuture<PackageId> idLatch = new CompletableFuture<>();
+        final ErrorListener errorListener = mock(ErrorListener.class);
+        doAnswer(call -> {
+            eLatch.complete(call.getArgument(0, Exception.class));
+            idLatch.complete(call.getArgument(1, PackageId.class));
+            return true;
+        }).when(errorListener).onSubpackageException(any(Exception.class), any(PackageId.class));
+
+        builder().withErrorListener(errorListener).build()
+                .internalProcessSubpackage(session, manager, sub1, root, false,
+                        () -> manager.open(sub1), constantly1(() -> "/some/path"),
+                        error -> errorListener.onSubpackageException(error, sub1));
+        assertTrue("error is of type", eLatch.getNow(null) instanceof RuntimeException);
+        assertEquals("package id is", sub1, idLatch.getNow(null));
+        assertFalse("expect not called session.refresh(false)", refreshedLatch.isDone());
+        session.refresh(true);
+        assertTrue("expect session.refresh(true) on cleanup", refreshedLatch.getNow(false));
+    }
+
+    @Test
+    public void testProcessInstallableQueue_noop() throws Exception {
+        final JcrPackageManager manager = mock(JcrPackageManager.class);
+        final Session session = mock(Session.class);
+        final PackageId root = PackageId.fromString("my_packages:subsubtest");
+        new OakMachine.Builder().build().processInstallableQueue(session, manager, false, root);
+    }
+
+    @Test
+    public void testProcessInstallableQueue_singleSubpackageInstallable() throws Exception {
+        final JcrPackageManager manager = mock(JcrPackageManager.class);
+        final Session session = mock(Session.class);
+        final PackageId root = PackageId.fromString("my_packages:subsubtest");
+        final PackageId sub1 = PackageId.fromString("my_packages:subtest");
+        final String jcrPath = "/some/path";
+        final SubpackageInstallable installable = new SubpackageInstallable(root, jcrPath, sub1);
+        final List<SubpackageInstallable> installables = new ArrayList<>();
+        installables.add(installable);
+        final JcrInstallWatcher installWatcher = mock(JcrInstallWatcher.class);
+        final List<Optional<SubpackageInstallable>> dequeuedValues = new ArrayList<>();
+        doAnswer(call -> {
+            if (installables.isEmpty()) {
+                dequeuedValues.add(Optional.empty());
+                return null;
+            } else {
+                SubpackageInstallable toReturn = installables.remove(0);
+                dequeuedValues.add(Optional.ofNullable(toReturn));
+                return toReturn;
+            }
+        }).when(installWatcher).dequeueInstallable();
+
+        final CompletableFuture<SubpackageInstallable> openedSlot = new CompletableFuture<>();
+        doAnswer(call -> {
+            openedSlot.complete(call.getArgument(0));
+            return Optional.empty();
+        }).when(installWatcher).openSubpackageInstallable(installable, session, manager);
+
+        new OakMachine.Builder()
+                .withInstallWatcher(installWatcher)
+                .build().processInstallableQueue(session, manager, false, root);
+
+        assertEquals("expect dequeued values",
+                Arrays.asList(Optional.of(installable), Optional.empty()), dequeuedValues);
+        assertSame("expect request to open installable", installable, openedSlot.getNow(null));
+    }
+
+    @Test
+    public void testProcessInstallableQueue_singleRepoInitInstallable() throws Exception {
+        final JcrPackageManager manager = mock(JcrPackageManager.class);
+        final Session session = mock(Session.class);
+        final PackageId root = PackageId.fromString("my_packages:subsubtest");
+        final RepoInitInstallable installable = new RepoInitInstallable(root, "/repoInit");
+        final List<RepoInitInstallable> installables = new ArrayList<>();
+        installables.add(installable);
+        final JcrInstallWatcher installWatcher = mock(JcrInstallWatcher.class);
+        final List<Optional<RepoInitInstallable>> dequeuedValues = new ArrayList<>();
+
+        doAnswer(call -> {
+            if (installables.isEmpty()) {
+                dequeuedValues.add(Optional.empty());
+                return null;
+            } else {
+                RepoInitInstallable toReturn = installables.remove(0);
+                dequeuedValues.add(Optional.ofNullable(toReturn));
+                return toReturn;
+            }
+        }).when(installWatcher).dequeueInstallable();
+
+        final CompletableFuture<Reader> readerSlot = new CompletableFuture<>();
+        final OakMachine.RepoInitProcessor repoInitProcessor = mock(OakMachine.RepoInitProcessor.class);
+        doAnswer(call -> readerSlot.complete(call.getArgument(1)))
+                .when(repoInitProcessor).apply(any(Session.class), any(Reader.class));
+
+        final Reader goodReader = mock(Reader.class);
+        final CompletableFuture<RepoInitInstallable> openedSlot = new CompletableFuture<>();
+        doAnswer(call -> {
+            openedSlot.complete(call.getArgument(0));
+            Fun.ThrowingSupplier<Reader> goodReaderSupplier = () -> goodReader;
+            Fun.ThrowingSupplier<Reader> badReaderSupplier =
+                    () -> { throw new RepoInitParsingException("no parse!", null); };
+            return Arrays.asList(goodReaderSupplier, badReaderSupplier);
+        }).when(installWatcher).openRepoInitInstallable(installable, session);
+
+        final CompletableFuture<Exception> eLatch = new CompletableFuture<>();
+        final CompletableFuture<PackageId> idLatch = new CompletableFuture<>();
+        final CompletableFuture<RepoInitInstallable> installableLatch = new CompletableFuture<>();
+        final ErrorListener errorListener = mock(ErrorListener.class);
+        doAnswer(call -> {
+            eLatch.complete(call.getArgument(0, Exception.class));
+            idLatch.complete(call.getArgument(1, PackageId.class));
+            installableLatch.complete(call.getArgument(2, RepoInitInstallable.class));
+            return true;
+        }).when(errorListener).onInstallableRepoInitError(any(Exception.class), any(PackageId.class),
+                any(RepoInitInstallable.class));
+
+        new OakMachine.Builder()
+                .withErrorListener(errorListener)
+                .withRepoInitProcesser(repoInitProcessor)
+                .withInstallWatcher(installWatcher)
+                .build().processInstallableQueue(session, manager, false, root);
+
+        assertEquals("expect dequeued values",
+                Arrays.asList(Optional.of(installable), Optional.empty()), dequeuedValues);
+        assertSame("expect request to open installable", installable, openedSlot.getNow(null));
+        assertSame("expect goodReader", goodReader, readerSlot.getNow(null));
+        assertTrue("error is of type", eLatch.getNow(null) instanceof RepoInitParsingException);
+        assertEquals("package id is", root, idLatch.getNow(null));
+        assertSame("expect same installable in error", installable, installableLatch.getNow(null));
     }
 
     @Test(expected = AbortedScanException.class)
@@ -644,6 +919,83 @@ public class OakMachineTest {
         doThrow(NullPointerException.class).when(manager)
                 .upload(any(File.class), anyBoolean(), anyBoolean(), nullable(String.class), anyBoolean());
         builder().build().processPackageFile(session, manager, true, testPackage);
+    }
+
+    @Test
+    public void testNewProgressCheckEventConsumer() {
+        final List<Map.Entry<ProgressCheck, Exception>> errorEvents = new ArrayList<>();
+
+        final BiConsumer<ProgressCheck, Exception> onError =
+                (check, error) -> errorEvents.add(toEntry(check, error));
+
+        final Consumer<ProgressCheck> silencedConsumer =
+                OakMachine.newProgressCheckEventConsumer(true,
+                        ProgressCheck::finishedScan, onError);
+        final Consumer<ProgressCheck> vocalConsumer =
+                OakMachine.newProgressCheckEventConsumer(false,
+                        ProgressCheck::finishedScan, onError);
+
+        final AtomicInteger normalCallCount = new AtomicInteger(0);
+        final ProgressCheck normalCheck = mock(ProgressCheck.class);
+        doAnswer(call -> normalCallCount.incrementAndGet()).when(normalCheck).finishedScan();
+        silencedConsumer.accept(normalCheck);
+        assertEquals("expect normal:silent empty errors", 0, errorEvents.size());
+        assertEquals("expect normal:silent call count", 0, normalCallCount.get());
+        errorEvents.clear();
+        normalCallCount.set(0);
+        vocalConsumer.accept(normalCheck);
+        assertEquals("expect normal:vocal empty errors", 0, errorEvents.size());
+        assertEquals("expect normal:vocal call count", 1, normalCallCount.get());
+        errorEvents.clear();
+        normalCallCount.set(0);
+        doThrow(RuntimeException.class).when(normalCheck).finishedScan();
+        silencedConsumer.accept(normalCheck);
+        assertEquals("expect normal:silent empty errors", 0, errorEvents.size());
+        assertEquals("expect normal:silent call count", 0, normalCallCount.get());
+        errorEvents.clear();
+        normalCallCount.set(0);
+        vocalConsumer.accept(normalCheck);
+        assertEquals("expect normal:vocal one error", 1, errorEvents.size());
+        assertEquals("expect normal:vocal call count", 0, normalCallCount.get());
+        errorEvents.clear();
+        normalCallCount.set(0);
+
+        final AtomicInteger watcherCallCount = new AtomicInteger(0);
+        final List<Boolean> silencedEvents = new ArrayList<>();
+        final JcrInstallWatcher installWatcher = mock(JcrInstallWatcher.class);
+        doAnswer(call -> silencedEvents.add(call.getArgument(0)))
+                .when(installWatcher).setSilenced(anyBoolean());
+        doAnswer(call -> watcherCallCount.incrementAndGet()).when(installWatcher).finishedScan();
+        silencedConsumer.accept(installWatcher);
+        assertEquals("expect watcher:silent empty errors", 0, errorEvents.size());
+        assertEquals("expect watcher:silent call count", 1, watcherCallCount.get());
+        assertEquals("expect watcher:silent silenced events",
+                Arrays.asList(true, false), silencedEvents);
+        errorEvents.clear();
+        watcherCallCount.set(0);
+        silencedEvents.clear();
+        vocalConsumer.accept(installWatcher);
+        assertEquals("expect watcher:vocal empty errors", 0, errorEvents.size());
+        assertEquals("expect watcher:vocal call count", 1, watcherCallCount.get());
+        assertEquals("expect watcher:vocal silenced events",
+                Collections.emptyList(), silencedEvents);
+        errorEvents.clear();
+        watcherCallCount.set(0);
+        silencedEvents.clear();
+        doThrow(RuntimeException.class).when(installWatcher).finishedScan();
+        silencedConsumer.accept(installWatcher);
+        assertEquals("expect watcher:silent empty errors", 0, errorEvents.size());
+        assertEquals("expect watcher:silent call count", 0, watcherCallCount.get());
+        assertEquals("expect watcher:silent silenced events",
+                Arrays.asList(true, false), silencedEvents);
+        errorEvents.clear();
+        watcherCallCount.set(0);
+        silencedEvents.clear();
+        vocalConsumer.accept(installWatcher);
+        assertEquals("expect watcher:vocal one error", 1, errorEvents.size());
+        assertEquals("expect watcher:vocal call count", 0, watcherCallCount.get());
+        assertEquals("expect watcher:vocal silenced events",
+                Collections.emptyList(), silencedEvents);
     }
 
     @Test
@@ -730,8 +1082,8 @@ public class OakMachineTest {
             return true;
         }).when(errorListener).onImporterException(any(Exception.class), any(PackageId.class), anyString());
         final OakMachine machine = builder().withErrorListener(errorListener).build();
-        final OakMachine.ImporterListenerAdapter adapter = machine.new ImporterListenerAdapter(expectId,
-                machine.getProgressChecks(), session, false);
+        final OakMachine.ImporterListenerAdapter adapter =
+                machine.new ImporterListenerAdapter(expectId, session, false);
         adapter.onError(ProgressTrackerListener.Mode.PATHS, expectPath, expectError);
         assertSame("error is same", expectError, eLatch.getNow(null));
         assertEquals("package id is", expectId, idLatch.getNow(null));
@@ -756,8 +1108,8 @@ public class OakMachineTest {
             return true;
         }).when(errorListener).onImporterException(any(Exception.class), any(PackageId.class), anyString());
         final OakMachine machine = builder().withErrorListener(errorListener).build();
-        final OakMachine.ImporterListenerAdapter adapter = machine.new ImporterListenerAdapter(expectId,
-                machine.getProgressChecks(), session, false);
+        final OakMachine.ImporterListenerAdapter adapter =
+                machine.new ImporterListenerAdapter(expectId, session, false);
         adapter.onMessage(ProgressTrackerListener.Mode.PATHS, "E", expectPath);
         assertEquals("package id is", expectId, idLatch.getNow(null));
         assertEquals("path is", expectPath, pathLatch.getNow(null));
@@ -819,30 +1171,30 @@ public class OakMachineTest {
                 new FileBlobMemoryNodeStore(blobStoreFile.getAbsolutePath()));
 
         machineBuilder.build().adminInitAndInspect(session -> {
-                    // less than AbtractBlobStore.minBlockSize - 2 (for varInt length prefix where length >= 128 && < 16384)
-                    final Binary binary = alphaFill(session, 4093);
+            // less than AbtractBlobStore.minBlockSize - 2 (for varInt length prefix where length >= 128 && < 16384)
+            final Binary binary = alphaFill(session, 4093);
 
-                    Node fooNode = session.getRootNode().addNode("foo", "nt:unstructured");
-                    fooNode.setProperty("data", binary);
-                    session.save();
+            Node fooNode = session.getRootNode().addNode("foo", "nt:unstructured");
+            fooNode.setProperty("data", binary);
+            session.save();
 
-                    assertTrue("blob is retrievable", fooNode.getProperty("data").getString().startsWith("abcdefg"));
-                });
+            assertTrue("blob is retrievable", fooNode.getProperty("data").getString().startsWith("abcdefg"));
+        });
 
         final File[] inlineChildren = blobStoreFile.listFiles();
         assertNotNull("should have non-null inlineChildren", inlineChildren);
         assertEquals("inline children is empty <4k", 0, inlineChildren.length);
 
         machineBuilder.build().adminInitAndInspect(session -> {
-                    // bigger than 4096
-                    final Binary binary = alphaFill(session, 8192);
-                    assertFalse("/foo should not exist", session.nodeExists("/foo"));
-                    Node fooNode = session.getRootNode().addNode("foo", "nt:unstructured");
-                    fooNode.setProperty("data", binary);
-                    session.save();
+            // bigger than 4096
+            final Binary binary = alphaFill(session, 8192);
+            assertFalse("/foo should not exist", session.nodeExists("/foo"));
+            Node fooNode = session.getRootNode().addNode("foo", "nt:unstructured");
+            fooNode.setProperty("data", binary);
+            session.save();
 
-                    assertTrue("blob is retrievable", fooNode.getProperty("data").getString().startsWith("abcdefg"));
-                });
+            assertTrue("blob is retrievable", fooNode.getProperty("data").getString().startsWith("abcdefg"));
+        });
 
         final File[] blobChildren = blobStoreFile.listFiles();
         assertNotNull("should have non-null blobChildren", blobChildren);
@@ -863,5 +1215,7 @@ public class OakMachineTest {
 
         return session.getValueFactory().createBinary(new ByteArrayInputStream(buffer));
     }
+
+
 }
 

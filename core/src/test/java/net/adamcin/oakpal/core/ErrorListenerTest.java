@@ -46,6 +46,8 @@ public class ErrorListenerTest {
         mock.onProhibitedInstallHookRegistration(null);
         mock.onRepoInitUrlError(null, null);
         mock.onRepoInitInlineError(null, null);
+        mock.onInstallableRepoInitError(null, null, null);
+        mock.onInstallableSubpackageError(null, null, null);
         mock.finishedScan();
     }
 }
