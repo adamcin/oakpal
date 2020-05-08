@@ -40,15 +40,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.PropertyResourceBundle;
-import java.util.ResourceBundle;
 import java.util.jar.Manifest;
 
 import static net.adamcin.oakpal.api.Fun.toEntry;
-import static net.adamcin.oakpal.api.Fun.tryOrDefault1;
 import static net.adamcin.oakpal.api.JavaxJson.key;
 import static net.adamcin.oakpal.api.JavaxJson.obj;
 import static org.junit.Assert.assertEquals;
@@ -274,8 +271,8 @@ public class ScriptProgressCheckTest {
         final PackageId arg1 = PackageId.fromString("my_packages:example:1.0");
         final PackageId arg2 = PackageId.fromString("my_packages:other-example:1.0");
 
+        argRecord.clear();
         check.identifySubpackage(arg1, arg2);
-
         Map.Entry<String, Object[]> call = argRecord.stream()
                 .filter(entry -> "identifySubpackage".equals(entry.getKey()) && entry.getValue().length == 3).findFirst()
                 .orElse(null);
@@ -283,6 +280,32 @@ public class ScriptProgressCheckTest {
         assertSame("same arg1", arg1, call.getValue()[1]);
         assertSame("same arg2", arg2, call.getValue()[2]);
     }
+
+    @Test
+    public void testIdentifyEmbeddedPackage() throws Exception {
+        final Invocable delegate = mock(Invocable.class);
+        final ScriptProgressCheck.ScriptHelper helper = new ScriptProgressCheck.ScriptHelper();
+        final ScriptProgressCheck check = new ScriptProgressCheck(delegate, helper, null);
+
+        final List<Map.Entry<String, Object[]>> argRecord = new ArrayList<>();
+        doAnswer(call -> argRecord.add(toEntry(call.getArgument(0), call.getArguments())))
+                .when(delegate).invokeFunction(anyString(), any());
+
+        final PackageId arg1 = PackageId.fromString("my_packages:example:1.0");
+        final PackageId arg2 = PackageId.fromString("my_packages:other-example:1.0");
+        final String arg3 = "/apps/mine/author-packages/install/" + arg1.getDownloadName();
+
+        argRecord.clear();
+        check.identifyEmbeddedPackage(arg1, arg2, arg3);
+        Map.Entry<String, Object[]> call = argRecord.stream()
+                .filter(entry -> "identifyEmbeddedPackage".equals(entry.getKey()) && entry.getValue().length == 4).findFirst()
+                .orElse(null);
+        assertNotNull("expect call for identifyEmbeddedPackage", call);
+        assertSame("same arg1", arg1, call.getValue()[1]);
+        assertSame("same arg2", arg2, call.getValue()[2]);
+        assertSame("same arg3", arg3, call.getValue()[3]);
+    }
+
 
     @Test
     public void testReadManifest() throws Exception {

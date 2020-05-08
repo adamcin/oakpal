@@ -17,6 +17,7 @@
 package net.adamcin.oakpal.core.repoinit;
 
 import net.adamcin.oakpal.core.OakMachine;
+import net.adamcin.oakpal.core.repoinit.DefaultRepoInitFactory;
 import org.apache.sling.jcr.repoinit.JcrRepoInitOpsProcessor;
 import org.apache.sling.jcr.repoinit.impl.JcrRepoInitOpsProcessorImpl;
 import org.apache.sling.repoinit.parser.RepoInitParser;
