@@ -27,22 +27,18 @@ import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
-import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.security.internal.SecurityProviderBuilder;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
-import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authentication.AuthenticationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
-import org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl.PrincipalBasedAuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.action.AccessControlAction;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 import org.apache.jackrabbit.vault.fs.api.ProgressTrackerListener;
@@ -53,6 +49,7 @@ import org.apache.jackrabbit.vault.packaging.JcrPackageManager;
 import org.apache.jackrabbit.vault.packaging.PackageException;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.apache.jackrabbit.vault.packaging.Packaging;
+import org.apache.jackrabbit.vault.packaging.SubPackageHandling;
 import org.apache.jackrabbit.vault.packaging.VaultPackage;
 import org.apache.sling.repoinit.parser.RepoInitParsingException;
 import org.jetbrains.annotations.NotNull;
@@ -74,6 +71,7 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Properties;
@@ -86,7 +84,6 @@ import java.util.stream.Collectors;
 import static net.adamcin.oakpal.api.Fun.uncheck1;
 import static net.adamcin.oakpal.api.Fun.uncheckVoid1;
 import static net.adamcin.oakpal.core.repoinit.DefaultRepoInitFactory.newDefaultRepoInitProcessor;
-import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_SECURITY_NAME;
 
 /**
  * Entry point for OakPAL Acceptance Library. See {@link ProgressCheck} for the event listener interface.
@@ -730,7 +727,7 @@ public final class OakMachine {
             options.setInstallHookPolicy(scanInstallHookPolicy);
         }
 
-        List<PackageId> subpacks = Arrays.asList(jcrPackage.extractSubpackages(options));
+        final List<PackageId> subpacks = Arrays.asList(jcrPackage.extractSubpackages(options));
 
         final VaultPackage vaultPackage = jcrPackage.getPackage();
         if (!vaultPackage.isValid()) {
@@ -751,6 +748,17 @@ public final class OakMachine {
         jcrPackage.extract(options);
         admin.save();
 
+        final SubPackageHandling subPackageHandling = jcrPackage.getPackage().getSubPackageHandling();
+        final List<PackageId> installableSubpacks = new ArrayList<>();
+        final EnumSet<SubPackageHandling.Option> installableOptions =
+                EnumSet.complementOf(EnumSet.of(SubPackageHandling.Option.ADD, SubPackageHandling.Option.IGNORE));
+        for (PackageId subpackId : subpacks) {
+            final SubPackageHandling.Option option = subPackageHandling.getOption(subpackId);
+            if (installableOptions.contains(option)) {
+                installableSubpacks.add(subpackId);
+            }
+        }
+
         jcrPackage.close();
 
         if (!preInstall) {
@@ -763,13 +771,14 @@ public final class OakMachine {
             });
         }
 
-        for (PackageId subpackId : subpacks) {
+        for (PackageId subpackId : installableSubpacks) {
             processSubpackage(admin, manager, subpackId, packageId,
                     preInstall || subpackageSilencer.test(subpackId, packageId));
         }
     }
 
-    final void processSubpackage(Session admin, JcrPackageManager manager, PackageId packageId, PackageId parentId, final boolean preInstall)
+    final void processSubpackage(Session admin, JcrPackageManager manager,
+                                 PackageId packageId, PackageId parentId, final boolean preInstall)
             throws RepositoryException {
         try (JcrPackage jcrPackage = manager.open(packageId)) {
 
