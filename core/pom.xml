@@ -87,7 +87,9 @@
                                     net.adamcin.oakpal.core.checks,\
                                     net.adamcin.oakpal.core.opear
                                 Private-Package: net.adamcin.oakpal.core.jcrfacade.*
-                                Import-Package: !aQute.*,*
+                                Import-Package: !aQute.*,\
+                                    !org.apache.sling.jcr.repoinit.*,\
+                                    *
                             ]]></bnd>
                         </configuration>
                     </execution>
@@ -128,6 +130,7 @@
                             <artifactSet>
                                 <includes>
                                     <include>biz.aQute.bnd:bndlib</include>
+                                    <include>org.apache.sling:org.apache.sling.jcr.repoinit</include>
                                 </includes>
                             </artifactSet>
                             <filters>
@@ -144,11 +147,21 @@
                                         <include>aQute/service/reporter/**</include>
                                     </includes>
                                 </filter>
+                                <filter>
+                                    <artifact>org.apache.sling:org.apache.sling.jcr.repoinit</artifact>
+                                    <includes>
+                                        <include>org/apache/sling/jcr/repoinit/**</include>
+                                    </includes>
+                                </filter>
                             </filters>
                             <relocations>
                                 <relocation>
                                     <pattern>aQute</pattern>
                                     <shadedPattern>net.adamcin.oakpal.shaded.aQute</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.apache.sling.jcr.repoinit</pattern>
+                                    <shadedPattern>net.adamcin.oakpal.shaded.repoinit</shadedPattern>
                                 </relocation>
                             </relocations>
                         </configuration>
@@ -198,6 +211,7 @@
         <dependency>
             <groupId>org.apache.sling</groupId>
             <artifactId>org.apache.sling.jcr.repoinit</artifactId>
+            <scope>compile</scope>
         </dependency>
 
         <dependency>
