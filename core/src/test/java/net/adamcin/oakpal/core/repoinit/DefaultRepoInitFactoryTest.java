@@ -17,15 +17,12 @@
 package net.adamcin.oakpal.core.repoinit;
 
 import net.adamcin.oakpal.core.OakMachine;
-import org.apache.sling.jcr.repoinit.JcrRepoInitOpsProcessor;
-import org.apache.sling.jcr.repoinit.impl.JcrRepoInitOpsProcessorImpl;
 import org.apache.sling.repoinit.parser.RepoInitParser;
 import org.apache.sling.repoinit.parser.RepoInitParsingException;
 import org.apache.sling.repoinit.parser.impl.RepoInitParserService;
 import org.apache.sling.repoinit.parser.operations.Operation;
 import org.junit.Test;
 
-import javax.jcr.Session;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.io.StringReader;
@@ -34,10 +31,10 @@ import java.util.Collections;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
 
 public class DefaultRepoInitFactoryTest {
 
@@ -48,9 +45,7 @@ public class DefaultRepoInitFactoryTest {
     @Test
     public void testBindParserProcessor_realDefaults() throws Exception {
         final OakMachine.RepoInitProcessor processor =
-                DefaultRepoInitFactory.bindParserProcessor(
-                        new RepoInitParserService(),
-                        new JcrRepoInitOpsProcessorImpl());
+                DefaultRepoInitFactory.bindParser(new RepoInitParserService());
 
         new OakMachine.Builder().build().adminInitAndInspect(admin -> {
             try (Reader reader = readSlingExampleRepoInit()) {
@@ -62,11 +57,10 @@ public class DefaultRepoInitFactoryTest {
     @Test(expected = RepoInitParsingException.class)
     public void testBindParserProcessor_throws() throws Exception {
         final OakMachine.RepoInitProcessor processor =
-                DefaultRepoInitFactory.bindParserProcessor(
+                DefaultRepoInitFactory.bindParser(
                         new ParserType(reader -> {
                             throw new RepoInitParsingException("expected error", null);
-                        }),
-                        new ProcessorType((session, operations) -> { /* */ }));
+                        }));
 
         processor.apply(null, new StringReader(""));
     }
@@ -74,10 +68,7 @@ public class DefaultRepoInitFactoryTest {
     @Test
     public void testBindParserProcessor() throws Exception {
         final OakMachine.RepoInitProcessor processor =
-                DefaultRepoInitFactory.bindParserProcessor(
-                        new ParserType(),
-                        new ProcessorType((session, operations) -> {
-                        }));
+                DefaultRepoInitFactory.bindParser(new ParserType());
 
         processor.apply(null, new StringReader(""));
     }
@@ -98,11 +89,6 @@ public class DefaultRepoInitFactoryTest {
         List<Operation> parse(Reader reader) throws RepoInitParsingException;
     }
 
-    @FunctionalInterface
-    interface ProcessorFunction {
-        void apply(final Session session, final List<Operation> operations);
-    }
-
     static class ParserType implements RepoInitParser {
         private ParserFunction parserFunction;
 
@@ -120,24 +106,6 @@ public class DefaultRepoInitFactoryTest {
         }
     }
 
-
-    static class ProcessorType implements JcrRepoInitOpsProcessor {
-        private ProcessorFunction processorFunction;
-
-        public ProcessorType() {
-            processorFunction = (session, operations) -> { /* do nothing */ };
-        }
-
-        public ProcessorType(final ProcessorFunction processorFunction) {
-            this.processorFunction = processorFunction;
-        }
-
-        @Override
-        public void apply(final Session session, final List<Operation> operations) {
-            processorFunction.apply(session, operations);
-        }
-    }
-
     static class ParserTypeWrongConstructor implements RepoInitParser {
         public ParserTypeWrongConstructor(final boolean anArgument) {
             /* default constructor */
@@ -148,18 +116,6 @@ public class DefaultRepoInitFactoryTest {
             return Collections.emptyList();
         }
     }
-
-    static class ProcessorTypeWrongConstructor implements JcrRepoInitOpsProcessor {
-        public ProcessorTypeWrongConstructor(final boolean anArgument) {
-            /* default constructor */
-        }
-
-        @Override
-        public void apply(final Session session, final List<Operation> list) {
-
-        }
-    }
-
 
     @Test
     public void testLoadClazz() {
@@ -190,36 +146,23 @@ public class DefaultRepoInitFactoryTest {
     @Test
     public void testNewParser() {
         assertNull("null for null",
-                new DefaultRepoInitFactory(null, null).newParser());
+                new DefaultRepoInitFactory(null).newParser());
         assertNull("null for wrong constructor",
-                new DefaultRepoInitFactory(ParserTypeWrongConstructor.class, null)
+                new DefaultRepoInitFactory(ParserTypeWrongConstructor.class)
                         .newParser());
-        assertTrue("expect parser",
-                new DefaultRepoInitFactory(ParserType.class, null)
-                        .newParser() instanceof RepoInitParser);
+        assertNotNull("expect non null", new DefaultRepoInitFactory(ParserType.class).newParser());
     }
 
     @Test
     public void testNewOpsProcessor() {
-        assertNull("null for null",
-                new DefaultRepoInitFactory(null, null).newOpsProcessor());
-        assertNull("null for wrong constructor",
-                new DefaultRepoInitFactory(null, ProcessorTypeWrongConstructor.class)
-                        .newOpsProcessor());
-        assertTrue("expect ops processor",
-                new DefaultRepoInitFactory(null, ProcessorType.class)
-                        .newOpsProcessor() instanceof JcrRepoInitOpsProcessor);
+        assertNotNull("expect ops processor", DefaultRepoInitFactory.newOpsProcessor());
     }
 
     @Test
     public void testNewInstance() {
         assertSame("NOOP for nulls", DefaultRepoInitFactory.NOOP_PROCESSOR,
-                new DefaultRepoInitFactory(null, null).newInstance());
-        assertSame("NOOP for null parser", DefaultRepoInitFactory.NOOP_PROCESSOR,
-                new DefaultRepoInitFactory(null, ProcessorType.class).newInstance());
-        assertSame("NOOP for null processor", DefaultRepoInitFactory.NOOP_PROCESSOR,
-                new DefaultRepoInitFactory(ParserType.class, null).newInstance());
+                new DefaultRepoInitFactory(null).newInstance());
         assertNotSame("expect non-NOOP nonnulls", DefaultRepoInitFactory.NOOP_PROCESSOR,
-                new DefaultRepoInitFactory(ParserType.class, ProcessorType.class).newInstance());
+                new DefaultRepoInitFactory(ParserType.class).newInstance());
     }
 }
