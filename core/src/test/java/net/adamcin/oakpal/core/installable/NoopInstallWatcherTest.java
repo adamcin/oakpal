@@ -57,7 +57,7 @@ public class NoopInstallWatcherTest {
     public void testOpenSubpackageInstallable() {
         assertNotNull("expect non-null iteratable",
                 instance().openSubpackageInstallable(
-                        new SubpackageInstallable(null, null, null),
+                        new SubpackageInstallable(null, null),
                         mock(Session.class),
                         mock(JcrPackageManager.class)));
     }

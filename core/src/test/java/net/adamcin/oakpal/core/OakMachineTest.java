@@ -667,7 +667,7 @@ public class OakMachineTest {
         final PackageId root = PackageId.fromString("my_packages:subsubtest");
         final PackageId sub1 = PackageId.fromString("my_packages:subtest");
         final String jcrPath = "/some/path";
-        final SubpackageInstallable installable = new SubpackageInstallable(root, jcrPath, sub1);
+        final SubpackageInstallable installable = new SubpackageInstallable(root, jcrPath);
         final Session session = mock(Session.class);
         final CompletableFuture<Exception> eLatch = new CompletableFuture<>();
         final CompletableFuture<PackageId> idLatch = new CompletableFuture<>();
@@ -700,7 +700,7 @@ public class OakMachineTest {
         final PackageId root = PackageId.fromString("my_packages:subsubtest");
         final PackageId sub1 = PackageId.fromString("my_packages:subtest");
         final String jcrPath = "/some/path";
-        final SubpackageInstallable installable = new SubpackageInstallable(root, jcrPath, sub1);
+        final SubpackageInstallable installable = new SubpackageInstallable(root, jcrPath);
         final Session session = mock(Session.class);
         doThrow(RepositoryException.class).when(session).refresh(anyBoolean());
         final CompletableFuture<Exception> eLatch = new CompletableFuture<>();
@@ -743,7 +743,7 @@ public class OakMachineTest {
             return true;
         }).when(errorListener).onSubpackageException(any(Exception.class), any(PackageId.class));
         builder().withErrorListener(errorListener).build()
-                .internalProcessSubpackage(session, manager, sub1, root, false,
+                .internalProcessSubpackage(session, manager, root, false,
                         () -> manager.open(sub1), constantly1(() -> "/some/path"),
                         error -> errorListener.onSubpackageException(error, sub1));
         assertTrue("error is of type", eLatch.getNow(null) instanceof PackageException);
@@ -771,7 +771,7 @@ public class OakMachineTest {
         }).when(errorListener).onSubpackageException(any(Exception.class), any(PackageId.class));
 
         builder().withErrorListener(errorListener).build()
-                .internalProcessSubpackage(session, manager, sub1, root, false,
+                .internalProcessSubpackage(session, manager, root, false,
                         () -> manager.open(sub1), constantly1(() -> "/some/path"),
                         error -> errorListener.onSubpackageException(error, sub1));
         assertTrue("error is of type", eLatch.getNow(null) instanceof RuntimeException);
@@ -796,7 +796,7 @@ public class OakMachineTest {
         final PackageId root = PackageId.fromString("my_packages:subsubtest");
         final PackageId sub1 = PackageId.fromString("my_packages:subtest");
         final String jcrPath = "/some/path";
-        final SubpackageInstallable installable = new SubpackageInstallable(root, jcrPath, sub1);
+        final SubpackageInstallable installable = new SubpackageInstallable(root, jcrPath);
         final List<SubpackageInstallable> installables = new ArrayList<>();
         installables.add(installable);
         final JcrInstallWatcher installWatcher = mock(JcrInstallWatcher.class);

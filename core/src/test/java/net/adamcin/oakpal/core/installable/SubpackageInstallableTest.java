@@ -26,12 +26,10 @@ public class SubpackageInstallableTest {
     public void testConstructorAndGetters() {
         final PackageId expectParentId = PackageId.fromString("test:test:1");
         final String expectJcrPath = "/some/path";
-        final PackageId expectSubpackageId = PackageId.fromString("test:testtest:1");
         final SubpackageInstallable installable =
-                new SubpackageInstallable(expectParentId, expectJcrPath, expectSubpackageId);
+                new SubpackageInstallable(expectParentId, expectJcrPath);
 
         assertSame("expect parentId", expectParentId, installable.getParentId());
         assertSame("expect jcrPath", expectJcrPath, installable.getJcrPath());
-        assertSame("expect subpackageId", expectSubpackageId, installable.getSubpackageId());
     }
 }

@@ -852,7 +852,6 @@ public final class OakMachine {
 
     final void internalProcessSubpackage(final @NotNull Session admin,
                                          final @NotNull JcrPackageManager manager,
-                                         final @NotNull PackageId packageId,
                                          final @NotNull PackageId parentId,
                                          final boolean preInstall,
                                          final @NotNull Fun.ThrowingSupplier<JcrPackage> jcrPackageSupplier,
@@ -860,6 +859,7 @@ public final class OakMachine {
                                          final @NotNull Consumer<Exception> onError) throws RepositoryException {
         try (JcrPackage jcrPackage = jcrPackageSupplier.tryGet()) {
             if (jcrPackage != null) {
+                PackageId packageId = jcrPackage.getPackage().getId();
                 propagateCheckPackageEvent(preInstall, packageId, progressCheck ->
                         progressCheck.identifySubpackage(packageId, parentId, jcrPathFn.apply(jcrPackage)));
 
@@ -880,7 +880,7 @@ public final class OakMachine {
                                  final @NotNull PackageId packageId,
                                  final @NotNull PackageId parentId,
                                  final boolean preInstall) throws RepositoryException {
-        internalProcessSubpackage(admin, manager, packageId, parentId, preInstall,
+        internalProcessSubpackage(admin, manager, parentId, preInstall,
                 () -> manager.open(packageId),
                 jcrPackage -> Optional.ofNullable(jcrPackage.getNode())
                         .flatMap(compose1(result1(Node::getPath), Result::toOptional))
@@ -898,7 +898,7 @@ public final class OakMachine {
                 error -> getErrorListener().onInstallableSubpackageError(error, lastPackage, installable);
         Optional<Fun.ThrowingSupplier<JcrPackage>> supplierOptional = installWatcher.openSubpackageInstallable(installable, admin, manager);
         if (supplierOptional.isPresent()) {
-            internalProcessSubpackage(admin, manager, installable.getSubpackageId(), installable.getParentId(),
+            internalProcessSubpackage(admin, manager, installable.getParentId(),
                     preInstall, supplierOptional.get(), constantly1(installable::getJcrPath), onError);
         }
     }
