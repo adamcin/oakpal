@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com)
 ### Added
 
 - Added repoinit support for init stages adapted from plans and checklists.
+- OakMachine now skips subpackage extraction based on SubPackageHandling.
 
 ## [2.0.0] - 2020-04-27
 

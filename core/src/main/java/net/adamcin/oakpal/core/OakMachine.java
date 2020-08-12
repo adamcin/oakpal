@@ -55,6 +55,7 @@ import org.apache.jackrabbit.vault.packaging.JcrPackageManager;
 import org.apache.jackrabbit.vault.packaging.PackageException;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.apache.jackrabbit.vault.packaging.Packaging;
+import org.apache.jackrabbit.vault.packaging.SubPackageHandling;
 import org.apache.jackrabbit.vault.packaging.VaultPackage;
 import org.apache.sling.repoinit.parser.RepoInitParsingException;
 import org.jetbrains.annotations.NotNull;
@@ -76,6 +77,7 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Properties;
@@ -769,7 +771,7 @@ public final class OakMachine {
             options.setInstallHookPolicy(scanInstallHookPolicy);
         }
 
-        List<PackageId> subpacks = Arrays.asList(jcrPackage.extractSubpackages(options));
+        final List<PackageId> subpacks = Arrays.asList(jcrPackage.extractSubpackages(options));
 
         final VaultPackage vaultPackage = jcrPackage.getPackage();
         if (!vaultPackage.isValid()) {
@@ -783,11 +785,22 @@ public final class OakMachine {
         jcrPackage.extract(options);
         admin.save();
 
+        final SubPackageHandling subPackageHandling = jcrPackage.getPackage().getSubPackageHandling();
+        final List<PackageId> installableSubpacks = new ArrayList<>();
+        final EnumSet<SubPackageHandling.Option> installableOptions =
+                EnumSet.complementOf(EnumSet.of(SubPackageHandling.Option.ADD, SubPackageHandling.Option.IGNORE));
+        for (PackageId subpackId : subpacks) {
+            final SubPackageHandling.Option option = subPackageHandling.getOption(subpackId);
+            if (installableOptions.contains(option)) {
+                installableSubpacks.add(subpackId);
+            }
+        }
+
         jcrPackage.close();
 
         propagateCheckPackageEvent(preInstall, packageId, handler -> handler.afterExtract(packageId, inspectSession));
 
-        for (PackageId subpackId : subpacks) {
+        for (PackageId subpackId : installableSubpacks) {
             processSubpackage(admin, manager, subpackId, packageId,
                     preInstall || subpackageSilencer.test(subpackId, packageId));
         }
