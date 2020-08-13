@@ -54,7 +54,7 @@ public final class NoopInstallWatcher implements JcrInstallWatcher {
 
     @NotNull
     @Override
-    public Iterator<PathInstallable> iterator() {
+    public Iterator<PathInstallable<?>> iterator() {
         return Collections.emptyIterator();
     }
 

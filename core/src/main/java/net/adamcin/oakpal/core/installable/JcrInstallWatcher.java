@@ -29,7 +29,7 @@ import javax.jcr.Session;
  * Interface defining methods for collecting Sling JCR installable resources.
  */
 @ConsumerType
-public interface JcrInstallWatcher extends SilenceableViolationReporter, ProgressCheck, Iterable<PathInstallable> {
+public interface JcrInstallWatcher extends SilenceableViolationReporter, ProgressCheck, Iterable<PathInstallable<?>> {
 
     /**
      * Get installable entities from the specified JCR path.

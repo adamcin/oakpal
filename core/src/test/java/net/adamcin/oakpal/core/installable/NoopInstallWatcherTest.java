@@ -44,7 +44,7 @@ public class NoopInstallWatcherTest {
 
     @Test
     public void testIteratable() {
-        Iterator<PathInstallable> iterator = instance().iterator();
+        Iterator<PathInstallable<?>> iterator = instance().iterator();
         assertNotNull("expect non-null iterator", iterator);
         assertFalse("iterator is empty", iterator.hasNext());
     }
