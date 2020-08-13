@@ -20,7 +20,7 @@ import net.adamcin.oakpal.api.ProgressCheck;
 import net.adamcin.oakpal.api.ScanListener;
 import net.adamcin.oakpal.api.ViolationReporter;
 import net.adamcin.oakpal.core.installable.RepoInitInstallable;
-import net.adamcin.oakpal.core.installable.SubpackageInstallable;
+import net.adamcin.oakpal.core.installable.EmbeddedPackageInstallable;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.osgi.annotation.versioning.ConsumerType;
 
@@ -179,7 +179,7 @@ public interface ErrorListener extends ScanListener, ViolationReporter {
      */
     default void onInstallableSubpackageError(final Throwable error,
                                               final PackageId lastPackage,
-                                              final SubpackageInstallable installable) {
+                                              final EmbeddedPackageInstallable installable) {
 
     }
 }

@@ -16,20 +16,28 @@
 
 package net.adamcin.oakpal.core.installable;
 
+import org.apache.jackrabbit.vault.packaging.JcrPackage;
 import org.apache.jackrabbit.vault.packaging.PackageId;
-import org.junit.Test;
+import org.jetbrains.annotations.NotNull;
 
-import static org.junit.Assert.*;
+public final class EmbeddedPackageInstallable implements PathInstallable<JcrPackage> {
+    private final PackageId parentId;
+    private final String jcrPath;
 
-public class SubpackageInstallableTest {
-    @Test
-    public void testConstructorAndGetters() {
-        final PackageId expectParentId = PackageId.fromString("test:test:1");
-        final String expectJcrPath = "/some/path";
-        final SubpackageInstallable installable =
-                new SubpackageInstallable(expectParentId, expectJcrPath);
+    public EmbeddedPackageInstallable(final PackageId parentId, final String jcrPath) {
+        this.parentId = parentId;
+        this.jcrPath = jcrPath;
+    }
 
-        assertSame("expect parentId", expectParentId, installable.getParentId());
-        assertSame("expect jcrPath", expectJcrPath, installable.getJcrPath());
+    @NotNull
+    @Override
+    public PackageId getParentId() {
+        return parentId;
+    }
+
+    @NotNull
+    @Override
+    public String getJcrPath() {
+        return jcrPath;
     }
 }

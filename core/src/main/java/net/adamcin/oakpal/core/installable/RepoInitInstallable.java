@@ -19,10 +19,12 @@ package net.adamcin.oakpal.core.installable;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.jetbrains.annotations.NotNull;
 
+import java.io.Reader;
+
 /**
  * Locates a jcr path that should be treated as an installable provider of repoinit scripts.
  */
-public final class RepoInitInstallable implements PathInstallable {
+public final class RepoInitInstallable implements PathInstallable<Reader> {
     private final PackageId parentId;
     private final String jcrPath;
 

@@ -21,10 +21,12 @@ import org.junit.Test;
 
 import javax.jcr.Session;
 
+import java.util.Iterator;
+
 import static net.adamcin.oakpal.core.installable.NoopInstallWatcher.instance;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertFalse;
 import static org.mockito.Mockito.mock;
 
 public class NoopInstallWatcherTest {
@@ -41,23 +43,26 @@ public class NoopInstallWatcherTest {
     }
 
     @Test
-    public void testDequeueInstallable() {
-        assertNull("never dequeue an installable", instance().dequeueInstallable());
+    public void testIteratable() {
+        Iterator<PathInstallable> iterator = instance().iterator();
+        assertNotNull("expect non-null iterator", iterator);
+        assertFalse("iterator is empty", iterator.hasNext());
     }
 
     @Test
     public void testOpenRepoInitInstallable() {
         assertNotNull("expect non-null iteratable",
-                instance().openRepoInitInstallable(
+                instance().open(
                         new RepoInitInstallable(null, null),
-                        mock(Session.class)));
+                        mock(Session.class),
+                        mock(JcrPackageManager.class)));
     }
 
     @Test
     public void testOpenSubpackageInstallable() {
         assertNotNull("expect non-null iteratable",
-                instance().openSubpackageInstallable(
-                        new SubpackageInstallable(null, null),
+                instance().open(
+                        new EmbeddedPackageInstallable(null, null),
                         mock(Session.class),
                         mock(JcrPackageManager.class)));
     }

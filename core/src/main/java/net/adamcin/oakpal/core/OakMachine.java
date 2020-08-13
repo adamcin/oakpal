@@ -24,7 +24,7 @@ import net.adamcin.oakpal.core.installable.JcrInstallWatcher;
 import net.adamcin.oakpal.core.installable.NoopInstallWatcher;
 import net.adamcin.oakpal.core.installable.PathInstallable;
 import net.adamcin.oakpal.core.installable.RepoInitInstallable;
-import net.adamcin.oakpal.core.installable.SubpackageInstallable;
+import net.adamcin.oakpal.core.installable.EmbeddedPackageInstallable;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.commons.cnd.DefinitionBuilderFactory;
@@ -889,20 +889,6 @@ public final class OakMachine {
                 error -> getErrorListener().onSubpackageException(error, packageId));
     }
 
-    final void processSubpackageInstallable(final @NotNull Session admin,
-                                            final @NotNull JcrPackageManager manager,
-                                            final @NotNull PackageId lastPackage,
-                                            final @NotNull SubpackageInstallable installable,
-                                            final boolean preInstall) throws RepositoryException {
-        final Consumer<Exception> onError =
-                error -> getErrorListener().onInstallableSubpackageError(error, lastPackage, installable);
-        Optional<Fun.ThrowingSupplier<JcrPackage>> supplierOptional = installWatcher.openSubpackageInstallable(installable, admin, manager);
-        if (supplierOptional.isPresent()) {
-            internalProcessSubpackage(admin, manager, installable.getParentId(),
-                    preInstall, supplierOptional.get(), constantly1(installable::getJcrPath), onError);
-        }
-    }
-
     private void processUploadedPackage(final @NotNull Session admin,
                                         final @NotNull JcrPackageManager manager,
                                         final boolean preInstall,
@@ -920,11 +906,10 @@ public final class OakMachine {
                                  final @NotNull JcrPackageManager manager,
                                  final boolean preInstall,
                                  final @NotNull PackageId lastUploadedPackage) throws RepositoryException {
-        PathInstallable installable = installWatcher.dequeueInstallable();
-        while (installable != null) {
+        for (PathInstallable installable : installWatcher) {
             if (installable instanceof RepoInitInstallable) {
                 for (final Fun.ThrowingSupplier<Reader> readerSupplier :
-                        installWatcher.openRepoInitInstallable((RepoInitInstallable) installable, admin)) {
+                        installWatcher.open((RepoInitInstallable) installable, admin, manager)) {
                     try (Reader reader = readerSupplier.tryGet()) {
                         repoInitProcessor.apply(admin, reader);
                     } catch (final Exception e) {
@@ -932,12 +917,15 @@ public final class OakMachine {
                                 (RepoInitInstallable) installable);
                     }
                 }
-            } else if (installable instanceof SubpackageInstallable) {
-                processSubpackageInstallable(admin, manager, lastUploadedPackage,
-                        (SubpackageInstallable) installable, preInstall);
+            } else if (installable instanceof EmbeddedPackageInstallable) {
+                final Consumer<Exception> onError =
+                    error -> getErrorListener().onInstallableSubpackageError(error, lastUploadedPackage, (EmbeddedPackageInstallable) installable);
+                for (final Fun.ThrowingSupplier<JcrPackage> jcrPackageSupplier :
+                    installWatcher.open((EmbeddedPackageInstallable) installable, admin, manager)) {
+                    internalProcessSubpackage(admin, manager, installable.getParentId(),
+                        preInstall, jcrPackageSupplier, constantly1(installable::getJcrPath), onError);
+                }
             }
-            // do this at the end of the while scope, obviously.
-            installable = installWatcher.dequeueInstallable();
         }
     }
 
