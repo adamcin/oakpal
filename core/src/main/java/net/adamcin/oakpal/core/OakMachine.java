@@ -24,7 +24,7 @@ import net.adamcin.oakpal.core.installable.JcrInstallWatcher;
 import net.adamcin.oakpal.core.installable.NoopInstallWatcher;
 import net.adamcin.oakpal.core.installable.PathInstallable;
 import net.adamcin.oakpal.core.installable.RepoInitInstallable;
-import net.adamcin.oakpal.core.installable.SubpackageInstallable;
+import net.adamcin.oakpal.core.installable.EmbeddedPackageInstallable;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.commons.cnd.DefinitionBuilderFactory;
@@ -55,6 +55,7 @@ import org.apache.jackrabbit.vault.packaging.JcrPackageManager;
 import org.apache.jackrabbit.vault.packaging.PackageException;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.apache.jackrabbit.vault.packaging.Packaging;
+import org.apache.jackrabbit.vault.packaging.SubPackageHandling;
 import org.apache.jackrabbit.vault.packaging.VaultPackage;
 import org.apache.sling.repoinit.parser.RepoInitParsingException;
 import org.jetbrains.annotations.NotNull;
@@ -76,6 +77,7 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Properties;
@@ -769,7 +771,7 @@ public final class OakMachine {
             options.setInstallHookPolicy(scanInstallHookPolicy);
         }
 
-        List<PackageId> subpacks = Arrays.asList(jcrPackage.extractSubpackages(options));
+        final List<PackageId> subpacks = Arrays.asList(jcrPackage.extractSubpackages(options));
 
         final VaultPackage vaultPackage = jcrPackage.getPackage();
         if (!vaultPackage.isValid()) {
@@ -783,11 +785,22 @@ public final class OakMachine {
         jcrPackage.extract(options);
         admin.save();
 
+        final SubPackageHandling subPackageHandling = jcrPackage.getPackage().getSubPackageHandling();
+        final List<PackageId> installableSubpacks = new ArrayList<>();
+        final EnumSet<SubPackageHandling.Option> installableOptions =
+                EnumSet.complementOf(EnumSet.of(SubPackageHandling.Option.ADD, SubPackageHandling.Option.IGNORE));
+        for (PackageId subpackId : subpacks) {
+            final SubPackageHandling.Option option = subPackageHandling.getOption(subpackId);
+            if (installableOptions.contains(option)) {
+                installableSubpacks.add(subpackId);
+            }
+        }
+
         jcrPackage.close();
 
         propagateCheckPackageEvent(preInstall, packageId, handler -> handler.afterExtract(packageId, inspectSession));
 
-        for (PackageId subpackId : subpacks) {
+        for (PackageId subpackId : installableSubpacks) {
             processSubpackage(admin, manager, subpackId, packageId,
                     preInstall || subpackageSilencer.test(subpackId, packageId));
         }
@@ -839,7 +852,6 @@ public final class OakMachine {
 
     final void internalProcessSubpackage(final @NotNull Session admin,
                                          final @NotNull JcrPackageManager manager,
-                                         final @NotNull PackageId packageId,
                                          final @NotNull PackageId parentId,
                                          final boolean preInstall,
                                          final @NotNull Fun.ThrowingSupplier<JcrPackage> jcrPackageSupplier,
@@ -847,6 +859,7 @@ public final class OakMachine {
                                          final @NotNull Consumer<Exception> onError) throws RepositoryException {
         try (JcrPackage jcrPackage = jcrPackageSupplier.tryGet()) {
             if (jcrPackage != null) {
+                PackageId packageId = jcrPackage.getPackage().getId();
                 propagateCheckPackageEvent(preInstall, packageId, progressCheck ->
                         progressCheck.identifySubpackage(packageId, parentId, jcrPathFn.apply(jcrPackage)));
 
@@ -867,27 +880,13 @@ public final class OakMachine {
                                  final @NotNull PackageId packageId,
                                  final @NotNull PackageId parentId,
                                  final boolean preInstall) throws RepositoryException {
-        internalProcessSubpackage(admin, manager, packageId, parentId, preInstall,
+        internalProcessSubpackage(admin, manager, parentId, preInstall,
                 () -> manager.open(packageId),
                 jcrPackage -> Optional.ofNullable(jcrPackage.getNode())
                         .flatMap(compose1(result1(Node::getPath), Result::toOptional))
                         // use the deprecated installation path + .zip extension as last default
                         .orElse(packageId.getInstallationPath() + ".zip"),
                 error -> getErrorListener().onSubpackageException(error, packageId));
-    }
-
-    final void processSubpackageInstallable(final @NotNull Session admin,
-                                            final @NotNull JcrPackageManager manager,
-                                            final @NotNull PackageId lastPackage,
-                                            final @NotNull SubpackageInstallable installable,
-                                            final boolean preInstall) throws RepositoryException {
-        final Consumer<Exception> onError =
-                error -> getErrorListener().onInstallableSubpackageError(error, lastPackage, installable);
-        Optional<Fun.ThrowingSupplier<JcrPackage>> supplierOptional = installWatcher.openSubpackageInstallable(installable, admin, manager);
-        if (supplierOptional.isPresent()) {
-            internalProcessSubpackage(admin, manager, installable.getSubpackageId(), installable.getParentId(),
-                    preInstall, supplierOptional.get(), constantly1(installable::getJcrPath), onError);
-        }
     }
 
     private void processUploadedPackage(final @NotNull Session admin,
@@ -907,11 +906,10 @@ public final class OakMachine {
                                  final @NotNull JcrPackageManager manager,
                                  final boolean preInstall,
                                  final @NotNull PackageId lastUploadedPackage) throws RepositoryException {
-        PathInstallable installable = installWatcher.dequeueInstallable();
-        while (installable != null) {
+        for (PathInstallable installable : installWatcher) {
             if (installable instanceof RepoInitInstallable) {
                 for (final Fun.ThrowingSupplier<Reader> readerSupplier :
-                        installWatcher.openRepoInitInstallable((RepoInitInstallable) installable, admin)) {
+                        installWatcher.open((RepoInitInstallable) installable, admin, manager)) {
                     try (Reader reader = readerSupplier.tryGet()) {
                         repoInitProcessor.apply(admin, reader);
                     } catch (final Exception e) {
@@ -919,12 +917,15 @@ public final class OakMachine {
                                 (RepoInitInstallable) installable);
                     }
                 }
-            } else if (installable instanceof SubpackageInstallable) {
-                processSubpackageInstallable(admin, manager, lastUploadedPackage,
-                        (SubpackageInstallable) installable, preInstall);
+            } else if (installable instanceof EmbeddedPackageInstallable) {
+                final Consumer<Exception> onError =
+                    error -> getErrorListener().onInstallableSubpackageError(error, lastUploadedPackage, (EmbeddedPackageInstallable) installable);
+                for (final Fun.ThrowingSupplier<JcrPackage> jcrPackageSupplier :
+                    installWatcher.open((EmbeddedPackageInstallable) installable, admin, manager)) {
+                    internalProcessSubpackage(admin, manager, installable.getParentId(),
+                        preInstall, jcrPackageSupplier, constantly1(installable::getJcrPath), onError);
+                }
             }
-            // do this at the end of the while scope, obviously.
-            installable = installWatcher.dequeueInstallable();
         }
     }
 

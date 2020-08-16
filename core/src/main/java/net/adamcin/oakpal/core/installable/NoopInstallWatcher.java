@@ -27,6 +27,7 @@ import javax.jcr.Session;
 import java.io.Reader;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.Optional;
 
 /**
@@ -51,24 +52,18 @@ public final class NoopInstallWatcher implements JcrInstallWatcher {
         return NoopInstallWatcher.class.getSimpleName();
     }
 
+    @NotNull
     @Override
-    public @Nullable PathInstallable dequeueInstallable() {
-        return null;
+    public Iterator<PathInstallable<?>> iterator() {
+        return Collections.emptyIterator();
     }
 
     @Override
-    public @NotNull Iterable<Fun.ThrowingSupplier<Reader>>
-    openRepoInitInstallable(@NotNull final RepoInitInstallable installable,
-                            @NotNull final Session session) {
+    public @NotNull <EntityType> Iterable<Fun.ThrowingSupplier<EntityType>>
+    open(@NotNull PathInstallable<EntityType> installable,
+         @NotNull Session session,
+         @NotNull JcrPackageManager packageManager) {
         return Collections.emptyList();
-    }
-
-    @Override
-    public @NotNull Optional<Fun.ThrowingSupplier<JcrPackage>>
-    openSubpackageInstallable(@NotNull final SubpackageInstallable installable,
-                              @NotNull final Session session,
-                              @NotNull final JcrPackageManager packageManager) {
-        return Optional.empty();
     }
 
     @Override

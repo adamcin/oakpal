@@ -21,10 +21,23 @@ import org.jetbrains.annotations.NotNull;
 import org.osgi.annotation.versioning.ProviderType;
 
 /**
- *
+ * Represents an installable entity which was detected during a package scan which should be subject to
+ * a scan.
  */
 @ProviderType
-public interface PathInstallable {
+public interface PathInstallable<EntityType> {
+
+    /**
+     * The id of the containing package.
+     *
+     * @return the package id
+     */
     @NotNull PackageId getParentId();
+
+    /**
+     * The JCR path for the installable entity.
+     *
+     * @return the path of the entity
+     */
     @NotNull String getJcrPath();
 }

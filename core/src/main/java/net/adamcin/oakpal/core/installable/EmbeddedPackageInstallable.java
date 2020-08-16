@@ -16,18 +16,17 @@
 
 package net.adamcin.oakpal.core.installable;
 
+import org.apache.jackrabbit.vault.packaging.JcrPackage;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.jetbrains.annotations.NotNull;
 
-public final class SubpackageInstallable implements PathInstallable {
+public final class EmbeddedPackageInstallable implements PathInstallable<JcrPackage> {
     private final PackageId parentId;
     private final String jcrPath;
-    private final PackageId subpackageId;
 
-    public SubpackageInstallable(final PackageId parentId, final String jcrPath, final PackageId subpackageId) {
+    public EmbeddedPackageInstallable(final PackageId parentId, final String jcrPath) {
         this.parentId = parentId;
         this.jcrPath = jcrPath;
-        this.subpackageId = subpackageId;
     }
 
     @NotNull
@@ -40,9 +39,5 @@ public final class SubpackageInstallable implements PathInstallable {
     @Override
     public String getJcrPath() {
         return jcrPath;
-    }
-
-    public PackageId getSubpackageId() {
-        return subpackageId;
     }
 }
