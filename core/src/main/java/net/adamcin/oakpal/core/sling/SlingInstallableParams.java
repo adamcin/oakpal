@@ -26,6 +26,6 @@ import org.osgi.annotation.versioning.ProviderType;
  * @param <T> sling installable type that will be created
  */
 @ProviderType
-public interface SlingInstallableParams<T extends SlingInstallable> {
+public interface SlingInstallableParams<T extends SlingInstallable<?>> {
     @NotNull T createInstallable(PackageId parentPackageId, String jcrPath);
 }

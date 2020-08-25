@@ -16,14 +16,14 @@
 
 package net.adamcin.oakpal.core;
 
+import net.adamcin.oakpal.api.EmbeddedPackageInstallable;
 import net.adamcin.oakpal.api.Fun;
 import net.adamcin.oakpal.api.PathAction;
 import net.adamcin.oakpal.api.ProgressCheck;
+import net.adamcin.oakpal.api.RepoInitScriptsInstallable;
 import net.adamcin.oakpal.api.SilenceableCheck;
 import net.adamcin.oakpal.api.SlingInstallable;
 import net.adamcin.oakpal.core.sling.DefaultSlingSimulator;
-import net.adamcin.oakpal.api.EmbeddedPackageInstallable;
-import net.adamcin.oakpal.api.RepoInitScriptsInstallable;
 import net.adamcin.oakpal.core.sling.SlingSimulatorBackend;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitRepository;
@@ -918,15 +918,13 @@ public final class OakMachine {
                                       final boolean preInstall) throws RepositoryException {
         final Consumer<Exception> onError =
                 error -> getErrorListener().onSlingEmbeddedPackageError(error, installable);
-        Fun.ThrowingSupplier<JcrPackage> supplier = slingSimulator.openEmbeddedPackage(installable);
-        if (supplier != null) {
-            internalProcessSubpackage(admin, manager, installable.getEmbeddedId(), preInstall, supplier,
-                    check -> check.identifyEmbeddedPackage(
-                            installable.getEmbeddedId(),
-                            installable.getParentId(),
-                            installable.getJcrPath()),
-                    onError);
-        }
+        Fun.ThrowingSupplier<JcrPackage> supplier = slingSimulator.open(installable);
+        internalProcessSubpackage(admin, manager, installable.getEmbeddedId(), preInstall, supplier,
+                check -> check.identifyEmbeddedPackage(
+                        installable.getEmbeddedId(),
+                        installable.getParentId(),
+                        installable.getJcrPath()),
+                onError);
     }
 
     private void processUploadedPackage(final @NotNull Session admin,
@@ -951,20 +949,23 @@ public final class OakMachine {
                                  final @NotNull PackageId lastPackageId,
                                  final boolean preInstall) throws RepositoryException {
         final Session inspectSession = Util.wrapSessionReadOnly(admin);
-        SlingInstallable dequeued = slingSimulator.dequeueInstallable();
+        SlingInstallable<?> dequeued = slingSimulator.dequeueInstallable();
         while (dequeued != null) {
-            final SlingInstallable installable = dequeued;
+            final SlingInstallable<?> installable = dequeued;
             propagateCheckPackageEvent(preInstall, installable.getParentId(),
                     check -> check.beforeSlingInstall(lastPackageId, installable, inspectSession));
             if (installable instanceof RepoInitScriptsInstallable) {
-                for (final String repoInitScript :
-                        slingSimulator.openRepoInitScripts((RepoInitScriptsInstallable) installable)) {
-                    try (Reader reader = new StringReader(repoInitScript)) {
-                        repoInitProcessor.apply(admin, reader);
-                    } catch (final Exception e) {
-                        getErrorListener().onSlingRepoInitScriptsError(e, repoInitScript,
-                                (RepoInitScriptsInstallable) installable);
+                try {
+                    for (final String repoInitScript : slingSimulator.open((RepoInitScriptsInstallable) installable).tryGet()) {
+                        try (Reader reader = new StringReader(repoInitScript)) {
+                            repoInitProcessor.apply(admin, reader);
+                        } catch (final Exception e) {
+                            getErrorListener().onSlingRepoInitScriptsError(e, repoInitScript,
+                                    (RepoInitScriptsInstallable) installable);
+                        }
                     }
+                } catch (Exception e) {
+                    getErrorListener().onSlingRepoInitScriptsError(e, null, (RepoInitScriptsInstallable) installable);
                 }
             } else if (installable instanceof EmbeddedPackageInstallable) {
                 processEmbeddedPackage(admin, manager, (EmbeddedPackageInstallable) installable, preInstall);

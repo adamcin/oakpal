@@ -27,7 +27,7 @@ import java.util.Map;
 /**
  * Sling Installable representing an OSGi config node.
  */
-public final class OsgiConfigInstallable implements SlingInstallable {
+public final class OsgiConfigInstallable implements SlingInstallable<Map<String, Object>> {
     private final @NotNull PackageId parentId;
     private final @NotNull String jcrPath;
     private final @NotNull Map<String, Object> properties;

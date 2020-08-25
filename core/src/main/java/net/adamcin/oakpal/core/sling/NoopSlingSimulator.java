@@ -16,13 +16,10 @@
 
 package net.adamcin.oakpal.core.sling;
 
-import net.adamcin.oakpal.api.EmbeddedPackageInstallable;
 import net.adamcin.oakpal.api.Fun;
-import net.adamcin.oakpal.api.RepoInitScriptsInstallable;
 import net.adamcin.oakpal.api.SlingInstallable;
 import net.adamcin.oakpal.api.SlingSimulator;
 import net.adamcin.oakpal.core.ErrorListener;
-import org.apache.jackrabbit.vault.packaging.JcrPackage;
 import org.apache.jackrabbit.vault.packaging.JcrPackageManager;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.jetbrains.annotations.NotNull;
@@ -30,7 +27,6 @@ import org.jetbrains.annotations.Nullable;
 
 import javax.jcr.Node;
 import javax.jcr.Session;
-import java.util.Collections;
 
 /**
  * Noop implementation of a SlingSimulator.
@@ -61,15 +57,10 @@ public final class NoopSlingSimulator implements SlingSimulatorBackend, SlingSim
     }
 
     @Override
-    public @NotNull Iterable<String>
-    openRepoInitScripts(@NotNull final RepoInitScriptsInstallable installable) {
-        return Collections.emptyList();
-    }
-
-    @Override
-    public @Nullable Fun.ThrowingSupplier<JcrPackage>
-    openEmbeddedPackage(@NotNull final EmbeddedPackageInstallable installable) {
-        return null;
+    public @NotNull <InstallableType> Fun.ThrowingSupplier<InstallableType> open(@NotNull final SlingInstallable<InstallableType> installable) {
+        return () -> {
+            throw new IllegalStateException("Cannot install sling resources using using noop simulator.");
+        };
     }
 
     @Override

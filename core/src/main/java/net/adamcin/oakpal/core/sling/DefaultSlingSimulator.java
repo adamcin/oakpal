@@ -29,11 +29,9 @@ import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.apache.jackrabbit.vault.packaging.VaultPackage;
 import org.apache.jackrabbit.vault.packaging.impl.ZipVaultPackage;
 import org.apache.sling.installer.api.InstallableResource;
-import org.apache.sling.installer.core.impl.FileDataStore;
 import org.apache.sling.installer.core.impl.InternalResource;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.osgi.framework.BundleContext;
 
 import javax.jcr.Node;
 import javax.jcr.Property;
@@ -42,11 +40,8 @@ import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.Value;
-import java.io.File;
 import java.io.InputStream;
 import java.lang.reflect.Array;
-import java.lang.reflect.Method;
-import java.lang.reflect.Proxy;
 import java.util.Arrays;
 import java.util.Dictionary;
 import java.util.Enumeration;
@@ -75,7 +70,7 @@ public final class DefaultSlingSimulator implements SlingSimulatorBackend, Sling
     private JcrPackageManager packageManager;
     private ErrorListener errorListener;
 
-    private final Queue<SlingInstallable> installables = new LinkedList<>();
+    private final Queue<SlingInstallable<?>> installables = new LinkedList<>();
 
     @Override
     public void startedScan() {
@@ -98,25 +93,39 @@ public final class DefaultSlingSimulator implements SlingSimulatorBackend, Sling
     }
 
     @Override
-    public @Nullable SlingInstallable dequeueInstallable() {
+    public @Nullable SlingInstallable<?> dequeueInstallable() {
         return installables.poll();
     }
 
+    @SuppressWarnings("unchecked")
     @Override
+    public @NotNull <InstallableType> Fun.ThrowingSupplier<InstallableType>
+    open(@NotNull final SlingInstallable<InstallableType> installable) {
+        if (installable instanceof RepoInitScriptsInstallable) {
+            return () ->
+                    (InstallableType) openRepoInitScripts((RepoInitScriptsInstallable) installable);
+        } else if (installable instanceof EmbeddedPackageInstallable) {
+            return () ->
+                    (InstallableType) openEmbeddedPackage((EmbeddedPackageInstallable) installable);
+        }
+        return () -> {
+            throw new IllegalArgumentException("Unsupported installable type: " + installable.getClass());
+        };
+    }
+
     public @NotNull Iterable<String>
     openRepoInitScripts(@NotNull final RepoInitScriptsInstallable installable) {
         return installable.getScripts();
     }
 
-    @Override
     public @Nullable Fun.ThrowingSupplier<JcrPackage>
     openEmbeddedPackage(@NotNull final EmbeddedPackageInstallable installable) {
         return () -> packageManager.open(session.getNode(installable.getJcrPath()), true);
     }
 
     @Override
-    public @Nullable SlingInstallable prepareInstallableNode(final @NotNull PackageId parentPackageId,
-                                                             final @NotNull Node node) {
+    public @Nullable SlingInstallable<?> prepareInstallableNode(final @NotNull PackageId parentPackageId,
+                                                                final @NotNull Node node) {
         final Result<String> jcrPathResult = result0(node::getPath).get();
         final Result<Optional<SlingInstallableParams<?>>> result = jcrPathResult
                 .flatMap(result1(session::getNode))
@@ -130,7 +139,7 @@ public final class DefaultSlingSimulator implements SlingSimulatorBackend, Sling
     }
 
     @Override
-    public @Nullable SlingInstallable submitInstallable(final @NotNull SlingInstallable installable) {
+    public @Nullable SlingInstallable<?> submitInstallable(final @NotNull SlingInstallable<?> installable) {
         installables.add(installable);
         return installable;
     }
@@ -175,10 +184,7 @@ public final class DefaultSlingSimulator implements SlingSimulatorBackend, Sling
             if (installable != null) {
                 return Optional.of(installable);
             }
-            installable = maybeBundleResource(resource);
-            if (installable != null) {
-                return Optional.of(installable);
-            }
+            // maybe do something with bundles in the future
         } else if (InstallableResource.TYPE_PROPERTIES.equals(resource.getType())) {
             // convert to OsgiConfigInstallable
             installable = maybeConfigResource(resource);
@@ -194,23 +200,6 @@ public final class DefaultSlingSimulator implements SlingSimulatorBackend, Sling
         return result0(() -> new ZipVaultPackage(resource.getPrivateCopyOfFile(), true, false)).get()
                 .map(VaultPackage::getId)
                 .map(EmbeddedPackageInstallableParams::new).toOptional().orElse(null);
-    }
-
-    static void setInternalDataStore(final @NotNull File dataDir) {
-        final BundleContext bundleContext =
-                (BundleContext) Proxy.newProxyInstance(DefaultSlingSimulator.class.getClassLoader(),
-                        new Class<?>[]{BundleContext.class},
-                        (Object proxy, Method method, Object[] args) -> {
-                            if ("getDataFile".equals(method.getName())) {
-                                return dataDir;
-                            }
-                            return null;
-                        });
-        new FileDataStore(bundleContext);
-    }
-
-    static @Nullable OsgiBundleInstallableParams maybeBundleResource(final @NotNull InternalResource resource) {
-        return new OsgiBundleInstallableParams();
     }
 
     static String separatorsToUnix(final String path) {

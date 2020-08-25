@@ -16,14 +16,11 @@
 
 package net.adamcin.oakpal.core.sling;
 
-import net.adamcin.oakpal.api.EmbeddedPackageInstallable;
 import net.adamcin.oakpal.api.Fun;
-import net.adamcin.oakpal.api.RepoInitScriptsInstallable;
 import net.adamcin.oakpal.api.ScanListener;
 import net.adamcin.oakpal.api.SlingInstallable;
 import net.adamcin.oakpal.api.SlingSimulator;
 import net.adamcin.oakpal.core.ErrorListener;
-import org.apache.jackrabbit.vault.packaging.JcrPackage;
 import org.apache.jackrabbit.vault.packaging.JcrPackageManager;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -66,23 +63,15 @@ public interface SlingSimulatorBackend extends SlingSimulator, ScanListener {
      *
      * @return a resource to be installed immediately or null to continue the scan
      */
-    @Nullable SlingInstallable dequeueInstallable();
+    @Nullable SlingInstallable<?> dequeueInstallable();
 
     /**
-     * Get installable, raw repoinit scripts from the specified JCR path.
+     * Get installable entities from the specified JCR path.
      *
-     * @param installable the installable
-     * @return an iterable of raw repoinit scripts
+     * @param installable       the installable
+     * @param <InstallableType> the concrete installable type
+     * @return an entity supplier from the provided JCR path
      */
-    @NotNull Iterable<String>
-    openRepoInitScripts(@NotNull RepoInitScriptsInstallable installable);
-
-    /**
-     * Get installable JCR package from the specified JCR path.
-     *
-     * @param installable the subpackage installable
-     * @return a subpackage supplier or null
-     */
-    @Nullable Fun.ThrowingSupplier<JcrPackage>
-    openEmbeddedPackage(@NotNull EmbeddedPackageInstallable installable);
+    @NotNull <InstallableType> Fun.ThrowingSupplier<InstallableType>
+    open(@NotNull SlingInstallable<InstallableType> installable);
 }

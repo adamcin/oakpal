@@ -23,7 +23,6 @@ import org.junit.Test;
 import java.util.Collections;
 
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 
 public class RepoInitScriptsInstallableTest {
@@ -33,11 +32,10 @@ public class RepoInitScriptsInstallableTest {
         final PackageId expectParentId = PackageId.fromString("test:test:1");
         final String expectJcrPath = "/some/path";
         final RepoInitScriptsInstallable installable = new RepoInitScriptsInstallable(expectParentId, expectJcrPath,
-                Collections.emptyList(), null);
+                Collections.emptyList());
 
         assertSame("expect parentId", expectParentId, installable.getParentId());
         assertSame("expect jcrPath", expectJcrPath, installable.getJcrPath());
         assertNotNull("expect not null", installable.getScripts());
-        assertNull("expect null convertedFrom", installable.getConvertedFrom());
     }
 }

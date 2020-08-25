@@ -14,32 +14,25 @@
  * limitations under the License.
  */
 
-package net.adamcin.oakpal.api;
+package net.adamcin.oakpal.core.sling;
 
+import net.adamcin.oakpal.api.RepoInitScriptsInstallable;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.jetbrains.annotations.NotNull;
-import org.osgi.annotation.versioning.ProviderType;
 
-/**
- * Type representing a Sling-installable resource JCR path.
- *
- * @param <InstallableType> the concrete installable type
- */
-@ProviderType
-public interface SlingInstallable<InstallableType> {
+import java.util.List;
 
-    /**
-     * PackageId of the package that imported the resource.
-     *
-     * @return the parent package ID
-     */
-    @NotNull PackageId getParentId();
+public class RepoInitScriptsInstallableParams implements SlingInstallableParams<RepoInitScriptsInstallable> {
 
-    /**
-     * The JCR path of the resource.
-     *
-     * @return the JCR path
-     */
-    @NotNull String getJcrPath();
+    private final List<String> scripts;
 
+    public RepoInitScriptsInstallableParams(final List<String> scripts) {
+        this.scripts = scripts;
+    }
+
+    @NotNull
+    @Override
+    public RepoInitScriptsInstallable createInstallable(final PackageId parentPackageId, final String jcrPath) {
+        return new RepoInitScriptsInstallable(parentPackageId, jcrPath, scripts);
+    }
 }

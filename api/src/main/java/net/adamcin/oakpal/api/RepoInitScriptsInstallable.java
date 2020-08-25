@@ -18,27 +18,23 @@ package net.adamcin.oakpal.api;
 
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
 /**
  * Locates a jcr path that should be treated as an installable provider of repoinit scripts.
  */
-public final class RepoInitScriptsInstallable implements SlingInstallable {
+public final class RepoInitScriptsInstallable implements SlingInstallable<Iterable<String>> {
     private final @NotNull PackageId parentId;
     private final @NotNull String jcrPath;
     private final @NotNull List<String> scripts;
-    private final @Nullable OsgiConfigInstallable convertedFrom;
 
     public RepoInitScriptsInstallable(final @NotNull PackageId parentId,
                                       final @NotNull String jcrPath,
-                                      final @NotNull List<String> scripts,
-                                      final @Nullable OsgiConfigInstallable convertedFrom) {
+                                      final @NotNull List<String> scripts) {
         this.parentId = parentId;
         this.jcrPath = jcrPath;
         this.scripts = scripts;
-        this.convertedFrom = convertedFrom;
     }
 
     @Override
@@ -56,9 +52,4 @@ public final class RepoInitScriptsInstallable implements SlingInstallable {
         return scripts;
     }
 
-    @Nullable
-    @Override
-    public OsgiConfigInstallable getConvertedFrom() {
-        return convertedFrom;
-    }
 }

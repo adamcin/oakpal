@@ -40,8 +40,8 @@ public interface SlingSimulator {
      * @param node            the JCR node of the embedded JCR package
      * @return a handle for the installable path or null
      */
-    @Nullable SlingInstallable prepareInstallableNode(@NotNull PackageId parentPackageId,
-                                                      @NotNull Node node);
+    @Nullable SlingInstallable<?> prepareInstallableNode(@NotNull PackageId parentPackageId,
+                                                         @NotNull Node node);
 
     /**
      * Submit a resource path for installation as a list of raw repoinit scripts. The best real-world example at this
@@ -52,5 +52,5 @@ public interface SlingSimulator {
      * @param installable the installable
      * @return a handle for the installable path or null
      */
-    @Nullable SlingInstallable submitInstallable(@NotNull SlingInstallable installable);
+    @Nullable SlingInstallable<?> submitInstallable(@NotNull SlingInstallable<?> installable);
 }

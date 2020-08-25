@@ -17,6 +17,7 @@
 package net.adamcin.oakpal.core;
 
 import junitx.util.PrivateAccessor;
+import net.adamcin.oakpal.api.Fun;
 import net.adamcin.oakpal.api.PathAction;
 import net.adamcin.oakpal.api.ProgressCheck;
 import net.adamcin.oakpal.api.SilenceableCheck;
@@ -674,7 +675,7 @@ public class OakMachineTest {
                 any(EmbeddedPackageInstallable.class));
 
         final SlingSimulatorBackend installWatcher = mock(SlingSimulatorBackend.class);
-        when(installWatcher.openEmbeddedPackage(installable))
+        when(installWatcher.open(installable))
                 .thenReturn(() -> manager.open(sub1));
         builder()
                 .withSlingSimulator(installWatcher)
@@ -706,7 +707,7 @@ public class OakMachineTest {
                 any(EmbeddedPackageInstallable.class));
 
         final SlingSimulatorBackend installWatcher = mock(SlingSimulatorBackend.class);
-        when(installWatcher.openEmbeddedPackage(installable))
+        when(installWatcher.open(installable))
                 .thenReturn(() -> manager.open(sub1));
         builder()
                 .withSlingSimulator(installWatcher)
@@ -806,7 +807,7 @@ public class OakMachineTest {
         doAnswer(call -> {
             openedSlot.complete(call.getArgument(0));
             return null;
-        }).when(installWatcher).openEmbeddedPackage(installable);
+        }).when(installWatcher).open(installable);
 
         new OakMachine.Builder()
                 .withSlingSimulator(installWatcher)
@@ -841,18 +842,20 @@ public class OakMachineTest {
         }).when(installWatcher).dequeueInstallable();
 
         final CompletableFuture<Reader> readerSlot = new CompletableFuture<>();
-        final OakMachine.RepoInitProcessor repoInitProcessor = mock(OakMachine.RepoInitProcessor.class);
-        doAnswer(call -> readerSlot.complete(call.getArgument(1)))
-                .when(repoInitProcessor).apply(any(Session.class), any(Reader.class));
+        final OakMachine.RepoInitProcessor repoInitProcessor = (Session sess, Reader read) -> {
+            readerSlot.complete(read);
+        };
 
         final CompletableFuture<RepoInitScriptsInstallable> openedSlot = new CompletableFuture<>();
         doAnswer(call -> {
             openedSlot.complete(call.getArgument(0));
-            List<String> scripts = new ArrayList<>();
-            scripts.add("create user testProcessInstallableQueue_singleRepoInitInstallable");
-            scripts.add(null);
-            return scripts;
-        }).when(installWatcher).openRepoInitScripts(installable);
+            return (Fun.ThrowingSupplier<Iterable<String>>) () -> {
+                List<String> scripts = new ArrayList<>();
+                scripts.add("create user testProcessInstallableQueue_singleRepoInitInstallable");
+                scripts.add(null);
+                return scripts;
+            };
+        }).when(installWatcher).open(installable);
 
         final CompletableFuture<Throwable> eLatch = new CompletableFuture<>();
         final CompletableFuture<String> scriptLatch = new CompletableFuture<>();

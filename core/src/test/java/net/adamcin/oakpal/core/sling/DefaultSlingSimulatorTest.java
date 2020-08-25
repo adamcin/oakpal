@@ -16,18 +16,19 @@
 
 package net.adamcin.oakpal.core.sling;
 
+import net.adamcin.oakpal.api.Result;
 import net.adamcin.oakpal.core.OakpalPlan;
-import org.apache.sling.installer.api.InstallableResource;
 import org.apache.sling.installer.core.impl.InternalResource;
 import org.junit.Test;
 
+import java.util.Optional;
 import java.util.function.Function;
 
 import static net.adamcin.oakpal.api.JavaxJson.arr;
 import static net.adamcin.oakpal.api.JavaxJson.key;
 import static net.adamcin.oakpal.core.OakpalPlan.keys;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 public class DefaultSlingSimulatorTest {
 
@@ -37,8 +38,10 @@ public class DefaultSlingSimulatorTest {
                 arr().val("create path (nt:unstructured) /apps/config/Test")).get())
                 .toOakMachineBuilder(null, getClass().getClassLoader())
                 .build().initAndInspect(session -> {
-            assertNull("expect null config",
-                    DefaultSlingSimulator.readInternalResourceFromNode(session.getNode("/apps/config/Test")));
+
+            Result<Optional<InternalResource>> result = DefaultSlingSimulator
+                    .readInternalResourceFromNode(session.getNode("/apps/config/Test"));
+            assertTrue("expect null config", result.isSuccess() && !result.getOrDefault(null).isPresent());
         });
     }
 
@@ -62,9 +65,6 @@ public class DefaultSlingSimulatorTest {
             assertNotNull("expect not null config", resource.getDictionary());
         });
     }
-
-
-
 
 
 }

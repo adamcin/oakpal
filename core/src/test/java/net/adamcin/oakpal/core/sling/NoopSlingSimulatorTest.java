@@ -39,20 +39,16 @@ public class NoopSlingSimulatorTest {
         assertNull("never dequeue an installable", instance().dequeueInstallable());
     }
 
-    @Test
-    public void testOpenRepoInitScripts() {
-        assertNotNull("expect non-null iterable",
-                instance().openRepoInitScripts(
-                        new RepoInitScriptsInstallable(PackageId.fromString("test:pack:1"), "/test/path",
-                                Collections.emptyList())));
+    @Test(expected = IllegalStateException.class)
+    public void testOpenRepoInitScripts() throws Exception {
+        instance().open(new RepoInitScriptsInstallable(PackageId.fromString("test:pack:1"), "/test/path",
+                Collections.emptyList())).tryGet();
     }
 
-    @Test
-    public void testOpenEmbeddedPackage() {
-        assertNull("expect null package",
-                instance().openEmbeddedPackage(
-                        new EmbeddedPackageInstallable(PackageId.fromString("test:pack:1"), "/test/path",
-                                PackageId.fromString("test:pack:2"))));
+    @Test(expected = IllegalStateException.class)
+    public void testOpenEmbeddedPackage() throws Exception {
+        instance().open(new EmbeddedPackageInstallable(PackageId.fromString("test:pack:1"), "/test/path",
+                PackageId.fromString("test:pack:2"))).tryGet();
     }
 
 }
