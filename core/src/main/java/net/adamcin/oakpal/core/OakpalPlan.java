@@ -417,6 +417,9 @@ public final class OakpalPlan implements JsonObjectConvertible {
         if (hasNonNull(json, keys().repoInits())) {
             builder.withRepoInits(JavaxJson.mapArrayOfStrings(json.getJsonArray(keys().repoInits())));
         }
+        if (hasNonNull(json, keys().runModes())) {
+            builder.withRunModes(JavaxJson.mapArrayOfStrings(json.getJsonArray(keys().runModes())));
+        }
         if (hasNonNull(json, keys().forcedRoots())) {
             builder.withForcedRoots(JavaxJson.mapArrayOfObjects(json.getJsonArray(keys().forcedRoots()),
                     ForcedRoot::fromJson));
@@ -502,6 +505,7 @@ public final class OakpalPlan implements JsonObjectConvertible {
                     .withInstallHookPolicy(plan.getInstallHookPolicy())
                     .withRepoInitUrls(plan.getRepoInitUrls())
                     .withRepoInits(plan.getRepoInits())
+                    .withRunModes(plan.getRunModes())
                     .withPreInstallUrls(plan.getPreInstallUrls());
         }
 

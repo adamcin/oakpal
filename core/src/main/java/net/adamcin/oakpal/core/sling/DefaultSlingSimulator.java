@@ -23,13 +23,12 @@ import net.adamcin.oakpal.api.Result;
 import net.adamcin.oakpal.api.SlingInstallable;
 import net.adamcin.oakpal.api.SlingSimulator;
 import net.adamcin.oakpal.core.ErrorListener;
+import org.apache.felix.cm.file.ConfigurationHandler;
 import org.apache.jackrabbit.vault.packaging.JcrPackage;
 import org.apache.jackrabbit.vault.packaging.JcrPackageManager;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.apache.jackrabbit.vault.packaging.VaultPackage;
-import org.apache.jackrabbit.vault.packaging.impl.ZipVaultPackage;
 import org.apache.sling.installer.api.InstallableResource;
-import org.apache.sling.installer.core.impl.InternalResource;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -40,21 +39,23 @@ import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.Value;
+import java.io.BufferedInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Array;
 import java.util.Arrays;
 import java.util.Dictionary;
 import java.util.Enumeration;
 import java.util.HashMap;
-import java.util.Hashtable;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Properties;
 import java.util.Queue;
 import java.util.function.Function;
 
-import static net.adamcin.oakpal.api.Fun.compose1;
 import static net.adamcin.oakpal.api.Fun.result0;
 import static net.adamcin.oakpal.api.Fun.result1;
 
@@ -129,18 +130,15 @@ public final class DefaultSlingSimulator implements SlingSimulatorBackend, Sling
         final Result<String> jcrPathResult = result0(node::getPath).get();
         final Result<Optional<SlingInstallableParams<?>>> result = jcrPathResult
                 .flatMap(result1(session::getNode))
-                .flatMap(DefaultSlingSimulator::readInternalResourceFromNode)
-                .map(resource -> resource.flatMap(DefaultSlingSimulator::createSlingInstallableParams));
-        return jcrPathResult.flatMap(jcrPath ->
+                .flatMap(this::readInstallableParamsFromNode);
+        SlingInstallable<?> installable = jcrPathResult.flatMap(jcrPath ->
                 result.map(optParams ->
                         optParams.map(params -> params.createInstallable(parentPackageId, jcrPath))))
                 .toOptional().flatMap(Function.identity())
                 .orElse(null);
-    }
-
-    @Override
-    public @Nullable SlingInstallable<?> submitInstallable(final @NotNull SlingInstallable<?> installable) {
-        installables.add(installable);
+        if (installable != null) {
+            installables.add(installable);
+        }
         return installable;
     }
 
@@ -148,58 +146,85 @@ public final class DefaultSlingSimulator implements SlingSimulatorBackend, Sling
     static final String SLING_OSGI_CONFIG = "{" + SLING_NS + "}OsgiConfig";
     static final String JCR_CONTENT_DATA = "jcr:content/jcr:data";
 
-    static @NotNull Result<Optional<InternalResource>>
-    readInternalResourceFromNode(final @NotNull Node node) {
+    static class NodeRes {
+        private final Node node;
+        private final String path;
+        private final Map<String, Object> props = new HashMap<>();
+
+        public NodeRes(final Node node, final String path) {
+            this.node = node;
+            this.path = path;
+        }
+
+        public Node getNode() {
+            return node;
+        }
+
+        public String getPath() {
+            return path;
+        }
+
+        public Map<String, Object> getProps() {
+            return props;
+        }
+    }
+
+    @NotNull Result<Optional<SlingInstallableParams<?>>>
+    readInstallableParamsFromNode(final @NotNull Node node) {
         return result0(() -> {
             final String path = node.getPath();
+            NodeRes nodeRes = new NodeRes(node, path);
             if (Arrays.asList(node.getSession().getWorkspace().getNamespaceRegistry().getURIs()).contains(SLING_NS)
                     && node.isNodeType(SLING_OSGI_CONFIG)) {
-                final Dictionary<String, Object> props = new Hashtable<>();
-                loadJcrProperties(props, node);
-                return Optional.of(new InstallableResource(path, null, props, "", null, 20));
+                // handle sling:OsgiConfig
+                loadJcrProperties(nodeRes.getProps(), node);
+
+                OsgiConfigInstallableParams configInstallableParams = maybeConfigResource(nodeRes);
+                if (configInstallableParams != null) {
+                    return Optional.<SlingInstallableParams<?>>ofNullable(RepoInitScriptsInstallableParams
+                            .fromOsgiConfigInstallableParams(configInstallableParams))
+                            .orElse(configInstallableParams);
+                }
             } else if (node.hasProperty(JCR_CONTENT_DATA)) {
-                final InputStream is = node.getProperty(JCR_CONTENT_DATA).getStream();
-                final Dictionary<String, Object> dict = new Hashtable<>();
-                dict.put(InstallableResource.INSTALLATION_HINT, node.getParent().getName());
-                return Optional.of(new InstallableResource(path, is, dict, "", null, 200));
+                // this could be a properties file, or a package file (.zip), or a bundle (.jar)
+                // check extension here
+                nodeRes.getProps().put(InstallableResource.INSTALLATION_HINT, node.getParent().getName());
+
+                EmbeddedPackageInstallableParams packageInstallableParams = maybePackageResource(nodeRes);
+                if (packageInstallableParams != null) {
+                    return packageInstallableParams;
+                }
+
+                if (isConfigExtension(path)) {
+                    try (InputStream is = node.getProperty(JCR_CONTENT_DATA).getBinary().getStream()) {
+                        nodeRes.getProps().putAll(readDictionary(is, nodeRes.getPath()));
+                    }
+
+                    OsgiConfigInstallableParams configInstallableParams = maybeConfigResource(nodeRes);
+                    if (configInstallableParams != null) {
+                        return Optional.<SlingInstallableParams<?>>ofNullable(RepoInitScriptsInstallableParams
+                                .fromOsgiConfigInstallableParams(configInstallableParams))
+                                .orElse(configInstallableParams);
+                    }
+                }
             }
-            return Optional.<InstallableResource>empty();
-        }).get().flatMap(resource -> resource
-                .map(compose1(
-                        DefaultSlingSimulator::readInternalResourceFromInstallableResource,
-                        result -> result.map(Optional::of)))
-                .orElse(Result.success(Optional.empty())));
+            return null;
+        }).get().map(Optional::ofNullable);
     }
 
-    static @NotNull Result<InternalResource>
-    readInternalResourceFromInstallableResource(final @NotNull InstallableResource resource) {
-        return result0(() -> InternalResource.create("jcrinstall", resource)).get();
-    }
-
-    static @NotNull Optional<SlingInstallableParams<?>>
-    createSlingInstallableParams(final @NotNull InternalResource resource) {
-        SlingInstallableParams<?> installable = null;
-        if (InstallableResource.TYPE_FILE.equals(resource.getType())) {
-            installable = maybePackageResource(resource);
-            if (installable != null) {
-                return Optional.of(installable);
-            }
-            // maybe do something with bundles in the future
-        } else if (InstallableResource.TYPE_PROPERTIES.equals(resource.getType())) {
-            // convert to OsgiConfigInstallable
-            installable = maybeConfigResource(resource);
-            if (installable != null) {
-                // if RepoInit, wrap with RepoInitScriptInstallable
-                return Optional.of(installable);
+    @Nullable EmbeddedPackageInstallableParams maybePackageResource(final @NotNull NodeRes nodeRes) {
+        if (nodeRes.getPath().endsWith(".zip")) {
+            try (JcrPackage pack = packageManager.open(nodeRes.getNode(), true)) {
+                return result1(JcrPackage::getPackage).apply(pack)
+                        .flatMap(result1(VaultPackage::getId))
+                        .map(EmbeddedPackageInstallableParams::new)
+                        .toOptional().orElse(null);
+            } catch (RepositoryException e) {
+                /* TODO log this or something? */
+                return null;
             }
         }
-        return Optional.empty();
-    }
-
-    static @Nullable EmbeddedPackageInstallableParams maybePackageResource(final @NotNull InternalResource resource) {
-        return result0(() -> new ZipVaultPackage(resource.getPrivateCopyOfFile(), true, false)).get()
-                .map(VaultPackage::getId)
-                .map(EmbeddedPackageInstallableParams::new).toOptional().orElse(null);
+        return null;
     }
 
     static String separatorsToUnix(final String path) {
@@ -235,8 +260,73 @@ public final class DefaultSlingSimulator implements SlingSimulatorBackend, Sling
         return id;
     }
 
-    static @Nullable OsgiConfigInstallableParams maybeConfigResource(final @NotNull InternalResource resource) {
-        final String lastIdPart = getResourceId(resource.getURL());
+    private static boolean isConfigExtension(String url) {
+        for (final String ext : EXTENSIONS) {
+            if (url.endsWith(ext)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Read dictionary from an input stream.
+     * We use the same logic as Apache Felix FileInstall here, but only for .config files:
+     * *.config files are handled by the Apache Felix ConfigAdmin file reader
+     *
+     * @param is the input stream
+     * @param id the id
+     * @throws IOException
+     */
+    static Map<String, Object> readDictionary(final InputStream is, final String id)
+            throws IOException {
+        final Map<String, Object> ht = new LinkedHashMap<>();
+
+        try (final BufferedInputStream in = new BufferedInputStream(is)) {
+
+            if (id.endsWith(".config")) {
+                // check for initial comment line
+                in.mark(256);
+                final int firstChar = in.read();
+                if (firstChar == '#') {
+                    int b;
+                    while ((b = in.read()) != '\n') {
+                        if (b == -1) {
+                            throw new IOException("Unable to read configuration.");
+                        }
+                    }
+                } else {
+                    in.reset();
+                }
+                @SuppressWarnings("unchecked") final Dictionary<String, Object> config = ConfigurationHandler.read(in);
+                final Enumeration<String> i = config.keys();
+                while (i.hasMoreElements()) {
+                    final String key = i.nextElement();
+                    ht.put(key, config.get(key));
+                }
+            } else {
+                final Properties p = new Properties();
+                in.mark(1);
+                boolean isXml = in.read() == '<';
+                in.reset();
+                if (isXml) {
+                    p.loadFromXML(in);
+                } else {
+                    p.load(in);
+                }
+                final Enumeration<Object> i = p.keys();
+                while (i.hasMoreElements()) {
+                    final Object key = i.nextElement();
+                    ht.put(key.toString(), p.get(key));
+                }
+            }
+        }
+        return ht;
+    }
+
+
+    static @Nullable OsgiConfigInstallableParams maybeConfigResource(final @NotNull NodeRes resource) {
+        final String lastIdPart = getResourceId(resource.getPath());
 
         // remove extension if known
         final String pid = removeConfigExtension(lastIdPart);
@@ -256,18 +346,10 @@ public final class DefaultSlingSimulator implements SlingSimulatorBackend, Sling
             configPid = pid;
         }
 
-        final Map<String, Object> properties = new HashMap<>();
-        Optional.ofNullable(resource.getPrivateCopyOfDictionary()).ifPresent(dict -> {
-            for (final Enumeration<String> keys = dict.keys(); keys.hasMoreElements(); ) {
-                final String key = keys.nextElement();
-                properties.put(key, dict.get(key));
-            }
-        });
-
-        return new OsgiConfigInstallableParams(properties, configPid, factoryPid);
+        return new OsgiConfigInstallableParams(resource.getProps(), configPid, factoryPid);
     }
 
-    static void loadJcrProperties(final @NotNull Dictionary<String, Object> configMap, final @NotNull Node configNode)
+    static void loadJcrProperties(final @NotNull Map<String, Object> configMap, final @NotNull Node configNode)
             throws RepositoryException {
         final PropertyIterator pi = configNode.getProperties();
         while (pi.hasNext()) {

@@ -27,20 +27,23 @@ import java.util.function.Function;
 import static net.adamcin.oakpal.api.JavaxJson.arr;
 import static net.adamcin.oakpal.api.JavaxJson.key;
 import static net.adamcin.oakpal.core.OakpalPlan.keys;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 public class DefaultSlingSimulatorTest {
+    private DefaultSlingSimulator slingSimulator = new DefaultSlingSimulator();
 
     @Test
     public void testReadInstallableResourceFromNode_noRepositoryException() throws Exception {
+
         OakpalPlan.fromJson(key(keys().repoInits(),
                 arr().val("create path (nt:unstructured) /apps/config/Test")).get())
                 .toOakMachineBuilder(null, getClass().getClassLoader())
                 .build().initAndInspect(session -> {
 
-            Result<Optional<InternalResource>> result = DefaultSlingSimulator
-                    .readInternalResourceFromNode(session.getNode("/apps/config/Test"));
+            Result<Optional<SlingInstallableParams<?>>> result = slingSimulator
+                    .readInstallableParamsFromNode(session.getNode("/apps/config/Test"));
             assertTrue("expect null config", result.isSuccess() && !result.getOrDefault(null).isPresent());
         });
     }
@@ -57,12 +60,16 @@ public class DefaultSlingSimulatorTest {
                 .get()).toOakMachineBuilder(null, getClass().getClassLoader())
                 .build().initAndInspect(session -> {
 
-            InternalResource resource = DefaultSlingSimulator
-                    .readInternalResourceFromNode(session.getNode("/apps/config/Test")).toOptional()
+            SlingInstallableParams<?> resource = slingSimulator
+                    .readInstallableParamsFromNode(session.getNode("/apps/config/Test")).toOptional()
                     .flatMap(Function.identity())
                     .orElse(null);
             assertNotNull("expect not null resource", resource);
-            assertNotNull("expect not null config", resource.getDictionary());
+            assertTrue("expect instance of OsgiConfigInstallableParams",
+                    resource instanceof OsgiConfigInstallableParams);
+            OsgiConfigInstallableParams params = (OsgiConfigInstallableParams) resource;
+            assertNotNull("expect not null properties", params.getProperties());
+            assertEquals("expect servicePid is Test", "Test", params.getServicePid());
         });
     }
 

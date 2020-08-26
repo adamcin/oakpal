@@ -38,6 +38,18 @@ public class OsgiConfigInstallableParams implements SlingInstallableParams<OsgiC
         this.factoryPid = factoryPid;
     }
 
+    public String getServicePid() {
+        return servicePid;
+    }
+
+    public String getFactoryPid() {
+        return factoryPid;
+    }
+
+    public Map<String, Object> getProperties() {
+        return properties;
+    }
+
     @NotNull
     @Override
     public OsgiConfigInstallable createInstallable(final PackageId parentPackageId, final String jcrPath) {

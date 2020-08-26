@@ -17,12 +17,17 @@
 package net.adamcin.oakpal.core.sling;
 
 import net.adamcin.oakpal.api.RepoInitScriptsInstallable;
+import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
+import java.util.Arrays;
 import java.util.List;
 
 public class RepoInitScriptsInstallableParams implements SlingInstallableParams<RepoInitScriptsInstallable> {
+    public static final String REPO_INIT_FACTORY_PID = "org.apache.sling.jcr.repoinit.RepositoryInitializer";
+    public static final String CONFIG_SCRIPTS = "scripts";
 
     private final List<String> scripts;
 
@@ -30,9 +35,22 @@ public class RepoInitScriptsInstallableParams implements SlingInstallableParams<
         this.scripts = scripts;
     }
 
+    public List<String> getScripts() {
+        return scripts;
+    }
+
     @NotNull
     @Override
     public RepoInitScriptsInstallable createInstallable(final PackageId parentPackageId, final String jcrPath) {
         return new RepoInitScriptsInstallable(parentPackageId, jcrPath, scripts);
+    }
+
+    @Nullable
+    static RepoInitScriptsInstallableParams fromOsgiConfigInstallableParams(final @NotNull OsgiConfigInstallableParams params) {
+        if (REPO_INIT_FACTORY_PID.equals(params.getFactoryPid()) && params.getProperties().containsKey(CONFIG_SCRIPTS)) {
+            return new RepoInitScriptsInstallableParams(Arrays.asList(PropertiesUtil
+                    .toStringArray(params.getProperties().get(CONFIG_SCRIPTS), new String[0])));
+        }
+        return null;
     }
 }

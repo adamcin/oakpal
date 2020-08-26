@@ -30,8 +30,9 @@ import javax.jcr.Node;
 public interface SlingSimulator {
 
     /**
-     * Submit resource path for installation as an embedded FileVault package, generally located under {@code /apps/}.
-     * This should not be used to request traditional installation of {@code subpackages} under {@code /etc/packages}.
+     * Submit resource path for installation as an embedded FileVault package or other Sling installable, generally
+     * located under {@code /apps/}. This should not be used to request traditional installation of {@code subpackages}
+     * under {@code /etc/packages}.
      * <p>
      * Ideally, this method should be called by a check during
      * {@link ProgressCheck#importedPath(PackageId, String, Node, PathAction)}.
@@ -42,15 +43,4 @@ public interface SlingSimulator {
      */
     @Nullable SlingInstallable<?> prepareInstallableNode(@NotNull PackageId parentPackageId,
                                                          @NotNull Node node);
-
-    /**
-     * Submit a resource path for installation as a list of raw repoinit scripts. The best real-world example at this
-     * time are
-     * May be called by a check during
-     * {@link ProgressCheck#importedPath(PackageId, String, Node, PathAction)}.
-     *
-     * @param installable the installable
-     * @return a handle for the installable path or null
-     */
-    @Nullable SlingInstallable<?> submitInstallable(@NotNull SlingInstallable<?> installable);
 }

@@ -202,7 +202,7 @@ public interface ProgressCheck extends ScanListener, ViolationReporter {
      * @throws RepositoryException because of access to a {@link Session}
      * @since 2.1.0
      */
-    default void beforeSlingInstall(PackageId lastPackage, SlingInstallable slingInstallable, Session inspectSession)
+    default void beforeSlingInstall(PackageId lastPackage, SlingInstallable<?> slingInstallable, Session inspectSession)
             throws RepositoryException {
 
     }
@@ -217,7 +217,7 @@ public interface ProgressCheck extends ScanListener, ViolationReporter {
      * @throws RepositoryException because of access to a {@link Session}
      * @since 2.1.0
      */
-    default void appliedRepoInitScripts(PackageId lastPackage, SlingInstallable slingInstallable, Session inspectSession)
+    default void appliedRepoInitScripts(PackageId lastPackage, SlingInstallable<?> slingInstallable, Session inspectSession)
             throws RepositoryException {
 
     }

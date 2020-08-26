@@ -16,11 +16,14 @@
 
 package net.adamcin.oakpal.core.checks;
 
+import net.adamcin.oakpal.api.JavaxJson;
 import net.adamcin.oakpal.api.PathAction;
 import net.adamcin.oakpal.api.ProgressCheck;
 import net.adamcin.oakpal.api.ProgressCheckFactory;
+import net.adamcin.oakpal.api.Severity;
 import net.adamcin.oakpal.api.SimpleProgressCheckFactoryCheck;
 import net.adamcin.oakpal.api.SlingSimulator;
+import org.apache.jackrabbit.vault.fs.api.WorkspaceFilter;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.jetbrains.annotations.NotNull;
 import org.osgi.annotation.versioning.ProviderType;
@@ -28,14 +31,24 @@ import org.osgi.annotation.versioning.ProviderType;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.json.JsonObject;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+/**
+ * The {@code SlingJcrInstaller} is a check implementation that watches for Sling installable nodes and registers them
+ * with the {@link SlingSimulator} when sling simulation is active.
+ * <p>
+ * {@code config} options:
+ * <dl>
+ * <dt>{@code rootPaths} (Default: {@code [/apps, /libs]})</dt>
+ * <dd>The root paths that the listener watches for install and config nodes.</dd>
+ * </dl>
+ */
 public final class SlingJcrInstaller implements ProgressCheckFactory {
     static final String DEFAULT_INSTALL_PATH_PATTERN = "^(/[^/]*)*/(install|config)$";
+    static final List<String> DEFAULT_ROOT_PATHS = Arrays.asList("/apps", "/libs");
 
     @ProviderType
     public interface JsonKeys {
@@ -55,7 +68,9 @@ public final class SlingJcrInstaller implements ProgressCheckFactory {
 
     @Override
     public ProgressCheck newInstance(final JsonObject config) throws Exception {
-        return new Check(Arrays.asList("/apps", "/libs"));
+        final List<String> rootPaths = JavaxJson.optArray(config, keys().rootPaths()).map(JavaxJson::mapArrayOfStrings)
+                .orElse(DEFAULT_ROOT_PATHS);
+        return new Check(rootPaths);
     }
 
     static final class Check extends SimpleProgressCheckFactoryCheck<SlingJcrInstaller> {
@@ -63,8 +78,6 @@ public final class SlingJcrInstaller implements ProgressCheckFactory {
 
         private SlingSimulator slingSimulator;
         private Pattern installPattern = Pattern.compile(DEFAULT_INSTALL_PATH_PATTERN);
-
-        private List<String> parentPaths = new ArrayList<>();
 
         Check(final @NotNull List<String> rootPaths) {
             super(SlingJcrInstaller.class);
@@ -74,12 +87,12 @@ public final class SlingJcrInstaller implements ProgressCheckFactory {
         @Override
         public void startedScan() {
             super.startedScan();
-            this.parentPaths.clear();
         }
 
         @Override
         public void simulateSling(final SlingSimulator slingSimulator, final Set<String> runModes) {
             this.slingSimulator = slingSimulator;
+            installPattern = compileInstallPattern(runModes);
         }
 
         Pattern compileInstallPattern(final @NotNull Set<String> runModes) {
@@ -94,8 +107,17 @@ public final class SlingJcrInstaller implements ProgressCheckFactory {
                 return;
             }
 
+            if (path.startsWith("/etc/packages/")) {
+                return;
+            }
 
+            if (rootPaths.stream().noneMatch(path::startsWith)) {
+                return;
+            }
 
+            if (installPattern.matcher(node.getParent().getPath()).matches()) {
+                this.slingSimulator.prepareInstallableNode(packageId, node);
+            }
         }
     }
 

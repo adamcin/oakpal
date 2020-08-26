@@ -14,7 +14,10 @@
  * limitations under the License.
  */
 
-package net.adamcin.oakpal.core.sling;
+package net.adamcin.oakpal.core.checks;
 
-public class InternalResource {
+import static org.junit.Assert.*;
+
+public class SlingJcrInstallerTest {
+
 }

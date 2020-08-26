@@ -90,6 +90,7 @@
                                 Private-Package: net.adamcin.oakpal.core.jcrfacade.*
                                 Import-Package: !aQute.*,\
                                     !org.apache.sling.jcr.repoinit.*,\
+                                    !org.apache.felix.cm.file,\
                                     *
                             ]]></bnd>
                         </configuration>
@@ -158,8 +159,8 @@
                                 <filter>
                                     <artifact>org.apache.sling:org.apache.sling.installer.core</artifact>
                                     <includes>
+                                        <include>org/apache/felix/cm/file/ConfigurationHandler*</include>
                                         <include>org/apache/sling/installer/api/InstallableResource*</include>
-                                        <include>org/apache/sling/installer/core/impl/InternalResource*</include>
                                     </includes>
                                 </filter>
                             </filters>

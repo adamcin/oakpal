@@ -52,7 +52,7 @@ public final class NoopSlingSimulator implements SlingSimulatorBackend, SlingSim
     }
 
     @Override
-    public @Nullable SlingInstallable dequeueInstallable() {
+    public @Nullable SlingInstallable<?> dequeueInstallable() {
         return null;
     }
 
@@ -64,13 +64,8 @@ public final class NoopSlingSimulator implements SlingSimulatorBackend, SlingSim
     }
 
     @Override
-    public @Nullable SlingInstallable prepareInstallableNode(final @NotNull PackageId parentPackageId,
-                                                             final @NotNull Node node) {
-        return null;
-    }
-
-    @Override
-    public @Nullable SlingInstallable submitInstallable(final @NotNull SlingInstallable installable) {
+    public @Nullable SlingInstallable<?> prepareInstallableNode(final @NotNull PackageId parentPackageId,
+                                                                final @NotNull Node node) {
         return null;
     }
 
