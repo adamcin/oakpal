@@ -67,7 +67,7 @@ public final class SlingJcrInstaller implements ProgressCheckFactory {
     }
 
     @Override
-    public ProgressCheck newInstance(final JsonObject config) throws Exception {
+    public ProgressCheck newInstance(final JsonObject config) {
         final List<String> rootPaths = JavaxJson.optArray(config, keys().rootPaths()).map(JavaxJson::mapArrayOfStrings)
                 .orElse(DEFAULT_ROOT_PATHS);
         return new Check(rootPaths);
