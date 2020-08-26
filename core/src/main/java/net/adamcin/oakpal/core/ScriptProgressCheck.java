@@ -88,7 +88,7 @@ import static net.adamcin.oakpal.core.Util.isEmpty;
  * <dd>{@link ProgressCheck#beforeSlingInstall(PackageId, SlingInstallable, Session)}</dd>
  * <dt>identifyEmbeddedPackage(packageId, parentPackageId, jcrPath)</dt>
  * <dd>{@link ProgressCheck#identifyEmbeddedPackage(PackageId, PackageId, String)}</dd>
- * <dt>afterSlingInstall(packageId, slingInstallable, inspectSession)</dt>
+ * <dt>appliedRepoInitScripts(packageId, slingInstallable, inspectSession)</dt>
  * <dd>{@link ProgressCheck#appliedRepoInitScripts(PackageId, SlingInstallable, Session)}</dd>
  * <dt>afterScanPackage(packageId, inspectSession)</dt>
  * <dd>{@link ProgressCheck#afterScanPackage(PackageId, Session)}</dd>
@@ -114,7 +114,7 @@ public final class ScriptProgressCheck implements ProgressCheck {
     public static final String INVOKE_ON_IDENTIFY_SUBPACKAGE = "identifySubpackage";
     public static final String INVOKE_ON_BEFORE_SLING_INSTALL = "beforeSlingInstall";
     public static final String INVOKE_ON_IDENTIFY_EMBEDDED_PACKAGE = "identifyEmbeddedPackage";
-    public static final String INVOKE_ON_AFTER_SLING_INSTALL = "afterSlingInstall";
+    public static final String INVOKE_ON_APPLIED_REPO_INIT_SCRIPTS = "appliedRepoInitScripts";
     public static final String INVOKE_ON_AFTER_SCAN_PACKAGE = "afterScanPackage";
     public static final String INVOKE_ON_FINISHED_SCAN = "finishedScan";
     public static final String INVOKE_GET_CHECK_NAME = "getCheckName";
@@ -295,7 +295,7 @@ public final class ScriptProgressCheck implements ProgressCheck {
 
     @Override
     public void beforeSlingInstall(final PackageId lastPackage,
-                                   final SlingInstallable slingInstallable,
+                                   final SlingInstallable<?> slingInstallable,
                                    final Session inspectSession) throws RepositoryException {
         guardSessionHandler(INVOKE_ON_BEFORE_SLING_INSTALL,
                 handle -> handle.apply(lastPackage, slingInstallable, inspectSession));
@@ -310,9 +310,9 @@ public final class ScriptProgressCheck implements ProgressCheck {
 
     @Override
     public void appliedRepoInitScripts(final PackageId lastPackage,
-                                       final SlingInstallable slingInstallable,
+                                       final SlingInstallable<?> slingInstallable,
                                        final Session inspectSession) throws RepositoryException {
-        guardSessionHandler(INVOKE_ON_AFTER_SLING_INSTALL,
+        guardSessionHandler(INVOKE_ON_APPLIED_REPO_INIT_SCRIPTS,
                 handle -> handle.apply(lastPackage, slingInstallable, inspectSession));
     }
 
