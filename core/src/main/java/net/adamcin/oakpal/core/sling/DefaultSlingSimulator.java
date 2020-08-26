@@ -119,9 +119,9 @@ public final class DefaultSlingSimulator implements SlingSimulatorBackend, Sling
         return installable.getScripts();
     }
 
-    public @Nullable Fun.ThrowingSupplier<JcrPackage>
-    openEmbeddedPackage(@NotNull final EmbeddedPackageInstallable installable) {
-        return () -> packageManager.open(session.getNode(installable.getJcrPath()), true);
+    public @Nullable JcrPackage
+    openEmbeddedPackage(@NotNull final EmbeddedPackageInstallable installable) throws RepositoryException {
+        return packageManager.open(session.getNode(installable.getJcrPath()), true);
     }
 
     @Override
