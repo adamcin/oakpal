@@ -16,7 +16,9 @@
 
 package net.adamcin.oakpal.core;
 
+import net.adamcin.oakpal.api.EmbeddedPackageInstallable;
 import net.adamcin.oakpal.api.ProgressCheck;
+import net.adamcin.oakpal.api.RepoInitScriptsInstallable;
 import net.adamcin.oakpal.api.ReportCollector;
 import net.adamcin.oakpal.api.Severity;
 import net.adamcin.oakpal.api.SimpleViolation;
@@ -211,6 +213,22 @@ public class DefaultErrorListener implements ErrorListener {
         final String message = MessageFormat.format(getString("repoinit inline error ({0}): {1} \"{2}\""),
                 firstLine, error.getClass().getName(), error.getMessage());
         LOGGER.trace("[onRepoInitInlineError] stack trace for: " + message, error);
+        reportViolation(new SimpleViolation(Severity.MAJOR, message));
+    }
+
+    @Override
+    public void onSlingEmbeddedPackageError(Throwable error, EmbeddedPackageInstallable installable) {
+        final String message = MessageFormat.format(getString("embedded package error ({0}:{1}): {2} \"{3}\""),
+            installable.getParentId(), installable.getJcrPath(), error.getClass().getName(), error.getMessage());
+        LOGGER.trace("[onSlingEmbeddedPackageError] stack trace for: " + message, error);
+        reportViolation(new SimpleViolation(Severity.MAJOR, message));
+    }
+
+    @Override
+    public void onSlingRepoInitScriptsError(Throwable error, String failedScript, RepoInitScriptsInstallable installable) {
+        final String message = MessageFormat.format(getString("embedded repoinit script error ({0}:{1}): {2} \"{3}\""),
+            installable.getParentId(), installable.getJcrPath(), error.getClass().getName(), error.getMessage());
+        LOGGER.trace("[onSlingRepoInitScriptsError] stack trace for: " + message, error);
         reportViolation(new SimpleViolation(Severity.MAJOR, message));
     }
 }

@@ -24,6 +24,7 @@ import net.adamcin.oakpal.api.SlingInstallable;
 import net.adamcin.oakpal.api.SlingSimulator;
 import net.adamcin.oakpal.core.ErrorListener;
 import org.apache.felix.cm.file.ConfigurationHandler;
+import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.vault.packaging.JcrPackage;
 import org.apache.jackrabbit.vault.packaging.JcrPackageManager;
 import org.apache.jackrabbit.vault.packaging.PackageId;
@@ -121,7 +122,13 @@ public final class DefaultSlingSimulator implements SlingSimulatorBackend, Sling
 
     public @Nullable JcrPackage
     openEmbeddedPackage(@NotNull final EmbeddedPackageInstallable installable) throws RepositoryException {
-        return packageManager.open(session.getNode(installable.getJcrPath()), true);
+        Node packageNode = session.getNode(installable.getJcrPath());
+        try (InputStream input = JcrUtils.readFile(packageNode)) {
+            return packageManager.upload(input, true, true);
+        } catch (IOException e) {
+            errorListener.onSlingEmbeddedPackageError(e, installable);
+            return null;
+        }
     }
 
     @Override
