@@ -40,6 +40,7 @@ import org.apache.jackrabbit.vault.fs.config.MetaInf;
 import org.apache.jackrabbit.vault.fs.io.Archive;
 import org.apache.jackrabbit.vault.packaging.InstallContext;
 import org.apache.jackrabbit.vault.packaging.InstallHookProcessor;
+import org.apache.jackrabbit.vault.packaging.JcrPackage;
 import org.apache.jackrabbit.vault.packaging.JcrPackageManager;
 import org.apache.jackrabbit.vault.packaging.PackageException;
 import org.apache.jackrabbit.vault.packaging.PackageId;
@@ -803,10 +804,11 @@ public class OakMachineTest {
             }
         }).when(installWatcher).dequeueInstallable();
 
+        final JcrPackage jcrPackage = mock(JcrPackage.class);
         final CompletableFuture<EmbeddedPackageInstallable> openedSlot = new CompletableFuture<>();
         doAnswer(call -> {
             openedSlot.complete(call.getArgument(0));
-            return null;
+            return (Fun.ThrowingSupplier<JcrPackage>) () -> jcrPackage;
         }).when(installWatcher).open(installable);
 
         new OakMachine.Builder()
