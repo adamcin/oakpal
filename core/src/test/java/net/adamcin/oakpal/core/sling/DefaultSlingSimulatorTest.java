@@ -17,6 +17,7 @@
 package net.adamcin.oakpal.core.sling;
 
 import net.adamcin.oakpal.api.EmbeddedPackageInstallable;
+import net.adamcin.oakpal.api.Fun;
 import net.adamcin.oakpal.api.Result;
 import net.adamcin.oakpal.core.OakpalPlan;
 import net.adamcin.oakpal.testing.TestPackageUtil;
@@ -30,6 +31,7 @@ import org.mockito.ArgumentMatcher;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import java.io.File;
+import java.io.InputStream;
 import java.net.URL;
 import java.util.Collections;
 import java.util.Optional;
@@ -41,9 +43,13 @@ import static net.adamcin.oakpal.core.OakpalPlan.keys;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 public class DefaultSlingSimulatorTest {
@@ -95,15 +101,18 @@ public class DefaultSlingSimulatorTest {
 
         final String packagePath = "/apps/with-embedded/install/package_1.0.zip";
 
-        JcrPackage jcrPackage = mock(JcrPackage.class);
         VaultPackage vaultPackage = mock(VaultPackage.class);
-        when(jcrPackage.getPackage()).thenReturn(vaultPackage);
-
         PackageId embeddedId = new PackageId("com.test", "embedded", "1.0");
         when(vaultPackage.getId()).thenReturn(embeddedId);
 
+        JcrPackage jcrPackageFromOpen = mock(JcrPackage.class);
+        when(jcrPackageFromOpen.getPackage()).thenReturn(vaultPackage);
+        JcrPackage jcrPackageFromUpload = mock(JcrPackage.class);
+        when(jcrPackageFromUpload.getPackage()).thenReturn(vaultPackage);
+
         JcrPackageManager packageManager = mock(JcrPackageManager.class);
-        when(packageManager.open(argThat(nodeWithPath(packagePath)), eq(true))).thenReturn(jcrPackage);
+        when(packageManager.open(argThat(nodeWithPath(packagePath)), eq(true))).thenReturn(jcrPackageFromOpen);
+        when(packageManager.upload(any(InputStream.class), eq(true), eq(true))).thenReturn(jcrPackageFromUpload);
 
         slingSimulator.setPackageManager(packageManager);
 
@@ -112,6 +121,8 @@ public class DefaultSlingSimulatorTest {
             .withPreInstallUrls(Collections.singletonList(withEmbeddedPackage.toURI().toURL()))
             .build().toOakMachineBuilder(null, getClass().getClassLoader())
             .build().initAndInspect(session -> {
+
+            slingSimulator.setSession(session);
 
             SlingInstallableParams<?> resource = slingSimulator
                 .readInstallableParamsFromNode(session.getNode(packagePath)).toOptional()
@@ -129,6 +140,15 @@ public class DefaultSlingSimulatorTest {
             assertEquals("expect base package Id", base, installable.getParentId());
             assertEquals("expect installable path", packagePath, installable.getJcrPath());
             assertEquals("expect installable id", embeddedId, installable.getEmbeddedId());
+
+            Fun.ThrowingSupplier<JcrPackage> opened = slingSimulator.open(installable);
+            assertNotNull("expect not null function", opened);
+            JcrPackage openedPackage = opened.tryGet();
+            assertEquals("open returned correct package", jcrPackageFromUpload, openedPackage);
+
+            verify(packageManager, times(1)).open(argThat(nodeWithPath(packagePath)), eq(true));
+            verify(packageManager, times(1)).upload(any(InputStream.class), eq(true), eq(true));
+            verifyNoMoreInteractions(packageManager);
         });
     }
 
