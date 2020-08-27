@@ -18,6 +18,7 @@ package net.adamcin.oakpal.core.sling;
 
 import net.adamcin.oakpal.api.EmbeddedPackageInstallable;
 import net.adamcin.oakpal.api.Fun;
+import net.adamcin.oakpal.api.OsgiConfigInstallable;
 import net.adamcin.oakpal.api.Result;
 import net.adamcin.oakpal.core.OakpalPlan;
 import net.adamcin.oakpal.testing.TestPackageUtil;
@@ -34,6 +35,7 @@ import java.io.File;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.Collections;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 
@@ -91,6 +93,20 @@ public class DefaultSlingSimulatorTest {
             OsgiConfigInstallableParams params = (OsgiConfigInstallableParams) resource;
             assertNotNull("expect not null properties", params.getProperties());
             assertEquals("expect servicePid is Test", "Test", params.getServicePid());
+
+            PackageId base = new PackageId("com.test", "base", "1.0.0");
+            OsgiConfigInstallable installable = params.createInstallable(base, "/apps/config/Test");
+
+            Fun.ThrowingSupplier<Map<String, Object>> opened = slingSimulator.open(installable);
+            assertNotNull("expect not null function", opened);
+
+            boolean thrown = false;
+            try {
+                opened.tryGet();
+            } catch (IllegalArgumentException e) {
+                thrown = true;
+            }
+            assertTrue("expect exception opening OsgiConfigInstallable", thrown);
         });
     }
 
