@@ -171,4 +171,10 @@ public class TestPackageUtilTest {
         TestPackageUtil.buildJarFromDir(new File("src/test/resources/extracted/simple"),
                 outJar, Collections.emptyMap());
     }
+
+    @Test
+    public void testGetCaliperPackage() {
+        File file = TestPackageUtil.getCaliperPackage();
+        assertTrue("expect file exists", file.exists());
+    }
 }

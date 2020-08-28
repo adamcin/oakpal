@@ -59,6 +59,9 @@
                     <execution>
                         <id>unpack-test-packages</id>
                     </execution>
+                    <execution>
+                        <id>copy-caliper-all</id>
+                    </execution>
                 </executions>
             </plugin>
             <plugin>
@@ -277,6 +280,12 @@
         <dependency>
             <groupId>net.adamcin.oakpal</groupId>
             <artifactId>oakpal-testing</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>net.adamcin.oakpal</groupId>
+            <artifactId>oakpal-caliper.all</artifactId>
+            <type>zip</type>
             <scope>test</scope>
         </dependency>
         <dependency>

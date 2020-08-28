@@ -96,7 +96,7 @@ public final class SlingJcrInstaller implements ProgressCheckFactory {
         }
 
         Pattern compileInstallPattern(final @NotNull Set<String> runModes) {
-            return Pattern.compile(String.format("^(/[^/]*)*/(install|config)(.(%s))*$",
+            return Pattern.compile(String.format("^(/[^/]*)*/(install|config)(\\.(%s))*$",
                     String.join("|", runModes)));
         }
 

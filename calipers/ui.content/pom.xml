@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright 2019 Mark Adamcin
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>net.adamcin.oakpal</groupId>
+        <artifactId>oakpal-calipers</artifactId>
+        <version>2.2.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>oakpal-caliper.ui.content</artifactId>
+    <packaging>content-package</packaging>
+
+    <name>OakPAL - Calipers - ui.content</name>
+    <description>OakPAL Caliper - well-formed ui.content package containing non-/apps/ content.</description>
+
+    <inceptionYear>2017</inceptionYear>
+
+    <scm>
+        <url>https://github.com/adamcin/oakpal</url>
+        <developerConnection>scm:git:git@github.com:adamcin/oakpal.git</developerConnection>
+        <connection>scm:git://github.com/adamcin/oakpal.git</connection>
+        <tag>HEAD</tag>
+    </scm>
+
+    <build>
+        <plugins>
+            <!-- ====================================================================== -->
+            <!-- V A U L T   P A C K A G E   P L U G I N S                              -->
+            <!-- ====================================================================== -->
+            <plugin>
+                <groupId>org.apache.jackrabbit</groupId>
+                <artifactId>filevault-package-maven-plugin</artifactId>
+                <extensions>true</extensions>
+                <configuration>
+                    <group>net.adamcin.oakpal</group>
+                    <name>oakpal-caliper.ui.content</name>
+                    <packageType>content</packageType>
+                    <accessControlHandling>merge</accessControlHandling>
+                    <properties>
+                        <cloudManagerTarget>none</cloudManagerTarget>
+                        <subPackageHandling>oakpal-caliper.ui.content.subc1,oakpal-caliper.ui.content.suba2;ignore,oakpal-caliper.ui.content.subb3</subPackageHandling>
+                    </properties>
+                    <dependencies>
+                        <dependency>
+                            <groupId>net.adamcin.oakpal</groupId>
+                            <artifactId>oakpal-caliper.ui.apps</artifactId>
+                            <version>${project.version}</version>
+                        </dependency>
+                    </dependencies>
+                    <subPackages>
+                        <subPackage>
+                            <groupId>net.adamcin.oakpal</groupId>
+                            <artifactId>oakpal-caliper.ui.content.suba2</artifactId>
+                            <filter>true</filter>
+                        </subPackage>
+                        <subPackage>
+                            <groupId>net.adamcin.oakpal</groupId>
+                            <artifactId>oakpal-caliper.ui.content.subb3</artifactId>
+                            <filter>true</filter>
+                        </subPackage>
+                        <subPackage>
+                            <groupId>net.adamcin.oakpal</groupId>
+                            <artifactId>oakpal-caliper.ui.content.subc1</artifactId>
+                            <filter>true</filter>
+                        </subPackage>
+                    </subPackages>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+    <dependencies>
+        <dependency>
+            <groupId>net.adamcin.oakpal</groupId>
+            <artifactId>oakpal-caliper.ui.apps</artifactId>
+            <version>2.2.0-SNAPSHOT</version>
+            <type>zip</type>
+        </dependency>
+        <dependency>
+            <groupId>net.adamcin.oakpal</groupId>
+            <artifactId>oakpal-caliper.ui.content.suba2</artifactId>
+            <version>2.2.0-SNAPSHOT</version>
+            <type>zip</type>
+        </dependency>
+        <dependency>
+            <groupId>net.adamcin.oakpal</groupId>
+            <artifactId>oakpal-caliper.ui.content.subb3</artifactId>
+            <version>2.2.0-SNAPSHOT</version>
+            <type>zip</type>
+        </dependency>
+        <dependency>
+            <groupId>net.adamcin.oakpal</groupId>
+            <artifactId>oakpal-caliper.ui.content.subc1</artifactId>
+            <version>2.2.0-SNAPSHOT</version>
+            <type>zip</type>
+        </dependency>
+    </dependencies>
+</project>
