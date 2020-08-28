@@ -22,6 +22,7 @@ import net.adamcin.oakpal.api.OsgiConfigInstallable;
 import net.adamcin.oakpal.api.Result;
 import net.adamcin.oakpal.core.OakpalPlan;
 import net.adamcin.oakpal.testing.TestPackageUtil;
+import org.apache.jackrabbit.value.ValueFactoryImpl;
 import org.apache.jackrabbit.vault.packaging.JcrPackage;
 import org.apache.jackrabbit.vault.packaging.JcrPackageManager;
 import org.apache.jackrabbit.vault.packaging.PackageId;
@@ -30,20 +31,30 @@ import org.junit.Test;
 import org.mockito.ArgumentMatcher;
 
 import javax.jcr.Node;
+import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
+import javax.jcr.ValueFactory;
 import java.io.File;
 import java.io.InputStream;
 import java.net.URL;
+import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.stream.Stream;
 
 import static net.adamcin.oakpal.api.JavaxJson.arr;
 import static net.adamcin.oakpal.api.JavaxJson.key;
 import static net.adamcin.oakpal.core.OakpalPlan.keys;
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -108,6 +119,72 @@ public class DefaultSlingSimulatorTest {
             }
             assertTrue("expect exception opening OsgiConfigInstallable", thrown);
         });
+    }
+
+    @Test
+    public void testLoadJcrProperties() throws Exception {
+        final Map<String, Object> props = new HashMap<>();
+        OakpalPlan.fromJson(key(keys().repoInits(), arr()
+                .val("register nodetypes")
+                .val("<<===")
+                .val("<'sling'='http://sling.apache.org/jcr/sling/1.0'>")
+                .val("[sling:OsgiConfig] > nt:unstructured, nt:hierarchyNode")
+                .val("===>>")
+                .val("create path (nt:folder) /apps/config/Test(sling:OsgiConfig)")
+                .val("set properties on /apps/config/Test")
+                .val("  set sling:ResourceType{String} to /x/y/z")
+                .val("  set foo{String} to bar")
+                .val("  set foos to bar, bar, bar")
+                .val("  set ones{Long} to 1, 1, 1")
+                .val("end")
+        ).get()).toOakMachineBuilder(null, getClass().getClassLoader())
+                .build().adminInitAndInspect(session -> {
+                    Node testNode = session.getNode("/apps/config/Test");
+                    testNode.setProperty("nothing", new String[0]);
+                    session.save();
+                    DefaultSlingSimulator.loadJcrProperties(props, testNode);
+        });
+
+        final Map<String, Object> expectProps = new HashMap<>();
+        expectProps.put("foo", "bar");
+        expectProps.put("foos", Stream.of("bar", "bar", "bar").toArray(String[]::new));
+        expectProps.put("ones", Stream.of(1L, 1L, 1L).toArray(Long[]::new));
+        // typed to {Name}, which is discarded by convertJcrValue, resulting in an empty string array
+        expectProps.put("nothing", new String[0]);
+
+        assertEquals("expect same keys", expectProps.keySet(), props.keySet());
+        for (Map.Entry<String, Object> entry : expectProps.entrySet()) {
+            Object expectValue = entry.getValue();
+            if (expectValue.getClass().isArray()) {
+                assertArrayEquals("expect equal array for key " + entry.getKey(), (Object[]) expectValue,
+                        (Object[]) props.get(entry.getKey()));
+            } else {
+                assertEquals("expect equal value for key " + entry.getKey(), expectValue,
+                        props.get(entry.getKey()));
+            }
+        }
+    }
+
+    @Test
+    public void testConvertJcrValue() throws Exception {
+        ValueFactory vf = ValueFactoryImpl.getInstance();
+        final String expectString = "hey I'm a string";
+        assertEquals("expect equal string", expectString,
+                DefaultSlingSimulator.convertJcrValue(vf.createValue(expectString)));
+        final Calendar expectDate = Calendar.getInstance();
+        assertEquals("expect equal date", expectDate,
+                DefaultSlingSimulator.convertJcrValue(vf.createValue(expectDate)));
+        final double expectDouble = 42.0D;
+        assertEquals("expect equal double", expectDouble,
+                (Double) DefaultSlingSimulator.convertJcrValue(vf.createValue(expectDouble)), 1.0D);
+        final long expectLong = 404L;
+        assertEquals("expect equal long", expectLong,
+                DefaultSlingSimulator.convertJcrValue(vf.createValue(expectLong)));
+        final Boolean expectBoolean = Boolean.TRUE;
+        assertEquals("expect equal boolean", expectBoolean,
+                DefaultSlingSimulator.convertJcrValue(vf.createValue(expectBoolean)));
+        assertNull("expect null for name",
+                DefaultSlingSimulator.convertJcrValue(vf.createValue("aName", PropertyType.NAME)));
     }
 
     @Test
