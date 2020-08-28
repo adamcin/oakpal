@@ -263,6 +263,8 @@ public class OakpalPlanTest {
                 "  allow jcr:read for fullPlanUser",
                 "end");
 
+        final List<String> expectRunModes = Arrays.asList("author", "publish");
+
         final OakpalPlan base = builder()
                 .withChecklists(expectChecklists)
                 .withChecks(expectChecks)
@@ -275,6 +277,7 @@ public class OakpalPlanTest {
                 .withPreInstallUrls(expectPreInstallUrls)
                 .withRepoInitUrls(expectRepoInitUrls)
                 .withRepoInits(expectRepoInits)
+                .withRunModes(expectRunModes)
                 .build();
 
         final OakpalPlan derived = builder(expectComparisonUrl).startingWithPlan(base).build();
@@ -289,6 +292,7 @@ public class OakpalPlanTest {
         assertEquals("expect preInstallUrls", expectPreInstallUrls, derived.getPreInstallUrls());
         assertEquals("expect repoInitUrls", expectRepoInitUrls, derived.getRepoInitUrls());
         assertEquals("expect repoInits", expectRepoInits, derived.getRepoInits());
+        assertEquals("expect runModes", expectRunModes, derived.getRunModes());
         assertNull("expect builder originalJson is null", derived.getOriginalJson());
 
         try (InputStream input = expectComparisonUrl.openStream();
@@ -350,6 +354,8 @@ public class OakpalPlanTest {
                 "  allow jcr:read for fullPlanUser",
                 "end");
 
+        final List<String> expectRunModes = Arrays.asList("author", "publish");
+
         final OakpalPlan derived = builder(expectBaseUrl)
                 .withChecklists(expectChecklists)
                 .withChecks(expectChecks)
@@ -362,6 +368,7 @@ public class OakpalPlanTest {
                 .withPreInstallUrls(expectPreInstallUrls)
                 .withRepoInitUrls(expectRepoInitUrls)
                 .withRepoInits(expectRepoInits)
+                .withRunModes(expectRunModes)
                 .build();
         try (InputStream input = expectBaseUrl.openStream();
              JsonReader reader = Json.createReader(input)) {

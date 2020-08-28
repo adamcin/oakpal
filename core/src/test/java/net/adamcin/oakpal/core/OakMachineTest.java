@@ -24,6 +24,8 @@ import net.adamcin.oakpal.api.SilenceableCheck;
 import net.adamcin.oakpal.api.SimpleProgressCheck;
 import net.adamcin.oakpal.api.EmbeddedPackageInstallable;
 import net.adamcin.oakpal.api.RepoInitScriptsInstallable;
+import net.adamcin.oakpal.api.SlingInstallable;
+import net.adamcin.oakpal.api.SlingSimulator;
 import net.adamcin.oakpal.core.sling.SlingSimulatorBackend;
 import net.adamcin.oakpal.testing.TestPackageUtil;
 import org.apache.commons.io.FileUtils;
@@ -71,10 +73,12 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
@@ -95,6 +99,7 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.anyBoolean;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
@@ -779,6 +784,42 @@ public class OakMachineTest {
         final Session session = mock(Session.class);
         final PackageId root = PackageId.fromString("my_packages:subsubtest");
         new OakMachine.Builder().build().processInstallableQueue(session, manager, root, false);
+    }
+
+    @Test
+    public void testProcessInstallableQueue_failToOpenRepoInitScripts() throws Exception {
+        final JcrPackageManager manager = mock(JcrPackageManager.class);
+        final Session session = mock(Session.class);
+        final PackageId root = PackageId.fromString("my_packages:subsubtest");
+        SlingSimulatorBackend sling = mock(SlingSimulatorBackend.class);
+        Queue<SlingInstallable<?>> installables = new LinkedList<>();
+        RepoInitScriptsInstallable installable = new RepoInitScriptsInstallable(PackageId.fromString("test"),
+                "/some/path", Arrays.asList("some", "script"));
+        installables.add(installable);
+        doAnswer(call -> installables.poll()).when(sling).dequeueInstallable();
+        doThrow(IllegalStateException.class).when(sling).open(any(RepoInitScriptsInstallable.class));
+
+        final CompletableFuture<Exception> eLatch = new CompletableFuture<>();
+        final CompletableFuture<RepoInitScriptsInstallable> installableLatch = new CompletableFuture<>();
+        final ErrorListener errorListener = mock(ErrorListener.class);
+        doAnswer(call -> {
+            eLatch.complete(call.getArgument(0, Exception.class));
+            installableLatch.complete(call.getArgument(2, RepoInitScriptsInstallable.class));
+            return true;
+        }).when(errorListener).onSlingRepoInitScriptsError(
+                any(Exception.class),
+                isNull(),
+                any(RepoInitScriptsInstallable.class));
+
+        new OakMachine.Builder()
+                .withSlingSimulator(sling)
+                .withErrorListener(errorListener)
+                .build()
+                .processInstallableQueue(session, manager, root, false);
+
+        assertTrue("error is of type", eLatch.getNow(null) instanceof IllegalStateException);
+        assertSame("expect same installable", installable, installableLatch.getNow(null));
+
     }
 
     @Test
