@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package net.adamcin.oakpal.it;
+package net.adamcin.oakpal.core;
 
 import net.adamcin.oakpal.api.ProgressCheck;
 import net.adamcin.oakpal.api.Violation;
@@ -31,14 +31,16 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static net.adamcin.oakpal.api.JavaxJson.obj;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-public class GrandTourIT {
+public class OakMachineCaliperTest {
 
     private File grandTourPackage = TestPackageUtil.getCaliperPackage();
 
@@ -49,7 +51,7 @@ public class GrandTourIT {
             "oakpal-caliper.ui.apps.publish",
             "oakpal-caliper.ui.content",
             "oakpal-caliper.ui.content.subc1",
-            "oakpal-caliper.ui.content.suba2",
+            // not actually installed: "oakpal-caliper.ui.content.suba2",
             "oakpal-caliper.ui.content.subb3"
     );
 
@@ -105,5 +107,41 @@ public class GrandTourIT {
 
         assertEquals("expect identified packages in order", installOrderNoRunModesNoSubs,
                 identifiedPackageIds.stream().map(PackageId::getName).collect(Collectors.toList()));
+    }
+
+    @Test
+    public void testScanAllRunModesWithSubs_captureIdentifiedPackages() throws Exception {
+        final List<PackageId> identifiedPackageIds = new ArrayList<>();
+        final ProgressCheck check = new ProgressCheck() {
+            @Override
+            public void identifyPackage(final PackageId packageId, final File file) {
+                identifiedPackageIds.add(packageId);
+            }
+
+            @Override
+            public void identifySubpackage(final PackageId packageId, final PackageId parentId) {
+                identifiedPackageIds.add(packageId);
+            }
+
+            @Override
+            public void identifyEmbeddedPackage(final PackageId packageId, final PackageId parentId, final String jcrPath) {
+                identifiedPackageIds.add(packageId);
+            }
+
+            @Override
+            public Collection<Violation> getReportedViolations() {
+                return Collections.emptyList();
+            }
+        };
+        OakpalPlan.fromJson(obj().get())
+                .toOakMachineBuilder(null, getClass().getClassLoader())
+                .withProgressCheck(check, new SlingJcrInstaller().newInstance(obj().get()))
+                .withSlingSimulator(DefaultSlingSimulator.instance())
+                .withRunModes(Stream.of("author", "publish").collect(Collectors.toSet()))
+                .build()
+                .scanPackage(grandTourPackage);
+
+        assertEquals("expect identified packages in set", new HashSet<>(installOrderFull),
+                identifiedPackageIds.stream().map(PackageId::getName).collect(Collectors.toSet()));
     }
 }
