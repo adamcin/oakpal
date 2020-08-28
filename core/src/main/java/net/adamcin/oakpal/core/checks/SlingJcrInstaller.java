@@ -32,6 +32,7 @@ import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.json.JsonObject;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -47,7 +48,6 @@ import java.util.regex.Pattern;
  * </dl>
  */
 public final class SlingJcrInstaller implements ProgressCheckFactory {
-    static final String DEFAULT_INSTALL_PATH_PATTERN = "^(/[^/]*)*/(install|config)$";
     static final List<String> DEFAULT_ROOT_PATHS = Arrays.asList("/apps", "/libs");
 
     @ProviderType
@@ -77,7 +77,7 @@ public final class SlingJcrInstaller implements ProgressCheckFactory {
         private final List<String> rootPaths;
 
         private SlingSimulator slingSimulator;
-        private Pattern installPattern = Pattern.compile(DEFAULT_INSTALL_PATH_PATTERN);
+        private Pattern installPattern = compileInstallPattern(Collections.emptySet());
 
         Check(final @NotNull List<String> rootPaths) {
             super(SlingJcrInstaller.class);
@@ -96,8 +96,10 @@ public final class SlingJcrInstaller implements ProgressCheckFactory {
         }
 
         Pattern compileInstallPattern(final @NotNull Set<String> runModes) {
-            return Pattern.compile(String.format("^(/[^/]*)*/(install|config)(\\.(%s))*$",
-                    String.join("|", runModes)));
+            String patternSuffix = runModes.isEmpty()
+                    ? "$"
+                    : String.format("(\\.(%s))*$", String.join("|", runModes));
+            return Pattern.compile("^(/[^/]*)*/(install|config)" + patternSuffix);
         }
 
         @Override
