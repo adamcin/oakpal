@@ -14,28 +14,32 @@
  * limitations under the License.
  */
 
-package net.adamcin.oakpal.core.sling;
+package net.adamcin.oakpal.api;
 
-import net.adamcin.oakpal.api.RepoInitScriptsInstallable;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.junit.Test;
 
 import java.util.Collections;
+import java.util.Map;
 
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertSame;
+import static org.junit.Assert.*;
 
-public class RepoInitScriptsInstallableTest {
+public class OsgiConfigInstallableTest {
 
     @Test
     public void testConstructorAndGetters() {
         final PackageId expectParentId = PackageId.fromString("test:test:1");
         final String expectJcrPath = "/some/path";
-        final RepoInitScriptsInstallable installable = new RepoInitScriptsInstallable(expectParentId, expectJcrPath,
-                Collections.emptyList());
+        final Map<String, Object> expectProps = Collections.singletonMap("key", "value");
+        final String expectServicePid = "some.service.Pid";
+        final String expectFactoryPid = "some.factory.Pid";
+        final OsgiConfigInstallable installable = new OsgiConfigInstallable(expectParentId,
+                expectJcrPath, expectProps, expectServicePid, expectFactoryPid);
 
         assertSame("expect parentId", expectParentId, installable.getParentId());
         assertSame("expect jcrPath", expectJcrPath, installable.getJcrPath());
-        assertNotNull("expect not null", installable.getScripts());
+        assertEquals("expect equal props", expectProps, installable.getProperties());
+        assertEquals("expect equal servicePid", expectServicePid, installable.getServicePid());
+        assertEquals("expect equal factoryPid", expectFactoryPid, installable.getFactoryPid());
     }
 }

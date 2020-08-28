@@ -14,25 +14,27 @@
  * limitations under the License.
  */
 
-package net.adamcin.oakpal.core.sling;
+package net.adamcin.oakpal.api;
 
-import net.adamcin.oakpal.api.EmbeddedPackageInstallable;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.junit.Test;
 
-import static org.junit.Assert.*;
+import java.util.Collections;
 
-public class EmbeddedPackageInstallableTest {
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertSame;
+
+public class RepoInitScriptsInstallableTest {
+
     @Test
     public void testConstructorAndGetters() {
         final PackageId expectParentId = PackageId.fromString("test:test:1");
         final String expectJcrPath = "/some/path";
-        final PackageId expectSubpackageId = PackageId.fromString("test:testtest:1");
-        final EmbeddedPackageInstallable installable =
-                new EmbeddedPackageInstallable(expectParentId, expectJcrPath, expectSubpackageId);
+        final RepoInitScriptsInstallable installable = new RepoInitScriptsInstallable(expectParentId, expectJcrPath,
+                Collections.emptyList());
 
         assertSame("expect parentId", expectParentId, installable.getParentId());
         assertSame("expect jcrPath", expectJcrPath, installable.getJcrPath());
-        assertSame("expect subpackageId", expectSubpackageId, installable.getEmbeddedId());
+        assertNotNull("expect not null", installable.getScripts());
     }
 }

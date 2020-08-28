@@ -16,12 +16,16 @@
 
 package net.adamcin.oakpal.core;
 
+import net.adamcin.oakpal.api.EmbeddedPackageInstallable;
+import net.adamcin.oakpal.api.RepoInitScriptsInstallable;
 import net.adamcin.oakpal.api.Severity;
 import net.adamcin.oakpal.api.SimpleViolation;
+import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.junit.Test;
 
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.util.Arrays;
 import java.util.Locale;
 import java.util.ResourceBundle;
 
@@ -123,5 +127,19 @@ public class DefaultErrorListenerTest {
     @Test
     public void testOnRepoInitInlineError() {
         new DefaultErrorListener().onRepoInitInlineError(simpleCause, null);
+    }
+
+    @Test
+    public void testOnSlingEmbeddedPackageError() {
+        new DefaultErrorListener().onSlingEmbeddedPackageError(simpleCause,
+                new EmbeddedPackageInstallable(PackageId.fromString("test"), "/some/path",
+                        PackageId.fromString("testtest")));
+    }
+
+    @Test
+    public void testOnSlingRepoInitScriptsError() {
+        new DefaultErrorListener().onSlingRepoInitScriptsError(simpleCause, null,
+                new RepoInitScriptsInstallable(PackageId.fromString("test"), "/some/path",
+                        Arrays.asList("some", "scripts")));
     }
 }

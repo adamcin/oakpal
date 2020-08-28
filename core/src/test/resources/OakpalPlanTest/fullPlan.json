@@ -3,6 +3,10 @@
     "http://foo.com/foo1.zip",
     "http://foo.com/foo2.zip"
   ],
+  "runModes": [
+    "author",
+    "publish"
+  ],
   "checklists": [
     "checklist1",
     "checklist2"

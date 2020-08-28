@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Mark Adamcin
+ * Copyright 2020 Mark Adamcin
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +18,6 @@ package net.adamcin.oakpal.core;
 
 import net.adamcin.oakpal.api.PathAction;
 import net.adamcin.oakpal.api.ProgressCheck;
-import net.adamcin.oakpal.api.SilenceableCheck;
 import net.adamcin.oakpal.api.SlingInstallable;
 import net.adamcin.oakpal.api.SlingSimulator;
 import net.adamcin.oakpal.api.Violation;
@@ -31,7 +30,6 @@ import org.junit.Test;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -45,23 +43,20 @@ import java.util.stream.Stream;
 
 import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class ProgressCheckAliasFacadeTest {
+public class SilencingCheckFacadeTest {
 
     @Test
     public void testGetCheckName() {
         final ProgressCheck delegate = mock(ProgressCheck.class);
         when(delegate.getCheckName()).thenReturn("delegate");
-        final ProgressCheckAliasFacade withoutAlias = new ProgressCheckAliasFacade(delegate, null);
+        final SilencingCheckFacade withoutAlias = new SilencingCheckFacade(delegate);
         assertEquals("delegate name", "delegate", withoutAlias.getCheckName());
-        final ProgressCheckAliasFacade withAlias = new ProgressCheckAliasFacade(delegate, "alias");
-        assertEquals("alias name", "alias", withAlias.getCheckName());
     }
 
     private static class DelegateSuccessfullyCalledException extends RuntimeException {
@@ -72,9 +67,16 @@ public class ProgressCheckAliasFacadeTest {
         final CompletableFuture<Boolean> didIt = new CompletableFuture<>();
         final ProgressCheck delegate = mock(ProgressCheck.class);
         doAnswer(call -> didIt.complete(true)).when(delegate).startedScan();
-        final ProgressCheckAliasFacade alias = new ProgressCheckAliasFacade(delegate, null);
+        final SilencingCheckFacade alias = new SilencingCheckFacade(delegate);
         alias.startedScan();
         assertTrue("did it", didIt.getNow(false));
+
+        // startedScan is not silenced
+        alias.setSilenced(true);
+        final CompletableFuture<Boolean> didItAgain = new CompletableFuture<>();
+        doAnswer(call -> didItAgain.complete(true)).when(delegate).startedScan();
+        alias.startedScan();
+        assertTrue("did it again", didItAgain.getNow(false));
     }
 
     @Test
@@ -82,7 +84,7 @@ public class ProgressCheckAliasFacadeTest {
         final Collection<Violation> violations = new ArrayList<>();
         final ProgressCheck delegate = mock(ProgressCheck.class);
         when(delegate.getReportedViolations()).thenReturn(violations);
-        final ProgressCheckAliasFacade alias = new ProgressCheckAliasFacade(delegate, null);
+        final SilencingCheckFacade alias = new SilencingCheckFacade(delegate);
         assertSame("same value", violations, alias.getReportedViolations());
     }
 
@@ -91,20 +93,16 @@ public class ProgressCheckAliasFacadeTest {
         final CompletableFuture<Boolean> didIt = new CompletableFuture<>();
         final ProgressCheck delegate = mock(ProgressCheck.class);
         doAnswer(call -> didIt.complete(true)).when(delegate).finishedScan();
-        final ProgressCheckAliasFacade alias = new ProgressCheckAliasFacade(delegate, null);
+        final SilencingCheckFacade alias = new SilencingCheckFacade(delegate);
         alias.finishedScan();
         assertTrue("did it", didIt.getNow(false));
-    }
 
-
-    @Test
-    public void testSetSilenced() {
-        final CompletableFuture<Boolean> didIt = new CompletableFuture<>();
-        final SilenceableCheck delegate = mock(SilenceableCheck.class);
-        doAnswer(call -> didIt.complete(call.getArgument(0))).when(delegate).setSilenced(anyBoolean());
-        final ProgressCheckAliasFacade alias = new ProgressCheckAliasFacade(delegate, null);
+        // finishedScan is not silenced
         alias.setSilenced(true);
-        assertTrue("silenced it", didIt.getNow(false));
+        final CompletableFuture<Boolean> didItAgain = new CompletableFuture<>();
+        doAnswer(call -> didItAgain.complete(true)).when(delegate).finishedScan();
+        alias.finishedScan();
+        assertTrue("did it again", didItAgain.getNow(false));
     }
 
     @Test
@@ -124,7 +122,9 @@ public class ProgressCheckAliasFacadeTest {
                 any(SlingSimulator.class),
                 any(Set.class));
 
-        final ProgressCheckAliasFacade alias = new ProgressCheckAliasFacade(delegate, null);
+        // simulateSling is not silenced
+        final SilencingCheckFacade alias = new SilencingCheckFacade(delegate);
+        alias.setSilenced(true);
         alias.simulateSling(arg0, arg1);
 
         assertSame("same arg0", arg0, slot0.getNow(null));
@@ -149,7 +149,14 @@ public class ProgressCheckAliasFacadeTest {
                 any(PackageId.class),
                 any(File.class));
 
-        final ProgressCheckAliasFacade alias = new ProgressCheckAliasFacade(delegate, null);
+        final SilencingCheckFacade alias = new SilencingCheckFacade(delegate);
+        alias.setSilenced(true);
+        alias.identifyPackage(arg0, arg1);
+
+        assertFalse("arg0 should not be done", slot0.isDone());
+        assertFalse("arg1 should not be done", slot1.isDone());
+
+        alias.setSilenced(false);
         alias.identifyPackage(arg0, arg1);
 
         assertSame("same arg0", arg0, slot0.getNow(null));
@@ -174,7 +181,15 @@ public class ProgressCheckAliasFacadeTest {
                 any(PackageId.class),
                 any(Manifest.class));
 
-        final ProgressCheckAliasFacade alias = new ProgressCheckAliasFacade(delegate, null);
+        final SilencingCheckFacade alias = new SilencingCheckFacade(delegate);
+
+        alias.setSilenced(true);
+        alias.readManifest(arg0, arg1);
+
+        assertFalse("arg0 should not be done", slot0.isDone());
+        assertFalse("arg1 should not be done", slot1.isDone());
+
+        alias.setSilenced(false);
         alias.readManifest(arg0, arg1);
 
         assertSame("same arg0", arg0, slot0.getNow(null));
@@ -199,7 +214,14 @@ public class ProgressCheckAliasFacadeTest {
                 any(PackageId.class),
                 any(PackageId.class));
 
-        final ProgressCheckAliasFacade alias = new ProgressCheckAliasFacade(delegate, null);
+        final SilencingCheckFacade alias = new SilencingCheckFacade(delegate);
+        alias.setSilenced(true);
+        alias.identifySubpackage(arg0, arg1);
+
+        assertFalse("arg0 should not be done", slot0.isDone());
+        assertFalse("arg1 should not be done", slot1.isDone());
+
+        alias.setSilenced(false);
         alias.identifySubpackage(arg0, arg1);
 
         assertSame("same arg0", arg0, slot0.getNow(null));
@@ -223,7 +245,7 @@ public class ProgressCheckAliasFacadeTest {
                 any(MetaInf.class),
                 any(List.class));
 
-        final ProgressCheckAliasFacade alias = new ProgressCheckAliasFacade(delegate, null);
+        final SilencingCheckFacade alias = new SilencingCheckFacade(delegate);
         alias.beforeExtract(arg0, arg1, arg2, arg3, arg4);
     }
 
@@ -258,7 +280,17 @@ public class ProgressCheckAliasFacadeTest {
                 any(MetaInf.class),
                 any(List.class));
 
-        final ProgressCheckAliasFacade alias = new ProgressCheckAliasFacade(delegate, null);
+        final SilencingCheckFacade alias = new SilencingCheckFacade(delegate);
+        alias.setSilenced(true);
+        alias.beforeExtract(arg0, arg1, arg2, arg3, arg4);
+
+        assertFalse("arg0 should not be done", slot0.isDone());
+        assertFalse("arg1 should not be done", slot1.isDone());
+        assertFalse("arg2 should not be done", slot2.isDone());
+        assertFalse("arg3 should not be done", slot3.isDone());
+        assertFalse("arg4 should not be done", slot4.isDone());
+
+        alias.setSilenced(false);
         alias.beforeExtract(arg0, arg1, arg2, arg3, arg4);
 
         assertSame("same arg0", arg0, slot0.getNow(null));
@@ -282,7 +314,7 @@ public class ProgressCheckAliasFacadeTest {
                 any(Node.class),
                 any(PathAction.class));
 
-        final ProgressCheckAliasFacade alias = new ProgressCheckAliasFacade(delegate, null);
+        final SilencingCheckFacade alias = new SilencingCheckFacade(delegate);
         alias.importedPath(arg0, arg1, arg2, arg3);
     }
 
@@ -312,7 +344,16 @@ public class ProgressCheckAliasFacadeTest {
                 any(Node.class),
                 any(PathAction.class));
 
-        final ProgressCheckAliasFacade alias = new ProgressCheckAliasFacade(delegate, null);
+        final SilencingCheckFacade alias = new SilencingCheckFacade(delegate);
+        alias.setSilenced(true);
+        alias.importedPath(arg0, arg1, arg2, arg3);
+
+        assertFalse("arg0 should not be done", slot0.isDone());
+        assertFalse("arg1 should not be done", slot1.isDone());
+        assertFalse("arg2 should not be done", slot2.isDone());
+        assertFalse("arg3 should not be done", slot3.isDone());
+
+        alias.setSilenced(false);
         alias.importedPath(arg0, arg1, arg2, arg3);
 
         assertSame("same arg0", arg0, slot0.getNow(null));
@@ -333,7 +374,7 @@ public class ProgressCheckAliasFacadeTest {
                 any(String.class),
                 any(Session.class));
 
-        final ProgressCheckAliasFacade alias = new ProgressCheckAliasFacade(delegate, null);
+        final SilencingCheckFacade alias = new SilencingCheckFacade(delegate);
         alias.deletedPath(arg0, arg1, arg2);
     }
 
@@ -359,7 +400,15 @@ public class ProgressCheckAliasFacadeTest {
                 any(String.class),
                 any(Session.class));
 
-        final ProgressCheckAliasFacade alias = new ProgressCheckAliasFacade(delegate, null);
+        final SilencingCheckFacade alias = new SilencingCheckFacade(delegate);
+        alias.setSilenced(true);
+        alias.deletedPath(arg0, arg1, arg2);
+
+        assertFalse("arg0 should not be done", slot0.isDone());
+        assertFalse("arg1 should not be done", slot1.isDone());
+        assertFalse("arg2 should not be done", slot2.isDone());
+
+        alias.setSilenced(false);
         alias.deletedPath(arg0, arg1, arg2);
 
         assertSame("same arg0", arg0, slot0.getNow(null));
@@ -377,7 +426,7 @@ public class ProgressCheckAliasFacadeTest {
                 any(PackageId.class),
                 any(Session.class));
 
-        final ProgressCheckAliasFacade alias = new ProgressCheckAliasFacade(delegate, null);
+        final SilencingCheckFacade alias = new SilencingCheckFacade(delegate);
         alias.afterExtract(arg0, arg1);
     }
 
@@ -399,7 +448,14 @@ public class ProgressCheckAliasFacadeTest {
                 any(PackageId.class),
                 any(Session.class));
 
-        final ProgressCheckAliasFacade alias = new ProgressCheckAliasFacade(delegate, null);
+        final SilencingCheckFacade alias = new SilencingCheckFacade(delegate);
+        alias.setSilenced(true);
+        alias.afterExtract(arg0, arg1);
+
+        assertFalse("arg0 should not be done", slot0.isDone());
+        assertFalse("arg1 should not be done", slot1.isDone());
+
+        alias.setSilenced(false);
         alias.afterExtract(arg0, arg1);
 
         assertSame("same arg0", arg0, slot0.getNow(null));
@@ -414,7 +470,9 @@ public class ProgressCheckAliasFacadeTest {
         doAnswer(call -> slot.complete(call.getArgument(0)))
                 .when(wrappedCheck).setResourceBundle(nullable(ResourceBundle.class));
 
-        final ProgressCheckAliasFacade facade = new ProgressCheckAliasFacade(wrappedCheck, "wrapper");
+        final SilencingCheckFacade facade = new SilencingCheckFacade(wrappedCheck);
+        // setResourceBundle is not silenced
+        facade.setSilenced(true);
         final ResourceBundle expected = ResourceBundle.getBundle(getClass().getName());
         facade.setResourceBundle(ResourceBundle.getBundle(facade.getResourceBundleBaseName()));
         assertSame("expect same resource bundle", expected, slot.getNow(null));
@@ -432,7 +490,7 @@ public class ProgressCheckAliasFacadeTest {
                 any(SlingInstallable.class),
                 any(Session.class));
 
-        final ProgressCheckAliasFacade alias = new ProgressCheckAliasFacade(delegate, null);
+        final SilencingCheckFacade alias = new SilencingCheckFacade(delegate);
         alias.beforeSlingInstall(arg0, arg1, arg2);
     }
 
@@ -458,7 +516,15 @@ public class ProgressCheckAliasFacadeTest {
                 any(SlingInstallable.class),
                 any(Session.class));
 
-        final ProgressCheckAliasFacade alias = new ProgressCheckAliasFacade(delegate, null);
+        final SilencingCheckFacade alias = new SilencingCheckFacade(delegate);
+        alias.setSilenced(true);
+        alias.beforeSlingInstall(arg0, arg1, arg2);
+
+        assertFalse("arg0 should not be done", slot0.isDone());
+        assertFalse("arg1 should not be done", slot1.isDone());
+        assertFalse("arg2 should not be done", slot2.isDone());
+
+        alias.setSilenced(false);
         alias.beforeSlingInstall(arg0, arg1, arg2);
 
         assertSame("same arg0", arg0, slot0.getNow(null));
@@ -488,7 +554,15 @@ public class ProgressCheckAliasFacadeTest {
                 any(PackageId.class),
                 any(String.class));
 
-        final ProgressCheckAliasFacade alias = new ProgressCheckAliasFacade(delegate, null);
+        final SilencingCheckFacade alias = new SilencingCheckFacade(delegate);
+        alias.setSilenced(true);
+        alias.identifyEmbeddedPackage(arg0, arg1, arg2);
+
+        assertFalse("arg0 should not be done", slot0.isDone());
+        assertFalse("arg1 should not be done", slot1.isDone());
+        assertFalse("arg2 should not be done", slot2.isDone());
+
+        alias.setSilenced(false);
         alias.identifyEmbeddedPackage(arg0, arg1, arg2);
 
         assertSame("same arg0", arg0, slot0.getNow(null));
@@ -508,7 +582,7 @@ public class ProgressCheckAliasFacadeTest {
                 any(SlingInstallable.class),
                 any(Session.class));
 
-        final ProgressCheckAliasFacade alias = new ProgressCheckAliasFacade(delegate, null);
+        final SilencingCheckFacade alias = new SilencingCheckFacade(delegate);
         alias.appliedRepoInitScripts(arg0, arg1, arg2);
     }
 
@@ -534,7 +608,15 @@ public class ProgressCheckAliasFacadeTest {
                 any(SlingInstallable.class),
                 any(Session.class));
 
-        final ProgressCheckAliasFacade alias = new ProgressCheckAliasFacade(delegate, null);
+        final SilencingCheckFacade alias = new SilencingCheckFacade(delegate);
+        alias.setSilenced(true);
+        alias.appliedRepoInitScripts(arg0, arg1, arg2);
+
+        assertFalse("arg0 should not be done", slot0.isDone());
+        assertFalse("arg1 should not be done", slot1.isDone());
+        assertFalse("arg2 should not be done", slot2.isDone());
+
+        alias.setSilenced(false);
         alias.appliedRepoInitScripts(arg0, arg1, arg2);
 
         assertSame("same arg0", arg0, slot0.getNow(null));
@@ -552,7 +634,7 @@ public class ProgressCheckAliasFacadeTest {
                 any(PackageId.class),
                 any(Session.class));
 
-        final ProgressCheckAliasFacade alias = new ProgressCheckAliasFacade(delegate, null);
+        final SilencingCheckFacade alias = new SilencingCheckFacade(delegate);
         alias.afterScanPackage(arg0, arg1);
     }
 
@@ -574,12 +656,17 @@ public class ProgressCheckAliasFacadeTest {
                 any(PackageId.class),
                 any(Session.class));
 
-        final ProgressCheckAliasFacade alias = new ProgressCheckAliasFacade(delegate, null);
+        final SilencingCheckFacade alias = new SilencingCheckFacade(delegate);
+        alias.setSilenced(true);
+        alias.afterScanPackage(arg0, arg1);
 
+        assertFalse("arg0 should not be done", slot0.isDone());
+        assertFalse("arg1 should not be done", slot1.isDone());
+
+        alias.setSilenced(false);
         alias.afterScanPackage(arg0, arg1);
 
         assertSame("same arg0", arg0, slot0.getNow(null));
         assertSame("same arg1", arg1, slot1.getNow(null));
     }
-
 }

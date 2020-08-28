@@ -16,8 +16,22 @@
 
 package net.adamcin.oakpal.core.checks;
 
+import net.adamcin.oakpal.api.SilenceableCheck;
+import org.junit.Test;
+
+import static net.adamcin.oakpal.api.JavaxJson.obj;
 import static org.junit.Assert.*;
 
 public class SlingJcrInstallerTest {
 
+    @Test
+    public void testNullSafety() throws Exception {
+        new SlingJcrInstaller().newInstance(obj().get())
+                .importedPath(null, null, null, null);
+    }
+
+    @Test
+    public void testSetSilencedSafety() {
+        ((SilenceableCheck) new SlingJcrInstaller().newInstance(obj().get())).setSilenced(true);
+    }
 }
