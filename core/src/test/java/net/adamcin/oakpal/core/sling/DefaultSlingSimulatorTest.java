@@ -112,10 +112,15 @@ public class DefaultSlingSimulatorTest {
 
     @Test
     public void testReadInstallableResourceFromNode_package() throws Exception {
-        final File withEmbeddedPackage = TestPackageUtil.prepareTestPackageFromFolder("with-embedded-package.zip",
-            new File("src/test/resources/with-embedded-package"));
-
+        // first prepare the embedded file, which is copied to the test packages root directory with the given filename
+        final File embeddedPackageFile = TestPackageUtil.prepareTestPackage("package_1.0.zip");
+        // declare the path inside the embedding package
         final String packagePath = "/apps/with-embedded/install/package_1.0.zip";
+        // prepare the outer package, passing the embedded package zip entry name and prepared File location as a map
+        // of additional entries.
+        final File withEmbeddedPackage = TestPackageUtil.prepareTestPackageFromFolder("with-embedded-package.zip",
+            new File("target/test-classes/with-embedded-package"),
+                Collections.singletonMap("jcr_root" + packagePath, embeddedPackageFile));
 
         VaultPackage vaultPackage = mock(VaultPackage.class);
         PackageId embeddedId = new PackageId("com.test", "embedded", "1.0");
