@@ -150,7 +150,7 @@ class SilencingCheckFacade implements SilenceableCheck {
 
     @Override
     public void beforeSlingInstall(final PackageId lastPackage,
-                                   final SlingInstallable slingInstallable,
+                                   final SlingInstallable<?> slingInstallable,
                                    final Session inspectSession) throws RepositoryException {
         if (!silenced) {
             wrapped.beforeSlingInstall(lastPackage, slingInstallable, inspectSession);
@@ -166,7 +166,7 @@ class SilencingCheckFacade implements SilenceableCheck {
 
     @Override
     public void appliedRepoInitScripts(final PackageId lastPackage,
-                                       final SlingInstallable slingInstallable,
+                                       final SlingInstallable<?> slingInstallable,
                                        final Session inspectSession) throws RepositoryException {
         if (!silenced) {
             wrapped.appliedRepoInitScripts(lastPackage, slingInstallable, inspectSession);

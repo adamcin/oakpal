@@ -21,6 +21,7 @@ import net.adamcin.oakpal.api.PathAction;
 import net.adamcin.oakpal.api.ProgressCheck;
 import net.adamcin.oakpal.api.ProgressCheckFactory;
 import net.adamcin.oakpal.api.Severity;
+import net.adamcin.oakpal.api.SilenceableCheck;
 import net.adamcin.oakpal.api.SimpleProgressCheckFactoryCheck;
 import net.adamcin.oakpal.api.SlingSimulator;
 import org.apache.jackrabbit.vault.fs.api.WorkspaceFilter;
@@ -73,7 +74,10 @@ public final class SlingJcrInstaller implements ProgressCheckFactory {
         return new Check(rootPaths);
     }
 
-    static final class Check extends SimpleProgressCheckFactoryCheck<SlingJcrInstaller> {
+    /**
+     * This check implements {@link SilenceableCheck} specifically to avoid be wrapped with a silencing facade.
+     */
+    static final class Check extends SimpleProgressCheckFactoryCheck<SlingJcrInstaller> implements SilenceableCheck {
         private final List<String> rootPaths;
 
         private SlingSimulator slingSimulator;
@@ -87,6 +91,11 @@ public final class SlingJcrInstaller implements ProgressCheckFactory {
         @Override
         public void startedScan() {
             super.startedScan();
+        }
+
+        @Override
+        public void setSilenced(final boolean silenced) {
+            /* do nothing, because we currently collect no violations in this check */
         }
 
         @Override

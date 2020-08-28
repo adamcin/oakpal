@@ -139,7 +139,7 @@ class ProgressCheckAliasFacade implements SilenceableCheck {
 
     @Override
     public void beforeSlingInstall(final PackageId lastPackage,
-                                   final SlingInstallable slingInstallable,
+                                   final SlingInstallable<?> slingInstallable,
                                    final Session inspectSession) throws RepositoryException {
         wrapped.beforeSlingInstall(lastPackage, slingInstallable, inspectSession);
     }
@@ -151,7 +151,7 @@ class ProgressCheckAliasFacade implements SilenceableCheck {
 
     @Override
     public void appliedRepoInitScripts(final PackageId lastPackage,
-                                       final SlingInstallable slingInstallable,
+                                       final SlingInstallable<?> slingInstallable,
                                        final Session inspectSession) throws RepositoryException {
         wrapped.appliedRepoInitScripts(lastPackage, slingInstallable, inspectSession);
     }

@@ -16,6 +16,7 @@
 
 package net.adamcin.oakpal.core.checks;
 
+import net.adamcin.oakpal.core.sling.NoopSlingSimulator;
 import org.junit.Test;
 
 import javax.jcr.RepositoryException;
@@ -78,6 +79,31 @@ public class EchoTest {
     @Test
     public void testAfterExtract() throws RepositoryException {
         new Echo().afterExtract(null, null);
+    }
+
+    @Test
+    public void testSimulateSling() {
+        new Echo().simulateSling(NoopSlingSimulator.instance(), null);
+    }
+
+    @Test
+    public void testIdentifyEmbeddedPackage() {
+        new Echo().identifyEmbeddedPackage(null, null, null);
+    }
+
+    @Test
+    public void testBeforeSlingInstall() throws RepositoryException {
+        new Echo().beforeSlingInstall(null, null, null);
+    }
+
+    @Test
+    public void testAppliedRepoInitScripts() throws RepositoryException {
+        new Echo().appliedRepoInitScripts(null, null, null);
+    }
+
+    @Test
+    public void testAfterScanPackage() throws RepositoryException {
+        new Echo().afterScanPackage(null, null);
     }
 
     @Test
