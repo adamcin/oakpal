@@ -59,6 +59,9 @@
                     <execution>
                         <id>unpack-test-packages</id>
                     </execution>
+                    <execution>
+                        <id>copy-caliper-all</id>
+                    </execution>
                 </executions>
             </plugin>
             <plugin>
@@ -80,6 +83,12 @@
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>net.adamcin.oakpal</groupId>
+            <artifactId>oakpal-caliper.all</artifactId>
+            <type>zip</type>
+            <scope>test</scope>
         </dependency>
 
         <dependency>

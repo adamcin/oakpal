@@ -88,6 +88,10 @@ public final class TestPackageUtil {
         return file;
     }
 
+    public static File getCaliperPackage() {
+        return Paths.get("target/test-classes/oakpal-caliper.all.zip").toFile();
+    }
+
     public static File prepareTestPackageFromFolder(final @NotNull String filename,
                                                     final @NotNull File srcFolder) throws IOException {
         final File absFile = srcFolder.getAbsoluteFile();
