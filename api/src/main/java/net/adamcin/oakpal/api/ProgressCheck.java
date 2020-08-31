@@ -26,6 +26,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import java.io.File;
 import java.util.List;
+import java.util.Set;
 import java.util.jar.Manifest;
 
 /**
@@ -55,6 +56,7 @@ public interface ProgressCheck extends ScanListener, ViolationReporter {
         return getClass().getSimpleName();
     }
 
+
     /**
      * Called after the package is uploaded to the package manager at the beginning of the scan. Track subsequent
      * events using the package ID provided to this method. This method will only be called once for each package
@@ -76,6 +78,7 @@ public interface ProgressCheck extends ScanListener, ViolationReporter {
     default void identifySubpackage(PackageId packageId, PackageId parentId) {
 
     }
+
 
     /**
      * If the package provides a {@link Manifest}, it will be provided to the check using this method, prior to calling
@@ -154,4 +157,86 @@ public interface ProgressCheck extends ScanListener, ViolationReporter {
     default void afterExtract(PackageId packageId, Session inspectSession) throws RepositoryException {
 
     }
+
+    /**
+     * Override this method to accept an {@link SlingSimulator} to request installation of JCR resources like
+     * FileVault packages and RepositoryInitializer factory configs, as if running within a Sling repository instance.
+     * <p>
+     * Also provied are the set of simulated Sling Run Modes. These are intended to drive construction of JCR path
+     * patterns to select embedded resources for installation upon receiving a matching
+     * {@link ProgressCheck#importedPath(PackageId, String, Node, PathAction)} event, but these run modes may also be
+     * used as a global configuration hint for progress checks that support modal behavior outside of their explicit
+     * JSON config format. NOTE: this set will always be empty by default, and must be populated in the plan or
+     * overridden at runtime in the execution layer.
+     *
+     * @param slingSimulator the sling simulator
+     * @param runModes       the simulated sling run modes
+     * @since 2.2.0
+     */
+    default void simulateSling(SlingSimulator slingSimulator, Set<String> runModes) {
+
+    }
+
+    /**
+     * Provides an opportunity to inspect repository state before installing a resource submitted to the
+     * {@link SlingSimulator}.
+     *
+     * @param scanPackageId    the last preinstall or scan package
+     * @param slingInstallable the sling installable
+     * @param inspectSession   session providing access to repository state
+     * @throws RepositoryException because of access to a {@link Session}
+     * @since 2.2.0
+     */
+    default void beforeSlingInstall(PackageId scanPackageId, SlingInstallable slingInstallable, Session inspectSession)
+            throws RepositoryException {
+
+    }
+
+    /**
+     * Called after each embedded package is opened, if it has been submitted to the {@link SlingSimulator}. Track
+     * subsequent events using the package ID provided to this method. Conceptually, at least for the purposes of
+     * enforcing acceptance criteria against packaged JCR content, this is analogous to
+     * {@link #identifySubpackage(PackageId, PackageId)}.
+     *
+     * @param packageId        the package ID of the newly opened embeddedPackage
+     * @param parentId         the package ID of the parent package.
+     * @param slingInstallable the associated {@link SlingInstallable} identifying the source JCR event
+     * @since 2.2.0
+     */
+    default void identifyEmbeddedPackage(PackageId packageId, PackageId parentId, EmbeddedPackageInstallable slingInstallable) {
+
+    }
+
+
+    /**
+     * Provides an opportunity to inspect repository state after installing a resource submitted to the
+     * {@link SlingSimulator}.
+     *
+     * @param scanPackageId    the last preinstall or scan package
+     * @param scripts          the repoinit scripts that were applied
+     * @param slingInstallable the associated {@link SlingInstallable} identifying the source JCR event that provided
+     *                         the repo init scripts
+     * @param inspectSession   session providing access to repository state
+     * @throws RepositoryException because of access to a {@link Session}
+     * @since 2.2.0
+     */
+    default void appliedRepoInitScripts(PackageId scanPackageId, List<String> scripts, SlingInstallable slingInstallable, Session inspectSession)
+            throws RepositoryException {
+
+    }
+
+    /**
+     * Provides an opportunity to inspect repository state after complete installation (including its content,
+     * subpackages, and Sling installable paths) of a package explicitly listed for scanning. This method is NOT called
+     * for any of its subpackages or embedded packages.
+     *
+     * @param scanPackageId  the scanned package id
+     * @param inspectSession session providing access to repository state
+     * @throws RepositoryException because of access to a {@link Session}
+     * @since 2.2.0
+     */
+    default void afterScanPackage(PackageId scanPackageId, Session inspectSession) throws RepositoryException {
+
+    }
+
 }

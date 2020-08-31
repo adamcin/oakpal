@@ -16,13 +16,17 @@
 
 package net.adamcin.oakpal.core.checks;
 
+import net.adamcin.oakpal.api.EmbeddedPackageInstallable;
 import net.adamcin.oakpal.api.PathAction;
 import net.adamcin.oakpal.api.ProgressCheck;
+import net.adamcin.oakpal.api.SlingInstallable;
+import net.adamcin.oakpal.api.SlingSimulator;
 import net.adamcin.oakpal.api.Violation;
 import org.apache.jackrabbit.vault.fs.config.MetaInf;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.apache.jackrabbit.vault.packaging.PackageProperties;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.osgi.annotation.versioning.ConsumerType;
 
 import javax.jcr.Node;
@@ -34,6 +38,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.jar.Manifest;
 
@@ -134,7 +139,38 @@ public class Echo implements ProgressCheck {
     @Override
     public void afterExtract(final PackageId packageId, final Session inspectSession) throws RepositoryException {
         echo("afterExtract(packageId: %s, inspectSession: %s)", packageId,
-                Optional.ofNullable(inspectSession).map(Session::getUserID).orElse(null));
+                sessionToString(inspectSession));
+    }
+
+    @Override
+    public void simulateSling(final SlingSimulator slingSimulator, final Set<String> runModes) {
+        echo("simulateSling(slingSimulator: %s, runModes: %s)", slingSimulator.getClass().getName(), runModes);
+    }
+
+    @Override
+    public void identifyEmbeddedPackage(final PackageId packageId, final PackageId parentId, final EmbeddedPackageInstallable slingInstallable) {
+        echo("identifyEmbeddedPackage(packageId: %s, parentId: %s, slingInstallable: %s)", packageId, parentId, slingInstallable);
+    }
+
+    @Override
+    public void beforeSlingInstall(final PackageId scanPackageId, final SlingInstallable slingInstallable, final Session inspectSession) throws RepositoryException {
+        echo("beforeSlingInstall(scanPackageId: %s, slingInstallable: %s, inspectSession: %s)", scanPackageId, slingInstallable,
+                sessionToString(inspectSession));
+    }
+
+    @Override
+    public void appliedRepoInitScripts(final PackageId scanPackageId, final List<String> scripts, final SlingInstallable slingInstallable, final Session inspectSession) throws RepositoryException {
+        echo("appliedRepoInitScripts(scanPackageId: %s, scripts: %s, slingInstallable: %s, inspectSession: %s)", scanPackageId, scripts, slingInstallable,
+                sessionToString(inspectSession));
+    }
+
+    @Override
+    public void afterScanPackage(final PackageId scanPackageId, final Session inspectSession) throws RepositoryException {
+        echo("afterScanPackage(scanPackageId: %s, inspectSession: %s)", scanPackageId, sessionToString(inspectSession));
+    }
+
+    @Nullable String sessionToString(final @Nullable Session session) throws RepositoryException {
+        return Optional.ofNullable(session).map(Session::getUserID).orElse(null);
     }
 
     @Override

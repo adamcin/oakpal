@@ -17,9 +17,17 @@
 package net.adamcin.oakpal.core;
 
 import junitx.util.PrivateAccessor;
+import net.adamcin.oakpal.api.Fun;
+import net.adamcin.oakpal.api.OsgiConfigInstallable;
 import net.adamcin.oakpal.api.PathAction;
 import net.adamcin.oakpal.api.ProgressCheck;
+import net.adamcin.oakpal.api.SilenceableCheck;
 import net.adamcin.oakpal.api.SimpleProgressCheck;
+import net.adamcin.oakpal.api.EmbeddedPackageInstallable;
+import net.adamcin.oakpal.api.Violation;
+import net.adamcin.oakpal.core.sling.SlingRepoInitScripts;
+import net.adamcin.oakpal.api.SlingInstallable;
+import net.adamcin.oakpal.core.sling.SlingSimulatorBackend;
 import net.adamcin.oakpal.testing.TestPackageUtil;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
@@ -35,6 +43,7 @@ import org.apache.jackrabbit.vault.fs.config.MetaInf;
 import org.apache.jackrabbit.vault.fs.io.Archive;
 import org.apache.jackrabbit.vault.packaging.InstallContext;
 import org.apache.jackrabbit.vault.packaging.InstallHookProcessor;
+import org.apache.jackrabbit.vault.packaging.JcrPackage;
 import org.apache.jackrabbit.vault.packaging.JcrPackageManager;
 import org.apache.jackrabbit.vault.packaging.PackageException;
 import org.apache.jackrabbit.vault.packaging.PackageId;
@@ -55,6 +64,7 @@ import javax.jcr.Session;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.InputStream;
+import java.io.Reader;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -64,10 +74,16 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
+import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.jar.Manifest;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -79,10 +95,13 @@ import static net.adamcin.oakpal.api.Fun.uncheckVoid1;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.anyBoolean;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
@@ -155,6 +174,14 @@ public class OakMachineTest {
             assertEquals("expect namespace uri",
                     session.getNamespaceURI("foo"), "http://foo.com");
         });
+    }
+
+    @Test
+    public void testBuildWithInstallWatcher() throws Exception {
+        final File testPackage = TestPackageUtil.prepareTestPackage("null-dependency-test.zip");
+        final SlingSimulatorBackend watcher = mock(SlingSimulatorBackend.class);
+        assertTrue("no errors", builder().withSlingSimulator(watcher).build()
+                .scanPackage(testPackage).get(0).getViolations().isEmpty());
     }
 
     @Test
@@ -616,6 +643,358 @@ public class OakMachineTest {
 
     }
 
+    @Test(expected = RepositoryException.class)
+    public void testProcessSubpackage_bubbledRepositoryException() throws Exception {
+        final JcrPackageManager manager = mock(JcrPackageManager.class);
+        doThrow(RepositoryException.class).when(manager).open(any(PackageId.class));
+        final PackageId root = PackageId.fromString("my_packages:subsubtest");
+        final PackageId sub1 = PackageId.fromString("my_packages:subtest");
+        final Session session = mock(Session.class);
+        doThrow(RepositoryException.class).when(session).refresh(anyBoolean());
+        final CompletableFuture<Exception> eLatch = new CompletableFuture<>();
+        final CompletableFuture<PackageId> idLatch = new CompletableFuture<>();
+        final ErrorListener errorListener = mock(ErrorListener.class);
+        doAnswer(call -> {
+            eLatch.complete(call.getArgument(0, Exception.class));
+            idLatch.complete(call.getArgument(1, PackageId.class));
+            return true;
+        }).when(errorListener).onSubpackageException(any(Exception.class), any(PackageId.class));
+        builder().withErrorListener(errorListener).build()
+                .processSubpackage(session, manager, sub1, root, false);
+    }
+
+    @Test
+    public void testProcessSubpackageInstallable_onSubpackageException() throws Exception {
+        final JcrPackageManager manager = mock(JcrPackageManager.class);
+        doThrow(RepositoryException.class).when(manager).open(any(PackageId.class));
+        final PackageId root = PackageId.fromString("my_packages:subsubtest");
+        final PackageId sub1 = PackageId.fromString("my_packages:subtest");
+        final String jcrPath = "/some/path";
+        final EmbeddedPackageInstallable installable = new EmbeddedPackageInstallable(root, jcrPath, sub1);
+        final Session session = mock(Session.class);
+        final CompletableFuture<Exception> eLatch = new CompletableFuture<>();
+        final CompletableFuture<EmbeddedPackageInstallable> installableLatch = new CompletableFuture<>();
+        final ErrorListener errorListener = mock(ErrorListener.class);
+        doAnswer(call -> {
+            eLatch.complete(call.getArgument(0, Exception.class));
+            installableLatch.complete(call.getArgument(1, EmbeddedPackageInstallable.class));
+            return true;
+        }).when(errorListener).onSlingEmbeddedPackageError(any(Exception.class),
+                any(EmbeddedPackageInstallable.class));
+
+        final SlingSimulatorBackend installWatcher = mock(SlingSimulatorBackend.class);
+        when(installWatcher.open(installable))
+                .thenReturn(() -> manager.open(sub1));
+        builder()
+                .withSlingSimulator(installWatcher)
+                .withErrorListener(errorListener).build()
+                .processEmbeddedPackage(session, manager, installable, false);
+        assertTrue("error is of type", eLatch.getNow(null) instanceof RepositoryException);
+        assertSame("expect same installable", installable, installableLatch.getNow(null));
+    }
+
+    @Test(expected = RepositoryException.class)
+    public void testProcessSubpackageInstallable_bubbledRepositoryException() throws Exception {
+        final JcrPackageManager manager = mock(JcrPackageManager.class);
+        doThrow(RepositoryException.class).when(manager).open(any(PackageId.class));
+        final PackageId root = PackageId.fromString("my_packages:subsubtest");
+        final PackageId sub1 = PackageId.fromString("my_packages:subtest");
+        final String jcrPath = "/some/path";
+        final EmbeddedPackageInstallable installable = new EmbeddedPackageInstallable(root, jcrPath, sub1);
+        final Session session = mock(Session.class);
+        doThrow(RepositoryException.class).when(session).refresh(anyBoolean());
+        final CompletableFuture<Exception> eLatch = new CompletableFuture<>();
+        final CompletableFuture<PackageId> idLatch = new CompletableFuture<>();
+        final CompletableFuture<EmbeddedPackageInstallable> installableLatch = new CompletableFuture<>();
+        final ErrorListener errorListener = mock(ErrorListener.class);
+        doAnswer(call -> {
+            eLatch.complete(call.getArgument(0, Exception.class));
+            installableLatch.complete(call.getArgument(1, EmbeddedPackageInstallable.class));
+            return true;
+        }).when(errorListener).onSlingEmbeddedPackageError(any(Exception.class),
+                any(EmbeddedPackageInstallable.class));
+
+        final SlingSimulatorBackend installWatcher = mock(SlingSimulatorBackend.class);
+        when(installWatcher.open(installable))
+                .thenReturn(() -> manager.open(sub1));
+        builder()
+                .withSlingSimulator(installWatcher)
+                .withErrorListener(errorListener).build()
+                .processEmbeddedPackage(session, manager, installable, false);
+    }
+
+    @Test
+    public void testInternalProcessSubpackage_nullPackage() throws Exception {
+        final JcrPackageManager manager = mock(JcrPackageManager.class);
+        when(manager.open(any(PackageId.class))).thenReturn(null);
+        final PackageId root = PackageId.fromString("my_packages:subsubtest");
+        final PackageId sub1 = PackageId.fromString("my_packages:subtest");
+        final CompletableFuture<Boolean> refreshedLatch = new CompletableFuture<>();
+        final Session session = mock(Session.class);
+        doAnswer(call -> refreshedLatch.complete(call.getArgument(0)))
+                .when(session).refresh(anyBoolean());
+        final CompletableFuture<Exception> eLatch = new CompletableFuture<>();
+        final CompletableFuture<PackageId> idLatch = new CompletableFuture<>();
+        final ErrorListener errorListener = mock(ErrorListener.class);
+        doAnswer(call -> {
+            eLatch.complete(call.getArgument(0, Exception.class));
+            idLatch.complete(call.getArgument(1, PackageId.class));
+            return true;
+        }).when(errorListener).onSubpackageException(any(Exception.class), any(PackageId.class));
+        builder().withErrorListener(errorListener).build()
+                .internalProcessSubpackage(session, manager, sub1, false,
+                        () -> manager.open(sub1), check -> check.identifySubpackage(sub1, root),
+                        error -> errorListener.onSubpackageException(error, sub1));
+        assertTrue("error is of type", eLatch.getNow(null) instanceof PackageException);
+        assertEquals("package id is", sub1, idLatch.getNow(null));
+        assertFalse("expect session.refresh(false)", refreshedLatch.getNow(true));
+    }
+
+    @Test
+    public void testInternalProcessSubpackage_throwsRuntimeException() throws Exception {
+        final JcrPackageManager manager = mock(JcrPackageManager.class);
+        doThrow(RuntimeException.class).when(manager).open(any(PackageId.class));
+        final PackageId root = PackageId.fromString("my_packages:subsubtest");
+        final PackageId sub1 = PackageId.fromString("my_packages:subtest");
+        final CompletableFuture<Boolean> refreshedLatch = new CompletableFuture<>();
+        final Session session = mock(Session.class);
+        doAnswer(call -> refreshedLatch.complete(call.getArgument(0)))
+                .when(session).refresh(anyBoolean());
+        final CompletableFuture<Exception> eLatch = new CompletableFuture<>();
+        final CompletableFuture<PackageId> idLatch = new CompletableFuture<>();
+        final ErrorListener errorListener = mock(ErrorListener.class);
+        doAnswer(call -> {
+            eLatch.complete(call.getArgument(0, Exception.class));
+            idLatch.complete(call.getArgument(1, PackageId.class));
+            return true;
+        }).when(errorListener).onSubpackageException(any(Exception.class), any(PackageId.class));
+
+        builder().withErrorListener(errorListener).build()
+                .internalProcessSubpackage(session, manager, sub1, false,
+                        () -> manager.open(sub1), check -> check.identifySubpackage(sub1, root),
+                        error -> errorListener.onSubpackageException(error, sub1));
+        assertTrue("error is of type", eLatch.getNow(null) instanceof RuntimeException);
+        assertEquals("package id is", sub1, idLatch.getNow(null));
+        assertFalse("expect not called session.refresh(false)", refreshedLatch.isDone());
+        session.refresh(true);
+        assertTrue("expect session.refresh(true) on cleanup", refreshedLatch.getNow(false));
+    }
+
+    @Test
+    public void testProcessInstallableQueue_noop() throws Exception {
+        final JcrPackageManager manager = mock(JcrPackageManager.class);
+        final Session session = mock(Session.class);
+        final PackageId root = PackageId.fromString("my_packages:subsubtest");
+        new OakMachine.Builder().build().processInstallableQueue(session, manager, root, false);
+    }
+
+/*
+    @Test
+    public void testProcessInstallableQueue_failToOpenRepoInitScripts() throws Exception {
+        final JcrPackageManager manager = mock(JcrPackageManager.class);
+        final Session session = mock(Session.class);
+        final PackageId root = PackageId.fromString("my_packages:subsubtest");
+        SlingSimulatorBackend sling = mock(SlingSimulatorBackend.class);
+        Queue<SlingInstallable> installables = new LinkedList<>();
+        SlingRepoInitScripts installable = new SlingRepoInitScripts(PackageId.fromString("test"),
+                "/some/path", Arrays.asList("some", "script"));
+        installables.add(installable);
+        doAnswer(call -> installables.poll()).when(sling).dequeueInstallable();
+        doThrow(IllegalStateException.class).when(sling).open(any(SlingRepoInitScripts.class));
+
+        final CompletableFuture<Exception> eLatch = new CompletableFuture<>();
+        final CompletableFuture<SlingRepoInitScripts> installableLatch = new CompletableFuture<>();
+        final ErrorListener errorListener = mock(ErrorListener.class);
+        doAnswer(call -> {
+            eLatch.complete(call.getArgument(0, Exception.class));
+            installableLatch.complete(call.getArgument(2, SlingRepoInitScripts.class));
+            return true;
+        }).when(errorListener).onSlingRepoInitScriptsError(
+                any(Exception.class),
+                isNull(),
+                any(SlingRepoInitScripts.class));
+
+        new OakMachine.Builder()
+                .withSlingSimulator(sling)
+                .withErrorListener(errorListener)
+                .build()
+                .processInstallableQueue(session, manager, root, false);
+
+        assertTrue("error is of type", eLatch.getNow(null) instanceof IllegalStateException);
+        assertSame("expect same installable", installable, installableLatch.getNow(null));
+
+    }
+*/
+
+    @Test
+    public void testProcessInstallableQueue_singleSubpackageInstallable() throws Exception {
+        final JcrPackageManager manager = mock(JcrPackageManager.class);
+        final Session session = mock(Session.class);
+        final PackageId root = PackageId.fromString("my_packages:subsubtest");
+        final PackageId sub1 = PackageId.fromString("my_packages:subtest");
+        final String jcrPath = "/some/path";
+        final EmbeddedPackageInstallable installable = new EmbeddedPackageInstallable(root, jcrPath, sub1);
+        final List<EmbeddedPackageInstallable> installables = new ArrayList<>();
+        installables.add(installable);
+        final SlingSimulatorBackend installWatcher = mock(SlingSimulatorBackend.class);
+        final List<Optional<EmbeddedPackageInstallable>> dequeuedValues = new ArrayList<>();
+        doAnswer(call -> {
+            if (installables.isEmpty()) {
+                dequeuedValues.add(Optional.empty());
+                return null;
+            } else {
+                EmbeddedPackageInstallable toReturn = installables.remove(0);
+                dequeuedValues.add(Optional.ofNullable(toReturn));
+                return toReturn;
+            }
+        }).when(installWatcher).dequeueInstallable();
+
+        final JcrPackage jcrPackage = mock(JcrPackage.class);
+        final CompletableFuture<EmbeddedPackageInstallable> openedSlot = new CompletableFuture<>();
+        doAnswer(call -> {
+            openedSlot.complete(call.getArgument(0));
+            return (Fun.ThrowingSupplier<JcrPackage>) () -> jcrPackage;
+        }).when(installWatcher).open(installable);
+
+        new OakMachine.Builder()
+                .withSlingSimulator(installWatcher)
+                .build().processInstallableQueue(session, manager, root, false);
+
+        assertEquals("expect dequeued values",
+                Arrays.asList(Optional.of(installable), Optional.empty()), dequeuedValues);
+        assertSame("expect request to open installable", installable, openedSlot.getNow(null));
+    }
+
+    @Test
+    public void testProcessInstallableQueue_singleRepoInitInstallable() throws Exception {
+        final String expectScript = "create user testProcessInstallableQueue_singleRepoInitInstallable";
+        final JcrPackageManager manager = mock(JcrPackageManager.class);
+        final Session session = mock(Session.class);
+        final PackageId root = PackageId.fromString("my_packages:subsubtest");
+        final OsgiConfigInstallable installable = new OsgiConfigInstallable(
+                root, "/repoInit",
+                Collections.singletonMap(SlingRepoInitScripts.CONFIG_SCRIPTS,
+                        Collections.singletonList(expectScript)),
+                "init", SlingRepoInitScripts.REPO_INIT_FACTORY_PID);
+
+        final List<OsgiConfigInstallable> installables = new ArrayList<>();
+        installables.add(installable);
+        final SlingSimulatorBackend installWatcher = mock(SlingSimulatorBackend.class);
+        final List<Optional<OsgiConfigInstallable>> dequeuedValues = new ArrayList<>();
+
+        doAnswer(call -> {
+            if (installables.isEmpty()) {
+                dequeuedValues.add(Optional.empty());
+                return null;
+            } else {
+                OsgiConfigInstallable toReturn = installables.remove(0);
+                dequeuedValues.add(Optional.ofNullable(toReturn));
+                return toReturn;
+            }
+        }).when(installWatcher).dequeueInstallable();
+
+        final CompletableFuture<Reader> readerSlot = new CompletableFuture<>();
+        final OakMachine.RepoInitProcessor repoInitProcessor = (Session sess, Reader read) -> {
+            readerSlot.complete(read);
+        };
+
+        final ProgressCheck check = mock(ProgressCheck.class);
+
+        final CompletableFuture<PackageId> packIdLatch = new CompletableFuture<>();
+        final CompletableFuture<List> scriptsLatch = new CompletableFuture<>();
+        final CompletableFuture<SlingInstallable> installableLatch = new CompletableFuture<>();
+        final CompletableFuture<Session> sessionLatch = new CompletableFuture<>();
+        final ErrorListener errorListener = mock(ErrorListener.class);
+        doAnswer(call -> {
+            packIdLatch.complete(call.getArgument(0, PackageId.class));
+            scriptsLatch.complete(call.getArgument(1, List.class));
+            installableLatch.complete(call.getArgument(2, SlingInstallable.class));
+            sessionLatch.complete(call.getArgument(3, Session.class));
+            return true;
+        }).when(check).appliedRepoInitScripts(any(PackageId.class), any(List.class),
+                any(SlingInstallable.class), any(Session.class));
+
+        new OakMachine.Builder()
+                .withErrorListener(errorListener)
+                .withRepoInitProcesser(repoInitProcessor)
+                .withSlingSimulator(installWatcher)
+                .withProgressCheck(check)
+                .build().processInstallableQueue(session, manager, root, false);
+
+        assertEquals("expect dequeued values",
+                Arrays.asList(Optional.of(installable), Optional.empty()), dequeuedValues);
+        assertTrue("expect reader is complete", readerSlot.isDone());
+        assertSame("packageId is", root, packIdLatch.getNow(null));
+        assertEquals("scripts is", Collections.singletonList(expectScript), scriptsLatch.getNow(null));
+        assertSame("expect same installable", installable, installableLatch.getNow(null));
+        final Session inspectSession = sessionLatch.getNow(null);
+        assertNotNull("expect non-null inspectSession", inspectSession);
+        assertNotSame("expect same session", session, inspectSession);
+    }
+
+    @Test
+    public void testProcessInstallableQueue_singleRepoInitInstallable_fails() throws Exception {
+        final String expectScript = "create user testProcessInstallableQueue_singleRepoInitInstallable";
+        final JcrPackageManager manager = mock(JcrPackageManager.class);
+        final Session session = mock(Session.class);
+        final PackageId root = PackageId.fromString("my_packages:subsubtest");
+        final OsgiConfigInstallable installable = new OsgiConfigInstallable(
+                root, "/repoInit",
+                Collections.singletonMap(SlingRepoInitScripts.CONFIG_SCRIPTS,
+                        Collections.singletonList(expectScript)),
+                "init", SlingRepoInitScripts.REPO_INIT_FACTORY_PID);
+
+        final List<OsgiConfigInstallable> installables = new ArrayList<>();
+        installables.add(installable);
+        final SlingSimulatorBackend installWatcher = mock(SlingSimulatorBackend.class);
+        final List<Optional<OsgiConfigInstallable>> dequeuedValues = new ArrayList<>();
+
+        doAnswer(call -> {
+            if (installables.isEmpty()) {
+                dequeuedValues.add(Optional.empty());
+                return null;
+            } else {
+                OsgiConfigInstallable toReturn = installables.remove(0);
+                dequeuedValues.add(Optional.ofNullable(toReturn));
+                return toReturn;
+            }
+        }).when(installWatcher).dequeueInstallable();
+
+        final CompletableFuture<Reader> readerSlot = new CompletableFuture<>();
+        final OakMachine.RepoInitProcessor repoInitProcessor = (Session sess, Reader read) -> {
+            readerSlot.complete(read);
+            throw new NullPointerException("for some reason");
+        };
+
+        final CompletableFuture<Throwable> eLatch = new CompletableFuture<>();
+        final CompletableFuture<List> scriptsLatch = new CompletableFuture<>();
+        final CompletableFuture<String> scriptLatch = new CompletableFuture<>();
+        final CompletableFuture<SlingInstallable> installableLatch = new CompletableFuture<>();
+        final ErrorListener errorListener = mock(ErrorListener.class);
+        doAnswer(call -> {
+            eLatch.complete(call.getArgument(0, Throwable.class));
+            scriptsLatch.complete(call.getArgument(1, List.class));
+            scriptLatch.complete(call.getArgument(2, String.class));
+            installableLatch.complete(call.getArgument(3, SlingInstallable.class));
+            return true;
+        }).when(errorListener).onSlingRepoInitScriptsError(any(Throwable.class), nullable(List.class), nullable(String.class),
+                any(SlingInstallable.class));
+
+        new OakMachine.Builder()
+                .withErrorListener(errorListener)
+                .withRepoInitProcesser(repoInitProcessor)
+                .withSlingSimulator(installWatcher)
+                .build().processInstallableQueue(session, manager, root, false);
+
+        assertEquals("expect dequeued values",
+                Arrays.asList(Optional.of(installable), Optional.empty()), dequeuedValues);
+        assertTrue("expect reader is complete", readerSlot.isDone());
+        assertTrue("error is of type", eLatch.getNow(null) instanceof NullPointerException);
+        assertEquals("scripts is", Collections.singletonList(expectScript), scriptsLatch.getNow(null));
+        assertEquals("failedScript is", expectScript, scriptLatch.getNow(null));
+        assertSame("expect same installable in error", installable, installableLatch.getNow(null));
+    }
+
     @Test(expected = AbortedScanException.class)
     public void testProcessPackageUrl_abortOnRefreshFailure() throws Exception {
         final File testPackage = TestPackageUtil.prepareTestPackage("tmp_foo_bar.zip");
@@ -644,6 +1023,83 @@ public class OakMachineTest {
         doThrow(NullPointerException.class).when(manager)
                 .upload(any(File.class), anyBoolean(), anyBoolean(), nullable(String.class), anyBoolean());
         builder().build().processPackageFile(session, manager, true, testPackage);
+    }
+
+    @Test
+    public void testNewProgressCheckEventConsumer() {
+        final List<Map.Entry<ProgressCheck, Exception>> errorEvents = new ArrayList<>();
+
+        final BiConsumer<ProgressCheck, Exception> onError =
+                (check, error) -> errorEvents.add(toEntry(check, error));
+
+        final Consumer<ProgressCheck> silencedConsumer =
+                OakMachine.newProgressCheckEventConsumer(true,
+                        ProgressCheck::finishedScan, onError);
+        final Consumer<ProgressCheck> vocalConsumer =
+                OakMachine.newProgressCheckEventConsumer(false,
+                        ProgressCheck::finishedScan, onError);
+
+        final AtomicInteger normalCallCount = new AtomicInteger(0);
+        final ProgressCheck normalCheck = mock(ProgressCheck.class);
+        doAnswer(call -> normalCallCount.incrementAndGet()).when(normalCheck).finishedScan();
+        silencedConsumer.accept(normalCheck);
+        assertEquals("expect normal:silent empty errors", 0, errorEvents.size());
+        assertEquals("expect normal:silent call count", 0, normalCallCount.get());
+        errorEvents.clear();
+        normalCallCount.set(0);
+        vocalConsumer.accept(normalCheck);
+        assertEquals("expect normal:vocal empty errors", 0, errorEvents.size());
+        assertEquals("expect normal:vocal call count", 1, normalCallCount.get());
+        errorEvents.clear();
+        normalCallCount.set(0);
+        doThrow(RuntimeException.class).when(normalCheck).finishedScan();
+        silencedConsumer.accept(normalCheck);
+        assertEquals("expect normal:silent empty errors", 0, errorEvents.size());
+        assertEquals("expect normal:silent call count", 0, normalCallCount.get());
+        errorEvents.clear();
+        normalCallCount.set(0);
+        vocalConsumer.accept(normalCheck);
+        assertEquals("expect normal:vocal one error", 1, errorEvents.size());
+        assertEquals("expect normal:vocal call count", 0, normalCallCount.get());
+        errorEvents.clear();
+        normalCallCount.set(0);
+
+        final AtomicInteger watcherCallCount = new AtomicInteger(0);
+        final List<Boolean> silencedEvents = new ArrayList<>();
+        final SilenceableCheck silenceableCheck = mock(SilenceableCheck.class);
+        doAnswer(call -> silencedEvents.add(call.getArgument(0)))
+                .when(silenceableCheck).setSilenced(anyBoolean());
+        doAnswer(call -> watcherCallCount.incrementAndGet()).when(silenceableCheck).finishedScan();
+        silencedConsumer.accept(silenceableCheck);
+        assertEquals("expect watcher:silent empty errors", 0, errorEvents.size());
+        assertEquals("expect watcher:silent call count", 1, watcherCallCount.get());
+        assertEquals("expect watcher:silent silenced events",
+                Arrays.asList(true, false), silencedEvents);
+        errorEvents.clear();
+        watcherCallCount.set(0);
+        silencedEvents.clear();
+        vocalConsumer.accept(silenceableCheck);
+        assertEquals("expect watcher:vocal empty errors", 0, errorEvents.size());
+        assertEquals("expect watcher:vocal call count", 1, watcherCallCount.get());
+        assertEquals("expect watcher:vocal silenced events",
+                Collections.emptyList(), silencedEvents);
+        errorEvents.clear();
+        watcherCallCount.set(0);
+        silencedEvents.clear();
+        doThrow(RuntimeException.class).when(silenceableCheck).finishedScan();
+        silencedConsumer.accept(silenceableCheck);
+        assertEquals("expect watcher:silent empty errors", 0, errorEvents.size());
+        assertEquals("expect watcher:silent call count", 0, watcherCallCount.get());
+        assertEquals("expect watcher:silent silenced events",
+                Arrays.asList(true, false), silencedEvents);
+        errorEvents.clear();
+        watcherCallCount.set(0);
+        silencedEvents.clear();
+        vocalConsumer.accept(silenceableCheck);
+        assertEquals("expect watcher:vocal one error", 1, errorEvents.size());
+        assertEquals("expect watcher:vocal call count", 0, watcherCallCount.get());
+        assertEquals("expect watcher:vocal silenced events",
+                Collections.emptyList(), silencedEvents);
     }
 
     @Test
@@ -730,8 +1186,8 @@ public class OakMachineTest {
             return true;
         }).when(errorListener).onImporterException(any(Exception.class), any(PackageId.class), anyString());
         final OakMachine machine = builder().withErrorListener(errorListener).build();
-        final OakMachine.ImporterListenerAdapter adapter = machine.new ImporterListenerAdapter(expectId,
-                machine.getProgressChecks(), session, false);
+        final OakMachine.ImporterListenerAdapter adapter =
+                machine.new ImporterListenerAdapter(expectId, session, false);
         adapter.onError(ProgressTrackerListener.Mode.PATHS, expectPath, expectError);
         assertSame("error is same", expectError, eLatch.getNow(null));
         assertEquals("package id is", expectId, idLatch.getNow(null));
@@ -756,8 +1212,8 @@ public class OakMachineTest {
             return true;
         }).when(errorListener).onImporterException(any(Exception.class), any(PackageId.class), anyString());
         final OakMachine machine = builder().withErrorListener(errorListener).build();
-        final OakMachine.ImporterListenerAdapter adapter = machine.new ImporterListenerAdapter(expectId,
-                machine.getProgressChecks(), session, false);
+        final OakMachine.ImporterListenerAdapter adapter =
+                machine.new ImporterListenerAdapter(expectId, session, false);
         adapter.onMessage(ProgressTrackerListener.Mode.PATHS, "E", expectPath);
         assertEquals("package id is", expectId, idLatch.getNow(null));
         assertEquals("path is", expectPath, pathLatch.getNow(null));
@@ -819,30 +1275,30 @@ public class OakMachineTest {
                 new FileBlobMemoryNodeStore(blobStoreFile.getAbsolutePath()));
 
         machineBuilder.build().adminInitAndInspect(session -> {
-                    // less than AbtractBlobStore.minBlockSize - 2 (for varInt length prefix where length >= 128 && < 16384)
-                    final Binary binary = alphaFill(session, 4093);
+            // less than AbtractBlobStore.minBlockSize - 2 (for varInt length prefix where length >= 128 && < 16384)
+            final Binary binary = alphaFill(session, 4093);
 
-                    Node fooNode = session.getRootNode().addNode("foo", "nt:unstructured");
-                    fooNode.setProperty("data", binary);
-                    session.save();
+            Node fooNode = session.getRootNode().addNode("foo", "nt:unstructured");
+            fooNode.setProperty("data", binary);
+            session.save();
 
-                    assertTrue("blob is retrievable", fooNode.getProperty("data").getString().startsWith("abcdefg"));
-                });
+            assertTrue("blob is retrievable", fooNode.getProperty("data").getString().startsWith("abcdefg"));
+        });
 
         final File[] inlineChildren = blobStoreFile.listFiles();
         assertNotNull("should have non-null inlineChildren", inlineChildren);
         assertEquals("inline children is empty <4k", 0, inlineChildren.length);
 
         machineBuilder.build().adminInitAndInspect(session -> {
-                    // bigger than 4096
-                    final Binary binary = alphaFill(session, 8192);
-                    assertFalse("/foo should not exist", session.nodeExists("/foo"));
-                    Node fooNode = session.getRootNode().addNode("foo", "nt:unstructured");
-                    fooNode.setProperty("data", binary);
-                    session.save();
+            // bigger than 4096
+            final Binary binary = alphaFill(session, 8192);
+            assertFalse("/foo should not exist", session.nodeExists("/foo"));
+            Node fooNode = session.getRootNode().addNode("foo", "nt:unstructured");
+            fooNode.setProperty("data", binary);
+            session.save();
 
-                    assertTrue("blob is retrievable", fooNode.getProperty("data").getString().startsWith("abcdefg"));
-                });
+            assertTrue("blob is retrievable", fooNode.getProperty("data").getString().startsWith("abcdefg"));
+        });
 
         final File[] blobChildren = blobStoreFile.listFiles();
         assertNotNull("should have non-null blobChildren", blobChildren);
@@ -863,5 +1319,7 @@ public class OakMachineTest {
 
         return session.getValueFactory().createBinary(new ByteArrayInputStream(buffer));
     }
+
+
 }
 

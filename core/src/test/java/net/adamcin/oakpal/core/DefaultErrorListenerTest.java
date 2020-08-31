@@ -16,14 +16,21 @@
 
 package net.adamcin.oakpal.core;
 
+import net.adamcin.oakpal.api.EmbeddedPackageInstallable;
+import net.adamcin.oakpal.api.OsgiConfigInstallable;
+import net.adamcin.oakpal.core.sling.SlingRepoInitScripts;
 import net.adamcin.oakpal.api.Severity;
 import net.adamcin.oakpal.api.SimpleViolation;
+import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.junit.Test;
 
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Locale;
 import java.util.ResourceBundle;
+import java.util.stream.Stream;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotSame;
@@ -123,5 +130,20 @@ public class DefaultErrorListenerTest {
     @Test
     public void testOnRepoInitInlineError() {
         new DefaultErrorListener().onRepoInitInlineError(simpleCause, null);
+    }
+
+    @Test
+    public void testOnSlingEmbeddedPackageError() {
+        new DefaultErrorListener().onSlingEmbeddedPackageError(simpleCause,
+                new EmbeddedPackageInstallable(PackageId.fromString("test"), "/some/path",
+                        PackageId.fromString("testtest")));
+    }
+
+    @Test
+    public void testOnSlingRepoInitScriptsError() {
+        new DefaultErrorListener().onSlingRepoInitScriptsError(simpleCause, Arrays.asList("some", "scripts"), null,
+                new OsgiConfigInstallable(PackageId.fromString("test"), "/some/path",
+                        Collections.singletonMap("scripts", Stream.of("some", "scripts").toArray(String[]::new)),
+                        "init", SlingRepoInitScripts.REPO_INIT_FACTORY_PID));
     }
 }

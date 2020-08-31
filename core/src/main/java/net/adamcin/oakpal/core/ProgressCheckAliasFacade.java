@@ -16,9 +16,13 @@
 
 package net.adamcin.oakpal.core;
 
+import net.adamcin.oakpal.api.EmbeddedPackageInstallable;
 import net.adamcin.oakpal.api.PathAction;
 import net.adamcin.oakpal.api.ProgressCheck;
 import net.adamcin.oakpal.api.ProgressCheckFactory;
+import net.adamcin.oakpal.api.SilenceableCheck;
+import net.adamcin.oakpal.api.SlingInstallable;
+import net.adamcin.oakpal.api.SlingSimulator;
 import net.adamcin.oakpal.api.Violation;
 import org.apache.jackrabbit.vault.fs.config.MetaInf;
 import org.apache.jackrabbit.vault.packaging.PackageId;
@@ -33,6 +37,7 @@ import java.io.File;
 import java.util.Collection;
 import java.util.List;
 import java.util.ResourceBundle;
+import java.util.Set;
 import java.util.jar.Manifest;
 
 /**
@@ -40,14 +45,18 @@ import java.util.jar.Manifest;
  * 1) ensure that a configured checkName is actually respected
  * 2) guard {@link ProgressCheckFactory}s from being externally re-configured during a scan
  */
-class ProgressCheckAliasFacade implements ProgressCheck {
+class ProgressCheckAliasFacade implements SilenceableCheck {
 
-    private final ProgressCheck wrapped;
+    private final SilenceableCheck wrapped;
     private final String alias;
 
     ProgressCheckAliasFacade(final @NotNull ProgressCheck wrapped,
                              final @Nullable String alias) {
-        this.wrapped = wrapped;
+        if (wrapped instanceof SilenceableCheck) {
+            this.wrapped = (SilenceableCheck) wrapped;
+        } else {
+            this.wrapped = new SilencingCheckFacade(wrapped);
+        }
         this.alias = alias;
     }
 
@@ -71,13 +80,23 @@ class ProgressCheckAliasFacade implements ProgressCheck {
     }
 
     @Override
+    public Collection<Violation> getReportedViolations() {
+        return wrapped.getReportedViolations();
+    }
+
+    @Override
     public void startedScan() {
         wrapped.startedScan();
     }
 
     @Override
-    public Collection<Violation> getReportedViolations() {
-        return wrapped.getReportedViolations();
+    public void setSilenced(final boolean silenced) {
+        wrapped.setSilenced(silenced);
+    }
+
+    @Override
+    public void simulateSling(final SlingSimulator slingSimulator, final Set<String> runModes) {
+        wrapped.simulateSling(slingSimulator, runModes);
     }
 
     @Override
@@ -88,11 +107,6 @@ class ProgressCheckAliasFacade implements ProgressCheck {
     @Override
     public void readManifest(final PackageId packageId, final Manifest manifest) {
         wrapped.readManifest(packageId, manifest);
-    }
-
-    @Override
-    public void identifySubpackage(final PackageId packageId, final PackageId parentId) {
-        wrapped.identifySubpackage(packageId, parentId);
     }
 
     @Override
@@ -117,6 +131,38 @@ class ProgressCheckAliasFacade implements ProgressCheck {
     @Override
     public void afterExtract(final PackageId packageId, final Session inspectSession) throws RepositoryException {
         wrapped.afterExtract(packageId, inspectSession);
+    }
+
+    @Override
+    public void identifySubpackage(final PackageId packageId, final PackageId parentId) {
+        wrapped.identifySubpackage(packageId, parentId);
+    }
+
+    @Override
+    public void beforeSlingInstall(final PackageId scanPackageId,
+                                   final SlingInstallable slingInstallable,
+                                   final Session inspectSession) throws RepositoryException {
+        wrapped.beforeSlingInstall(scanPackageId, slingInstallable, inspectSession);
+    }
+
+    @Override
+    public void identifyEmbeddedPackage(final PackageId packageId,
+                                        final PackageId parentId,
+                                        final EmbeddedPackageInstallable slingInstallable) {
+        wrapped.identifyEmbeddedPackage(packageId, parentId, slingInstallable);
+    }
+
+    @Override
+    public void appliedRepoInitScripts(final PackageId scanPackageId,
+                                       final List<String> scripts,
+                                       final SlingInstallable slingInstallable,
+                                       final Session inspectSession) throws RepositoryException {
+        wrapped.appliedRepoInitScripts(scanPackageId, scripts, slingInstallable, inspectSession);
+    }
+
+    @Override
+    public void afterScanPackage(final PackageId scanPackageId, final Session inspectSession) throws RepositoryException {
+        wrapped.afterScanPackage(scanPackageId, inspectSession);
     }
 
     @Override

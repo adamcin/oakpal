@@ -57,6 +57,16 @@ public class TestPackageUtilTest {
     }
 
     @Test
+    public void testDeleteTestPackage() throws Exception {
+        File fullCoverage = TestPackageUtil.prepareTestPackage("fullcoverage.zip");
+        assertTrue("fullcoverage.zip should exist", fullCoverage.exists());
+
+        File fullCoverageDeleted = TestPackageUtil.deleteTestPackage("fullcoverage.zip");
+        assertFalse("fullcoverage.zip should not exist", fullCoverageDeleted.exists());
+        assertFalse("fullcoverage.zip should not exist", fullCoverage.exists());
+    }
+
+    @Test
     public void testPrepareTestPackageFromFolder() throws Exception {
         File simple = TestPackageUtil.prepareTestPackageFromFolder("simple-1.0.zip", new File("src/test/resources/extracted/simple").getAbsoluteFile());
         assertTrue("simple-1.0.zip should exist", simple.exists());
@@ -170,5 +180,11 @@ public class TestPackageUtilTest {
         FileUtils.touch(outJar.getParentFile());
         TestPackageUtil.buildJarFromDir(new File("src/test/resources/extracted/simple"),
                 outJar, Collections.emptyMap());
+    }
+
+    @Test
+    public void testGetCaliperPackage() {
+        File file = TestPackageUtil.getCaliperPackage();
+        assertTrue("expect file exists", file.exists());
     }
 }

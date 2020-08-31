@@ -16,9 +16,14 @@
 
 package net.adamcin.oakpal.core;
 
+import net.adamcin.oakpal.api.EmbeddedPackageInstallable;
 import net.adamcin.oakpal.api.PathAction;
 import net.adamcin.oakpal.api.ProgressCheck;
+import net.adamcin.oakpal.api.SilenceableCheck;
+import net.adamcin.oakpal.api.SlingInstallable;
+import net.adamcin.oakpal.api.SlingSimulator;
 import net.adamcin.oakpal.api.Violation;
+import net.adamcin.oakpal.core.sling.NoopSlingSimulator;
 import org.apache.jackrabbit.vault.fs.config.MetaInf;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.apache.jackrabbit.vault.packaging.PackageProperties;
@@ -31,13 +36,18 @@ import javax.jcr.Session;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.ResourceBundle;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.jar.Manifest;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
@@ -86,6 +96,41 @@ public class ProgressCheckAliasFacadeTest {
         final ProgressCheckAliasFacade alias = new ProgressCheckAliasFacade(delegate, null);
         alias.finishedScan();
         assertTrue("did it", didIt.getNow(false));
+    }
+
+
+    @Test
+    public void testSetSilenced() {
+        final CompletableFuture<Boolean> didIt = new CompletableFuture<>();
+        final SilenceableCheck delegate = mock(SilenceableCheck.class);
+        doAnswer(call -> didIt.complete(call.getArgument(0))).when(delegate).setSilenced(anyBoolean());
+        final ProgressCheckAliasFacade alias = new ProgressCheckAliasFacade(delegate, null);
+        alias.setSilenced(true);
+        assertTrue("silenced it", didIt.getNow(false));
+    }
+
+    @Test
+    public void testSimulateSling() {
+        final SlingSimulator arg0 = NoopSlingSimulator.instance();
+        final Set<String> arg1 = Stream.of("author", "publish").collect(Collectors.toSet());
+        final CompletableFuture<SlingSimulator> slot0 = new CompletableFuture<>();
+        final CompletableFuture<Set<?>> slot1 = new CompletableFuture<>();
+
+        final ProgressCheck delegate = mock(ProgressCheck.class);
+
+        doAnswer(call -> {
+            slot0.complete(call.getArgument(0, SlingSimulator.class));
+            slot1.complete(call.getArgument(1, Set.class));
+            return true;
+        }).when(delegate).simulateSling(
+                any(SlingSimulator.class),
+                any(Set.class));
+
+        final ProgressCheckAliasFacade alias = new ProgressCheckAliasFacade(delegate, null);
+        alias.simulateSling(arg0, arg1);
+
+        assertSame("same arg0", arg0, slot0.getNow(null));
+        assertSame("same arg1", arg1, slot1.getNow(null));
     }
 
     @Test
@@ -376,4 +421,174 @@ public class ProgressCheckAliasFacadeTest {
         facade.setResourceBundle(ResourceBundle.getBundle(facade.getResourceBundleBaseName()));
         assertSame("expect same resource bundle", expected, slot.getNow(null));
     }
+
+    @Test(expected = RepositoryException.class)
+    public void testBeforeSlingInstall_throws() throws Exception {
+        final PackageId arg0 = PackageId.fromString("my_packages:example:1.0");
+        final SlingInstallable arg1 = mock(SlingInstallable.class);
+        final Session arg2 = mock(Session.class);
+
+        final ProgressCheck delegate = mock(ProgressCheck.class);
+        doThrow(RepositoryException.class).when(delegate).beforeSlingInstall(
+                any(PackageId.class),
+                any(SlingInstallable.class),
+                any(Session.class));
+
+        final ProgressCheckAliasFacade alias = new ProgressCheckAliasFacade(delegate, null);
+        alias.beforeSlingInstall(arg0, arg1, arg2);
+    }
+
+    @Test
+    public void testBeforeSlingInstall() throws Exception {
+        final PackageId arg0 = PackageId.fromString("my_packages:example:1.0");
+        final SlingInstallable arg1 = mock(SlingInstallable.class);
+        final Session arg2 = mock(Session.class);
+
+        final CompletableFuture<PackageId> slot0 = new CompletableFuture<>();
+        final CompletableFuture<SlingInstallable> slot1 = new CompletableFuture<>();
+        final CompletableFuture<Session> slot2 = new CompletableFuture<>();
+
+        final ProgressCheck delegate = mock(ProgressCheck.class);
+
+        doAnswer(call -> {
+            slot0.complete(call.getArgument(0, PackageId.class));
+            slot1.complete(call.getArgument(1, SlingInstallable.class));
+            slot2.complete(call.getArgument(2, Session.class));
+            return true;
+        }).when(delegate).beforeSlingInstall(
+                any(PackageId.class),
+                any(SlingInstallable.class),
+                any(Session.class));
+
+        final ProgressCheckAliasFacade alias = new ProgressCheckAliasFacade(delegate, null);
+        alias.beforeSlingInstall(arg0, arg1, arg2);
+
+        assertSame("same arg0", arg0, slot0.getNow(null));
+        assertSame("same arg1", arg1, slot1.getNow(null));
+        assertSame("same arg2", arg2, slot2.getNow(null));
+    }
+
+    @Test
+    public void testIdentifyEmbeddedPackage() {
+        final PackageId arg0 = PackageId.fromString("my_packages:example:1.0");
+        final PackageId arg1 = PackageId.fromString("my_packages:other_example:1.0");
+        final EmbeddedPackageInstallable arg2 = new EmbeddedPackageInstallable(arg1, "/some/path", arg0);
+
+        final CompletableFuture<PackageId> slot0 = new CompletableFuture<>();
+        final CompletableFuture<PackageId> slot1 = new CompletableFuture<>();
+        final CompletableFuture<EmbeddedPackageInstallable> slot2 = new CompletableFuture<>();
+
+        final ProgressCheck delegate = mock(ProgressCheck.class);
+
+        doAnswer(call -> {
+            slot0.complete(call.getArgument(0, PackageId.class));
+            slot1.complete(call.getArgument(1, PackageId.class));
+            slot2.complete(call.getArgument(2, EmbeddedPackageInstallable.class));
+            return true;
+        }).when(delegate).identifyEmbeddedPackage(
+                any(PackageId.class),
+                any(PackageId.class),
+                any(EmbeddedPackageInstallable.class));
+
+        final ProgressCheckAliasFacade alias = new ProgressCheckAliasFacade(delegate, null);
+        alias.identifyEmbeddedPackage(arg0, arg1, arg2);
+
+        assertSame("same arg0", arg0, slot0.getNow(null));
+        assertSame("same arg1", arg1, slot1.getNow(null));
+        assertSame("same arg2", arg2, slot2.getNow(null));
+    }
+
+    @Test(expected = RepositoryException.class)
+    public void testAppliedRepoInitScripts_throws() throws Exception {
+        final PackageId arg0 = PackageId.fromString("my_packages:example:1.0");
+        final List<String> arg1 = Collections.singletonList("one script");
+        final SlingInstallable arg2 = mock(SlingInstallable.class);
+        final Session arg3 = mock(Session.class);
+
+        final ProgressCheck delegate = mock(ProgressCheck.class);
+        doThrow(RepositoryException.class).when(delegate).appliedRepoInitScripts(
+                any(PackageId.class),
+                any(List.class),
+                any(SlingInstallable.class),
+                any(Session.class));
+
+        final ProgressCheckAliasFacade alias = new ProgressCheckAliasFacade(delegate, null);
+        alias.appliedRepoInitScripts(arg0, arg1, arg2, arg3);
+    }
+
+    @Test
+    public void testAppliedRepoInitScripts() throws Exception {
+        final PackageId arg0 = PackageId.fromString("my_packages:example:1.0");
+        final List<String> arg1 = Collections.singletonList("one script");
+        final SlingInstallable arg2 = mock(SlingInstallable.class);
+        final Session arg3 = mock(Session.class);
+
+        final CompletableFuture<PackageId> slot0 = new CompletableFuture<>();
+        final CompletableFuture<List<?>> slot1 = new CompletableFuture<>();
+        final CompletableFuture<SlingInstallable> slot2 = new CompletableFuture<>();
+        final CompletableFuture<Session> slot3 = new CompletableFuture<>();
+
+        final ProgressCheck delegate = mock(ProgressCheck.class);
+
+        doAnswer(call -> {
+            slot0.complete(call.getArgument(0, PackageId.class));
+            slot1.complete(call.getArgument(1, List.class));
+            slot2.complete(call.getArgument(2, SlingInstallable.class));
+            slot3.complete(call.getArgument(3, Session.class));
+            return true;
+        }).when(delegate).appliedRepoInitScripts(
+                any(PackageId.class),
+                any(List.class),
+                any(SlingInstallable.class),
+                any(Session.class));
+
+        final ProgressCheckAliasFacade alias = new ProgressCheckAliasFacade(delegate, null);
+        alias.appliedRepoInitScripts(arg0, arg1, arg2, arg3);
+
+        assertSame("same arg0", arg0, slot0.getNow(null));
+        assertSame("same arg1", arg1, slot1.getNow(null));
+        assertSame("same arg2", arg2, slot2.getNow(null));
+        assertSame("same arg3", arg3, slot3.getNow(null));
+    }
+
+    @Test(expected = RepositoryException.class)
+    public void testAfterScanPackage_throws() throws Exception {
+        final PackageId arg0 = PackageId.fromString("my_packages:example:1.0");
+        final Session arg1 = mock(Session.class);
+
+        final ProgressCheck delegate = mock(ProgressCheck.class);
+        doThrow(RepositoryException.class).when(delegate).afterScanPackage(
+                any(PackageId.class),
+                any(Session.class));
+
+        final ProgressCheckAliasFacade alias = new ProgressCheckAliasFacade(delegate, null);
+        alias.afterScanPackage(arg0, arg1);
+    }
+
+    @Test
+    public void testAfterScanPackage() throws Exception {
+        final PackageId arg0 = PackageId.fromString("my_packages:example:1.0");
+        final Session arg1 = mock(Session.class);
+
+        final CompletableFuture<PackageId> slot0 = new CompletableFuture<>();
+        final CompletableFuture<Session> slot1 = new CompletableFuture<>();
+
+        final ProgressCheck delegate = mock(ProgressCheck.class);
+
+        doAnswer(call -> {
+            slot0.complete(call.getArgument(0, PackageId.class));
+            slot1.complete(call.getArgument(1, Session.class));
+            return true;
+        }).when(delegate).afterScanPackage(
+                any(PackageId.class),
+                any(Session.class));
+
+        final ProgressCheckAliasFacade alias = new ProgressCheckAliasFacade(delegate, null);
+
+        alias.afterScanPackage(arg0, arg1);
+
+        assertSame("same arg0", arg0, slot0.getNow(null));
+        assertSame("same arg1", arg1, slot1.getNow(null));
+    }
+
 }
