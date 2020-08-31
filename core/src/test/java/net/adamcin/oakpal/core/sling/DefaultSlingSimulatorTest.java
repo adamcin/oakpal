@@ -22,6 +22,7 @@ import net.adamcin.oakpal.api.OsgiConfigInstallable;
 import net.adamcin.oakpal.api.Result;
 import net.adamcin.oakpal.core.OakpalPlan;
 import net.adamcin.oakpal.testing.TestPackageUtil;
+import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.value.ValueFactoryImpl;
 import org.apache.jackrabbit.vault.packaging.JcrPackage;
 import org.apache.jackrabbit.vault.packaging.JcrPackageManager;
@@ -39,15 +40,10 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.StringBufferInputStream;
-import java.io.StringReader;
 import java.net.URL;
-import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -58,6 +54,7 @@ import java.util.stream.Stream;
 
 import static net.adamcin.oakpal.api.JavaxJson.arr;
 import static net.adamcin.oakpal.api.JavaxJson.key;
+import static net.adamcin.oakpal.api.JavaxJson.obj;
 import static net.adamcin.oakpal.core.OakpalPlan.keys;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -89,6 +86,7 @@ public class DefaultSlingSimulatorTest {
             assertTrue("expect null config", result.isSuccess() && !result.getOrDefault(null).isPresent());
         });
     }
+
 
     @Test
     public void testReadInstallableResourceFromNode_slingOsgiConfig() throws Exception {
@@ -127,6 +125,52 @@ public class DefaultSlingSimulatorTest {
             }
             assertTrue("expect exception opening OsgiConfigInstallable", thrown);
         });
+    }
+
+    @Test
+    public void testSeparatorsToUnix() {
+        assertNull("expect null path", DefaultSlingSimulator.separatorsToUnix(null));
+        assertEquals("expect new path", "/some/path", DefaultSlingSimulator.separatorsToUnix("\\some\\path"));
+        assertEquals("expect same path", "/some/path", DefaultSlingSimulator.separatorsToUnix("/some/path"));
+    }
+
+    @Test
+    public void testGetResourceId() {
+        final Map<String, String> expectResultsForIds = new LinkedHashMap<>();
+        expectResultsForIds.put("/test.config", "test.config");
+        expectResultsForIds.put("http:test.properties", "test.properties");
+        expectResultsForIds.put("test.jar", "test.jar");
+        expectResultsForIds.put("test.zip", "test.zip");
+        for (Map.Entry<String, String> entry : expectResultsForIds.entrySet()) {
+            assertEquals("expect result for id: " + entry.getKey(), entry.getValue(),
+                    DefaultSlingSimulator.getResourceId(entry.getKey()));
+        }
+    }
+
+    @Test
+    public void testRemoveConfigExtension() {
+        final Map<String, String> expectResultsForIds = new LinkedHashMap<>();
+        expectResultsForIds.put("test.config", "test");
+        expectResultsForIds.put("test.properties", "test");
+        expectResultsForIds.put("test.jar", "test.jar");
+        expectResultsForIds.put("test.zip", "test.zip");
+        for (Map.Entry<String, String> entry : expectResultsForIds.entrySet()) {
+            assertEquals("expect result for id: " + entry.getKey(), entry.getValue(),
+                    DefaultSlingSimulator.removeConfigExtension(entry.getKey()));
+        }
+    }
+
+    @Test
+    public void testIsConfigExtension() {
+        final Map<String, Boolean> expectBooleansForIds = new LinkedHashMap<>();
+        expectBooleansForIds.put("test.config", true);
+        expectBooleansForIds.put("test.properties", true);
+        expectBooleansForIds.put("test.jar", false);
+        expectBooleansForIds.put("test.zip", false);
+        for (Map.Entry<String, Boolean> entry : expectBooleansForIds.entrySet()) {
+            assertEquals("expect boolean for id: " + entry.getKey(), entry.getValue(),
+                    DefaultSlingSimulator.isConfigExtension(entry.getKey()));
+        }
     }
 
     void checkExpectedProperties(final Map<String, Object> expectProps, final Map<String, Object> props) {
@@ -212,10 +256,10 @@ public class DefaultSlingSimulatorTest {
                 .val("end")
         ).get()).toOakMachineBuilder(null, getClass().getClassLoader())
                 .build().adminInitAndInspect(session -> {
-                    Node testNode = session.getNode("/apps/config/Test");
-                    testNode.setProperty("nothing", new String[0]);
-                    session.save();
-                    DefaultSlingSimulator.loadJcrProperties(props, testNode);
+            Node testNode = session.getNode("/apps/config/Test");
+            testNode.setProperty("nothing", new String[0]);
+            session.save();
+            DefaultSlingSimulator.loadJcrProperties(props, testNode);
         });
 
         final Map<String, Object> expectProps = new HashMap<>();
@@ -259,6 +303,97 @@ public class DefaultSlingSimulatorTest {
                 DefaultSlingSimulator.convertJcrValue(vf.createValue("aName", PropertyType.NAME)));
     }
 
+
+    @Test
+    public void testMaybeConfigResource_factoryHyphen() throws Exception {
+        String configPath = "/apps/install/com.Test-pid";
+        OakpalPlan.fromJson(key(keys().repoInits(),
+                arr().val(String.format("create path (nt:unstructured) %s", configPath))).get())
+                .toOakMachineBuilder(null, getClass().getClassLoader())
+                .build().initAndInspect(session -> {
+            DefaultSlingSimulator.NodeRes nodeRes = new DefaultSlingSimulator.NodeRes(
+                    session.getNode(configPath), configPath);
+            OsgiConfigInstallableParams params = DefaultSlingSimulator.maybeConfigResource(nodeRes);
+            assertNotNull("expect nonnull config params", params);
+
+            assertEquals("expect servicePid", "pid", params.getServicePid());
+            assertEquals("expect factoryPid", "com.Test", params.getFactoryPid());
+        });
+    }
+
+    @Test
+    public void testMaybeConfigResource_factoryTilde() throws Exception {
+        String configPath = "/apps/install/com.Test~pid";
+        OakpalPlan.fromJson(obj().get())
+                .toOakMachineBuilder(null, getClass().getClassLoader())
+                .build().adminInitAndInspect(session -> {
+            DefaultSlingSimulator.NodeRes nodeRes = new DefaultSlingSimulator.NodeRes(
+                    JcrUtils.getOrCreateByPath(configPath, "nt:unstructured", session), configPath);
+            OsgiConfigInstallableParams params = DefaultSlingSimulator.maybeConfigResource(nodeRes);
+            assertNotNull("expect nonnull config params", params);
+
+            assertEquals("expect servicePid", "pid", params.getServicePid());
+            assertEquals("expect factoryPid", "com.Test", params.getFactoryPid());
+        });
+    }
+
+    @Test
+    public void testMaybeConfigResource_singleton() throws Exception {
+        String configPath = "/apps/install/com.Test";
+        OakpalPlan.fromJson(key(keys().repoInits(),
+                arr().val(String.format("create path (nt:unstructured) %s", configPath))).get())
+                .toOakMachineBuilder(null, getClass().getClassLoader())
+                .build().initAndInspect(session -> {
+            DefaultSlingSimulator.NodeRes nodeRes = new DefaultSlingSimulator.NodeRes(
+                    session.getNode(configPath), configPath);
+            OsgiConfigInstallableParams params = DefaultSlingSimulator.maybeConfigResource(nodeRes);
+            assertNotNull("expect nonnull config params", params);
+
+            assertEquals("expect servicePid", "com.Test", params.getServicePid());
+            assertNull("expect null factoryPid", params.getFactoryPid());
+        });
+    }
+
+    @Test
+    public void testMaybePackageResource_noNullPointerException() throws Exception {
+        String packagePath = "/apps/install/Test";
+        slingSimulator.setPackageManager(null);
+        OakpalPlan.fromJson(key(keys().repoInits(),
+                arr().val(String.format("create path (nt:unstructured) %s", packagePath))).get())
+                .toOakMachineBuilder(null, getClass().getClassLoader())
+                .build().initAndInspect(session -> {
+
+            DefaultSlingSimulator.NodeRes nodeRes = new DefaultSlingSimulator.NodeRes(
+                    session.getNode(packagePath), packagePath);
+            EmbeddedPackageInstallableParams result = slingSimulator
+                    .maybePackageResource(nodeRes);
+
+            assertNull("expect null result (not NullPointerException)", result);
+        });
+    }
+
+
+    @Test
+    public void testMaybePackageResource_noRepositoryException() throws Exception {
+        String packagePath = "/apps/install/Test.zip";
+        JcrPackageManager packageManager = mock(JcrPackageManager.class);
+        when(packageManager.open(argThat(nodeWithPath(packagePath)), eq(true)))
+                .thenThrow(RepositoryException.class);
+        slingSimulator.setPackageManager(packageManager);
+        OakpalPlan.fromJson(key(keys().repoInits(),
+                arr().val(String.format("create path (nt:unstructured) %s", packagePath))).get())
+                .toOakMachineBuilder(null, getClass().getClassLoader())
+                .build().initAndInspect(session -> {
+
+            DefaultSlingSimulator.NodeRes nodeRes = new DefaultSlingSimulator.NodeRes(
+                    session.getNode(packagePath), packagePath);
+            EmbeddedPackageInstallableParams result = slingSimulator
+                    .maybePackageResource(nodeRes);
+
+            assertNull("expect null result (not RepositoryException)", result);
+        });
+    }
+
     @Test
     public void testReadInstallableResourceFromNode_package() throws Exception {
         // first prepare the embedded file, which is copied to the test packages root directory with the given filename
@@ -268,7 +403,7 @@ public class DefaultSlingSimulatorTest {
         // prepare the outer package, passing the embedded package zip entry name and prepared File location as a map
         // of additional entries.
         final File withEmbeddedPackage = TestPackageUtil.prepareTestPackageFromFolder("with-embedded-package.zip",
-            new File("target/test-classes/with-embedded-package"),
+                new File("target/test-classes/with-embedded-package"),
                 Collections.singletonMap("jcr_root" + packagePath, embeddedPackageFile));
 
         VaultPackage vaultPackage = mock(VaultPackage.class);
@@ -288,19 +423,19 @@ public class DefaultSlingSimulatorTest {
 
         // can't use OakpalPlan.fromJson here because pre install urls only work if there's a base URL
         new OakpalPlan.Builder(new URL("https://github.com/adamcin/oakpal"), null)
-            .withPreInstallUrls(Collections.singletonList(withEmbeddedPackage.toURI().toURL()))
-            .build().toOakMachineBuilder(null, getClass().getClassLoader())
-            .build().initAndInspect(session -> {
+                .withPreInstallUrls(Collections.singletonList(withEmbeddedPackage.toURI().toURL()))
+                .build().toOakMachineBuilder(null, getClass().getClassLoader())
+                .build().initAndInspect(session -> {
 
             slingSimulator.setSession(session);
 
             SlingInstallableParams<?> resource = slingSimulator
-                .readInstallableParamsFromNode(session.getNode(packagePath)).toOptional()
-                .flatMap(Function.identity())
-                .orElse(null);
+                    .readInstallableParamsFromNode(session.getNode(packagePath)).toOptional()
+                    .flatMap(Function.identity())
+                    .orElse(null);
             assertNotNull("expect not null resource", resource);
             assertTrue("expect instance of EmbeddedPackageInstallableParams",
-                resource instanceof EmbeddedPackageInstallableParams);
+                    resource instanceof EmbeddedPackageInstallableParams);
             EmbeddedPackageInstallableParams params = (EmbeddedPackageInstallableParams) resource;
 
             PackageId base = new PackageId("com.test", "base", "1.0.0");

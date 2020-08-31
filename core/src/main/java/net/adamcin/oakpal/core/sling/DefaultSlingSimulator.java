@@ -260,7 +260,7 @@ public final class DefaultSlingSimulator implements SlingSimulatorBackend, Sling
     // the actual JCR Install supports the cfg and cfg.json formats
     //private static final List<String> EXTENSIONS = Arrays.asList(".config", ".properties", ".cfg", ".cfg.json");
 
-    private static String removeConfigExtension(final String id) {
+    static String removeConfigExtension(final String id) {
         for (final String ext : EXTENSIONS) {
             if (id.endsWith(ext)) {
                 return id.substring(0, id.length() - ext.length());
