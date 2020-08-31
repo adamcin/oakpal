@@ -171,9 +171,24 @@ public interface ProgressCheck extends ScanListener, ViolationReporter {
      *
      * @param slingSimulator the sling simulator
      * @param runModes       the simulated sling run modes
-     * @since 2.1.0
+     * @since 2.2.0
      */
     default void simulateSling(SlingSimulator slingSimulator, Set<String> runModes) {
+
+    }
+
+    /**
+     * Provides an opportunity to inspect repository state before installing a resource submitted to the
+     * {@link SlingSimulator}.
+     *
+     * @param scanPackageId    the last preinstall or scan package
+     * @param slingInstallable the sling installable
+     * @param inspectSession   session providing access to repository state
+     * @throws RepositoryException because of access to a {@link Session}
+     * @since 2.2.0
+     */
+    default void beforeSlingInstall(PackageId scanPackageId, SlingInstallable slingInstallable, Session inspectSession)
+            throws RepositoryException {
 
     }
 
@@ -183,41 +198,29 @@ public interface ProgressCheck extends ScanListener, ViolationReporter {
      * enforcing acceptance criteria against packaged JCR content, this is analogous to
      * {@link #identifySubpackage(PackageId, PackageId)}.
      *
-     * @param packageId the package ID of the newly opened embeddedPackage
-     * @param parentId  the package ID of the parent package.
-     * @param jcrPath   the JCR path of this embedded package within the repository
-     * @since 2.1.0
+     * @param packageId        the package ID of the newly opened embeddedPackage
+     * @param parentId         the package ID of the parent package.
+     * @param slingInstallable the associated {@link SlingInstallable} identifying the source JCR event
+     * @since 2.2.0
      */
-    default void identifyEmbeddedPackage(PackageId packageId, PackageId parentId, String jcrPath) {
+    default void identifyEmbeddedPackage(PackageId packageId, PackageId parentId, EmbeddedPackageInstallable slingInstallable) {
 
     }
 
-    /**
-     * Provides an opportunity to inspect repository state before installing a resource submitted to the
-     * {@link SlingSimulator}.
-     *
-     * @param lastPackage      the last preinstall or scan package
-     * @param slingInstallable the sling installable
-     * @param inspectSession   session providing access to repository state
-     * @throws RepositoryException because of access to a {@link Session}
-     * @since 2.1.0
-     */
-    default void beforeSlingInstall(PackageId lastPackage, SlingInstallable<?> slingInstallable, Session inspectSession)
-            throws RepositoryException {
-
-    }
 
     /**
      * Provides an opportunity to inspect repository state after installing a resource submitted to the
      * {@link SlingSimulator}.
      *
-     * @param lastPackage      the last preinstall or scan package
-     * @param slingInstallable the sling installable
+     * @param scanPackageId    the last preinstall or scan package
+     * @param scripts          the repoinit scripts that were applied
+     * @param slingInstallable the associated {@link SlingInstallable} identifying the source JCR event that provided
+     *                         the repo init scripts
      * @param inspectSession   session providing access to repository state
      * @throws RepositoryException because of access to a {@link Session}
-     * @since 2.1.0
+     * @since 2.2.0
      */
-    default void appliedRepoInitScripts(PackageId lastPackage, SlingInstallable<?> slingInstallable, Session inspectSession)
+    default void appliedRepoInitScripts(PackageId scanPackageId, List<String> scripts, SlingInstallable slingInstallable, Session inspectSession)
             throws RepositoryException {
 
     }
@@ -227,12 +230,12 @@ public interface ProgressCheck extends ScanListener, ViolationReporter {
      * subpackages, and Sling installable paths) of a package explicitly listed for scanning. This method is NOT called
      * for any of its subpackages or embedded packages.
      *
-     * @param packageId      the scanned package id
+     * @param scanPackageId  the scanned package id
      * @param inspectSession session providing access to repository state
      * @throws RepositoryException because of access to a {@link Session}
-     * @since 2.1.0
+     * @since 2.2.0
      */
-    default void afterScanPackage(PackageId packageId, Session inspectSession) throws RepositoryException {
+    default void afterScanPackage(PackageId scanPackageId, Session inspectSession) throws RepositoryException {
 
     }
 

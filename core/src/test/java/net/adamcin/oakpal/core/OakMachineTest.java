@@ -18,14 +18,15 @@ package net.adamcin.oakpal.core;
 
 import junitx.util.PrivateAccessor;
 import net.adamcin.oakpal.api.Fun;
+import net.adamcin.oakpal.api.OsgiConfigInstallable;
 import net.adamcin.oakpal.api.PathAction;
 import net.adamcin.oakpal.api.ProgressCheck;
 import net.adamcin.oakpal.api.SilenceableCheck;
 import net.adamcin.oakpal.api.SimpleProgressCheck;
 import net.adamcin.oakpal.api.EmbeddedPackageInstallable;
-import net.adamcin.oakpal.api.RepoInitScriptsInstallable;
+import net.adamcin.oakpal.api.Violation;
+import net.adamcin.oakpal.core.sling.SlingRepoInitScripts;
 import net.adamcin.oakpal.api.SlingInstallable;
-import net.adamcin.oakpal.api.SlingSimulator;
 import net.adamcin.oakpal.core.sling.SlingSimulatorBackend;
 import net.adamcin.oakpal.testing.TestPackageUtil;
 import org.apache.commons.io.FileUtils;
@@ -94,6 +95,7 @@ import static net.adamcin.oakpal.api.Fun.uncheckVoid1;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
@@ -786,30 +788,31 @@ public class OakMachineTest {
         new OakMachine.Builder().build().processInstallableQueue(session, manager, root, false);
     }
 
+/*
     @Test
     public void testProcessInstallableQueue_failToOpenRepoInitScripts() throws Exception {
         final JcrPackageManager manager = mock(JcrPackageManager.class);
         final Session session = mock(Session.class);
         final PackageId root = PackageId.fromString("my_packages:subsubtest");
         SlingSimulatorBackend sling = mock(SlingSimulatorBackend.class);
-        Queue<SlingInstallable<?>> installables = new LinkedList<>();
-        RepoInitScriptsInstallable installable = new RepoInitScriptsInstallable(PackageId.fromString("test"),
+        Queue<SlingInstallable> installables = new LinkedList<>();
+        SlingRepoInitScripts installable = new SlingRepoInitScripts(PackageId.fromString("test"),
                 "/some/path", Arrays.asList("some", "script"));
         installables.add(installable);
         doAnswer(call -> installables.poll()).when(sling).dequeueInstallable();
-        doThrow(IllegalStateException.class).when(sling).open(any(RepoInitScriptsInstallable.class));
+        doThrow(IllegalStateException.class).when(sling).open(any(SlingRepoInitScripts.class));
 
         final CompletableFuture<Exception> eLatch = new CompletableFuture<>();
-        final CompletableFuture<RepoInitScriptsInstallable> installableLatch = new CompletableFuture<>();
+        final CompletableFuture<SlingRepoInitScripts> installableLatch = new CompletableFuture<>();
         final ErrorListener errorListener = mock(ErrorListener.class);
         doAnswer(call -> {
             eLatch.complete(call.getArgument(0, Exception.class));
-            installableLatch.complete(call.getArgument(2, RepoInitScriptsInstallable.class));
+            installableLatch.complete(call.getArgument(2, SlingRepoInitScripts.class));
             return true;
         }).when(errorListener).onSlingRepoInitScriptsError(
                 any(Exception.class),
                 isNull(),
-                any(RepoInitScriptsInstallable.class));
+                any(SlingRepoInitScripts.class));
 
         new OakMachine.Builder()
                 .withSlingSimulator(sling)
@@ -821,6 +824,7 @@ public class OakMachineTest {
         assertSame("expect same installable", installable, installableLatch.getNow(null));
 
     }
+*/
 
     @Test
     public void testProcessInstallableQueue_singleSubpackageInstallable() throws Exception {
@@ -863,22 +867,27 @@ public class OakMachineTest {
 
     @Test
     public void testProcessInstallableQueue_singleRepoInitInstallable() throws Exception {
+        final String expectScript = "create user testProcessInstallableQueue_singleRepoInitInstallable";
         final JcrPackageManager manager = mock(JcrPackageManager.class);
         final Session session = mock(Session.class);
         final PackageId root = PackageId.fromString("my_packages:subsubtest");
-        final RepoInitScriptsInstallable installable = new RepoInitScriptsInstallable(root, "/repoInit",
-                Collections.emptyList());
-        final List<RepoInitScriptsInstallable> installables = new ArrayList<>();
+        final OsgiConfigInstallable installable = new OsgiConfigInstallable(
+                root, "/repoInit",
+                Collections.singletonMap(SlingRepoInitScripts.CONFIG_SCRIPTS,
+                        Collections.singletonList(expectScript)),
+                "init", SlingRepoInitScripts.REPO_INIT_FACTORY_PID);
+
+        final List<OsgiConfigInstallable> installables = new ArrayList<>();
         installables.add(installable);
         final SlingSimulatorBackend installWatcher = mock(SlingSimulatorBackend.class);
-        final List<Optional<RepoInitScriptsInstallable>> dequeuedValues = new ArrayList<>();
+        final List<Optional<OsgiConfigInstallable>> dequeuedValues = new ArrayList<>();
 
         doAnswer(call -> {
             if (installables.isEmpty()) {
                 dequeuedValues.add(Optional.empty());
                 return null;
             } else {
-                RepoInitScriptsInstallable toReturn = installables.remove(0);
+                OsgiConfigInstallable toReturn = installables.remove(0);
                 dequeuedValues.add(Optional.ofNullable(toReturn));
                 return toReturn;
             }
@@ -889,28 +898,87 @@ public class OakMachineTest {
             readerSlot.complete(read);
         };
 
-        final CompletableFuture<RepoInitScriptsInstallable> openedSlot = new CompletableFuture<>();
+        final ProgressCheck check = mock(ProgressCheck.class);
+
+        final CompletableFuture<PackageId> packIdLatch = new CompletableFuture<>();
+        final CompletableFuture<List> scriptsLatch = new CompletableFuture<>();
+        final CompletableFuture<SlingInstallable> installableLatch = new CompletableFuture<>();
+        final CompletableFuture<Session> sessionLatch = new CompletableFuture<>();
+        final ErrorListener errorListener = mock(ErrorListener.class);
         doAnswer(call -> {
-            openedSlot.complete(call.getArgument(0));
-            return (Fun.ThrowingSupplier<Iterable<String>>) () -> {
-                List<String> scripts = new ArrayList<>();
-                scripts.add("create user testProcessInstallableQueue_singleRepoInitInstallable");
-                scripts.add(null);
-                return scripts;
-            };
-        }).when(installWatcher).open(installable);
+            packIdLatch.complete(call.getArgument(0, PackageId.class));
+            scriptsLatch.complete(call.getArgument(1, List.class));
+            installableLatch.complete(call.getArgument(2, SlingInstallable.class));
+            sessionLatch.complete(call.getArgument(3, Session.class));
+            return true;
+        }).when(check).appliedRepoInitScripts(any(PackageId.class), any(List.class),
+                any(SlingInstallable.class), any(Session.class));
+
+        new OakMachine.Builder()
+                .withErrorListener(errorListener)
+                .withRepoInitProcesser(repoInitProcessor)
+                .withSlingSimulator(installWatcher)
+                .withProgressCheck(check)
+                .build().processInstallableQueue(session, manager, root, false);
+
+        assertEquals("expect dequeued values",
+                Arrays.asList(Optional.of(installable), Optional.empty()), dequeuedValues);
+        assertTrue("expect reader is complete", readerSlot.isDone());
+        assertSame("packageId is", root, packIdLatch.getNow(null));
+        assertEquals("scripts is", Collections.singletonList(expectScript), scriptsLatch.getNow(null));
+        assertSame("expect same installable", installable, installableLatch.getNow(null));
+        final Session inspectSession = sessionLatch.getNow(null);
+        assertNotNull("expect non-null inspectSession", inspectSession);
+        assertNotSame("expect same session", session, inspectSession);
+    }
+
+    @Test
+    public void testProcessInstallableQueue_singleRepoInitInstallable_fails() throws Exception {
+        final String expectScript = "create user testProcessInstallableQueue_singleRepoInitInstallable";
+        final JcrPackageManager manager = mock(JcrPackageManager.class);
+        final Session session = mock(Session.class);
+        final PackageId root = PackageId.fromString("my_packages:subsubtest");
+        final OsgiConfigInstallable installable = new OsgiConfigInstallable(
+                root, "/repoInit",
+                Collections.singletonMap(SlingRepoInitScripts.CONFIG_SCRIPTS,
+                        Collections.singletonList(expectScript)),
+                "init", SlingRepoInitScripts.REPO_INIT_FACTORY_PID);
+
+        final List<OsgiConfigInstallable> installables = new ArrayList<>();
+        installables.add(installable);
+        final SlingSimulatorBackend installWatcher = mock(SlingSimulatorBackend.class);
+        final List<Optional<OsgiConfigInstallable>> dequeuedValues = new ArrayList<>();
+
+        doAnswer(call -> {
+            if (installables.isEmpty()) {
+                dequeuedValues.add(Optional.empty());
+                return null;
+            } else {
+                OsgiConfigInstallable toReturn = installables.remove(0);
+                dequeuedValues.add(Optional.ofNullable(toReturn));
+                return toReturn;
+            }
+        }).when(installWatcher).dequeueInstallable();
+
+        final CompletableFuture<Reader> readerSlot = new CompletableFuture<>();
+        final OakMachine.RepoInitProcessor repoInitProcessor = (Session sess, Reader read) -> {
+            readerSlot.complete(read);
+            throw new NullPointerException("for some reason");
+        };
 
         final CompletableFuture<Throwable> eLatch = new CompletableFuture<>();
+        final CompletableFuture<List> scriptsLatch = new CompletableFuture<>();
         final CompletableFuture<String> scriptLatch = new CompletableFuture<>();
-        final CompletableFuture<RepoInitScriptsInstallable> installableLatch = new CompletableFuture<>();
+        final CompletableFuture<SlingInstallable> installableLatch = new CompletableFuture<>();
         final ErrorListener errorListener = mock(ErrorListener.class);
         doAnswer(call -> {
             eLatch.complete(call.getArgument(0, Throwable.class));
-            scriptLatch.complete(call.getArgument(1, String.class));
-            installableLatch.complete(call.getArgument(2, RepoInitScriptsInstallable.class));
+            scriptsLatch.complete(call.getArgument(1, List.class));
+            scriptLatch.complete(call.getArgument(2, String.class));
+            installableLatch.complete(call.getArgument(3, SlingInstallable.class));
             return true;
-        }).when(errorListener).onSlingRepoInitScriptsError(any(Throwable.class), nullable(String.class),
-                any(RepoInitScriptsInstallable.class));
+        }).when(errorListener).onSlingRepoInitScriptsError(any(Throwable.class), nullable(List.class), nullable(String.class),
+                any(SlingInstallable.class));
 
         new OakMachine.Builder()
                 .withErrorListener(errorListener)
@@ -920,10 +988,10 @@ public class OakMachineTest {
 
         assertEquals("expect dequeued values",
                 Arrays.asList(Optional.of(installable), Optional.empty()), dequeuedValues);
-        assertSame("expect request to open installable", installable, openedSlot.getNow(null));
         assertTrue("expect reader is complete", readerSlot.isDone());
         assertTrue("error is of type", eLatch.getNow(null) instanceof NullPointerException);
-        assertNull("failedScript is", scriptLatch.getNow("not failed"));
+        assertEquals("scripts is", Collections.singletonList(expectScript), scriptsLatch.getNow(null));
+        assertEquals("failedScript is", expectScript, scriptLatch.getNow(null));
         assertSame("expect same installable in error", installable, installableLatch.getNow(null));
     }
 

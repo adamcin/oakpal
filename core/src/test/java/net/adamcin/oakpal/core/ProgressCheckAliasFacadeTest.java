@@ -16,6 +16,7 @@
 
 package net.adamcin.oakpal.core;
 
+import net.adamcin.oakpal.api.EmbeddedPackageInstallable;
 import net.adamcin.oakpal.api.PathAction;
 import net.adamcin.oakpal.api.ProgressCheck;
 import net.adamcin.oakpal.api.SilenceableCheck;
@@ -35,6 +36,7 @@ import javax.jcr.Session;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.ResourceBundle;
 import java.util.Set;
@@ -423,7 +425,7 @@ public class ProgressCheckAliasFacadeTest {
     @Test(expected = RepositoryException.class)
     public void testBeforeSlingInstall_throws() throws Exception {
         final PackageId arg0 = PackageId.fromString("my_packages:example:1.0");
-        final SlingInstallable<?> arg1 = mock(SlingInstallable.class);
+        final SlingInstallable arg1 = mock(SlingInstallable.class);
         final Session arg2 = mock(Session.class);
 
         final ProgressCheck delegate = mock(ProgressCheck.class);
@@ -439,11 +441,11 @@ public class ProgressCheckAliasFacadeTest {
     @Test
     public void testBeforeSlingInstall() throws Exception {
         final PackageId arg0 = PackageId.fromString("my_packages:example:1.0");
-        final SlingInstallable<?> arg1 = mock(SlingInstallable.class);
+        final SlingInstallable arg1 = mock(SlingInstallable.class);
         final Session arg2 = mock(Session.class);
 
         final CompletableFuture<PackageId> slot0 = new CompletableFuture<>();
-        final CompletableFuture<SlingInstallable<?>> slot1 = new CompletableFuture<>();
+        final CompletableFuture<SlingInstallable> slot1 = new CompletableFuture<>();
         final CompletableFuture<Session> slot2 = new CompletableFuture<>();
 
         final ProgressCheck delegate = mock(ProgressCheck.class);
@@ -470,23 +472,23 @@ public class ProgressCheckAliasFacadeTest {
     public void testIdentifyEmbeddedPackage() {
         final PackageId arg0 = PackageId.fromString("my_packages:example:1.0");
         final PackageId arg1 = PackageId.fromString("my_packages:other_example:1.0");
-        final String arg2 = "/some/path";
+        final EmbeddedPackageInstallable arg2 = new EmbeddedPackageInstallable(arg1, "/some/path", arg0);
 
         final CompletableFuture<PackageId> slot0 = new CompletableFuture<>();
         final CompletableFuture<PackageId> slot1 = new CompletableFuture<>();
-        final CompletableFuture<String> slot2 = new CompletableFuture<>();
+        final CompletableFuture<EmbeddedPackageInstallable> slot2 = new CompletableFuture<>();
 
         final ProgressCheck delegate = mock(ProgressCheck.class);
 
         doAnswer(call -> {
             slot0.complete(call.getArgument(0, PackageId.class));
             slot1.complete(call.getArgument(1, PackageId.class));
-            slot2.complete(call.getArgument(2, String.class));
+            slot2.complete(call.getArgument(2, EmbeddedPackageInstallable.class));
             return true;
         }).when(delegate).identifyEmbeddedPackage(
                 any(PackageId.class),
                 any(PackageId.class),
-                any(String.class));
+                any(EmbeddedPackageInstallable.class));
 
         final ProgressCheckAliasFacade alias = new ProgressCheckAliasFacade(delegate, null);
         alias.identifyEmbeddedPackage(arg0, arg1, arg2);
@@ -499,47 +501,54 @@ public class ProgressCheckAliasFacadeTest {
     @Test(expected = RepositoryException.class)
     public void testAppliedRepoInitScripts_throws() throws Exception {
         final PackageId arg0 = PackageId.fromString("my_packages:example:1.0");
-        final SlingInstallable<?> arg1 = mock(SlingInstallable.class);
-        final Session arg2 = mock(Session.class);
+        final List<String> arg1 = Collections.singletonList("one script");
+        final SlingInstallable arg2 = mock(SlingInstallable.class);
+        final Session arg3 = mock(Session.class);
 
         final ProgressCheck delegate = mock(ProgressCheck.class);
         doThrow(RepositoryException.class).when(delegate).appliedRepoInitScripts(
                 any(PackageId.class),
+                any(List.class),
                 any(SlingInstallable.class),
                 any(Session.class));
 
         final ProgressCheckAliasFacade alias = new ProgressCheckAliasFacade(delegate, null);
-        alias.appliedRepoInitScripts(arg0, arg1, arg2);
+        alias.appliedRepoInitScripts(arg0, arg1, arg2, arg3);
     }
 
     @Test
     public void testAppliedRepoInitScripts() throws Exception {
         final PackageId arg0 = PackageId.fromString("my_packages:example:1.0");
-        final SlingInstallable<?> arg1 = mock(SlingInstallable.class);
-        final Session arg2 = mock(Session.class);
+        final List<String> arg1 = Collections.singletonList("one script");
+        final SlingInstallable arg2 = mock(SlingInstallable.class);
+        final Session arg3 = mock(Session.class);
 
         final CompletableFuture<PackageId> slot0 = new CompletableFuture<>();
-        final CompletableFuture<SlingInstallable<?>> slot1 = new CompletableFuture<>();
-        final CompletableFuture<Session> slot2 = new CompletableFuture<>();
+        final CompletableFuture<List<?>> slot1 = new CompletableFuture<>();
+        final CompletableFuture<SlingInstallable> slot2 = new CompletableFuture<>();
+        final CompletableFuture<Session> slot3 = new CompletableFuture<>();
 
         final ProgressCheck delegate = mock(ProgressCheck.class);
 
         doAnswer(call -> {
             slot0.complete(call.getArgument(0, PackageId.class));
-            slot1.complete(call.getArgument(1, SlingInstallable.class));
-            slot2.complete(call.getArgument(2, Session.class));
+            slot1.complete(call.getArgument(1, List.class));
+            slot2.complete(call.getArgument(2, SlingInstallable.class));
+            slot3.complete(call.getArgument(3, Session.class));
             return true;
         }).when(delegate).appliedRepoInitScripts(
                 any(PackageId.class),
+                any(List.class),
                 any(SlingInstallable.class),
                 any(Session.class));
 
         final ProgressCheckAliasFacade alias = new ProgressCheckAliasFacade(delegate, null);
-        alias.appliedRepoInitScripts(arg0, arg1, arg2);
+        alias.appliedRepoInitScripts(arg0, arg1, arg2, arg3);
 
         assertSame("same arg0", arg0, slot0.getNow(null));
         assertSame("same arg1", arg1, slot1.getNow(null));
         assertSame("same arg2", arg2, slot2.getNow(null));
+        assertSame("same arg3", arg3, slot3.getNow(null));
     }
 
     @Test(expected = RepositoryException.class)

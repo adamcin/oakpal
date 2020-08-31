@@ -16,6 +16,7 @@
 
 package net.adamcin.oakpal.core.checks;
 
+import net.adamcin.oakpal.api.EmbeddedPackageInstallable;
 import net.adamcin.oakpal.api.PathAction;
 import net.adamcin.oakpal.api.ProgressCheck;
 import net.adamcin.oakpal.api.SlingInstallable;
@@ -147,25 +148,25 @@ public class Echo implements ProgressCheck {
     }
 
     @Override
-    public void identifyEmbeddedPackage(final PackageId packageId, final PackageId parentId, final String jcrPath) {
-        echo("identifyEmbeddedPackage(packageId: %s, parentId: %s, jcrPath: %s)", packageId, parentId, jcrPath);
+    public void identifyEmbeddedPackage(final PackageId packageId, final PackageId parentId, final EmbeddedPackageInstallable slingInstallable) {
+        echo("identifyEmbeddedPackage(packageId: %s, parentId: %s, slingInstallable: %s)", packageId, parentId, slingInstallable);
     }
 
     @Override
-    public void beforeSlingInstall(final PackageId lastPackage, final SlingInstallable<?> slingInstallable, final Session inspectSession) throws RepositoryException {
-        echo("beforeSlingInstall(lastPackage: %s, slingInstallable: %s, inspectSession: %s)", lastPackage, slingInstallable,
+    public void beforeSlingInstall(final PackageId scanPackageId, final SlingInstallable slingInstallable, final Session inspectSession) throws RepositoryException {
+        echo("beforeSlingInstall(scanPackageId: %s, slingInstallable: %s, inspectSession: %s)", scanPackageId, slingInstallable,
                 sessionToString(inspectSession));
     }
 
     @Override
-    public void appliedRepoInitScripts(final PackageId lastPackage, final SlingInstallable<?> slingInstallable, final Session inspectSession) throws RepositoryException {
-        echo("appliedRepoInitScripts(lastPackage: %s, slingInstallable: %s, inspectSession: %s)", lastPackage, slingInstallable,
+    public void appliedRepoInitScripts(final PackageId scanPackageId, final List<String> scripts, final SlingInstallable slingInstallable, final Session inspectSession) throws RepositoryException {
+        echo("appliedRepoInitScripts(scanPackageId: %s, scripts: %s, slingInstallable: %s, inspectSession: %s)", scanPackageId, scripts, slingInstallable,
                 sessionToString(inspectSession));
     }
 
     @Override
-    public void afterScanPackage(final PackageId packageId, final Session inspectSession) throws RepositoryException {
-        echo("afterScanPackage(packageId: %s, inspectSession: %s)", packageId, sessionToString(inspectSession));
+    public void afterScanPackage(final PackageId scanPackageId, final Session inspectSession) throws RepositoryException {
+        echo("afterScanPackage(scanPackageId: %s, inspectSession: %s)", scanPackageId, sessionToString(inspectSession));
     }
 
     @Nullable String sessionToString(final @Nullable Session session) throws RepositoryException {

@@ -23,10 +23,9 @@ import org.osgi.annotation.versioning.ProviderType;
 /**
  * Type representing a Sling-installable resource JCR path.
  *
- * @param <InstallableType> the concrete installable type
  */
 @ProviderType
-public interface SlingInstallable<InstallableType> {
+public interface SlingInstallable {
 
     /**
      * PackageId of the package that imported the resource.

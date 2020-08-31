@@ -46,7 +46,7 @@ public class ErrorListenerTest {
         mock.onProhibitedInstallHookRegistration(null);
         mock.onRepoInitUrlError(null, null);
         mock.onRepoInitInlineError(null, null);
-        mock.onSlingRepoInitScriptsError(null, null, null);
+        mock.onSlingRepoInitScriptsError(null, null, null, null);
         mock.onSlingEmbeddedPackageError(null, null);
         mock.finishedScan();
     }

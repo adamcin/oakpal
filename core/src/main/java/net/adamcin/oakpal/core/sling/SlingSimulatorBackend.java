@@ -19,6 +19,7 @@ package net.adamcin.oakpal.core.sling;
 import net.adamcin.oakpal.api.Fun;
 import net.adamcin.oakpal.api.ScanListener;
 import net.adamcin.oakpal.api.SlingInstallable;
+import net.adamcin.oakpal.api.SlingOpenable;
 import net.adamcin.oakpal.api.SlingSimulator;
 import net.adamcin.oakpal.core.ErrorListener;
 import org.apache.jackrabbit.vault.packaging.JcrPackageManager;
@@ -57,21 +58,19 @@ public interface SlingSimulatorBackend extends SlingSimulator, ScanListener {
     void setErrorListener(ErrorListener errorListener);
 
     /**
-     * Get the collected installable paths. The consumer of this method is instructed to treat the returned map as an
-     * iterable. Each entry gives the path as a key, and the installable type as the value. The type enum should be used
-     * by the consumer to call the appropriate get method
+     * Get the next installable path and remove from the queue.
      *
      * @return a resource to be installed immediately or null to continue the scan
      */
-    @Nullable SlingInstallable<?> dequeueInstallable();
+    @Nullable SlingInstallable dequeueInstallable();
 
     /**
-     * Get installable entities from the specified JCR path.
+     * Return a supplier that tries to open an installable resource from the specified installable path.
      *
-     * @param installable       the installable
-     * @param <InstallableType> the concrete installable type
+     * @param installable    the openable installable
+     * @param <ResourceType> the concrete resource type
      * @return an entity supplier from the provided JCR path
      */
-    @NotNull <InstallableType> Fun.ThrowingSupplier<InstallableType>
-    open(@NotNull SlingInstallable<InstallableType> installable);
+    @NotNull <ResourceType> Fun.ThrowingSupplier<ResourceType>
+    open(@NotNull SlingOpenable<ResourceType> installable);
 }

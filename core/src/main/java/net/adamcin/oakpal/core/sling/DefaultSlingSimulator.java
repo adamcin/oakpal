@@ -18,9 +18,9 @@ package net.adamcin.oakpal.core.sling;
 
 import net.adamcin.oakpal.api.EmbeddedPackageInstallable;
 import net.adamcin.oakpal.api.Fun;
-import net.adamcin.oakpal.api.RepoInitScriptsInstallable;
 import net.adamcin.oakpal.api.Result;
 import net.adamcin.oakpal.api.SlingInstallable;
+import net.adamcin.oakpal.api.SlingOpenable;
 import net.adamcin.oakpal.api.SlingSimulator;
 import net.adamcin.oakpal.core.ErrorListener;
 import org.apache.felix.cm.file.ConfigurationHandler;
@@ -72,7 +72,7 @@ public final class DefaultSlingSimulator implements SlingSimulatorBackend, Sling
     private JcrPackageManager packageManager;
     private ErrorListener errorListener;
 
-    private final Queue<SlingInstallable<?>> installables = new LinkedList<>();
+    private final Queue<SlingInstallable> installables = new LinkedList<>();
 
     @Override
     public void startedScan() {
@@ -95,29 +95,21 @@ public final class DefaultSlingSimulator implements SlingSimulatorBackend, Sling
     }
 
     @Override
-    public @Nullable SlingInstallable<?> dequeueInstallable() {
+    public @Nullable SlingInstallable dequeueInstallable() {
         return installables.poll();
     }
 
     @SuppressWarnings("unchecked")
     @Override
-    public @NotNull <InstallableType> Fun.ThrowingSupplier<InstallableType>
-    open(@NotNull final SlingInstallable<InstallableType> installable) {
-        if (installable instanceof RepoInitScriptsInstallable) {
+    public @NotNull <ResourceType> Fun.ThrowingSupplier<ResourceType>
+    open(@NotNull final SlingOpenable<ResourceType> installable) {
+        if (installable instanceof EmbeddedPackageInstallable) {
             return () ->
-                    (InstallableType) openRepoInitScripts((RepoInitScriptsInstallable) installable);
-        } else if (installable instanceof EmbeddedPackageInstallable) {
-            return () ->
-                    (InstallableType) openEmbeddedPackage((EmbeddedPackageInstallable) installable);
+                    (ResourceType) openEmbeddedPackage((EmbeddedPackageInstallable) installable);
         }
         return () -> {
             throw new IllegalArgumentException("Unsupported installable type: " + installable.getClass());
         };
-    }
-
-    public @NotNull Iterable<String>
-    openRepoInitScripts(@NotNull final RepoInitScriptsInstallable installable) {
-        return installable.getScripts();
     }
 
     public @Nullable JcrPackage
@@ -132,13 +124,13 @@ public final class DefaultSlingSimulator implements SlingSimulatorBackend, Sling
     }
 
     @Override
-    public @Nullable SlingInstallable<?> prepareInstallableNode(final @NotNull PackageId parentPackageId,
-                                                                final @NotNull Node node) {
+    public @Nullable SlingInstallable prepareInstallableNode(final @NotNull PackageId parentPackageId,
+                                                             final @NotNull Node node) {
         final Result<String> jcrPathResult = result0(node::getPath).get();
         final Result<Optional<SlingInstallableParams<?>>> result = jcrPathResult
                 .flatMap(result1(session::getNode))
                 .flatMap(this::readInstallableParamsFromNode);
-        SlingInstallable<?> installable = jcrPathResult.flatMap(jcrPath ->
+        SlingInstallable installable = jcrPathResult.flatMap(jcrPath ->
                 result.map(optParams ->
                         optParams.map(params -> params.createInstallable(parentPackageId, jcrPath))))
                 .toOptional().flatMap(Function.identity())
@@ -186,12 +178,7 @@ public final class DefaultSlingSimulator implements SlingSimulatorBackend, Sling
                 // handle sling:OsgiConfig
                 loadJcrProperties(nodeRes.getProps(), node);
 
-                OsgiConfigInstallableParams configInstallableParams = maybeConfigResource(nodeRes);
-                if (configInstallableParams != null) {
-                    return Optional.<SlingInstallableParams<?>>ofNullable(RepoInitScriptsInstallableParams
-                            .fromOsgiConfigInstallableParams(configInstallableParams))
-                            .orElse(configInstallableParams);
-                }
+                return maybeConfigResource(nodeRes);
             } else if (node.hasProperty(JCR_CONTENT_DATA)) {
                 // this could be a properties file, or a package file (.zip), or a bundle (.jar)
                 // check extension here
@@ -207,12 +194,7 @@ public final class DefaultSlingSimulator implements SlingSimulatorBackend, Sling
                         nodeRes.getProps().putAll(readDictionary(is, nodeRes.getPath()));
                     }
 
-                    OsgiConfigInstallableParams configInstallableParams = maybeConfigResource(nodeRes);
-                    if (configInstallableParams != null) {
-                        return Optional.<SlingInstallableParams<?>>ofNullable(RepoInitScriptsInstallableParams
-                                .fromOsgiConfigInstallableParams(configInstallableParams))
-                                .orElse(configInstallableParams);
-                    }
+                    return maybeConfigResource(nodeRes);
                 }
             }
             return null;

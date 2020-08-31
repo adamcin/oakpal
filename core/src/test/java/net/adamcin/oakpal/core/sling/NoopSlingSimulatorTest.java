@@ -17,11 +17,8 @@
 package net.adamcin.oakpal.core.sling;
 
 import net.adamcin.oakpal.api.EmbeddedPackageInstallable;
-import net.adamcin.oakpal.api.RepoInitScriptsInstallable;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.junit.Test;
-
-import java.util.Collections;
 
 import static net.adamcin.oakpal.core.sling.NoopSlingSimulator.instance;
 import static org.junit.Assert.assertNotNull;
@@ -37,12 +34,6 @@ public class NoopSlingSimulatorTest {
     @Test
     public void testDequeueInstallable() {
         assertNull("never dequeue an installable", instance().dequeueInstallable());
-    }
-
-    @Test(expected = IllegalStateException.class)
-    public void testOpenRepoInitScripts() throws Exception {
-        instance().open(new RepoInitScriptsInstallable(PackageId.fromString("test:pack:1"), "/test/path",
-                Collections.emptyList())).tryGet();
     }
 
     @Test(expected = IllegalStateException.class)

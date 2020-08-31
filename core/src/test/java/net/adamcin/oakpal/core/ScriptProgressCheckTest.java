@@ -16,12 +16,13 @@
 
 package net.adamcin.oakpal.core;
 
+import net.adamcin.oakpal.api.EmbeddedPackageInstallable;
 import net.adamcin.oakpal.api.PathAction;
 import net.adamcin.oakpal.api.ProgressCheck;
 import net.adamcin.oakpal.api.ProgressCheckFactory;
-import net.adamcin.oakpal.api.RepoInitScriptsInstallable;
-import net.adamcin.oakpal.api.Severity;
 import net.adamcin.oakpal.api.SlingInstallable;
+import net.adamcin.oakpal.core.sling.SlingRepoInitScripts;
+import net.adamcin.oakpal.api.Severity;
 import net.adamcin.oakpal.api.Violation;
 import org.apache.jackrabbit.vault.fs.config.MetaInf;
 import org.apache.jackrabbit.vault.packaging.PackageId;
@@ -295,7 +296,7 @@ public class ScriptProgressCheckTest {
 
         final PackageId arg1 = PackageId.fromString("my_packages:example:1.0");
         final PackageId arg2 = PackageId.fromString("my_packages:other-example:1.0");
-        final String arg3 = "/apps/mine/author-packages/install/" + arg1.getDownloadName();
+        final EmbeddedPackageInstallable arg3 = new EmbeddedPackageInstallable(arg1, "/some/path", arg2);
 
         argRecord.clear();
         check.identifyEmbeddedPackage(arg1, arg2, arg3);
@@ -399,8 +400,7 @@ public class ScriptProgressCheckTest {
                 .when(delegate).invokeFunction(anyString(), any());
 
         final PackageId arg1 = PackageId.fromString("my_packages:example:1.0");
-        final RepoInitScriptsInstallable arg2 = new RepoInitScriptsInstallable(arg1, "/some/path",
-                Arrays.asList("some", "script"));
+        final SlingInstallable arg2 = mock(SlingInstallable.class);
         final Session arg3 = mock(Session.class);
 
         check.beforeSlingInstall(arg1, arg2, arg3);
@@ -420,24 +420,26 @@ public class ScriptProgressCheckTest {
         final ScriptProgressCheck.ScriptHelper helper = new ScriptProgressCheck.ScriptHelper();
         final ScriptProgressCheck check = new ScriptProgressCheck(delegate, helper, null);
 
+        // argRecord value.length() == 1 + # args to appliedRepoInitScripts
         final List<Map.Entry<String, Object[]>> argRecord = new ArrayList<>();
         doAnswer(call -> argRecord.add(toEntry(call.getArgument(0), call.getArguments())))
                 .when(delegate).invokeFunction(anyString(), any());
 
         final PackageId arg1 = PackageId.fromString("my_packages:example:1.0");
-        final RepoInitScriptsInstallable arg2 = new RepoInitScriptsInstallable(arg1, "/some/path",
-                Arrays.asList("some", "script"));
-        final Session arg3 = mock(Session.class);
+        final List<String> arg2 = Collections.singletonList("one script");
+        final SlingInstallable arg3 = mock(SlingInstallable.class);
+        final Session arg4 = mock(Session.class);
 
-        check.appliedRepoInitScripts(arg1, arg2, arg3);
+        check.appliedRepoInitScripts(arg1, arg2, arg3, arg4);
 
         Map.Entry<String, Object[]> call = argRecord.stream()
-                .filter(entry -> "appliedRepoInitScripts".equals(entry.getKey()) && entry.getValue().length == 4).findFirst()
+                .filter(entry -> "appliedRepoInitScripts".equals(entry.getKey()) && entry.getValue().length == 5).findFirst()
                 .orElse(null);
         assertNotNull("expect call for appliedRepoInitScripts", call);
         assertSame("same arg1", arg1, call.getValue()[1]);
         assertSame("same arg2", arg2, call.getValue()[2]);
         assertSame("same arg3", arg3, call.getValue()[3]);
+        assertSame("same arg4", arg4, call.getValue()[4]);
     }
 
     @Test

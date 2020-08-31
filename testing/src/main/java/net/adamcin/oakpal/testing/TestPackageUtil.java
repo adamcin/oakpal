@@ -92,8 +92,17 @@ public final class TestPackageUtil {
         return Paths.get("target/test-classes/oakpal-caliper.all.zip").toFile();
     }
 
+    public static File deleteTestPackage(final @NotNull String filename) throws IOException {
+        final File file = new File(testPackagesRoot.toFile(), filename);
+        if (file.exists()) {
+            file.delete();
+        }
+        return file;
+    }
+
     public static File prepareTestPackageFromFolder(final @NotNull String filename,
                                                     final @NotNull File srcFolder) throws IOException {
+
         return prepareTestPackageFromFolder(filename, srcFolder, Collections.emptyMap());
     }
 

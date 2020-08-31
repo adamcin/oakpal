@@ -28,6 +28,7 @@ import org.apache.jackrabbit.vault.packaging.JcrPackage;
 import org.apache.jackrabbit.vault.packaging.JcrPackageManager;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.apache.jackrabbit.vault.packaging.VaultPackage;
+import org.apache.sling.installer.api.InstallableResource;
 import org.junit.Test;
 import org.mockito.ArgumentMatcher;
 
@@ -114,16 +115,6 @@ public class DefaultSlingSimulatorTest {
             PackageId base = new PackageId("com.test", "base", "1.0.0");
             OsgiConfigInstallable installable = params.createInstallable(base, "/apps/config/Test");
 
-            Fun.ThrowingSupplier<Map<String, Object>> opened = slingSimulator.open(installable);
-            assertNotNull("expect not null function", opened);
-
-            boolean thrown = false;
-            try {
-                opened.tryGet();
-            } catch (IllegalArgumentException e) {
-                thrown = true;
-            }
-            assertTrue("expect exception opening OsgiConfigInstallable", thrown);
         });
     }
 
@@ -391,6 +382,55 @@ public class DefaultSlingSimulatorTest {
                     .maybePackageResource(nodeRes);
 
             assertNull("expect null result (not RepositoryException)", result);
+        });
+    }
+
+    @Test
+    public void testReadInstallableResourceFromNode_fileConfig() throws Exception {
+        final String packagePath = "/apps/with-embedded/config/com.TestFactory-strawberry.config";
+
+        TestPackageUtil.deleteTestPackage("with-embedded-config.zip");
+        final File withEmbeddedConfig = TestPackageUtil.prepareTestPackageFromFolder("with-embedded-config.zip",
+                new File("target/test-classes/with-embedded-package"));
+
+        JcrPackageManager packageManager = mock(JcrPackageManager.class);
+        slingSimulator.setPackageManager(packageManager);
+
+        // can't use OakpalPlan.fromJson here because pre install urls only work if there's a base URL
+        new OakpalPlan.Builder(new URL("https://github.com/adamcin/oakpal"), null)
+                .withPreInstallUrls(Collections.singletonList(withEmbeddedConfig.toURI().toURL()))
+                .build().toOakMachineBuilder(null, getClass().getClassLoader())
+                .build().initAndInspect(session -> {
+
+            slingSimulator.setSession(session);
+
+            SlingInstallableParams<?> resource = slingSimulator
+                    .readInstallableParamsFromNode(session.getNode(packagePath)).toOptional()
+                    .flatMap(Function.identity())
+                    .orElse(null);
+            assertNotNull("expect not null resource", resource);
+            assertTrue("expect instance of OsgiConfigInstallableParams",
+                    resource instanceof OsgiConfigInstallableParams);
+            OsgiConfigInstallableParams params = (OsgiConfigInstallableParams) resource;
+
+            PackageId base = new PackageId("com.test", "base", "1.0.0");
+            OsgiConfigInstallable installable = params.createInstallable(base, packagePath);
+
+            assertNotNull("expect not null installable", installable);
+            assertEquals("expect base package Id", base, installable.getParentId());
+            assertEquals("expect installable path", packagePath, installable.getJcrPath());
+            assertEquals("expect servicePid", "strawberry", installable.getServicePid());
+            assertEquals("expect factoryPid", "com.TestFactory", installable.getFactoryPid());
+
+
+            final Map<String, Object> expectProps = new HashMap<>();
+            expectProps.put(InstallableResource.INSTALLATION_HINT, "config");
+            expectProps.put("foo", "bar");
+            expectProps.put("foos", Stream.of("bar", "bar", "bar").toArray(String[]::new));
+            expectProps.put("ones", Stream.of(1L, 1L, 1L).toArray(Long[]::new));
+            expectProps.put("nothing", new String[0]);
+
+            checkExpectedProperties(expectProps, installable.getProperties());
         });
     }
 
