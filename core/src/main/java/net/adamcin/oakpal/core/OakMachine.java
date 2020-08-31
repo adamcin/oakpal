@@ -445,7 +445,7 @@ public final class OakMachine {
         /**
          * Provide a predicate taking the subpackage PackageId as the first argument and the parent  PackageId as the
          * second argument, returning true if events for the subpackage and any of ITS subpackages should be silenced
-         * during the scan.
+         * during the scan. Embedded Packages discovered by the Sling Simulator are also silenced in the same way.
          *
          * @param subpackageSilencer a predicate taking the subpackage PackageId as the first argument and the parent
          *                           PackageId as the second argument, returning true if events for the subpackage and
@@ -462,7 +462,7 @@ public final class OakMachine {
          *
          * @param repoInitProcesser the repoinit processor
          * @return my builder self
-         * @since 2.1.0
+         * @since 2.2.0
          */
         public Builder withRepoInitProcesser(final RepoInitProcessor repoInitProcesser) {
             this.repoInitProcesser = repoInitProcesser;
@@ -474,7 +474,7 @@ public final class OakMachine {
          *
          * @param slingSimulator the sling simulator backend
          * @return my builder self
-         * @since 2.1.0
+         * @since 2.2.0
          */
         public Builder withSlingSimulator(final SlingSimulatorBackend slingSimulator) {
             this.slingSimulator = slingSimulator;
@@ -487,7 +487,7 @@ public final class OakMachine {
          *
          * @param runModes the set of sling run modes
          * @return my builder self
-         * @since 2.1.0
+         * @since 2.2.0
          */
         public Builder withRunModes(final Set<String> runModes) {
             this.runModes = runModes;
