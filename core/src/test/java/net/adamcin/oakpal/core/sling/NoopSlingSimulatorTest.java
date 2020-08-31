@@ -20,9 +20,12 @@ import net.adamcin.oakpal.api.EmbeddedPackageInstallable;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.junit.Test;
 
+import javax.jcr.Node;
+
 import static net.adamcin.oakpal.core.sling.NoopSlingSimulator.instance;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.mockito.Mockito.mock;
 
 public class NoopSlingSimulatorTest {
 
@@ -42,4 +45,24 @@ public class NoopSlingSimulatorTest {
                 PackageId.fromString("test:pack:2"))).tryGet();
     }
 
+    @Test
+    public void testSetPackageManager() {
+        instance().setPackageManager(null);
+    }
+
+    @Test
+    public void testSetErrorListener() {
+        instance().setErrorListener(null);
+    }
+
+    @Test
+    public void testSetSession() {
+        instance().setSession(null);
+    }
+
+    @Test
+    public void testPrepareInstallableNode() {
+        assertNull("always null",
+                instance().prepareInstallableNode(PackageId.fromString("test:pack:1"), mock(Node.class)));
+    }
 }

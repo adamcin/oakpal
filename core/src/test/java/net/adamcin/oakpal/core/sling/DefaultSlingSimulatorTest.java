@@ -18,8 +18,10 @@ package net.adamcin.oakpal.core.sling;
 
 import net.adamcin.oakpal.api.EmbeddedPackageInstallable;
 import net.adamcin.oakpal.api.Fun;
+import net.adamcin.oakpal.api.Nothing;
 import net.adamcin.oakpal.api.OsgiConfigInstallable;
 import net.adamcin.oakpal.api.Result;
+import net.adamcin.oakpal.api.SlingOpenable;
 import net.adamcin.oakpal.core.OakpalPlan;
 import net.adamcin.oakpal.testing.TestPackageUtil;
 import org.apache.jackrabbit.commons.JcrUtils;
@@ -29,6 +31,7 @@ import org.apache.jackrabbit.vault.packaging.JcrPackageManager;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.apache.jackrabbit.vault.packaging.VaultPackage;
 import org.apache.sling.installer.api.InstallableResource;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 import org.mockito.ArgumentMatcher;
 
@@ -495,6 +498,31 @@ public class DefaultSlingSimulatorTest {
             verify(packageManager, times(1)).upload(any(InputStream.class), eq(true), eq(true));
             verifyNoMoreInteractions(packageManager);
         });
+    }
+
+    static class UnsupportedSlingOpenable implements SlingOpenable<Nothing> {
+        private final PackageId parentId;
+        private final String jcrPath;
+
+        public UnsupportedSlingOpenable(final PackageId parentId, final String jcrPath) {
+            this.parentId = parentId;
+            this.jcrPath = jcrPath;
+        }
+
+        @Override
+        public @NotNull PackageId getParentId() {
+            return parentId;
+        }
+
+        @Override
+        public @NotNull String getJcrPath() {
+            return jcrPath;
+        }
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testOpen_unsupported() throws Exception {
+        slingSimulator.open(new UnsupportedSlingOpenable(PackageId.fromString("test"), "/test/installable")).tryGet();
     }
 
     private static ArgumentMatcher<Node> nodeWithPath(String path) {

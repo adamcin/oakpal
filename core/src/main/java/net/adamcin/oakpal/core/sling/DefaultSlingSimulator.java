@@ -112,14 +112,11 @@ public final class DefaultSlingSimulator implements SlingSimulatorBackend, Sling
         };
     }
 
-    public @Nullable JcrPackage
-    openEmbeddedPackage(@NotNull final EmbeddedPackageInstallable installable) throws RepositoryException {
+    public @NotNull JcrPackage
+    openEmbeddedPackage(@NotNull final EmbeddedPackageInstallable installable) throws IOException, RepositoryException {
         Node packageNode = session.getNode(installable.getJcrPath());
         try (InputStream input = JcrUtils.readFile(packageNode)) {
             return packageManager.upload(input, true, true);
-        } catch (IOException e) {
-            errorListener.onSlingEmbeddedPackageError(e, installable);
-            return null;
         }
     }
 
