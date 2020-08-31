@@ -20,10 +20,10 @@ import net.adamcin.oakpal.api.EmbeddedPackageInstallable;
 import net.adamcin.oakpal.api.Fun;
 import net.adamcin.oakpal.api.PathAction;
 import net.adamcin.oakpal.api.ProgressCheck;
-import net.adamcin.oakpal.api.RepoInitScriptsInstallable;
 import net.adamcin.oakpal.api.SilenceableCheck;
 import net.adamcin.oakpal.api.SlingInstallable;
 import net.adamcin.oakpal.core.sling.DefaultSlingSimulator;
+import net.adamcin.oakpal.core.sling.SlingRepoInitScripts;
 import net.adamcin.oakpal.core.sling.SlingSimulatorBackend;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitRepository;
@@ -445,7 +445,7 @@ public final class OakMachine {
         /**
          * Provide a predicate taking the subpackage PackageId as the first argument and the parent  PackageId as the
          * second argument, returning true if events for the subpackage and any of ITS subpackages should be silenced
-         * during the scan.
+         * during the scan. Embedded Packages discovered by the Sling Simulator are also silenced in the same way.
          *
          * @param subpackageSilencer a predicate taking the subpackage PackageId as the first argument and the parent
          *                           PackageId as the second argument, returning true if events for the subpackage and
@@ -462,7 +462,7 @@ public final class OakMachine {
          *
          * @param repoInitProcesser the repoinit processor
          * @return my builder self
-         * @since 2.1.0
+         * @since 2.2.0
          */
         public Builder withRepoInitProcesser(final RepoInitProcessor repoInitProcesser) {
             this.repoInitProcesser = repoInitProcesser;
@@ -474,7 +474,7 @@ public final class OakMachine {
          *
          * @param slingSimulator the sling simulator backend
          * @return my builder self
-         * @since 2.1.0
+         * @since 2.2.0
          */
         public Builder withSlingSimulator(final SlingSimulatorBackend slingSimulator) {
             this.slingSimulator = slingSimulator;
@@ -487,7 +487,7 @@ public final class OakMachine {
          *
          * @param runModes the set of sling run modes
          * @return my builder self
-         * @since 2.1.0
+         * @since 2.2.0
          */
         public Builder withRunModes(final Set<String> runModes) {
             this.runModes = runModes;
@@ -923,7 +923,7 @@ public final class OakMachine {
                 check -> check.identifyEmbeddedPackage(
                         installable.getEmbeddedId(),
                         installable.getParentId(),
-                        installable.getJcrPath()),
+                        installable),
                 onError);
     }
 
@@ -949,29 +949,34 @@ public final class OakMachine {
                                  final @NotNull PackageId lastPackageId,
                                  final boolean preInstall) throws RepositoryException {
         final Session inspectSession = Util.wrapSessionReadOnly(admin);
-        SlingInstallable<?> dequeued = slingSimulator.dequeueInstallable();
+        SlingInstallable dequeued = slingSimulator.dequeueInstallable();
         while (dequeued != null) {
-            final SlingInstallable<?> installable = dequeued;
+            final SlingInstallable installable = dequeued;
+
             propagateCheckPackageEvent(preInstall, installable.getParentId(),
                     check -> check.beforeSlingInstall(lastPackageId, installable, inspectSession));
-            if (installable instanceof RepoInitScriptsInstallable) {
-                try {
-                    for (final String repoInitScript : slingSimulator.open((RepoInitScriptsInstallable) installable).tryGet()) {
-                        try (Reader reader = new StringReader(repoInitScript)) {
-                            repoInitProcessor.apply(admin, reader);
-                        } catch (final Exception e) {
-                            getErrorListener().onSlingRepoInitScriptsError(e, repoInitScript,
-                                    (RepoInitScriptsInstallable) installable);
-                        }
+
+            Optional<SlingRepoInitScripts> initScriptsResult =
+                    Optional.ofNullable(SlingRepoInitScripts.fromSlingInstallable(installable));
+
+            initScriptsResult.ifPresent(initScripts -> {
+                for (final String repoInitScript : initScripts.getScripts()) {
+                    try (Reader reader = new StringReader(repoInitScript)) {
+                        repoInitProcessor.apply(admin, reader);
+                    } catch (final Exception e) {
+                        getErrorListener().onSlingRepoInitScriptsError(e, initScripts.getScripts(),
+                                repoInitScript, installable);
                     }
-                } catch (Exception e) {
-                    getErrorListener().onSlingRepoInitScriptsError(e, null, (RepoInitScriptsInstallable) installable);
                 }
-            } else if (installable instanceof EmbeddedPackageInstallable) {
+                propagateCheckPackageEvent(preInstall, installable.getParentId(),
+                        check -> check.appliedRepoInitScripts(lastPackageId, initScripts.getScripts(),
+                                installable, inspectSession));
+            });
+
+            if (installable instanceof EmbeddedPackageInstallable) {
                 processEmbeddedPackage(admin, manager, (EmbeddedPackageInstallable) installable, preInstall);
             }
-            propagateCheckPackageEvent(preInstall, installable.getParentId(),
-                    check -> check.appliedRepoInitScripts(lastPackageId, installable, inspectSession));
+
             // do this at the end of the while scope, obviously.
             dequeued = slingSimulator.dequeueInstallable();
         }

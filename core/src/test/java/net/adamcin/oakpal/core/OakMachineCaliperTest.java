@@ -16,9 +16,9 @@
 
 package net.adamcin.oakpal.core;
 
+import net.adamcin.oakpal.api.EmbeddedPackageInstallable;
 import net.adamcin.oakpal.api.ProgressCheck;
 import net.adamcin.oakpal.api.Violation;
-import net.adamcin.oakpal.core.OakpalPlan;
 import net.adamcin.oakpal.core.checks.SlingJcrInstaller;
 import net.adamcin.oakpal.core.sling.DefaultSlingSimulator;
 import net.adamcin.oakpal.testing.TestPackageUtil;
@@ -88,7 +88,8 @@ public class OakMachineCaliperTest {
             }
 
             @Override
-            public void identifyEmbeddedPackage(final PackageId packageId, final PackageId parentId, final String jcrPath) {
+            public void identifyEmbeddedPackage(final PackageId packageId, final PackageId parentId,
+                                                final EmbeddedPackageInstallable slingInstallable) {
                 identifiedPackageIds.add(packageId);
             }
 
@@ -124,7 +125,8 @@ public class OakMachineCaliperTest {
             }
 
             @Override
-            public void identifyEmbeddedPackage(final PackageId packageId, final PackageId parentId, final String jcrPath) {
+            public void identifyEmbeddedPackage(final PackageId packageId, final PackageId parentId,
+                                                final EmbeddedPackageInstallable slingInstallable) {
                 identifiedPackageIds.add(packageId);
             }
 

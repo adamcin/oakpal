@@ -14,27 +14,30 @@
  * limitations under the License.
  */
 
-package net.adamcin.oakpal.api;
+package net.adamcin.oakpal.core.sling;
 
+import net.adamcin.oakpal.api.OsgiConfigInstallable;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.junit.Test;
 
 import java.util.Collections;
 
-import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
 
-public class RepoInitScriptsInstallableTest {
+public class SlingRepoInitScriptsTest {
 
     @Test
     public void testConstructorAndGetters() {
         final PackageId expectParentId = PackageId.fromString("test:test:1");
         final String expectJcrPath = "/some/path";
-        final RepoInitScriptsInstallable installable = new RepoInitScriptsInstallable(expectParentId, expectJcrPath,
-                Collections.emptyList());
+        final String expectScript = "one script";
+        final OsgiConfigInstallable installable = new OsgiConfigInstallable(expectParentId, expectJcrPath,
+                Collections.singletonMap("scripts", expectScript), "init", SlingRepoInitScripts.REPO_INIT_FACTORY_PID);
+        final SlingRepoInitScripts slingRepoInitScripts
+                = new SlingRepoInitScripts(Collections.singletonList(expectScript), installable);
 
-        assertSame("expect parentId", expectParentId, installable.getParentId());
-        assertSame("expect jcrPath", expectJcrPath, installable.getJcrPath());
-        assertNotNull("expect not null", installable.getScripts());
+        assertSame("expect installable", installable, slingRepoInitScripts.getSlingInstallable());
+        assertEquals("expect not null", Collections.singletonList(expectScript), slingRepoInitScripts.getScripts());
     }
 }

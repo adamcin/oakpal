@@ -98,7 +98,7 @@ public class EchoTest {
 
     @Test
     public void testAppliedRepoInitScripts() throws RepositoryException {
-        new Echo().appliedRepoInitScripts(null, null, null);
+        new Echo().appliedRepoInitScripts(null, null, null, null);
     }
 
     @Test

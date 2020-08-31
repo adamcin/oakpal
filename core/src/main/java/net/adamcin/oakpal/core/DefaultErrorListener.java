@@ -18,10 +18,10 @@ package net.adamcin.oakpal.core;
 
 import net.adamcin.oakpal.api.EmbeddedPackageInstallable;
 import net.adamcin.oakpal.api.ProgressCheck;
-import net.adamcin.oakpal.api.RepoInitScriptsInstallable;
 import net.adamcin.oakpal.api.ReportCollector;
 import net.adamcin.oakpal.api.Severity;
 import net.adamcin.oakpal.api.SimpleViolation;
+import net.adamcin.oakpal.api.SlingInstallable;
 import net.adamcin.oakpal.api.Violation;
 import net.adamcin.oakpal.api.ViolationReporter;
 import org.apache.jackrabbit.vault.packaging.PackageId;
@@ -219,15 +219,15 @@ public class DefaultErrorListener implements ErrorListener {
     @Override
     public void onSlingEmbeddedPackageError(Throwable error, EmbeddedPackageInstallable installable) {
         final String message = MessageFormat.format(getString("embedded package error ({0}:{1}): {2} \"{3}\""),
-            installable.getParentId(), installable.getJcrPath(), error.getClass().getName(), error.getMessage());
+                installable.getParentId(), installable.getJcrPath(), error.getClass().getName(), error.getMessage());
         LOGGER.trace("[onSlingEmbeddedPackageError] stack trace for: " + message, error);
         reportViolation(new SimpleViolation(Severity.MAJOR, message));
     }
 
     @Override
-    public void onSlingRepoInitScriptsError(Throwable error, String failedScript, RepoInitScriptsInstallable installable) {
+    public void onSlingRepoInitScriptsError(Throwable error, List<String> scripts, String failedScript, SlingInstallable installable) {
         final String message = MessageFormat.format(getString("embedded repoinit script error ({0}:{1}): {2} \"{3}\""),
-            installable.getParentId(), installable.getJcrPath(), error.getClass().getName(), error.getMessage());
+                installable.getParentId(), installable.getJcrPath(), error.getClass().getName(), error.getMessage());
         LOGGER.trace("[onSlingRepoInitScriptsError] stack trace for: " + message, error);
         reportViolation(new SimpleViolation(Severity.MAJOR, message));
     }

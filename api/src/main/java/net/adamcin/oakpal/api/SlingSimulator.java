@@ -41,6 +41,6 @@ public interface SlingSimulator {
      * @param node            the JCR node of the embedded JCR package
      * @return a handle for the installable path or null
      */
-    @Nullable SlingInstallable<?> prepareInstallableNode(@NotNull PackageId parentPackageId,
-                                                         @NotNull Node node);
+    @Nullable SlingInstallable prepareInstallableNode(@NotNull PackageId parentPackageId,
+                                                      @NotNull Node node);
 }

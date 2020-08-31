@@ -16,11 +16,11 @@
 
 package net.adamcin.oakpal.core;
 
+import net.adamcin.oakpal.api.EmbeddedPackageInstallable;
 import net.adamcin.oakpal.api.ProgressCheck;
 import net.adamcin.oakpal.api.ScanListener;
+import net.adamcin.oakpal.api.SlingInstallable;
 import net.adamcin.oakpal.api.ViolationReporter;
-import net.adamcin.oakpal.api.EmbeddedPackageInstallable;
-import net.adamcin.oakpal.api.RepoInitScriptsInstallable;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.osgi.annotation.versioning.ConsumerType;
 
@@ -161,12 +161,14 @@ public interface ErrorListener extends ScanListener, ViolationReporter {
      * to a {@link net.adamcin.oakpal.api.SlingSimulator}.
      *
      * @param error        the error thrown
+     * @param scripts      the list of repoinit scripts being installed
      * @param failedScript the script that failed
-     * @param installable  the repoinit scripts installable
+     * @param installable  the originating scripts installable
      */
     default void onSlingRepoInitScriptsError(final Throwable error,
+                                             final List<String> scripts,
                                              final String failedScript,
-                                             final RepoInitScriptsInstallable installable) {
+                                             final SlingInstallable installable) {
     }
 
     /**

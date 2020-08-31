@@ -16,6 +16,7 @@
 
 package net.adamcin.oakpal.core;
 
+import net.adamcin.oakpal.api.EmbeddedPackageInstallable;
 import net.adamcin.oakpal.api.PathAction;
 import net.adamcin.oakpal.api.ProgressCheck;
 import net.adamcin.oakpal.api.SilenceableCheck;
@@ -149,34 +150,37 @@ class SilencingCheckFacade implements SilenceableCheck {
     }
 
     @Override
-    public void beforeSlingInstall(final PackageId lastPackage,
-                                   final SlingInstallable<?> slingInstallable,
+    public void beforeSlingInstall(final PackageId scanPackageId,
+                                   final SlingInstallable slingInstallable,
                                    final Session inspectSession) throws RepositoryException {
         if (!silenced) {
-            wrapped.beforeSlingInstall(lastPackage, slingInstallable, inspectSession);
+            wrapped.beforeSlingInstall(scanPackageId, slingInstallable, inspectSession);
         }
     }
 
     @Override
-    public void identifyEmbeddedPackage(final PackageId packageId, final PackageId parentId, final String jcrPath) {
+    public void identifyEmbeddedPackage(final PackageId packageId,
+                                        final PackageId parentId,
+                                        final EmbeddedPackageInstallable slingInstallable) {
         if (!silenced) {
-            wrapped.identifyEmbeddedPackage(packageId, parentId, jcrPath);
+            wrapped.identifyEmbeddedPackage(packageId, parentId, slingInstallable);
         }
     }
 
     @Override
-    public void appliedRepoInitScripts(final PackageId lastPackage,
-                                       final SlingInstallable<?> slingInstallable,
+    public void appliedRepoInitScripts(final PackageId scanPackageId,
+                                       final List<String> scripts,
+                                       final SlingInstallable slingInstallable,
                                        final Session inspectSession) throws RepositoryException {
         if (!silenced) {
-            wrapped.appliedRepoInitScripts(lastPackage, slingInstallable, inspectSession);
+            wrapped.appliedRepoInitScripts(scanPackageId, scripts, slingInstallable, inspectSession);
         }
     }
 
     @Override
-    public void afterScanPackage(final PackageId packageId, final Session inspectSession) throws RepositoryException {
+    public void afterScanPackage(final PackageId scanPackageId, final Session inspectSession) throws RepositoryException {
         if (!silenced) {
-            wrapped.afterScanPackage(packageId, inspectSession);
+            wrapped.afterScanPackage(scanPackageId, inspectSession);
         }
     }
 

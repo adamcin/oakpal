@@ -17,15 +17,15 @@
 package net.adamcin.oakpal.core.sling;
 
 import net.adamcin.oakpal.api.EmbeddedPackageInstallable;
-import net.adamcin.oakpal.api.RepoInitScriptsInstallable;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.junit.Test;
 
-import java.util.Collections;
+import javax.jcr.Node;
 
 import static net.adamcin.oakpal.core.sling.NoopSlingSimulator.instance;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.mockito.Mockito.mock;
 
 public class NoopSlingSimulatorTest {
 
@@ -40,15 +40,29 @@ public class NoopSlingSimulatorTest {
     }
 
     @Test(expected = IllegalStateException.class)
-    public void testOpenRepoInitScripts() throws Exception {
-        instance().open(new RepoInitScriptsInstallable(PackageId.fromString("test:pack:1"), "/test/path",
-                Collections.emptyList())).tryGet();
-    }
-
-    @Test(expected = IllegalStateException.class)
     public void testOpenEmbeddedPackage() throws Exception {
         instance().open(new EmbeddedPackageInstallable(PackageId.fromString("test:pack:1"), "/test/path",
                 PackageId.fromString("test:pack:2"))).tryGet();
     }
 
+    @Test
+    public void testSetPackageManager() {
+        instance().setPackageManager(null);
+    }
+
+    @Test
+    public void testSetErrorListener() {
+        instance().setErrorListener(null);
+    }
+
+    @Test
+    public void testSetSession() {
+        instance().setSession(null);
+    }
+
+    @Test
+    public void testPrepareInstallableNode() {
+        assertNull("always null",
+                instance().prepareInstallableNode(PackageId.fromString("test:pack:1"), mock(Node.class)));
+    }
 }

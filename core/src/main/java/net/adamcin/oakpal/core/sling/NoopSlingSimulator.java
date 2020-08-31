@@ -18,6 +18,7 @@ package net.adamcin.oakpal.core.sling;
 
 import net.adamcin.oakpal.api.Fun;
 import net.adamcin.oakpal.api.SlingInstallable;
+import net.adamcin.oakpal.api.SlingOpenable;
 import net.adamcin.oakpal.api.SlingSimulator;
 import net.adamcin.oakpal.core.ErrorListener;
 import org.apache.jackrabbit.vault.packaging.JcrPackageManager;
@@ -52,20 +53,21 @@ public final class NoopSlingSimulator implements SlingSimulatorBackend, SlingSim
     }
 
     @Override
-    public @Nullable SlingInstallable<?> dequeueInstallable() {
+    public @Nullable SlingInstallable dequeueInstallable() {
         return null;
     }
 
     @Override
-    public @NotNull <InstallableType> Fun.ThrowingSupplier<InstallableType> open(@NotNull final SlingInstallable<InstallableType> installable) {
+    public @NotNull <ResourceType> Fun.ThrowingSupplier<ResourceType>
+    open(@NotNull final SlingOpenable<ResourceType> installable) {
         return () -> {
             throw new IllegalStateException("Cannot install sling resources using using noop simulator.");
         };
     }
 
     @Override
-    public @Nullable SlingInstallable<?> prepareInstallableNode(final @NotNull PackageId parentPackageId,
-                                                                final @NotNull Node node) {
+    public @Nullable SlingInstallable prepareInstallableNode(final @NotNull PackageId parentPackageId,
+                                                             final @NotNull Node node) {
         return null;
     }
 

@@ -56,7 +56,7 @@ public class ProgressCheckTest {
         mock.identifySubpackage(null, null);
         mock.beforeSlingInstall(null, null, null);
         mock.identifyEmbeddedPackage(null, null, null);
-        mock.appliedRepoInitScripts(null, null, null);
+        mock.appliedRepoInitScripts(null, null, null, null);
         mock.afterScanPackage(null, null);
         mock.finishedScan();
     }

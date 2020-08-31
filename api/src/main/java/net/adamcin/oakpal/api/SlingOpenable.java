@@ -14,19 +14,15 @@
  * limitations under the License.
  */
 
-package net.adamcin.oakpal.core.sling;
+package net.adamcin.oakpal.api;
 
-import net.adamcin.oakpal.api.SlingInstallable;
-import org.apache.jackrabbit.vault.packaging.PackageId;
-import org.jetbrains.annotations.NotNull;
 import org.osgi.annotation.versioning.ProviderType;
 
 /**
- * Encapsulation of parameters that
+ * Some sling installable resources must be opened to be read, perhaps throwing an exception, and then maybe closed.
  *
- * @param <T> sling installable type that will be created
+ * @param <ResourceType> the concrete resource type that can be opened from the installable type
  */
 @ProviderType
-public interface SlingInstallableParams<T extends SlingInstallable> {
-    @NotNull T createInstallable(PackageId parentPackageId, String jcrPath);
+public interface SlingOpenable<ResourceType> extends SlingInstallable {
 }

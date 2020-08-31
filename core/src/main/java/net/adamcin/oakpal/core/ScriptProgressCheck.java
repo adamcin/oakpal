@@ -16,6 +16,7 @@
 
 package net.adamcin.oakpal.core;
 
+import net.adamcin.oakpal.api.EmbeddedPackageInstallable;
 import net.adamcin.oakpal.api.JavaxJson;
 import net.adamcin.oakpal.api.PathAction;
 import net.adamcin.oakpal.api.ProgressCheck;
@@ -84,13 +85,13 @@ import static net.adamcin.oakpal.core.Util.isEmpty;
  * <dd>{@link ProgressCheck#afterExtract(PackageId, Session)}</dd>
  * <dt>identifySubpackage(packageId, parentPackageId)</dt>
  * <dd>{@link ProgressCheck#identifySubpackage(PackageId, PackageId)}</dd>
- * <dt>beforeSlingInstall(packageId, slingInstallable, inspectSession)</dt>
+ * <dt>beforeSlingInstall(scanPackageId, slingInstallable, inspectSession)</dt>
  * <dd>{@link ProgressCheck#beforeSlingInstall(PackageId, SlingInstallable, Session)}</dd>
  * <dt>identifyEmbeddedPackage(packageId, parentPackageId, jcrPath)</dt>
- * <dd>{@link ProgressCheck#identifyEmbeddedPackage(PackageId, PackageId, String)}</dd>
- * <dt>appliedRepoInitScripts(packageId, slingInstallable, inspectSession)</dt>
- * <dd>{@link ProgressCheck#appliedRepoInitScripts(PackageId, SlingInstallable, Session)}</dd>
- * <dt>afterScanPackage(packageId, inspectSession)</dt>
+ * <dd>{@link ProgressCheck#identifyEmbeddedPackage(PackageId, PackageId, net.adamcin.oakpal.api.EmbeddedPackageInstallable)}</dd>
+ * <dt>appliedRepoInitScripts(scanPackageId, scripts, slingInstallable, inspectSession)</dt>
+ * <dd>{@link ProgressCheck#appliedRepoInitScripts(PackageId, List, SlingInstallable, Session)}</dd>
+ * <dt>afterScanPackage(scanPackageId, inspectSession)</dt>
  * <dd>{@link ProgressCheck#afterScanPackage(PackageId, Session)}</dd>
  * <dt>finishedScan()</dt>
  * <dd>{@link ProgressCheck#finishedScan()}</dd>
@@ -295,7 +296,7 @@ public final class ScriptProgressCheck implements ProgressCheck {
 
     @Override
     public void beforeSlingInstall(final PackageId lastPackage,
-                                   final SlingInstallable<?> slingInstallable,
+                                   final SlingInstallable slingInstallable,
                                    final Session inspectSession) throws RepositoryException {
         guardSessionHandler(INVOKE_ON_BEFORE_SLING_INSTALL,
                 handle -> handle.apply(lastPackage, slingInstallable, inspectSession));
@@ -304,21 +305,22 @@ public final class ScriptProgressCheck implements ProgressCheck {
     @Override
     public void identifyEmbeddedPackage(final PackageId packageId,
                                         final PackageId parentId,
-                                        final String jcrPath) {
-        guardHandler(INVOKE_ON_IDENTIFY_EMBEDDED_PACKAGE, handle -> handle.apply(packageId, parentId, jcrPath));
+                                        final EmbeddedPackageInstallable slingInstallable) {
+        guardHandler(INVOKE_ON_IDENTIFY_EMBEDDED_PACKAGE, handle -> handle.apply(packageId, parentId, slingInstallable));
     }
 
     @Override
     public void appliedRepoInitScripts(final PackageId lastPackage,
-                                       final SlingInstallable<?> slingInstallable,
+                                       final List<String> scripts,
+                                       final SlingInstallable slingInstallable,
                                        final Session inspectSession) throws RepositoryException {
         guardSessionHandler(INVOKE_ON_APPLIED_REPO_INIT_SCRIPTS,
-                handle -> handle.apply(lastPackage, slingInstallable, inspectSession));
+                handle -> handle.apply(lastPackage, scripts, slingInstallable, inspectSession));
     }
 
     @Override
-    public void afterScanPackage(final PackageId packageId, final Session inspectSession) throws RepositoryException {
-        guardSessionHandler(INVOKE_ON_AFTER_SCAN_PACKAGE, handle -> handle.apply(packageId, inspectSession));
+    public void afterScanPackage(final PackageId scanPackageId, final Session inspectSession) throws RepositoryException {
+        guardSessionHandler(INVOKE_ON_AFTER_SCAN_PACKAGE, handle -> handle.apply(scanPackageId, inspectSession));
     }
 
     @Override
