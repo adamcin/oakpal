@@ -66,8 +66,8 @@ public final class NoopSlingSimulator implements SlingSimulatorBackend, SlingSim
     }
 
     @Override
-    public @Nullable SlingInstallable prepareInstallableNode(final @NotNull PackageId parentPackageId,
-                                                             final @NotNull Node node) {
+    public @Nullable SlingInstallable addInstallableNode(final @NotNull PackageId parentPackageId,
+                                                         final @NotNull Node node) {
         return null;
     }
 

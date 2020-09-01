@@ -70,6 +70,8 @@ public final class DefaultSlingSimulator implements SlingSimulatorBackend, Sling
 
     private Session session;
     private JcrPackageManager packageManager;
+
+    @SuppressWarnings("unused")
     private ErrorListener errorListener;
 
     private final Queue<SlingInstallable> installables = new LinkedList<>();
@@ -121,8 +123,8 @@ public final class DefaultSlingSimulator implements SlingSimulatorBackend, Sling
     }
 
     @Override
-    public @Nullable SlingInstallable prepareInstallableNode(final @NotNull PackageId parentPackageId,
-                                                             final @NotNull Node node) {
+    public @Nullable SlingInstallable addInstallableNode(final @NotNull PackageId parentPackageId,
+                                                         final @NotNull Node node) {
         final Result<String> jcrPathResult = result0(node::getPath).get();
         final Result<Optional<SlingInstallableParams<?>>> result = jcrPathResult
                 .flatMap(result1(session::getNode))

@@ -63,6 +63,6 @@ public class NoopSlingSimulatorTest {
     @Test
     public void testPrepareInstallableNode() {
         assertNull("always null",
-                instance().prepareInstallableNode(PackageId.fromString("test:pack:1"), mock(Node.class)));
+                instance().addInstallableNode(PackageId.fromString("test:pack:1"), mock(Node.class)));
     }
 }
