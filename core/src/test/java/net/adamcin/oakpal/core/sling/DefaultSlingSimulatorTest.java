@@ -210,6 +210,20 @@ public class DefaultSlingSimulatorTest {
                 new ByteArrayInputStream(dotConfigWithComment.getBytes(StandardCharsets.UTF_8)), "simple.config");
         checkExpectedProperties(expectConfig, simpleConfigWithComment);
 
+        final Map<String, Object> expectJsonConfig = new HashMap<>();
+        expectJsonConfig.put("foo", "bar");
+        expectJsonConfig.put("foos", Stream.of("bar", "bar", "bar").toArray(String[]::new));
+        expectJsonConfig.put("ones", Stream.of(1L, 1L, 1L).toArray(Long[]::new));
+
+        final String cfgJson = "{\"foo\":\"bar\",\"foos\":[\"bar\",\"bar\",\"bar\"],\"ones\":[1,1,1]}";
+        final Map<String, Object> cfgJsonProperties = DefaultSlingSimulator.readDictionary(
+            new ByteArrayInputStream(cfgJson.getBytes(StandardCharsets.UTF_8)), "simple.cfg.json");
+        checkExpectedProperties(expectJsonConfig, cfgJsonProperties);
+
+        final Map<String, Object> cfgJsonPropertiesFactory = DefaultSlingSimulator.readDictionary(
+            new ByteArrayInputStream(cfgJson.getBytes(StandardCharsets.UTF_8)), "simple-test.cfg.json");
+        checkExpectedProperties(expectJsonConfig, cfgJsonPropertiesFactory);
+
         final Map<String, Object> expectProperties = new HashMap<>();
         expectProperties.put("foo", "bar");
         expectProperties.put("foos", "bar,bar,bar");
@@ -220,6 +234,10 @@ public class DefaultSlingSimulatorTest {
         final Map<String, Object> simpleProperties = DefaultSlingSimulator.readDictionary(
                 new ByteArrayInputStream(dotProperties.getBytes(StandardCharsets.UTF_8)), "simple.properties");
         checkExpectedProperties(expectProperties, simpleProperties);
+
+        final Map<String, Object> cfgSimpleProperties = DefaultSlingSimulator.readDictionary(
+            new ByteArrayInputStream(dotProperties.getBytes(StandardCharsets.UTF_8)), "simple.cfg");
+        checkExpectedProperties(expectProperties, cfgSimpleProperties);
 
         ByteArrayOutputStream propsXmlBytes = new ByteArrayOutputStream();
         Properties srcPropertiesXml = new Properties();

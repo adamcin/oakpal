@@ -24,6 +24,7 @@ import net.adamcin.oakpal.api.SlingOpenable;
 import net.adamcin.oakpal.api.SlingSimulator;
 import net.adamcin.oakpal.core.ErrorListener;
 import org.apache.felix.cm.file.ConfigurationHandler;
+import org.apache.felix.cm.json.Configurations;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.vault.packaging.JcrPackage;
 import org.apache.jackrabbit.vault.packaging.JcrPackageManager;
@@ -43,7 +44,10 @@ import javax.jcr.Value;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
 import java.lang.reflect.Array;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Dictionary;
 import java.util.Enumeration;
@@ -237,9 +241,7 @@ public final class DefaultSlingSimulator implements SlingSimulatorBackend, Sling
         return lastIdPart;
     }
 
-    private static final List<String> EXTENSIONS = Arrays.asList(".config", ".properties");
-    // the actual JCR Install supports the cfg and cfg.json formats
-    //private static final List<String> EXTENSIONS = Arrays.asList(".config", ".properties", ".cfg", ".cfg.json");
+    private static final List<String> EXTENSIONS = Arrays.asList(".config", ".properties", ".cfg", ".cfg.json");
 
     static String removeConfigExtension(final String id) {
         for (final String ext : EXTENSIONS) {
@@ -272,42 +274,64 @@ public final class DefaultSlingSimulator implements SlingSimulatorBackend, Sling
             throws IOException {
         final Map<String, Object> ht = new LinkedHashMap<>();
 
-        try (final BufferedInputStream in = new BufferedInputStream(is)) {
+        if (id.endsWith(".cfg.json")) {
+            String configId = id;
+            int pos = configId.indexOf('-');
+            if ( pos != -1 ) {
+                configId = configId.substring(0, pos).concat("~").concat(configId.substring(pos + 1));
+            }
+            configId = configId.substring(0, configId.length() - 9);
 
-            if (id.endsWith(".config")) {
-                // check for initial comment line
-                in.mark(256);
-                final int firstChar = in.read();
-                if (firstChar == '#') {
-                    int b;
-                    while ((b = in.read()) != '\n') {
-                        if (b == -1) {
-                            throw new IOException("Unable to read configuration.");
-                        }
-                    }
-                } else {
-                    in.reset();
-                }
-                @SuppressWarnings("unchecked") final Dictionary<String, Object> config = ConfigurationHandler.read(in);
+            // read from input stream
+            try (final Reader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
+                final Dictionary<String, Object> config = Configurations.buildReader()
+                    .withIdentifier(configId).build(reader).readConfiguration();
+
                 final Enumeration<String> i = config.keys();
                 while (i.hasMoreElements()) {
                     final String key = i.nextElement();
                     ht.put(key, config.get(key));
                 }
-            } else {
-                final Properties p = new Properties();
-                in.mark(1);
-                boolean isXml = in.read() == '<';
-                in.reset();
-                if (isXml) {
-                    p.loadFromXML(in);
+            }
+
+        } else {
+            try (final BufferedInputStream in = new BufferedInputStream(is)) {
+
+                if (id.endsWith(".config")) {
+                    // check for initial comment line
+                    in.mark(256);
+                    final int firstChar = in.read();
+                    if (firstChar == '#') {
+                        int b;
+                        while ((b = in.read()) != '\n') {
+                            if (b == -1) {
+                                throw new IOException("Unable to read configuration.");
+                            }
+                        }
+                    } else {
+                        in.reset();
+                    }
+                    @SuppressWarnings("unchecked") final Dictionary<String, Object> config = ConfigurationHandler.read(in);
+                    final Enumeration<String> i = config.keys();
+                    while (i.hasMoreElements()) {
+                        final String key = i.nextElement();
+                        ht.put(key, config.get(key));
+                    }
                 } else {
-                    p.load(in);
-                }
-                final Enumeration<Object> i = p.keys();
-                while (i.hasMoreElements()) {
-                    final Object key = i.nextElement();
-                    ht.put(key.toString(), p.get(key));
+                    final Properties p = new Properties();
+                    in.mark(1);
+                    boolean isXml = in.read() == '<';
+                    in.reset();
+                    if (isXml) {
+                        p.loadFromXML(in);
+                    } else {
+                        p.load(in);
+                    }
+                    final Enumeration<Object> i = p.keys();
+                    while (i.hasMoreElements()) {
+                        final Object key = i.nextElement();
+                        ht.put(key.toString(), p.get(key));
+                    }
                 }
             }
         }
