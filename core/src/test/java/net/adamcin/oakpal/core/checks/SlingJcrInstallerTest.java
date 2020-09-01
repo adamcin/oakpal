@@ -19,6 +19,7 @@ package net.adamcin.oakpal.core.checks;
 import net.adamcin.oakpal.api.SilenceableCheck;
 import org.junit.Test;
 
+import static net.adamcin.oakpal.api.JavaxJson.key;
 import static net.adamcin.oakpal.api.JavaxJson.obj;
 import static org.junit.Assert.*;
 
@@ -33,5 +34,10 @@ public class SlingJcrInstallerTest {
     @Test
     public void testSetSilencedSafety() {
         ((SilenceableCheck) new SlingJcrInstaller().newInstance(obj().get())).setSilenced(true);
+    }
+
+    @Test
+    public void testNewInstanceNegMaxDepth() {
+        new SlingJcrInstaller().newInstance(key(SlingJcrInstaller.keys().maxDepth(), -1).get());
     }
 }
