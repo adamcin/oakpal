@@ -50,6 +50,8 @@ final class Options {
     private final File planFileBaseDir;
     private final List<File> preInstallFiles;
     private final List<File> repoInitFiles;
+    private final List<String> runModes;
+    private final boolean noRunModes;
     private final List<File> extendedClassPathFiles;
     private final boolean noHooks;
     private final List<File> scanFiles;
@@ -63,6 +65,7 @@ final class Options {
                 null, null, null, null,
                 Collections.emptyList(),
                 Collections.emptyList(),
+                Collections.emptyList(), false,
                 Collections.emptyList(), false,
                 Collections.emptyList(),
                 EMPTY_PRINTER,
@@ -81,6 +84,8 @@ final class Options {
             final @Nullable File planFileBaseDir,
             final @NotNull List<File> preInstallFiles,
             final @NotNull List<File> repoInitFiles,
+            final @NotNull List<String> runModes,
+            final boolean noRunModes,
             final @NotNull List<File> extendedClassPathFiles,
             final boolean noHooks,
             final @NotNull List<File> scanFiles,
@@ -98,6 +103,8 @@ final class Options {
         this.planFileBaseDir = planFileBaseDir;
         this.preInstallFiles = preInstallFiles;
         this.repoInitFiles = repoInitFiles;
+        this.runModes = runModes;
+        this.noRunModes = noRunModes;
         this.extendedClassPathFiles = extendedClassPathFiles;
         this.noHooks = noHooks;
         this.scanFiles = scanFiles;
@@ -157,6 +164,10 @@ final class Options {
         return repoInitFiles;
     }
 
+    public @NotNull List<String> getRunModes() {
+        return runModes;
+    }
+
     public @NotNull List<File> getExtendedClassPathFiles() {
         return extendedClassPathFiles;
     }
@@ -174,7 +185,8 @@ final class Options {
     }
 
     boolean hasOverrides() {
-        return noHooks || !getPreInstallFiles().isEmpty() || !getRepoInitFiles().isEmpty();
+        return noHooks || !getPreInstallFiles().isEmpty() || !getRepoInitFiles().isEmpty()
+                || !getRunModes().isEmpty() || noRunModes;
     }
 
     public OakpalPlan applyOverrides(final @NotNull OakpalPlan basePlan) {
@@ -198,6 +210,11 @@ final class Options {
                 getRepoInitFiles().stream().map(compose1(File::toURI, result1(URI::toURL)))
                         .collect(Result.tryCollect(Collectors.toList())).forEach(allUrls::addAll);
                 overridePlan.withRepoInitUrls(allUrls);
+            }
+            if (noRunModes) {
+                overridePlan.withRunModes(Collections.emptyList());
+            } else if (!getRunModes().isEmpty()) {
+                overridePlan.withRunModes(getRunModes());
             }
             if (isNoHooks()) {
                 overridePlan.withInstallHookPolicy(InstallHookPolicy.SKIP);
@@ -262,6 +279,8 @@ final class Options {
         private File planFileBaseDir;
         private List<File> preInstallFiles = new ArrayList<>();
         private List<File> repoInitFiles = new ArrayList<>();
+        private List<String> runModes = new ArrayList<>();
+        private boolean noRunModes;
         private List<File> extendedClassPathFiles = new ArrayList<>();
         private File outFile;
         private File cacheDir;
@@ -331,6 +350,16 @@ final class Options {
 
         public Builder addRepoInitFile(final @NotNull File repoInitFile) {
             this.repoInitFiles.add(repoInitFile);
+            return this;
+        }
+
+        public Builder setRunModes(final @NotNull List<String> runModes) {
+            this.runModes = runModes;
+            return this;
+        }
+
+        public Builder setNoRunModes(final boolean noRunModes) {
+            this.noRunModes = noRunModes;
             return this;
         }
 
@@ -432,9 +461,10 @@ final class Options {
                             .flatMap(classLoader -> messageWriter(console, outputJson, outFile).map(writer ->
                                     new Options(justHelp, justVersion, storeBlobs, planUrl,
                                             classLoader, realCacheDir, opearFile, planName, planFile,
-                                            planFileBaseDir, preInstallFiles, repoInitFiles, extendedClassPathFiles,
-                                            noHooks, scanFiles, writer, Optional.ofNullable(failOnSeverity)
-                                            .orElse(DEFAULT_OPTIONS.failOnSeverity))))));
+                                            planFileBaseDir, preInstallFiles, repoInitFiles, runModes, noRunModes,
+                                            extendedClassPathFiles, noHooks, scanFiles, writer,
+                                            Optional.ofNullable(failOnSeverity)
+                                                    .orElse(DEFAULT_OPTIONS.failOnSeverity))))));
         }
     }
 

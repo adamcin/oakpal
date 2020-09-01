@@ -34,4 +34,6 @@ public interface PlanBuilderParams {
     List<String> getRepoInits();
 
     List<File> getRepoInitFiles();
+
+    List<String> getRunModes();
 }

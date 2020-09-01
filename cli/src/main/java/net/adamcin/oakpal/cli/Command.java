@@ -11,6 +11,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -221,6 +222,15 @@ final class Command {
                         builder.setRepoInitFiles(Collections.emptyList());
                     } else {
                         builder.addRepoInitFile(console.getCwd().toPath().resolve(args[++i]).toFile());
+                    }
+                    break;
+                case "-r":
+                case "--run-modes":
+                    builder.setNoRunModes(isNoOpt);
+                    if (isNoOpt) {
+                        builder.setRunModes(Collections.emptyList());
+                    } else {
+                        builder.setRunModes(Arrays.asList(args[++i].split(",")));
                     }
                     break;
                 case "-xp":

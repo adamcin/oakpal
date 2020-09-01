@@ -373,6 +373,18 @@ abstract class AbstractITestWithPlanMojo extends AbstractITestMojo implements Pl
     @Parameter(property = "repoInitFiles")
     protected List<File> repoInitFiles = new ArrayList<>();
 
+    /**
+     * Specify a list of Sling run modes to simulate for installation of embedded filevault packages and
+     * RepositoryInitializer factory configs that provide repoinit scripts.
+     *
+     * See https://sling.apache.org/documentation/bundles/repository-initialization.html .
+     * See https://sling.apache.org/documentation/bundles/repository-initialization.html .
+     *
+     * @since 2.2.0
+     */
+    @Parameter(property = "runModes")
+    protected List<String> runModes = new ArrayList<>();
+
     @Override
     public final @NotNull PlanBuilderParams getPlanBuilderParams() {
         return this;
@@ -442,6 +454,11 @@ abstract class AbstractITestWithPlanMojo extends AbstractITestMojo implements Pl
     @Override
     public List<File> getRepoInitFiles() {
         return repoInitFiles;
+    }
+
+    @Override
+    public List<String> getRunModes() {
+        return runModes;
     }
 
     protected void performScan(final @NotNull List<File> scanFiles) throws MojoFailureException {

@@ -23,6 +23,7 @@ public final class PlanParams implements PlanBuilderParams {
     private InstallHookPolicy installHookPolicy;
     private List<String> repoInits = Collections.emptyList();
     private List<File> repoInitFiles = Collections.emptyList();
+    private List<String> runModes = Collections.emptyList();
 
     @Override
     public List<DependencyFilter> getPreInstallArtifacts() {
@@ -142,6 +143,15 @@ public final class PlanParams implements PlanBuilderParams {
     }
 
     @Override
+    public List<String> getRunModes() {
+        return runModes;
+    }
+
+    public void setRunModes(final List<String> runModes) {
+        this.runModes = runModes;
+    }
+
+    @Override
     public String toString() {
         return "PlanParams{" +
                 "preInstallArtifacts=" + preInstallArtifacts +
@@ -157,6 +167,7 @@ public final class PlanParams implements PlanBuilderParams {
                 ", installHookPolicy=" + installHookPolicy +
                 ", repoInits=" + repoInits +
                 ", repoInitFiles=" + repoInitFiles +
+                ", runModes=" + runModes +
                 '}';
     }
 }
