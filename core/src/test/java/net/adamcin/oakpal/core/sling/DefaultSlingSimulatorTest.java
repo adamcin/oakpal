@@ -46,10 +46,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
@@ -189,7 +191,48 @@ public class DefaultSlingSimulatorTest {
     }
 
     @Test
-    public void testReadDictionary() throws Exception {
+    public void testReadDictionary_throws() throws Exception {
+
+        final Map<String, Object> expectConfig = new HashMap<>();
+        expectConfig.put("foo", "bar");
+        expectConfig.put("foos", Stream.of("bar", "bar", "bar").toArray(String[]::new));
+        expectConfig.put("ones", Stream.of(1L, 1L, 1L).toArray(Long[]::new));
+        expectConfig.put("nothing", new String[0]);
+
+        final String dotCfgJson = obj()
+                .key("foo", "bar")
+                .key("foos", arr().val("bar").val("bar").val("bar"))
+                .key("ones", arr().val(1L).val(1L).val(1L))
+                .key("nothing", arr())
+                .get().toString();
+        final Map<String, Object> simpleCfgJson = DefaultSlingSimulator.readDictionary(
+                new ByteArrayInputStream(dotCfgJson.getBytes(StandardCharsets.UTF_8)), "simple.cfg.json");
+
+        checkExpectedProperties(expectConfig, simpleCfgJson);
+    }
+
+    @Test
+    public void testReadDictionary_dotCfgJson() throws Exception {
+
+        final Map<String, Object> expectConfig = new HashMap<>();
+        expectConfig.put("foo", "bar");
+        expectConfig.put("foos", Stream.of("bar", "bar", "bar").toArray(String[]::new));
+        expectConfig.put("ones", Stream.of(1L, 1L, 1L).toArray(Long[]::new));
+        expectConfig.put("nothing", new String[0]);
+
+        final String dotCfgJson = obj()
+                .key("foo", "bar")
+                .key("foos", arr().val("bar").val("bar").val("bar"))
+                .key("ones", arr().val(1L).val(1L).val(1L))
+                .key("nothing", arr())
+                .get().toString();
+        final Map<String, Object> simpleCfgJson = DefaultSlingSimulator.readDictionary(
+                new ByteArrayInputStream(dotCfgJson.getBytes(StandardCharsets.UTF_8)), "simple.cfg.json");
+        checkExpectedProperties(expectConfig, simpleCfgJson);
+    }
+
+    @Test
+    public void testReadDictionary_dotConfig() throws Exception {
         final Map<String, Object> expectConfig = new HashMap<>();
         expectConfig.put("foo", "bar");
         expectConfig.put("foos", Stream.of("bar", "bar", "bar").toArray(String[]::new));
@@ -204,22 +247,47 @@ public class DefaultSlingSimulatorTest {
         final Map<String, Object> simpleConfig = DefaultSlingSimulator.readDictionary(
                 new ByteArrayInputStream(dotConfig.getBytes(StandardCharsets.UTF_8)), "simple.config");
         checkExpectedProperties(expectConfig, simpleConfig);
+    }
+
+    @Test
+    public void testReadDictionary_dotConfigWithComment() throws Exception {
+        final Map<String, Object> expectConfig = new HashMap<>();
+        expectConfig.put("foo", "bar");
+        expectConfig.put("foos", Stream.of("bar", "bar", "bar").toArray(String[]::new));
+        expectConfig.put("ones", Stream.of(1L, 1L, 1L).toArray(Long[]::new));
+        expectConfig.put("nothing", new String[0]);
+
+        final String dotConfig = "foo=\"bar\"\n" +
+                "foos=[\"bar\",\"bar\",\"bar\"]\n" +
+                "ones=L[\"1\",\"1\",\"1\"]\n" +
+                "nothing=[]";
 
         final String dotConfigWithComment = "# some comment\n" + dotConfig;
-        final Map<String, Object> simpleConfigWithComment = DefaultSlingSimulator.readDictionary(
+        final Map<String, Object> simpleConfig = DefaultSlingSimulator.readDictionary(
                 new ByteArrayInputStream(dotConfigWithComment.getBytes(StandardCharsets.UTF_8)), "simple.config");
-        checkExpectedProperties(expectConfig, simpleConfigWithComment);
+        checkExpectedProperties(expectConfig, simpleConfig);
+    }
 
+    @Test
+    public void testReadDictionary_dotProperties() throws Exception {
         final Map<String, Object> expectProperties = new HashMap<>();
         expectProperties.put("foo", "bar");
         expectProperties.put("foos", "bar,bar,bar");
         expectProperties.put("ones", "1,1,1");
         expectProperties.put("nothing", "");
-
         final String dotProperties = "foo=bar\nfoos=bar,bar,bar\nones=1,1,1\nnothing=";
         final Map<String, Object> simpleProperties = DefaultSlingSimulator.readDictionary(
                 new ByteArrayInputStream(dotProperties.getBytes(StandardCharsets.UTF_8)), "simple.properties");
         checkExpectedProperties(expectProperties, simpleProperties);
+    }
+
+    @Test
+    public void testReadDictionary_dotPropertiesXml() throws Exception {
+        final Map<String, Object> expectProperties = new HashMap<>();
+        expectProperties.put("foo", "bar");
+        expectProperties.put("foos", "bar,bar,bar");
+        expectProperties.put("ones", "1,1,1");
+        expectProperties.put("nothing", "");
 
         ByteArrayOutputStream propsXmlBytes = new ByteArrayOutputStream();
         Properties srcPropertiesXml = new Properties();
@@ -229,7 +297,20 @@ public class DefaultSlingSimulatorTest {
         final Map<String, Object> simplePropertiesXml = DefaultSlingSimulator.readDictionary(
                 new ByteArrayInputStream(dotPropertiesXml.getBytes(StandardCharsets.UTF_8)), "simple.xml");
         checkExpectedProperties(expectProperties, simplePropertiesXml);
+    }
 
+    @Test
+    public void testReadDictionary_dotCfg() throws Exception {
+        final Map<String, Object> expectProperties = new HashMap<>();
+        expectProperties.put("foo", "bar");
+        expectProperties.put("foos", "bar,bar,bar");
+        expectProperties.put("ones", "1,1,1");
+        expectProperties.put("nothing", "");
+
+        final String dotCfg = "foo=bar\nfoos=bar,bar,bar\nones=1,1,1\nnothing=";
+        final Map<String, Object> simpleCfg = DefaultSlingSimulator.readDictionary(
+                new ByteArrayInputStream(dotCfg.getBytes(StandardCharsets.UTF_8)), "simple.cfg");
+        checkExpectedProperties(expectProperties, simpleCfg);
     }
 
     @Test
@@ -440,6 +521,7 @@ public class DefaultSlingSimulatorTest {
     @Test
     public void testReadInstallableResourceFromNode_package() throws Exception {
         // first prepare the embedded file, which is copied to the test packages root directory with the given filename
+        TestPackageUtil.deleteTestPackage("package_1.0.zip");
         final File embeddedPackageFile = TestPackageUtil.prepareTestPackage("package_1.0.zip");
         // declare the path inside the embedding package
         final String packagePath = "/apps/with-embedded/install/package_1.0.zip";

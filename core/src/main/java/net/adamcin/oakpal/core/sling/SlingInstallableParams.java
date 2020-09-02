@@ -28,5 +28,19 @@ import org.osgi.annotation.versioning.ProviderType;
  */
 @ProviderType
 public interface SlingInstallableParams<T extends SlingInstallable> {
-    @NotNull T createInstallable(PackageId parentPackageId, String jcrPath);
+    /**
+     * Create a {@link SlingInstallable} from these parameters.
+     *
+     * @param parentPackageId the parent package id
+     * @param jcrPath         the jcr path of the sling installable node
+     * @return the constructed installable
+     */
+    @NotNull T createInstallable(PackageId parentPackageId, String jcrPath) throws Exception;
+
+    /**
+     * Get the constructed installable type.
+     *
+     * @return the constructed installable type
+     */
+    @NotNull Class<T> getInstallableType();
 }
