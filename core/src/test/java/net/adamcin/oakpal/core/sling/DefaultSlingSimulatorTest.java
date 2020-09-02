@@ -22,6 +22,7 @@ import net.adamcin.oakpal.api.Nothing;
 import net.adamcin.oakpal.api.OsgiConfigInstallable;
 import net.adamcin.oakpal.api.Result;
 import net.adamcin.oakpal.api.SlingOpenable;
+import net.adamcin.oakpal.core.ErrorListener;
 import net.adamcin.oakpal.core.OakpalPlan;
 import net.adamcin.oakpal.testing.TestPackageUtil;
 import org.apache.jackrabbit.commons.JcrUtils;
@@ -55,6 +56,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
@@ -64,12 +66,16 @@ import static net.adamcin.oakpal.api.JavaxJson.obj;
 import static net.adamcin.oakpal.core.OakpalPlan.keys;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -190,25 +196,22 @@ public class DefaultSlingSimulatorTest {
                 new ByteArrayInputStream(simpleConfigWithComment.getBytes(StandardCharsets.UTF_8)), "simple.config");
     }
 
-    @Test
-    public void testReadDictionary_throws() throws Exception {
-
-        final Map<String, Object> expectConfig = new HashMap<>();
-        expectConfig.put("foo", "bar");
-        expectConfig.put("foos", Stream.of("bar", "bar", "bar").toArray(String[]::new));
-        expectConfig.put("ones", Stream.of(1L, 1L, 1L).toArray(Long[]::new));
-        expectConfig.put("nothing", new String[0]);
-
+    @Test(expected = IOException.class)
+    public void testReadDictionary_dotCfgJson_throwsWarning() throws Exception {
         final String dotCfgJson = obj()
-                .key("foo", "bar")
-                .key("foos", arr().val("bar").val("bar").val("bar"))
-                .key("ones", arr().val(1L).val(1L).val(1L))
-                .key("nothing", arr())
+                .key(":configurator:ranking", "A200")
                 .get().toString();
-        final Map<String, Object> simpleCfgJson = DefaultSlingSimulator.readDictionary(
+        DefaultSlingSimulator.readDictionary(
                 new ByteArrayInputStream(dotCfgJson.getBytes(StandardCharsets.UTF_8)), "simple.cfg.json");
+    }
 
-        checkExpectedProperties(expectConfig, simpleCfgJson);
+    @Test(expected = IOException.class)
+    public void testReadDictionary_dotCfgJson_throwsError() throws Exception {
+        final String dotCfgJson = obj()
+                .key("foo:Integer", "not an int")
+                .get().toString();
+        DefaultSlingSimulator.readDictionary(
+                new ByteArrayInputStream(dotCfgJson.getBytes(StandardCharsets.UTF_8)), "simple.cfg.json");
     }
 
     @Test
@@ -226,9 +229,12 @@ public class DefaultSlingSimulatorTest {
                 .key("ones", arr().val(1L).val(1L).val(1L))
                 .key("nothing", arr())
                 .get().toString();
-        final Map<String, Object> simpleCfgJson = DefaultSlingSimulator.readDictionary(
-                new ByteArrayInputStream(dotCfgJson.getBytes(StandardCharsets.UTF_8)), "simple.cfg.json");
-        checkExpectedProperties(expectConfig, simpleCfgJson);
+        checkExpectedProperties(expectConfig, DefaultSlingSimulator.readDictionary(
+                new ByteArrayInputStream(dotCfgJson.getBytes(StandardCharsets.UTF_8)), "simple.cfg.json"));
+        checkExpectedProperties(expectConfig, DefaultSlingSimulator.readDictionary(
+                new ByteArrayInputStream(dotCfgJson.getBytes(StandardCharsets.UTF_8)), "nested/simple.cfg.json"));
+        checkExpectedProperties(expectConfig, DefaultSlingSimulator.readDictionary(
+                new ByteArrayInputStream(dotCfgJson.getBytes(StandardCharsets.UTF_8)), "nested/simple-inst.cfg.json"));
     }
 
     @Test
@@ -471,9 +477,9 @@ public class DefaultSlingSimulatorTest {
 
     @Test
     public void testReadInstallableResourceFromNode_fileConfig() throws Exception {
-        final String packagePath = "/apps/with-embedded/config/com.TestFactory-strawberry.config";
+        final String goodConfigFilePath = "/apps/with-embedded/config/com.TestFactory-strawberry.config";
+        final String badConfigFilePath = "/apps/with-embedded/config/com.TestFactory-peanut.cfg.json";
 
-        TestPackageUtil.deleteTestPackage("with-embedded-config.zip");
         final File withEmbeddedConfig = TestPackageUtil.prepareTestPackageFromFolder("with-embedded-config.zip",
                 new File("target/test-classes/with-embedded-package"));
 
@@ -489,7 +495,7 @@ public class DefaultSlingSimulatorTest {
             slingSimulator.setSession(session);
 
             SlingInstallableParams<?> resource = slingSimulator
-                    .readInstallableParamsFromNode(session.getNode(packagePath)).toOptional()
+                    .readInstallableParamsFromNode(session.getNode(goodConfigFilePath)).toOptional()
                     .flatMap(Function.identity())
                     .orElse(null);
             assertNotNull("expect not null resource", resource);
@@ -498,11 +504,11 @@ public class DefaultSlingSimulatorTest {
             OsgiConfigInstallableParams params = (OsgiConfigInstallableParams) resource;
 
             PackageId base = new PackageId("com.test", "base", "1.0.0");
-            OsgiConfigInstallable installable = params.createInstallable(base, packagePath);
+            OsgiConfigInstallable installable = params.createInstallable(base, goodConfigFilePath);
 
             assertNotNull("expect not null installable", installable);
             assertEquals("expect base package Id", base, installable.getParentId());
-            assertEquals("expect installable path", packagePath, installable.getJcrPath());
+            assertEquals("expect installable path", goodConfigFilePath, installable.getJcrPath());
             assertEquals("expect servicePid", "strawberry", installable.getServicePid());
             assertEquals("expect factoryPid", "com.TestFactory", installable.getFactoryPid());
 
@@ -515,13 +521,69 @@ public class DefaultSlingSimulatorTest {
             expectProps.put("nothing", new String[0]);
 
             checkExpectedProperties(expectProps, installable.getProperties());
+
+            SlingInstallableParams<?> badResource = slingSimulator
+                    .readInstallableParamsFromNode(session.getNode(badConfigFilePath)).toOptional()
+                    .flatMap(Function.identity())
+                    .orElse(null);
+            assertNotNull("expect not null badResource", badResource);
+            assertTrue("expect instance of OsgiConfigInstallableParams",
+                    badResource instanceof OsgiConfigInstallableParams);
+            OsgiConfigInstallableParams badParams = (OsgiConfigInstallableParams) badResource;
+            assertTrue("expect parseError instanceof IOException", badParams.getParseError() instanceof IOException);
+
         });
+    }
+
+    @Test
+    public void testCreateInstallableOrReport() throws Exception {
+        ErrorListener errorListener = mock(ErrorListener.class);
+        slingSimulator.setErrorListener(errorListener);
+
+        final CompletableFuture<Exception> eLatch = new CompletableFuture<>();
+        final CompletableFuture<Class<?>> tLatch = new CompletableFuture<>();
+        final CompletableFuture<PackageId> idLatch = new CompletableFuture<>();
+        final CompletableFuture<String> pathLatch = new CompletableFuture<>();
+        doAnswer(call -> {
+            eLatch.complete(call.getArgument(0, Exception.class));
+            tLatch.complete(call.getArgument(1, Class.class));
+            idLatch.complete(call.getArgument(2, PackageId.class));
+            pathLatch.complete(call.getArgument(3, String.class));
+            return true;
+        }).when(errorListener).onSlingCreateInstallableError(
+                any(Exception.class),
+                any(Class.class),
+                any(PackageId.class),
+                anyString());
+
+        final Exception expectError = new IOException("you yamled when you should have jsoned!");
+        final Class<?> expectType = OsgiConfigInstallable.class;
+        final PackageId expectId = PackageId.fromString("test");
+        final String expectPath = "/some/path-id.cfg.json";
+        final OsgiConfigInstallableParams goodParams = new OsgiConfigInstallableParams(Collections.emptyMap(),
+                "id", "path", null);
+        final OsgiConfigInstallableParams badParams = new OsgiConfigInstallableParams(Collections.emptyMap(),
+                "id", "path", expectError);
+        OsgiConfigInstallable goodInstallable = slingSimulator.createInstallableOrReport(goodParams, expectId, expectPath)
+                .orElse(null);
+        assertNotNull("expect non null installable for goodParams", goodInstallable);
+        assertFalse("eLatch is not done", eLatch.isDone());
+        assertFalse("tLatch is not done", tLatch.isDone());
+        assertFalse("idLatch is not done", idLatch.isDone());
+        assertFalse("pathLatch is not done", pathLatch.isDone());
+
+        OsgiConfigInstallable badInstallable = slingSimulator.createInstallableOrReport(badParams, expectId, expectPath)
+                .orElse(null);
+        assertNull("expect null installable for badParams", badInstallable);
+        assertSame("expect same error", expectError, eLatch.getNow(null));
+        assertSame("expect same type", expectType, tLatch.getNow(null));
+        assertSame("expect same parentId", expectId, idLatch.getNow(null));
+        assertSame("expect same path", expectPath, pathLatch.getNow(null));
     }
 
     @Test
     public void testReadInstallableResourceFromNode_package() throws Exception {
         // first prepare the embedded file, which is copied to the test packages root directory with the given filename
-        TestPackageUtil.deleteTestPackage("package_1.0.zip");
         final File embeddedPackageFile = TestPackageUtil.prepareTestPackage("package_1.0.zip");
         // declare the path inside the embedding package
         final String packagePath = "/apps/with-embedded/install/package_1.0.zip";

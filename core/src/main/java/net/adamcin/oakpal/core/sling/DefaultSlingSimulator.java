@@ -303,6 +303,7 @@ public final class DefaultSlingSimulator implements SlingSimulatorBackend, Sling
      *
      * @param is the input stream
      * @param id the id
+     * @throws IOException when a parsing error occurs
      */
     static Map<String, Object> readDictionary(
             final InputStream is, final String id) throws IOException {
