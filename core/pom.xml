@@ -138,7 +138,9 @@
                                     <include>biz.aQute.bnd:bndlib</include>
                                     <include>org.apache.sling:org.apache.sling.jcr.repoinit</include>
                                     <include>org.apache.sling:org.apache.sling.installer.core</include>
-                                    <include>org.osgi:org.apache.felix.converter</include>
+                                    <include>org.apache.felix:org.apache.felix.cm.json</include>
+                                    <include>org.osgi:org.osgi.util.function</include>
+                                    <include>org.osgi:org.osgi.util.converter</include>
                                 </includes>
                             </artifactSet>
                             <filters>
@@ -164,17 +166,19 @@
                                 <filter>
                                     <artifact>org.apache.sling:org.apache.sling.installer.core</artifact>
                                     <includes>
-                                        <include>org/apache/felix/cm/file/ConfigurationHandler*</include>
-                                        <include>org/apache/felix/configurator/impl/json/**</include>
-                                        <include>org/apache/felix/configurator/impl/model/**</include>
                                         <include>org/apache/sling/installer/api/InstallableResource*</include>
                                     </includes>
                                 </filter>
                                 <filter>
-                                    <artifact>org.apache.felix:org.apache.felix.converter</artifact>
+                                    <artifact>org.osgi:org.osgi.util.function</artifact>
+                                    <includes>
+                                        <include>org/osgi/util/function/**</include>
+                                    </includes>
+                                </filter>
+                                <filter>
+                                    <artifact>org.osgi:org.osgi.util.converter</artifact>
                                     <includes>
                                         <include>org/osgi/util/converter/**</include>
-                                        <include>org/osgi/util/function/**</include>
                                     </includes>
                                 </filter>
                             </filters>
@@ -188,8 +192,8 @@
                                     <shadedPattern>net.adamcin.oakpal.shaded.sling.jcr.repoinit</shadedPattern>
                                 </relocation>
                                 <relocation>
-                                    <pattern>org.apache.felix</pattern>
-                                    <shadedPattern>net.adamcin.oakpal.shaded.felix</shadedPattern>
+                                    <pattern>org.apache.felix.cm</pattern>
+                                    <shadedPattern>net.adamcin.oakpal.shaded.felix.cm</shadedPattern>
                                 </relocation>
                                 <relocation>
                                     <pattern>org.osgi.util.function</pattern>
@@ -285,24 +289,36 @@
             <artifactId>bndlib</artifactId>
             <scope>compile</scope>
         </dependency>
+
         <dependency>
             <groupId>org.apache.sling</groupId>
             <artifactId>org.apache.sling.installer.core</artifactId>
             <version>3.9.0</version>
             <scope>compile</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.apache.felix</groupId>
-            <artifactId>org.apache.felix.converter</artifactId>
-            <version>1.0.0</version>
-            <scope>compile</scope>
             <exclusions>
                 <exclusion>
-                    <groupId>org.osgi</groupId>
-                    <artifactId>org.osgi.util.function</artifactId>
+                    <groupId>org.apache.felix</groupId>
+                    <artifactId>org.apache.felix.configadmin</artifactId>
                 </exclusion>
             </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.felix</groupId>
+            <artifactId>org.apache.felix.cm.json</artifactId>
+            <version>1.0.2</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.osgi</groupId>
+            <artifactId>org.osgi.util.function</artifactId>
+            <version>1.0.0</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.osgi</groupId>
+            <artifactId>org.osgi.util.converter</artifactId>
+            <version>1.0.1</version>
+            <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>junit</groupId>

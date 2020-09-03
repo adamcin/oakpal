@@ -24,6 +24,7 @@ import net.adamcin.oakpal.api.SlingOpenable;
 import net.adamcin.oakpal.api.SlingSimulator;
 import net.adamcin.oakpal.core.ErrorListener;
 import org.apache.felix.cm.file.ConfigurationHandler;
+import org.apache.felix.cm.json.Configurations;
 import org.apache.felix.configurator.impl.json.JSONUtil;
 import org.apache.felix.configurator.impl.json.TypeConverter;
 import org.apache.felix.configurator.impl.model.ConfigurationFile;
@@ -35,6 +36,7 @@ import org.apache.jackrabbit.vault.packaging.VaultPackage;
 import org.apache.sling.installer.api.InstallableResource;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.osgi.util.converter.ConversionException;
 
 import javax.jcr.Node;
 import javax.jcr.Property;
@@ -48,8 +50,10 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.Reader;
 import java.lang.reflect.Array;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Dictionary;
 import java.util.Enumeration;
@@ -218,7 +222,7 @@ public final class DefaultSlingSimulator implements SlingSimulatorBackend, Sling
                 if (isConfigExtension(path)) {
                     try (InputStream is = node.getProperty(JCR_CONTENT_DATA).getBinary().getStream()) {
                         nodeRes.getProps().putAll(readDictionary(is, nodeRes.getPath()));
-                    } catch (IOException e) {
+                    } catch (Exception e) {
                         nodeRes.setParseError(e);
                     }
 
@@ -286,15 +290,6 @@ public final class DefaultSlingSimulator implements SlingSimulatorBackend, Sling
         return false;
     }
 
-    static <K, V> Map<K, V> dictionaryToMap(final @NotNull Dictionary<K, V> dictionary) {
-        final Map<K, V> map = new LinkedHashMap<>(dictionary.size());
-        for (Enumeration<K> keys = dictionary.keys(); keys.hasMoreElements(); ) {
-            final K key = keys.nextElement();
-            map.put(key, dictionary.get(key));
-        }
-        return map;
-    }
-
     /**
      * Read dictionary from an input stream.
      * We use the same logic as Apache Felix FileInstall here, but only for .config files:
@@ -307,6 +302,7 @@ public final class DefaultSlingSimulator implements SlingSimulatorBackend, Sling
      */
     static Map<String, Object> readDictionary(
             final InputStream is, final String id) throws IOException {
+        final Map<String, Object> ht = new LinkedHashMap<>();
         if (id.endsWith(".cfg.json")) {
             final String name = "jcrinstall:".concat(id);
             String configId;
@@ -322,52 +318,20 @@ public final class DefaultSlingSimulator implements SlingSimulatorBackend, Sling
             }
             configId = removeConfigExtension(configId);
 
-            final TypeConverter typeConverter = new TypeConverter(null);
-            final JSONUtil.Report report = new JSONUtil.Report();
-
             // read from input stream
-            final String contents;
-            try (final BufferedReader buf = new BufferedReader(
-                    new InputStreamReader(is, "UTF-8"))) {
+            try (final Reader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
+                final Dictionary<String, Object> config = Configurations.buildReader()
+                        .withIdentifier(configId).build(reader).readConfiguration();
 
-                final StringBuilder sb = new StringBuilder();
-
-                sb.append("{ \"");
-                sb.append(configId);
-                sb.append("\" : ");
-                String line;
-
-                while ((line = buf.readLine()) != null) {
-                    sb.append(line);
-                    sb.append('\n');
+                final Enumeration<String> i = config.keys();
+                while (i.hasMoreElements()) {
+                    final String key = i.nextElement();
+                    ht.put(key, config.get(key));
                 }
-                sb.append("}");
-
-                contents = sb.toString();
+            } catch (ConversionException e) {
+                throw new IOException(e.getMessage(), e);
             }
-
-            final URL url = new URL("file://" + configId);
-
-            final ConfigurationFile config = JSONUtil.readJSON(typeConverter, name, url, 0, contents, report);
-
-            if (!report.errors.isEmpty() || !report.warnings.isEmpty()) {
-                final StringBuilder builder = new StringBuilder();
-                builder.append("Errors in configuration:");
-                for (final String w : report.warnings) {
-                    builder.append("\n");
-                    builder.append(w);
-                }
-                for (final String e : report.errors) {
-                    builder.append("\n");
-                    builder.append(e);
-                }
-                throw new IOException(builder.toString());
-            }
-
-            return dictionaryToMap(config.getConfigurations().get(0).getProperties());
         } else {
-            final Map<String, Object> ht = new LinkedHashMap<>();
-
             try (final BufferedInputStream in = new BufferedInputStream(is)) {
 
                 if (id.endsWith(".config")) {
@@ -407,8 +371,8 @@ public final class DefaultSlingSimulator implements SlingSimulatorBackend, Sling
                     }
                 }
             }
-            return ht;
         }
+        return ht;
     }
 
 

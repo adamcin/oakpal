@@ -35,6 +35,7 @@ import org.apache.sling.installer.api.InstallableResource;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 import org.mockito.ArgumentMatcher;
+import org.osgi.util.converter.ConversionException;
 
 import javax.jcr.Node;
 import javax.jcr.PropertyType;
@@ -194,15 +195,6 @@ public class DefaultSlingSimulatorTest {
         final String simpleConfigWithComment = "# some comment";
         DefaultSlingSimulator.readDictionary(
                 new ByteArrayInputStream(simpleConfigWithComment.getBytes(StandardCharsets.UTF_8)), "simple.config");
-    }
-
-    @Test(expected = IOException.class)
-    public void testReadDictionary_dotCfgJson_throwsWarning() throws Exception {
-        final String dotCfgJson = obj()
-                .key(":configurator:ranking", "A200")
-                .get().toString();
-        DefaultSlingSimulator.readDictionary(
-                new ByteArrayInputStream(dotCfgJson.getBytes(StandardCharsets.UTF_8)), "simple.cfg.json");
     }
 
     @Test(expected = IOException.class)
@@ -530,6 +522,7 @@ public class DefaultSlingSimulatorTest {
             assertTrue("expect instance of OsgiConfigInstallableParams",
                     badResource instanceof OsgiConfigInstallableParams);
             OsgiConfigInstallableParams badParams = (OsgiConfigInstallableParams) badResource;
+            assertNotNull("expect parseError not null", badParams.getParseError());
             assertTrue("expect parseError instanceof IOException", badParams.getParseError() instanceof IOException);
 
         });
