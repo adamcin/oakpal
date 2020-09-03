@@ -25,9 +25,6 @@ import net.adamcin.oakpal.api.SlingSimulator;
 import net.adamcin.oakpal.core.ErrorListener;
 import org.apache.felix.cm.file.ConfigurationHandler;
 import org.apache.felix.cm.json.Configurations;
-import org.apache.felix.configurator.impl.json.JSONUtil;
-import org.apache.felix.configurator.impl.json.TypeConverter;
-import org.apache.felix.configurator.impl.model.ConfigurationFile;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.vault.packaging.JcrPackage;
 import org.apache.jackrabbit.vault.packaging.JcrPackageManager;
@@ -36,7 +33,6 @@ import org.apache.jackrabbit.vault.packaging.VaultPackage;
 import org.apache.sling.installer.api.InstallableResource;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.osgi.util.converter.ConversionException;
 
 import javax.jcr.Node;
 import javax.jcr.Property;
@@ -46,13 +42,11 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.Value;
 import java.io.BufferedInputStream;
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.lang.reflect.Array;
-import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Dictionary;
@@ -328,8 +322,6 @@ public final class DefaultSlingSimulator implements SlingSimulatorBackend, Sling
                     final String key = i.nextElement();
                     ht.put(key, config.get(key));
                 }
-            } catch (ConversionException e) {
-                throw new IOException(e.getMessage(), e);
             }
         } else {
             try (final BufferedInputStream in = new BufferedInputStream(is)) {
