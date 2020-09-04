@@ -116,8 +116,8 @@ public class PlanParamsTest {
                 expectRepoInitFiles, params.getRepoInitFiles());
 
         final List<String> expectRunModes = Arrays.asList("author", "publish");
-        params.setRepoInits(expectRunModes);
-        assertEquals("expect runModes", expectRunModes, params.getRepoInits());
+        params.setRunModes(expectRunModes);
+        assertEquals("expect runModes", expectRunModes, params.getRunModes());
 
     }
 
