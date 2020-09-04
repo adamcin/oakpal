@@ -27,9 +27,18 @@ public class EmbeddedPackageInstallableParams implements SlingInstallableParams<
         this.embeddedId = embeddedId;
     }
 
+    public PackageId getEmbeddedId() {
+        return embeddedId;
+    }
+
     @NotNull
     @Override
     public EmbeddedPackageInstallable createInstallable(final PackageId parentPackageId, final String jcrPath) {
         return new EmbeddedPackageInstallable(parentPackageId, jcrPath, embeddedId);
+    }
+
+    @Override
+    public @NotNull Class<EmbeddedPackageInstallable> getInstallableType() {
+        return EmbeddedPackageInstallable.class;
     }
 }

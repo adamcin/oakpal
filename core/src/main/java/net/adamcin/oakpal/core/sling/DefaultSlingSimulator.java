@@ -24,6 +24,7 @@ import net.adamcin.oakpal.api.SlingOpenable;
 import net.adamcin.oakpal.api.SlingSimulator;
 import net.adamcin.oakpal.core.ErrorListener;
 import org.apache.felix.cm.file.ConfigurationHandler;
+import org.apache.felix.cm.json.Configurations;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.vault.packaging.JcrPackage;
 import org.apache.jackrabbit.vault.packaging.JcrPackageManager;
@@ -43,7 +44,10 @@ import javax.jcr.Value;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
 import java.lang.reflect.Array;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Dictionary;
 import java.util.Enumeration;
@@ -71,7 +75,6 @@ public final class DefaultSlingSimulator implements SlingSimulatorBackend, Sling
     private Session session;
     private JcrPackageManager packageManager;
 
-    @SuppressWarnings("unused")
     private ErrorListener errorListener;
 
     private final Queue<SlingInstallable> installables = new LinkedList<>();
@@ -122,6 +125,18 @@ public final class DefaultSlingSimulator implements SlingSimulatorBackend, Sling
         }
     }
 
+    <T extends SlingInstallable> Optional<T> createInstallableOrReport(final @NotNull SlingInstallableParams<T> params,
+                                                                       final @NotNull PackageId parentPackageId,
+                                                                       final @NotNull String jcrPath) {
+        try {
+            return Optional.of(params.createInstallable(parentPackageId, jcrPath));
+        } catch (Exception e) {
+            errorListener.onSlingCreateInstallableError(e, params.getInstallableType(),
+                    parentPackageId, jcrPath);
+            return Optional.empty();
+        }
+    }
+
     @Override
     public @Nullable SlingInstallable addInstallableNode(final @NotNull PackageId parentPackageId,
                                                          final @NotNull Node node) {
@@ -131,7 +146,8 @@ public final class DefaultSlingSimulator implements SlingSimulatorBackend, Sling
                 .flatMap(this::readInstallableParamsFromNode);
         SlingInstallable installable = jcrPathResult.flatMap(jcrPath ->
                 result.map(optParams ->
-                        optParams.map(params -> params.createInstallable(parentPackageId, jcrPath))))
+                        optParams.flatMap(params ->
+                                createInstallableOrReport(params, parentPackageId, jcrPath))))
                 .toOptional().flatMap(Function.identity())
                 .orElse(null);
         if (installable != null) {
@@ -148,6 +164,7 @@ public final class DefaultSlingSimulator implements SlingSimulatorBackend, Sling
         private final Node node;
         private final String path;
         private final Map<String, Object> props = new HashMap<>();
+        private Exception parseError = null;
 
         public NodeRes(final Node node, final String path) {
             this.node = node;
@@ -160,6 +177,14 @@ public final class DefaultSlingSimulator implements SlingSimulatorBackend, Sling
 
         public String getPath() {
             return path;
+        }
+
+        public Exception getParseError() {
+            return parseError;
+        }
+
+        public void setParseError(final Exception parseError) {
+            this.parseError = parseError;
         }
 
         public Map<String, Object> getProps() {
@@ -191,6 +216,8 @@ public final class DefaultSlingSimulator implements SlingSimulatorBackend, Sling
                 if (isConfigExtension(path)) {
                     try (InputStream is = node.getProperty(JCR_CONTENT_DATA).getBinary().getStream()) {
                         nodeRes.getProps().putAll(readDictionary(is, nodeRes.getPath()));
+                    } catch (Exception e) {
+                        nodeRes.setParseError(e);
                     }
 
                     return maybeConfigResource(nodeRes);
@@ -237,9 +264,7 @@ public final class DefaultSlingSimulator implements SlingSimulatorBackend, Sling
         return lastIdPart;
     }
 
-    private static final List<String> EXTENSIONS = Arrays.asList(".config", ".properties");
-    // the actual JCR Install supports the cfg and cfg.json formats
-    //private static final List<String> EXTENSIONS = Arrays.asList(".config", ".properties", ".cfg", ".cfg.json");
+    private static final List<String> EXTENSIONS = Arrays.asList(".config", ".properties", ".cfg", ".cfg.json");
 
     static String removeConfigExtension(final String id) {
         for (final String ext : EXTENSIONS) {
@@ -263,51 +288,79 @@ public final class DefaultSlingSimulator implements SlingSimulatorBackend, Sling
      * Read dictionary from an input stream.
      * We use the same logic as Apache Felix FileInstall here, but only for .config files:
      * *.config files are handled by the Apache Felix ConfigAdmin file reader
+     * NOTE: Adapted from InternalResource.readDictionary() in sling-installer-core.
      *
      * @param is the input stream
      * @param id the id
-     * @throws IOException
+     * @throws IOException when a parsing error occurs
      */
-    static Map<String, Object> readDictionary(final InputStream is, final String id)
-            throws IOException {
+    static Map<String, Object> readDictionary(
+            final InputStream is, final String id) throws IOException {
         final Map<String, Object> ht = new LinkedHashMap<>();
+        if (id.endsWith(".cfg.json")) {
+            final String name = "jcrinstall:".concat(id);
+            String configId;
+            int pos = id.lastIndexOf('/');
+            if (pos == -1) {
+                configId = id;
+            } else {
+                configId = id.substring(pos + 1);
+            }
+            pos = configId.indexOf('-');
+            if (pos != -1) {
+                configId = configId.substring(0, pos).concat("~").concat(configId.substring(pos + 1));
+            }
+            configId = removeConfigExtension(configId);
 
-        try (final BufferedInputStream in = new BufferedInputStream(is)) {
+            // read from input stream
+            try (final Reader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
+                final Dictionary<String, Object> config = Configurations.buildReader()
+                        .withIdentifier(configId).build(reader).readConfiguration();
 
-            if (id.endsWith(".config")) {
-                // check for initial comment line
-                in.mark(256);
-                final int firstChar = in.read();
-                if (firstChar == '#') {
-                    int b;
-                    while ((b = in.read()) != '\n') {
-                        if (b == -1) {
-                            throw new IOException("Unable to read configuration.");
-                        }
-                    }
-                } else {
-                    in.reset();
-                }
-                @SuppressWarnings("unchecked") final Dictionary<String, Object> config = ConfigurationHandler.read(in);
                 final Enumeration<String> i = config.keys();
                 while (i.hasMoreElements()) {
                     final String key = i.nextElement();
                     ht.put(key, config.get(key));
                 }
-            } else {
-                final Properties p = new Properties();
-                in.mark(1);
-                boolean isXml = in.read() == '<';
-                in.reset();
-                if (isXml) {
-                    p.loadFromXML(in);
+            }
+        } else {
+            try (final BufferedInputStream in = new BufferedInputStream(is)) {
+
+                if (id.endsWith(".config")) {
+                    // check for initial comment line
+                    in.mark(256);
+                    final int firstChar = in.read();
+                    if (firstChar == '#') {
+                        int b;
+                        while ((b = in.read()) != '\n') {
+                            if (b == -1) {
+                                throw new IOException("Unable to read configuration.");
+                            }
+                        }
+                    } else {
+                        in.reset();
+                    }
+                    @SuppressWarnings("unchecked") final Dictionary<String, Object> config = ConfigurationHandler.read(in);
+                    final Enumeration<String> i = config.keys();
+                    while (i.hasMoreElements()) {
+                        final String key = i.nextElement();
+                        ht.put(key, config.get(key));
+                    }
                 } else {
-                    p.load(in);
-                }
-                final Enumeration<Object> i = p.keys();
-                while (i.hasMoreElements()) {
-                    final Object key = i.nextElement();
-                    ht.put(key.toString(), p.get(key));
+                    final Properties p = new Properties();
+                    in.mark(1);
+                    boolean isXml = in.read() == '<';
+                    in.reset();
+                    if (isXml) {
+                        p.loadFromXML(in);
+                    } else {
+                        p.load(in);
+                    }
+                    final Enumeration<Object> i = p.keys();
+                    while (i.hasMoreElements()) {
+                        final Object key = i.nextElement();
+                        ht.put(key.toString(), p.get(key));
+                    }
                 }
             }
         }
@@ -336,7 +389,8 @@ public final class DefaultSlingSimulator implements SlingSimulatorBackend, Sling
             configPid = pid;
         }
 
-        return new OsgiConfigInstallableParams(resource.getProps(), configPid, factoryPid);
+        return new OsgiConfigInstallableParams(resource.getProps(), configPid,
+                factoryPid, resource.getParseError());
     }
 
     static void loadJcrProperties(final @NotNull Map<String, Object> configMap, final @NotNull Node configNode)

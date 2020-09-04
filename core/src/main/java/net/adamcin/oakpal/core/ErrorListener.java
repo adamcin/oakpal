@@ -182,4 +182,20 @@ public interface ErrorListener extends ScanListener, ViolationReporter {
                                              final EmbeddedPackageInstallable installable) {
 
     }
+
+    /**
+     * Called for errors occurring during an attempt to create an installable from a node submitted to a
+     * {@link net.adamcin.oakpal.api.SlingSimulator}, such as parsing errors for OSGi Config files.
+     *
+     * @param error           the error thrown
+     * @param installableType the installable type creation that was attempted
+     * @param parentId        the parent package ID
+     * @param jcrPath         the jcr path
+     */
+    default void onSlingCreateInstallableError(final Exception error,
+                                               final Class<? extends SlingInstallable> installableType,
+                                               final PackageId parentId,
+                                               final String jcrPath) {
+
+    }
 }

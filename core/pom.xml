@@ -15,7 +15,8 @@
   ~ limitations under the License.
   -->
 
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
@@ -65,10 +66,6 @@
                 </executions>
             </plugin>
             <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>templating-maven-plugin</artifactId>
-            </plugin>
-            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
             </plugin>
@@ -93,7 +90,11 @@
                                 Private-Package: net.adamcin.oakpal.core.jcrfacade.*
                                 Import-Package: !aQute.*,\
                                     !org.apache.sling.jcr.repoinit.*,\
+                                    !org.apache.sling.installer.api.*,\
                                     !org.apache.felix.cm.file,\
+                                    !org.apache.felix.configurator.*\
+                                    !org.osgi.util.function.*\
+                                    !org.osgi.util.converter.*\
                                     *
                             ]]></bnd>
                         </configuration>
@@ -137,6 +138,9 @@
                                     <include>biz.aQute.bnd:bndlib</include>
                                     <include>org.apache.sling:org.apache.sling.jcr.repoinit</include>
                                     <include>org.apache.sling:org.apache.sling.installer.core</include>
+                                    <include>org.apache.felix:org.apache.felix.cm.json</include>
+                                    <include>org.osgi:org.osgi.util.function</include>
+                                    <include>org.osgi:org.osgi.util.converter</include>
                                 </includes>
                             </artifactSet>
                             <filters>
@@ -157,13 +161,24 @@
                                     <artifact>org.apache.sling:org.apache.sling.jcr.repoinit</artifact>
                                     <includes>
                                         <include>org/apache/sling/jcr/repoinit/**</include>
-                                </includes>
-                            </filter>
+                                    </includes>
+                                </filter>
                                 <filter>
                                     <artifact>org.apache.sling:org.apache.sling.installer.core</artifact>
                                     <includes>
-                                        <include>org/apache/felix/cm/file/ConfigurationHandler*</include>
                                         <include>org/apache/sling/installer/api/InstallableResource*</include>
+                                    </includes>
+                                </filter>
+                                <filter>
+                                    <artifact>org.osgi:org.osgi.util.function</artifact>
+                                    <includes>
+                                        <include>org/osgi/util/function/**</include>
+                                    </includes>
+                                </filter>
+                                <filter>
+                                    <artifact>org.osgi:org.osgi.util.converter</artifact>
+                                    <includes>
+                                        <include>org/osgi/util/converter/**</include>
                                     </includes>
                                 </filter>
                             </filters>
@@ -174,11 +189,19 @@
                                 </relocation>
                                 <relocation>
                                     <pattern>org.apache.sling.jcr.repoinit</pattern>
-                                    <shadedPattern>net.adamcin.oakpal.shaded.repoinit</shadedPattern>
+                                    <shadedPattern>net.adamcin.oakpal.shaded.sling.jcr.repoinit</shadedPattern>
                                 </relocation>
                                 <relocation>
-                                    <pattern>org.apache.felix</pattern>
-                                    <shadedPattern>net.adamcin.oakpal.shaded.felix</shadedPattern>
+                                    <pattern>org.apache.felix.cm</pattern>
+                                    <shadedPattern>net.adamcin.oakpal.shaded.felix.cm</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.osgi.util.function</pattern>
+                                    <shadedPattern>net.adamcin.oakpal.shaded.osgi.util.function</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.osgi.util.converter</pattern>
+                                    <shadedPattern>net.adamcin.oakpal.shaded.osgi.util.converter</shadedPattern>
                                 </relocation>
                                 <relocation>
                                     <pattern>org.apache.sling.installer</pattern>
@@ -266,10 +289,35 @@
             <artifactId>bndlib</artifactId>
             <scope>compile</scope>
         </dependency>
+
         <dependency>
             <groupId>org.apache.sling</groupId>
             <artifactId>org.apache.sling.installer.core</artifactId>
             <version>3.9.0</version>
+            <scope>compile</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.felix</groupId>
+                    <artifactId>org.apache.felix.configadmin</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.felix</groupId>
+            <artifactId>org.apache.felix.cm.json</artifactId>
+            <version>1.0.2</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.osgi</groupId>
+            <artifactId>org.osgi.util.function</artifactId>
+            <version>1.0.0</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.osgi</groupId>
+            <artifactId>org.osgi.util.converter</artifactId>
+            <version>1.0.1</version>
             <scope>compile</scope>
         </dependency>
         <dependency>

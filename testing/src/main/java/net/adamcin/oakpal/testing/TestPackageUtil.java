@@ -81,8 +81,12 @@ public final class TestPackageUtil {
 
     public static File prepareTestPackage(final String filename) throws IOException {
         File file = new File(testPackagesRoot.toFile(), filename);
-        try (InputStream is = TestPackageUtil.class.getResourceAsStream(testPackagesSrc + filename);
+        final String resourceName = testPackagesSrc + filename;
+        try (InputStream is = TestPackageUtil.class.getResourceAsStream(resourceName);
              FileOutputStream fos = new FileOutputStream(file)) {
+            if (is == null) {
+                throw new IOException("failed to open resource as stream: " + resourceName);
+            }
             IOUtils.copy(is, fos);
         }
         return file;

@@ -22,6 +22,7 @@ import net.adamcin.oakpal.api.Nothing;
 import net.adamcin.oakpal.api.OsgiConfigInstallable;
 import net.adamcin.oakpal.api.Result;
 import net.adamcin.oakpal.api.SlingOpenable;
+import net.adamcin.oakpal.core.ErrorListener;
 import net.adamcin.oakpal.core.OakpalPlan;
 import net.adamcin.oakpal.testing.TestPackageUtil;
 import org.apache.jackrabbit.commons.JcrUtils;
@@ -34,6 +35,7 @@ import org.apache.sling.installer.api.InstallableResource;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 import org.mockito.ArgumentMatcher;
+import org.osgi.util.converter.ConversionException;
 
 import javax.jcr.Node;
 import javax.jcr.PropertyType;
@@ -46,13 +48,16 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
@@ -62,12 +67,16 @@ import static net.adamcin.oakpal.api.JavaxJson.obj;
 import static net.adamcin.oakpal.core.OakpalPlan.keys;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -188,8 +197,45 @@ public class DefaultSlingSimulatorTest {
                 new ByteArrayInputStream(simpleConfigWithComment.getBytes(StandardCharsets.UTF_8)), "simple.config");
     }
 
+    @Test(expected = IOException.class)
+    public void testReadDictionary_dotCfgJson_throwsError() throws Exception {
+        final String dotCfgJson = obj()
+                .key("foo:Integer", "not an int")
+                .get().toString();
+        try {
+            DefaultSlingSimulator.readDictionary(
+                    new ByteArrayInputStream(dotCfgJson.getBytes(StandardCharsets.UTF_8)), "simple.cfg.json");
+        } catch (ConversionException ce) {
+            // this is for org.osgi.util.converter 1.0.1 on java 12+,
+            throw new IOException(ce);
+        }
+    }
+
     @Test
-    public void testReadDictionary() throws Exception {
+    public void testReadDictionary_dotCfgJson() throws Exception {
+
+        final Map<String, Object> expectConfig = new HashMap<>();
+        expectConfig.put("foo", "bar");
+        expectConfig.put("foos", Stream.of("bar", "bar", "bar").toArray(String[]::new));
+        expectConfig.put("ones", Stream.of(1L, 1L, 1L).toArray(Long[]::new));
+        expectConfig.put("nothing", new String[0]);
+
+        final String dotCfgJson = obj()
+                .key("foo", "bar")
+                .key("foos", arr().val("bar").val("bar").val("bar"))
+                .key("ones", arr().val(1L).val(1L).val(1L))
+                .key("nothing", arr())
+                .get().toString();
+        checkExpectedProperties(expectConfig, DefaultSlingSimulator.readDictionary(
+                new ByteArrayInputStream(dotCfgJson.getBytes(StandardCharsets.UTF_8)), "simple.cfg.json"));
+        checkExpectedProperties(expectConfig, DefaultSlingSimulator.readDictionary(
+                new ByteArrayInputStream(dotCfgJson.getBytes(StandardCharsets.UTF_8)), "nested/simple.cfg.json"));
+        checkExpectedProperties(expectConfig, DefaultSlingSimulator.readDictionary(
+                new ByteArrayInputStream(dotCfgJson.getBytes(StandardCharsets.UTF_8)), "nested/simple-inst.cfg.json"));
+    }
+
+    @Test
+    public void testReadDictionary_dotConfig() throws Exception {
         final Map<String, Object> expectConfig = new HashMap<>();
         expectConfig.put("foo", "bar");
         expectConfig.put("foos", Stream.of("bar", "bar", "bar").toArray(String[]::new));
@@ -204,22 +250,47 @@ public class DefaultSlingSimulatorTest {
         final Map<String, Object> simpleConfig = DefaultSlingSimulator.readDictionary(
                 new ByteArrayInputStream(dotConfig.getBytes(StandardCharsets.UTF_8)), "simple.config");
         checkExpectedProperties(expectConfig, simpleConfig);
+    }
+
+    @Test
+    public void testReadDictionary_dotConfigWithComment() throws Exception {
+        final Map<String, Object> expectConfig = new HashMap<>();
+        expectConfig.put("foo", "bar");
+        expectConfig.put("foos", Stream.of("bar", "bar", "bar").toArray(String[]::new));
+        expectConfig.put("ones", Stream.of(1L, 1L, 1L).toArray(Long[]::new));
+        expectConfig.put("nothing", new String[0]);
+
+        final String dotConfig = "foo=\"bar\"\n" +
+                "foos=[\"bar\",\"bar\",\"bar\"]\n" +
+                "ones=L[\"1\",\"1\",\"1\"]\n" +
+                "nothing=[]";
 
         final String dotConfigWithComment = "# some comment\n" + dotConfig;
-        final Map<String, Object> simpleConfigWithComment = DefaultSlingSimulator.readDictionary(
+        final Map<String, Object> simpleConfig = DefaultSlingSimulator.readDictionary(
                 new ByteArrayInputStream(dotConfigWithComment.getBytes(StandardCharsets.UTF_8)), "simple.config");
-        checkExpectedProperties(expectConfig, simpleConfigWithComment);
+        checkExpectedProperties(expectConfig, simpleConfig);
+    }
 
+    @Test
+    public void testReadDictionary_dotProperties() throws Exception {
         final Map<String, Object> expectProperties = new HashMap<>();
         expectProperties.put("foo", "bar");
         expectProperties.put("foos", "bar,bar,bar");
         expectProperties.put("ones", "1,1,1");
         expectProperties.put("nothing", "");
-
         final String dotProperties = "foo=bar\nfoos=bar,bar,bar\nones=1,1,1\nnothing=";
         final Map<String, Object> simpleProperties = DefaultSlingSimulator.readDictionary(
                 new ByteArrayInputStream(dotProperties.getBytes(StandardCharsets.UTF_8)), "simple.properties");
         checkExpectedProperties(expectProperties, simpleProperties);
+    }
+
+    @Test
+    public void testReadDictionary_dotPropertiesXml() throws Exception {
+        final Map<String, Object> expectProperties = new HashMap<>();
+        expectProperties.put("foo", "bar");
+        expectProperties.put("foos", "bar,bar,bar");
+        expectProperties.put("ones", "1,1,1");
+        expectProperties.put("nothing", "");
 
         ByteArrayOutputStream propsXmlBytes = new ByteArrayOutputStream();
         Properties srcPropertiesXml = new Properties();
@@ -229,7 +300,20 @@ public class DefaultSlingSimulatorTest {
         final Map<String, Object> simplePropertiesXml = DefaultSlingSimulator.readDictionary(
                 new ByteArrayInputStream(dotPropertiesXml.getBytes(StandardCharsets.UTF_8)), "simple.xml");
         checkExpectedProperties(expectProperties, simplePropertiesXml);
+    }
 
+    @Test
+    public void testReadDictionary_dotCfg() throws Exception {
+        final Map<String, Object> expectProperties = new HashMap<>();
+        expectProperties.put("foo", "bar");
+        expectProperties.put("foos", "bar,bar,bar");
+        expectProperties.put("ones", "1,1,1");
+        expectProperties.put("nothing", "");
+
+        final String dotCfg = "foo=bar\nfoos=bar,bar,bar\nones=1,1,1\nnothing=";
+        final Map<String, Object> simpleCfg = DefaultSlingSimulator.readDictionary(
+                new ByteArrayInputStream(dotCfg.getBytes(StandardCharsets.UTF_8)), "simple.cfg");
+        checkExpectedProperties(expectProperties, simpleCfg);
     }
 
     @Test
@@ -390,9 +474,9 @@ public class DefaultSlingSimulatorTest {
 
     @Test
     public void testReadInstallableResourceFromNode_fileConfig() throws Exception {
-        final String packagePath = "/apps/with-embedded/config/com.TestFactory-strawberry.config";
+        final String goodConfigFilePath = "/apps/with-embedded/config/com.TestFactory-strawberry.config";
+        final String badConfigFilePath = "/apps/with-embedded/config/com.TestFactory-peanut.cfg.json";
 
-        TestPackageUtil.deleteTestPackage("with-embedded-config.zip");
         final File withEmbeddedConfig = TestPackageUtil.prepareTestPackageFromFolder("with-embedded-config.zip",
                 new File("target/test-classes/with-embedded-package"));
 
@@ -408,7 +492,7 @@ public class DefaultSlingSimulatorTest {
             slingSimulator.setSession(session);
 
             SlingInstallableParams<?> resource = slingSimulator
-                    .readInstallableParamsFromNode(session.getNode(packagePath)).toOptional()
+                    .readInstallableParamsFromNode(session.getNode(goodConfigFilePath)).toOptional()
                     .flatMap(Function.identity())
                     .orElse(null);
             assertNotNull("expect not null resource", resource);
@@ -417,11 +501,11 @@ public class DefaultSlingSimulatorTest {
             OsgiConfigInstallableParams params = (OsgiConfigInstallableParams) resource;
 
             PackageId base = new PackageId("com.test", "base", "1.0.0");
-            OsgiConfigInstallable installable = params.createInstallable(base, packagePath);
+            OsgiConfigInstallable installable = params.createInstallable(base, goodConfigFilePath);
 
             assertNotNull("expect not null installable", installable);
             assertEquals("expect base package Id", base, installable.getParentId());
-            assertEquals("expect installable path", packagePath, installable.getJcrPath());
+            assertEquals("expect installable path", goodConfigFilePath, installable.getJcrPath());
             assertEquals("expect servicePid", "strawberry", installable.getServicePid());
             assertEquals("expect factoryPid", "com.TestFactory", installable.getFactoryPid());
 
@@ -434,7 +518,63 @@ public class DefaultSlingSimulatorTest {
             expectProps.put("nothing", new String[0]);
 
             checkExpectedProperties(expectProps, installable.getProperties());
+
+            SlingInstallableParams<?> badResource = slingSimulator
+                    .readInstallableParamsFromNode(session.getNode(badConfigFilePath)).toOptional()
+                    .flatMap(Function.identity())
+                    .orElse(null);
+            assertNotNull("expect not null badResource", badResource);
+            assertTrue("expect instance of OsgiConfigInstallableParams",
+                    badResource instanceof OsgiConfigInstallableParams);
+            OsgiConfigInstallableParams badParams = (OsgiConfigInstallableParams) badResource;
+            assertNotNull("expect parseError not null", badParams.getParseError());
         });
+    }
+
+    @Test
+    public void testCreateInstallableOrReport() throws Exception {
+        ErrorListener errorListener = mock(ErrorListener.class);
+        slingSimulator.setErrorListener(errorListener);
+
+        final CompletableFuture<Exception> eLatch = new CompletableFuture<>();
+        final CompletableFuture<Class<?>> tLatch = new CompletableFuture<>();
+        final CompletableFuture<PackageId> idLatch = new CompletableFuture<>();
+        final CompletableFuture<String> pathLatch = new CompletableFuture<>();
+        doAnswer(call -> {
+            eLatch.complete(call.getArgument(0, Exception.class));
+            tLatch.complete(call.getArgument(1, Class.class));
+            idLatch.complete(call.getArgument(2, PackageId.class));
+            pathLatch.complete(call.getArgument(3, String.class));
+            return true;
+        }).when(errorListener).onSlingCreateInstallableError(
+                any(Exception.class),
+                any(Class.class),
+                any(PackageId.class),
+                anyString());
+
+        final Exception expectError = new IOException("you yamled when you should have jsoned!");
+        final Class<?> expectType = OsgiConfigInstallable.class;
+        final PackageId expectId = PackageId.fromString("test");
+        final String expectPath = "/some/path-id.cfg.json";
+        final OsgiConfigInstallableParams goodParams = new OsgiConfigInstallableParams(Collections.emptyMap(),
+                "id", "path", null);
+        final OsgiConfigInstallableParams badParams = new OsgiConfigInstallableParams(Collections.emptyMap(),
+                "id", "path", expectError);
+        OsgiConfigInstallable goodInstallable = slingSimulator.createInstallableOrReport(goodParams, expectId, expectPath)
+                .orElse(null);
+        assertNotNull("expect non null installable for goodParams", goodInstallable);
+        assertFalse("eLatch is not done", eLatch.isDone());
+        assertFalse("tLatch is not done", tLatch.isDone());
+        assertFalse("idLatch is not done", idLatch.isDone());
+        assertFalse("pathLatch is not done", pathLatch.isDone());
+
+        OsgiConfigInstallable badInstallable = slingSimulator.createInstallableOrReport(badParams, expectId, expectPath)
+                .orElse(null);
+        assertNull("expect null installable for badParams", badInstallable);
+        assertSame("expect same error", expectError, eLatch.getNow(null));
+        assertSame("expect same type", expectType, tLatch.getNow(null));
+        assertSame("expect same parentId", expectId, idLatch.getNow(null));
+        assertSame("expect same path", expectPath, pathLatch.getNow(null));
     }
 
     @Test

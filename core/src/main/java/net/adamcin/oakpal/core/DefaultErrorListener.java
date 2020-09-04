@@ -231,4 +231,14 @@ public class DefaultErrorListener implements ErrorListener {
         LOGGER.trace("[onSlingRepoInitScriptsError] stack trace for: " + message, error);
         reportViolation(new SimpleViolation(Severity.MAJOR, message));
     }
+
+    @Override
+    public void onSlingCreateInstallableError(final Exception error,
+                                              final Class<? extends SlingInstallable> installableType,
+                                              final PackageId parentId, final String jcrPath) {
+        final String message = MessageFormat.format(getString("create sling installable error ({0}:{1}): {2} \"{3}\""),
+                parentId, jcrPath, error.getClass().getName(), error.getMessage());
+        LOGGER.trace("[onSlingCreateInstallableError] stack trace for: " + message, error);
+        reportViolation(new SimpleViolation(Severity.MAJOR, message));
+    }
 }

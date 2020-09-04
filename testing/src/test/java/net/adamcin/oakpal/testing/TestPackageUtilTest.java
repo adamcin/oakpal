@@ -56,6 +56,11 @@ public class TestPackageUtilTest {
         assertTrue("package_1.0.zip should exist", simple.exists());
     }
 
+    @Test(expected = IOException.class)
+    public void testPrepareTestPackage_throws() throws Exception {
+        TestPackageUtil.prepareTestPackage("not_a_real_package_filename.zip");
+    }
+
     @Test
     public void testDeleteTestPackage() throws Exception {
         File fullCoverage = TestPackageUtil.prepareTestPackage("fullcoverage.zip");

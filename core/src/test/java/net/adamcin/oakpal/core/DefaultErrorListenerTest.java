@@ -146,4 +146,10 @@ public class DefaultErrorListenerTest {
                         Collections.singletonMap("scripts", Stream.of("some", "scripts").toArray(String[]::new)),
                         "init", SlingRepoInitScripts.REPO_INIT_FACTORY_PID));
     }
+
+    @Test
+    public void testOnSlingCreateInstallableError() {
+        new DefaultErrorListener().onSlingCreateInstallableError(simpleCause, OsgiConfigInstallable.class,
+                PackageId.fromString("test"), "/some/path");
+    }
 }

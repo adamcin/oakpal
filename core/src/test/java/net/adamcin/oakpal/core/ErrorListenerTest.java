@@ -48,6 +48,7 @@ public class ErrorListenerTest {
         mock.onRepoInitInlineError(null, null);
         mock.onSlingRepoInitScriptsError(null, null, null, null);
         mock.onSlingEmbeddedPackageError(null, null);
+        mock.onSlingCreateInstallableError(null, null, null, null);
         mock.finishedScan();
     }
 }
