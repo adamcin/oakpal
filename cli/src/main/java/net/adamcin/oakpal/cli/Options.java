@@ -168,6 +168,10 @@ final class Options {
         return runModes;
     }
 
+    public boolean isNoRunModes() {
+        return noRunModes;
+    }
+
     public @NotNull List<File> getExtendedClassPathFiles() {
         return extendedClassPathFiles;
     }
