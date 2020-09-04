@@ -29,6 +29,10 @@ oakpal [ <options> ] <scanFile> ...
        --no-hooks                   : Disable preinstall and scan install hooks for all packages, otherwise, rely on
                                       install hook policies configured in the selected plan.
  -pi | --pre-install-file <file>    : Add a preinstall package to the list specified in the plan, if any.
+  -r | --run-modes <mode,...>       : Override the simulated sling run modes specified in the plan (json key: "runModes")
+                                      with the provided comma-delimited list of run modes.
+  +r | --no-run-modes               : Override the simulated sling run modes specified in the plan (json key: "runModes")
+                                      to set no active run modes.
  -ri | --repoinit-file <file>       : Add a repoinit file to the list specified in the plan, if any.
  -xp | --extend-classpath <file>    : Extend the opear classpath with the specified jar file or directory.
   -s | --severity-fail <severity>   : Exit with a non-zero code if any violations are

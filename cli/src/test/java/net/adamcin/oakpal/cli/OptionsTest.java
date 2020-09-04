@@ -364,4 +364,74 @@ public class OptionsTest {
         });
 
     }
+
+    @Test
+    public void testWithNoRunModes() throws Exception {
+        final Console console = getMockConsole();
+        when(console.getCwd()).thenReturn(tempDir);
+        final Options.Builder builder = new Options.Builder()
+                .setOpearFile(new File("src/test/resources/opears/runModesPlan"));
+        final Result<Options> defaultOptionsResult = builder.build(console);
+        assertFalse("options build is successful", defaultOptionsResult.getError().isPresent());
+        defaultOptionsResult.forEach(options -> {
+            assertFalse("isNoRunModes is disabled by default", options.isNoRunModes());
+            assertFalse("false hasOverrides", options.hasOverrides());
+            final OakpalPlan originalPlan = new OakpalPlan.Builder(null, null)
+                    .withRunModes(Arrays.asList("author", "publish"))
+                    .build();
+            final OakpalPlan overriddenPlan = options.applyOverrides(originalPlan);
+            assertSame("same plan with no overrides", originalPlan, overriddenPlan);
+            assertEquals("enabled runModes",
+                    Arrays.asList("author", "publish"), overriddenPlan.getRunModes());
+        });
+        final Result<Options> noRunModesOptionsResult = builder.setNoRunModes(true).build(console);
+        assertFalse("options build is successful", noRunModesOptionsResult.getError().isPresent());
+        noRunModesOptionsResult.forEach(options -> {
+            assertTrue("isNoRunModes is enabled by builder", options.isNoRunModes());
+            assertTrue("true hasOverrides", options.hasOverrides());
+            final OakpalPlan originalPlan = new OakpalPlan.Builder(null, null)
+                    .withRunModes(Arrays.asList("author", "publish"))
+                    .build();
+            final OakpalPlan overriddenPlan = options.applyOverrides(originalPlan);
+            assertNotSame("not same plan with overrides", originalPlan, overriddenPlan);
+            assertEquals("enabled runModes",
+                    Collections.emptyList(), overriddenPlan.getRunModes());
+        });
+    }
+
+    @Test
+    public void testWithRunModes() throws Exception {
+        final Console console = getMockConsole();
+        when(console.getCwd()).thenReturn(tempDir);
+        final Options.Builder builder = new Options.Builder()
+                .setOpearFile(new File("src/test/resources/opears/runModesPlan"));
+        final Result<Options> defaultOptionsResult = builder.build(console);
+        assertFalse("options build is successful", defaultOptionsResult.getError().isPresent());
+        defaultOptionsResult.forEach(options -> {
+            assertTrue("getRunModes is empty by default", options.getRunModes().isEmpty());
+            assertFalse("false hasOverrides", options.hasOverrides());
+            final OakpalPlan originalPlan = new OakpalPlan.Builder(null, null)
+                    .withRunModes(Collections.singletonList("author"))
+                    .build();
+            final OakpalPlan overriddenPlan = options.applyOverrides(originalPlan);
+            assertSame("same plan with no overrides", originalPlan, overriddenPlan);
+            assertEquals("enabled runModes",
+                    Collections.singletonList("author"), overriddenPlan.getRunModes());
+        });
+        final Result<Options> newRunModesOptionsResult = builder.setRunModes(Collections.singletonList("publish"))
+                .build(console);
+        assertFalse("options build is successful", newRunModesOptionsResult.getError().isPresent());
+        newRunModesOptionsResult.forEach(options -> {
+            assertEquals("expect new getRunModes list",
+                    Collections.singletonList("publish"), options.getRunModes());
+            assertTrue("true hasOverrides", options.hasOverrides());
+            final OakpalPlan originalPlan = new OakpalPlan.Builder(null, null)
+                    .withRunModes(Arrays.asList("author", "publish"))
+                    .build();
+            final OakpalPlan overriddenPlan = options.applyOverrides(originalPlan);
+            assertNotSame("not same plan with overrides", originalPlan, overriddenPlan);
+            assertEquals("enabled runModes",
+                    Collections.singletonList("publish"), overriddenPlan.getRunModes());
+        });
+    }
 }

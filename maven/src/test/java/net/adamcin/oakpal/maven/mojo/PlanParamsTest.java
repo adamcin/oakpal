@@ -23,6 +23,7 @@ import net.adamcin.oakpal.core.JcrNs;
 import org.junit.Test;
 
 import java.io.File;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -51,6 +52,8 @@ public class PlanParamsTest {
                 Collections.emptyList(), params.getChecklists());
         assertEquals("expect repoInits",
                 Collections.emptyList(), params.getRepoInits());
+        assertEquals("expect runModes",
+                Collections.emptyList(), params.getRunModes());
 
         assertFalse("expect false slingNodeTypes", params.isSlingNodeTypes());
         assertFalse("expect false enablePreInstallHooks", params.isEnablePreInstallHooks());
@@ -111,6 +114,11 @@ public class PlanParamsTest {
         params.setRepoInitFiles(expectRepoInitFiles);
         assertEquals("expect repoInitFiles",
                 expectRepoInitFiles, params.getRepoInitFiles());
+
+        final List<String> expectRunModes = Arrays.asList("author", "publish");
+        params.setRunModes(expectRunModes);
+        assertEquals("expect runModes", expectRunModes, params.getRunModes());
+
     }
 
     @Test

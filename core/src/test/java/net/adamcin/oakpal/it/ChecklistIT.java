@@ -52,7 +52,8 @@ public class ChecklistIT {
                 "acHandling",
                 "filterSets",
                 "overlaps",
-                "composite-store-alignment"
+                "composite-store-alignment",
+                "sling-jcr-installer"
         ).map(name -> OAKPAL_MODULE_NAME + "/" + OAKPAL_CHECKLIST_BASIC + "/" + name)
                 .collect(Collectors.toList());
 

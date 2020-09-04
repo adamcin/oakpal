@@ -6,6 +6,7 @@ import net.adamcin.oakpal.api.JsonObjectConvertible;
 import net.adamcin.oakpal.api.ProgressCheck;
 import net.adamcin.oakpal.api.Result;
 import net.adamcin.oakpal.api.ViolationReporter;
+import net.adamcin.oakpal.core.sling.DefaultSlingSimulator;
 import org.apache.jackrabbit.spi.PrivilegeDefinition;
 import org.apache.jackrabbit.spi.QNodeTypeDefinition;
 import org.apache.jackrabbit.spi.commons.namespace.NamespaceMapping;
@@ -387,6 +388,7 @@ public final class OakpalPlan implements JsonObjectConvertible {
                 .withInstallHookPolicy(installHookPolicy)
                 .withInstallHookClassLoader(classLoader)
                 .withRunModes(new HashSet<>(getRunModes()))
+                .withSlingSimulator(DefaultSlingSimulator.instance())
                 .withEnablePreInstallHooks(enablePreInstallHooks);
     }
 

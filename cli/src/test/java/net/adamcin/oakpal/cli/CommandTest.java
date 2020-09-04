@@ -297,6 +297,54 @@ public class CommandTest {
                 options -> assertFalse("expect no isNoHooks", options.isNoHooks()));
         validator.expectSuccess(args("--hooks", "--no-hooks"),
                 options -> assertTrue("expect isNoHooks", options.isNoHooks()));
+
+        validator.expectSuccess(args(),
+                options -> {
+                    assertFalse("expect no isNoRunModes", options.isNoRunModes());
+                    assertTrue("expect empty runModes", options.getRunModes().isEmpty());
+                });
+        validator.expectSuccess(args("--run-modes", ""),
+                options -> {
+                    assertFalse("expect no isNoRunModes", options.isNoRunModes());
+                    assertTrue("expect empty runModes", options.getRunModes().isEmpty());
+                });
+        validator.expectSuccess(args("--no-run-modes"),
+                options -> {
+                    assertTrue("expect isNoRunModes", options.isNoRunModes());
+                    assertTrue("expect empty runModes", options.getRunModes().isEmpty());
+                });
+        validator.expectSuccess(args("+r"),
+                options -> {
+                    assertTrue("expect isNoRunModes", options.isNoRunModes());
+                    assertTrue("expect empty runModes", options.getRunModes().isEmpty());
+                });
+        validator.expectSuccess(args("--no-run-modes", "--run-modes", ""),
+                options -> {
+                    assertFalse("expect no isNoRunModes", options.isNoRunModes());
+                    assertTrue("expect empty runModes", options.getRunModes().isEmpty());
+                });
+        validator.expectSuccess(args("--run-modes", "", "--no-run-modes"),
+                options -> {
+                    assertTrue("expect isNoRunModes", options.isNoRunModes());
+                    assertTrue("expect empty runModes", options.getRunModes().isEmpty());
+                });
+        validator.expectSuccess(args("-r", "author,publish"),
+                options -> {
+                    assertFalse("expect no isNoRunModes", options.isNoRunModes());
+                    assertEquals("expect runModes",
+                            Arrays.asList("author", "publish"), options.getRunModes());
+                });
+        validator.expectSuccess(args("-r", "author,publish", "--no-run-modes"),
+                options -> {
+                    assertTrue("expect isNoRunModes", options.isNoRunModes());
+                    assertTrue("expect empty runModes", options.getRunModes().isEmpty());
+                });
+        validator.expectSuccess(args("--no-run-modes", "-r", "author,publish"),
+                options -> {
+                    assertFalse("expect no isNoRunModes", options.isNoRunModes());
+                    assertEquals("expect runModes",
+                            Arrays.asList("author", "publish"), options.getRunModes());
+                });
     }
 
     @Test
