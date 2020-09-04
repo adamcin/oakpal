@@ -16,29 +16,28 @@
 
 package net.adamcin.oakpal.webster;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import org.apache.jackrabbit.commons.JcrUtils;
+import org.apache.jackrabbit.oak.run.cli.NodeStoreFixture;
+import org.junit.Test;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URL;
-import javax.jcr.Binary;
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
 import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
 import javax.jcr.query.QueryResult;
+import java.io.File;
+import java.io.IOException;
+import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Comparator;
+import java.util.stream.Stream;
 
-import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.commons.JcrUtils;
-import org.apache.jackrabbit.oak.api.Blob;
-import org.apache.jackrabbit.oak.run.cli.NodeStoreFixture;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 public class JcrFactoryTest {
     final File testBaseDir = new File("target/repos/JcrFactoryTest");
@@ -86,7 +85,8 @@ public class JcrFactoryTest {
             session.save();
         });
         final File globalDir = new File(testBaseDir, "testGetReadOnlyFixture/globalRepo/segmentstore");
-        TestUtil.prepareRepo(globalDir, session -> {});
+        TestUtil.prepareRepo(globalDir, session -> {
+        });
 
         try (NodeStoreFixture fixture = JcrFactory.getReadOnlyFixture(seedDir);
              NodeStoreFixture globalFixture = JcrFactory.getReadOnlyFixture(globalDir)) {
@@ -105,7 +105,8 @@ public class JcrFactoryTest {
             session.save();
         });
         final File globalDir = new File(testBaseDir, "testGetReadWriteFixture/globalRepo/segmentstore");
-        TestUtil.prepareRepo(globalDir, session -> {});
+        TestUtil.prepareRepo(globalDir, session -> {
+        });
 
         try (NodeStoreFixture fixture = JcrFactory.getReadWriteFixture(seedDir);
              NodeStoreFixture globalFixture = JcrFactory.getReadWriteFixture(globalDir)) {
@@ -116,13 +117,12 @@ public class JcrFactoryTest {
         }
     }
 
-    private static void recursiveDeleteWithRetry(final File toDelete) throws IOException {
-        try {
-            FileUtils.deleteDirectory(toDelete);
-        } catch (IOException e) {
-            // retry if failed.
-            if (toDelete.exists()) {
-                FileUtils.deleteDirectory(toDelete);
+    private static void recursiveDelete(final File toDelete) throws IOException {
+        if (toDelete.exists()) {
+            try (Stream<Path> walk = Files.walk(toDelete.toPath())) {
+                walk.sorted(Comparator.reverseOrder())
+                        .map(Path::toFile)
+                        .forEach(File::delete);
             }
         }
     }
@@ -130,7 +130,7 @@ public class JcrFactoryTest {
     @Test
     public void testGetNodeStoreFixture_withWithoutFDS() throws Exception {
         final File seedRepoHome = new File(testBaseDir, "testGetNodeStoreFixture_withFDS/seedRepo");
-        recursiveDeleteWithRetry(seedRepoHome);
+        recursiveDelete(seedRepoHome);
         final File seedDir = new File(seedRepoHome, "segmentstore");
         final File fdsDir = new File(seedRepoHome, "datastore");
 
@@ -139,7 +139,7 @@ public class JcrFactoryTest {
             assertNull("blob store should be null without datastore dir", fixture.getBlobStore());
         }
 
-        recursiveDeleteWithRetry(seedRepoHome);
+        recursiveDelete(seedRepoHome);
         fdsDir.mkdirs();
         assertTrue("fds dir should exist @ " + fdsDir.getAbsolutePath(), fdsDir.exists());
         try (NodeStoreFixture fixture = JcrFactory.getNodeStoreFixture(false, seedDir)) {
