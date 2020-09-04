@@ -139,8 +139,8 @@
                                     <include>org.apache.sling:org.apache.sling.jcr.repoinit</include>
                                     <include>org.apache.sling:org.apache.sling.installer.core</include>
                                     <include>org.apache.felix:org.apache.felix.cm.json</include>
+                                    <include>org.apache.felix:org.apache.felix.converter</include>
                                     <include>org.osgi:org.osgi.util.function</include>
-                                    <include>org.osgi:org.osgi.util.converter</include>
                                 </includes>
                             </artifactSet>
                             <filters>
@@ -170,15 +170,15 @@
                                     </includes>
                                 </filter>
                                 <filter>
-                                    <artifact>org.osgi:org.osgi.util.function</artifact>
+                                    <artifact>org.apache.felix:org.apache.felix.converter</artifact>
                                     <includes>
-                                        <include>org/osgi/util/function/**</include>
+                                        <include>org/osgi/util/converter/**</include>
                                     </includes>
                                 </filter>
                                 <filter>
-                                    <artifact>org.osgi:org.osgi.util.converter</artifact>
+                                    <artifact>org.osgi:org.osgi.util.function</artifact>
                                     <includes>
-                                        <include>org/osgi/util/converter/**</include>
+                                        <include>org/osgi/util/function/**</include>
                                     </includes>
                                 </filter>
                             </filters>
@@ -192,6 +192,10 @@
                                     <shadedPattern>net.adamcin.oakpal.shaded.sling.jcr.repoinit</shadedPattern>
                                 </relocation>
                                 <relocation>
+                                    <pattern>org.apache.sling.installer</pattern>
+                                    <shadedPattern>net.adamcin.oakpal.shaded.sling.installer</shadedPattern>
+                                </relocation>
+                                <relocation>
                                     <pattern>org.apache.felix.cm</pattern>
                                     <shadedPattern>net.adamcin.oakpal.shaded.felix.cm</shadedPattern>
                                 </relocation>
@@ -202,10 +206,6 @@
                                 <relocation>
                                     <pattern>org.osgi.util.converter</pattern>
                                     <shadedPattern>net.adamcin.oakpal.shaded.osgi.util.converter</shadedPattern>
-                                </relocation>
-                                <relocation>
-                                    <pattern>org.apache.sling.installer</pattern>
-                                    <shadedPattern>net.adamcin.oakpal.shaded.sling.installer</shadedPattern>
                                 </relocation>
                             </relocations>
                         </configuration>
@@ -284,12 +284,13 @@
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
         </dependency>
+
+        <!-- embedded / shaded -->
         <dependency>
             <groupId>biz.aQute.bnd</groupId>
             <artifactId>bndlib</artifactId>
             <scope>compile</scope>
         </dependency>
-
         <dependency>
             <groupId>org.apache.sling</groupId>
             <artifactId>org.apache.sling.installer.core</artifactId>
@@ -309,17 +310,19 @@
             <scope>compile</scope>
         </dependency>
         <dependency>
+            <groupId>org.apache.felix</groupId>
+            <artifactId>org.apache.felix.converter</artifactId>
+            <version>1.0.14</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
             <groupId>org.osgi</groupId>
             <artifactId>org.osgi.util.function</artifactId>
             <version>1.0.0</version>
             <scope>compile</scope>
         </dependency>
-        <dependency>
-            <groupId>org.osgi</groupId>
-            <artifactId>org.osgi.util.converter</artifactId>
-            <version>1.0.1</version>
-            <scope>compile</scope>
-        </dependency>
+
+        <!-- testing -->
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
