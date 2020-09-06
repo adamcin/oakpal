@@ -4,7 +4,18 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com)
 
-## [Unreleased]
+## [2.2.0] - 2020-09-07
+
+### Added
+
+- Added Sling simulation behavior with specific ProgressCheck handling for Embedded Packages, 
+RepositoryInitializer (repoinit) scripts, and OSGi Configurations in sling:OsgiConfig nodes, plus .cfg.json, 
+.config, and .properties/.cfg file formats.
+- CLI and maven-plugin execution support specifying runModes to simulate effects on JCR Installer 
+behavior.
+- Added caliper content-package module structure to provide a common basis for oakpal self-test 
+functionality in the future. The intention is for it eventually to drive at least one example 
+of every event expressible to a ProgressCheck by the OakMachine.
 
 ## [2.1.0] - 2020-05-28
 

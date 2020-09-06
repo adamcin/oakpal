@@ -22,6 +22,8 @@ import org.osgi.annotation.versioning.ConsumerType;
  * Extended interface marking progress checks that respect a mid-scan mode that expects oakpal to temporarily silence
  * violations triggered by scan events. {@link ProgressCheck}s that do not implement this interface are simply blocked
  * from receiving scan events for the duration of the silent period.
+ *
+ * @since 2.2.0
  */
 @ConsumerType
 public interface SilenceableCheck extends ProgressCheck {

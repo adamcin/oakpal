@@ -26,6 +26,8 @@ import java.util.Map;
 
 /**
  * Sling Installable representing an OSGi config node.
+ *
+ * @since 2.2.0
  */
 public final class OsgiConfigInstallable implements SlingInstallable {
     private final @NotNull PackageId parentId;

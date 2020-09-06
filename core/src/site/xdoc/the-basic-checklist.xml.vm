@@ -7,12 +7,16 @@
         <h1>The Basic Checklist</h1>
         <section name="Default Configuration">
 
-        <p>The full name of the basic checklist is <code>
-            <a href="${project.scm.url}/blob/master/core/src/main/resources/OAKPAL-INF/checklists/basic.json">
-                    net.adamcin.oakpal.core/basic</a></code>.
-        </p>
-        <div class="source">
-<pre>
+            <p>The full name of the basic checklist is
+                <code>
+                    <a href="${project.scm.url}/blob/master/core/src/main/resources/OAKPAL-INF/checklists/basic.json">
+                        net.adamcin.oakpal.core/basic
+                    </a>
+                </code>
+                .
+            </p>
+            <div class="source">
+                <pre><![CDATA[
 {
   "name": "basic",
   "checks": [
@@ -50,6 +54,10 @@
       "impl": "net.adamcin.oakpal.core.checks.CompositeStoreAlignment"
     },
     {
+      "name": "sling-jcr-installer",
+      "impl": "net.adamcin.oakpal.core.checks.SlingJcrInstaller"
+    },
+    {
       "name": "echo",
       "impl": "net.adamcin.oakpal.core.checks.Echo",
       "skip": true
@@ -71,32 +79,106 @@
     }
   ]
 }
-</pre>
+                ]]>
+                </pre>
             </div>
 
         </section>
         <section name="Check Reference">
             <dl>
-                <dt><code>paths</code> (<code>net.adamcin.oakpal.core/basic/paths</code>)</dt>
-                <dd>see <a href="apidocs/net/adamcin/oakpal/core/checks/Paths.html">net.adamcin.oakpal.core.checks.Paths</a></dd>
-                <dt><code>subpackages</code> (<code>net.adamcin.oakpal.core/basic/subpackages</code>)</dt>
-                <dd>see <a href="apidocs/net/adamcin/oakpal/core/checks/Subpackages.html">net.adamcin.oakpal.core.checks.Subpackages</a></dd>
-                <dt><code>acHandling</code> (<code>net.adamcin.oakpal.core/basic/acHandling</code>)</dt>
-                <dd>see <a href="apidocs/net/adamcin/oakpal/core/checks/AcHandling.html">net.adamcin.oakpal.core.checks.AcHandling</a></dd>
-                <dt><code>filterSets</code> (<code>net.adamcin.oakpal.core/basic/filterSets</code>)</dt>
-                <dd>see <a href="apidocs/net/adamcin/oakpal/core/checks/FilterSets.html">net.adamcin.oakpal.core.checks.FilterSets</a></dd>
-                <dt><code>overlaps</code> (<code>net.adamcin.oakpal.core/basic/overlaps</code>)</dt>
-                <dd>see <a href="apidocs/net/adamcin/oakpal/core/checks/Overlaps.html">net.adamcin.oakpal.core.checks.Overlaps</a></dd>
-                <dt><code>composite-store-alignment</code> (<code>net.adamcin.oakpal.core/basic/composite-store-alignment</code>)</dt>
-                <dd>see <a href="apidocs/net/adamcin/oakpal/core/checks/CompositeStoreAlignment.html">net.adamcin.oakpal.core.checks.CompositeStoreAlignment</a></dd>
-                <dt><code>echo</code> (<code>net.adamcin.oakpal.core/basic/echo</code>)</dt>
-                <dd>(skipped, template-only) see <a href="apidocs/net/adamcin/oakpal/core/checks/Echo.html">net.adamcin.oakpal.core.checks.Echo</a></dd>
-                <dt><code>jcrProperties</code> (<code>net.adamcin.oakpal.core/basic/jcrProperties</code>)</dt>
-                <dd>(skipped, template-only) see <a href="apidocs/net/adamcin/oakpal/core/checks/JcrProperties.html">net.adamcin.oakpal.core.checks.JcrProperties</a></dd>
-                <dt><code>expectPaths</code></dt>
-                <dd>(skipped, template-only) see <a href="apidocs/net/adamcin/oakpal/core/checks/ExpectPaths.html">net.adamcin.oakpal.core.checks.ExpectPaths</a></dd>
-                <dt><code>expectAces</code></dt>
-                <dd>(skipped, template-only) see <a href="apidocs/net/adamcin/oakpal/core/checks/ExpectAces.html">net.adamcin.oakpal.core.checks.ExpectAces</a></dd>
+                <dt>
+                    <code>paths</code>
+                    (<code>net.adamcin.oakpal.core/basic/paths</code>)
+                </dt>
+                <dd>see
+                    <a href="apidocs/net/adamcin/oakpal/core/checks/Paths.html">net.adamcin.oakpal.core.checks.Paths</a>
+                </dd>
+                <dt>
+                    <code>subpackages</code>
+                    (<code>net.adamcin.oakpal.core/basic/subpackages</code>)
+                </dt>
+                <dd>see
+                    <a href="apidocs/net/adamcin/oakpal/core/checks/Subpackages.html">
+                        net.adamcin.oakpal.core.checks.Subpackages
+                    </a>
+                </dd>
+                <dt>
+                    <code>acHandling</code>
+                    (<code>net.adamcin.oakpal.core/basic/acHandling</code>)
+                </dt>
+                <dd>see
+                    <a href="apidocs/net/adamcin/oakpal/core/checks/AcHandling.html">
+                        net.adamcin.oakpal.core.checks.AcHandling
+                    </a>
+                </dd>
+                <dt>
+                    <code>filterSets</code>
+                    (<code>net.adamcin.oakpal.core/basic/filterSets</code>)
+                </dt>
+                <dd>see
+                    <a href="apidocs/net/adamcin/oakpal/core/checks/FilterSets.html">
+                        net.adamcin.oakpal.core.checks.FilterSets
+                    </a>
+                </dd>
+                <dt>
+                    <code>overlaps</code>
+                    (<code>net.adamcin.oakpal.core/basic/overlaps</code>)
+                </dt>
+                <dd>see
+                    <a href="apidocs/net/adamcin/oakpal/core/checks/Overlaps.html">
+                        net.adamcin.oakpal.core.checks.Overlaps
+                    </a>
+                </dd>
+                <dt>
+                    <code>composite-store-alignment</code>
+                    (<code>net.adamcin.oakpal.core/basic/composite-store-alignment</code>)
+                </dt>
+                <dd>see
+                    <a href="apidocs/net/adamcin/oakpal/core/checks/CompositeStoreAlignment.html">
+                        net.adamcin.oakpal.core.checks.CompositeStoreAlignment
+                    </a>
+                </dd>
+                <dt>
+                    <code>sling-jcr-installer</code>
+                    (<code>net.adamcin.oakpal.core/basic/sling-jcr-installer</code>)
+                </dt>
+                <dd>see
+                    <a href="apidocs/net/adamcin/oakpal/core/checks/SlingJcrInstaller.html">
+                        net.adamcin.oakpal.core.checks.SlingJcrInstaller
+                    </a>
+                </dd>
+                <dt>
+                    <code>echo</code>
+                    (<code>net.adamcin.oakpal.core/basic/echo</code>)
+                </dt>
+                <dd>(skipped, template-only) see
+                    <a href="apidocs/net/adamcin/oakpal/core/checks/Echo.html">net.adamcin.oakpal.core.checks.Echo</a>
+                </dd>
+                <dt>
+                    <code>jcrProperties</code>
+                    (<code>net.adamcin.oakpal.core/basic/jcrProperties</code>)
+                </dt>
+                <dd>(skipped, template-only) see
+                    <a href="apidocs/net/adamcin/oakpal/core/checks/JcrProperties.html">
+                        net.adamcin.oakpal.core.checks.JcrProperties
+                    </a>
+                </dd>
+                <dt>
+                    <code>expectPaths</code>
+                </dt>
+                <dd>(skipped, template-only) see
+                    <a href="apidocs/net/adamcin/oakpal/core/checks/ExpectPaths.html">
+                        net.adamcin.oakpal.core.checks.ExpectPaths
+                    </a>
+                </dd>
+                <dt>
+                    <code>expectAces</code>
+                </dt>
+                <dd>(skipped, template-only) see
+                    <a href="apidocs/net/adamcin/oakpal/core/checks/ExpectAces.html">
+                        net.adamcin.oakpal.core.checks.ExpectAces
+                    </a>
+                </dd>
             </dl>
         </section>
     </body>
