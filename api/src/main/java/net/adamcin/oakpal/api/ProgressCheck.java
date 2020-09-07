@@ -203,7 +203,8 @@ public interface ProgressCheck extends ScanListener, ViolationReporter {
      * @param slingInstallable the associated {@link SlingInstallable} identifying the source JCR event
      * @since 2.2.0
      */
-    default void identifyEmbeddedPackage(PackageId packageId, PackageId parentId, EmbeddedPackageInstallable slingInstallable) {
+    default void identifyEmbeddedPackage(PackageId packageId, PackageId parentId,
+                                         EmbeddedPackageInstallable slingInstallable) {
 
     }
 
@@ -220,7 +221,8 @@ public interface ProgressCheck extends ScanListener, ViolationReporter {
      * @throws RepositoryException because of access to a {@link Session}
      * @since 2.2.0
      */
-    default void appliedRepoInitScripts(PackageId scanPackageId, List<String> scripts, SlingInstallable slingInstallable, Session inspectSession)
+    default void appliedRepoInitScripts(PackageId scanPackageId, List<String> scripts,
+                                        SlingInstallable slingInstallable, Session inspectSession)
             throws RepositoryException {
 
     }

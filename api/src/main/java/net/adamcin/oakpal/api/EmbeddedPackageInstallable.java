@@ -24,6 +24,8 @@ import java.util.Objects;
 
 /**
  * An installable path identified as an embedded package.
+ *
+ * @since 2.2.0
  */
 public final class EmbeddedPackageInstallable implements SlingOpenable<JcrPackage> {
     private final @NotNull PackageId parentId;

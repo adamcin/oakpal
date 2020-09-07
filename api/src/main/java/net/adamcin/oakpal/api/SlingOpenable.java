@@ -22,6 +22,7 @@ import org.osgi.annotation.versioning.ProviderType;
  * Some sling installable resources must be opened to be read, perhaps throwing an exception, and then maybe closed.
  *
  * @param <ResourceType> the concrete resource type that can be opened from the installable type
+ * @since 2.2.0
  */
 @ProviderType
 public interface SlingOpenable<ResourceType> extends SlingInstallable {

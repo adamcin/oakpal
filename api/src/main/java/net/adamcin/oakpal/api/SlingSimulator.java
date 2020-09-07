@@ -25,6 +25,8 @@ import javax.jcr.Node;
 
 /**
  * Simulates aspects of the Sling runtime.
+ *
+ * @since 2.2.0
  */
 @ProviderType
 public interface SlingSimulator {
@@ -34,8 +36,9 @@ public interface SlingSimulator {
      * located under {@code /apps/}. This should not be used to request traditional installation of {@code subpackages}
      * under {@code /etc/packages}.
      * <p>
-     * Ideally, this method should be called by a check during
-     * {@link ProgressCheck#importedPath(PackageId, String, Node, PathAction)}.
+     * Ideally, this method should be called by a single active check during
+     * {@link ProgressCheck#importedPath(PackageId, String, Node, PathAction)} (such as the {@code sling-jcr-installer}
+     * check).
      *
      * @param parentPackageId the parent package ID (not the embedded package ID)
      * @param node            the JCR node of the embedded JCR package
