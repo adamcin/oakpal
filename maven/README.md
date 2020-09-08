@@ -6,7 +6,7 @@ _TL;DR:_ Paste the following into a content-package pom.xml and get started with
     <plugin>
       <groupId>net.adamcin.oakpal</groupId>
       <artifactId>oakpal-maven-plugin</artifactId>
-      <version>2.1.0</version>
+      <version>2.2.0</version>
       <executions>
         <execution>
           <goals>
