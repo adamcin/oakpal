@@ -62,6 +62,11 @@
                             <artifactId>oakpal-caliper.ui.apps</artifactId>
                             <version>${project.version}</version>
                         </dependency>
+                        <dependency>
+                            <groupId>net.adamcin.oakpal</groupId>
+                            <artifactId>oakpal-caliper.ui.content.subc1</artifactId>
+                            <version>${project.version}</version>
+                        </dependency>
                     </dependencies>
                 </configuration>
             </plugin>
@@ -71,6 +76,12 @@
         <dependency>
             <groupId>net.adamcin.oakpal</groupId>
             <artifactId>oakpal-caliper.ui.apps</artifactId>
+            <version>2.2.0-SNAPSHOT</version>
+            <type>zip</type>
+        </dependency>
+        <dependency>
+            <groupId>net.adamcin.oakpal</groupId>
+            <artifactId>oakpal-caliper.ui.content.subc1</artifactId>
             <version>2.2.0-SNAPSHOT</version>
             <type>zip</type>
         </dependency>

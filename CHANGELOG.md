@@ -18,6 +18,8 @@ behavior.
 - Added caliper content-package module structure to provide a common basis for oakpal self-test 
 functionality in the future. The intention is for it eventually to drive at least one example 
 of every event expressible to a ProgressCheck by the OakMachine.
+- Added subpackage and embedded package sorted installation similar to BEST_EFFORT DependencyHandling behavior
+to give some expectation and control of predictable install order.
 
 ## [2.1.0] - 2020-05-28
 

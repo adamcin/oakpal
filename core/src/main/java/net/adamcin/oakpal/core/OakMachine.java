@@ -49,6 +49,7 @@ import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 import org.apache.jackrabbit.vault.fs.api.ProgressTrackerListener;
 import org.apache.jackrabbit.vault.packaging.DependencyHandling;
+import org.apache.jackrabbit.vault.packaging.DependencyUtil;
 import org.apache.jackrabbit.vault.packaging.InstallHookProcessorFactory;
 import org.apache.jackrabbit.vault.packaging.JcrPackage;
 import org.apache.jackrabbit.vault.packaging.JcrPackageManager;
@@ -80,6 +81,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.LinkedHashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Properties;
@@ -816,24 +818,48 @@ public final class OakMachine {
         admin.save();
 
         final SubPackageHandling subPackageHandling = jcrPackage.getPackage().getSubPackageHandling();
-        final List<PackageId> installableSubpacks = new ArrayList<>();
-        final EnumSet<SubPackageHandling.Option> installableOptions =
-                EnumSet.complementOf(EnumSet.of(SubPackageHandling.Option.ADD, SubPackageHandling.Option.IGNORE));
-        for (PackageId subpackId : subpacks) {
-            final SubPackageHandling.Option option = subPackageHandling.getOption(subpackId);
-            if (installableOptions.contains(option)) {
-                installableSubpacks.add(subpackId);
-            }
-        }
 
         jcrPackage.close();
 
         propagateCheckPackageEvent(preInstall, packageId, handler -> handler.afterExtract(packageId, inspectSession));
 
-        for (PackageId subpackId : installableSubpacks) {
-            processSubpackage(admin, manager, subpackId, packageId,
-                    preInstall || subpackageSilencer.test(subpackId, packageId));
+        if (!subpacks.isEmpty()) {
+            final List<PackageId> installableSubpacks =
+                    preprocessInstallableSubpackages(manager, packageId, subPackageHandling, subpacks);
+
+            for (PackageId subpackId : installableSubpacks) {
+                processSubpackage(admin, manager, subpackId, packageId,
+                        preInstall || subpackageSilencer.test(subpackId, packageId));
+            }
         }
+    }
+
+    List<PackageId> preprocessInstallableSubpackages(final JcrPackageManager manager,
+                                                     final PackageId parentPackageId,
+                                                     final SubPackageHandling subPackageHandling,
+                                                     final List<PackageId> subpacks)
+            throws RepositoryException, IOException {
+        final List<PackageId> installSequence = new ArrayList<>();
+        final EnumSet<SubPackageHandling.Option> installableOptions =
+                EnumSet.complementOf(EnumSet.of(SubPackageHandling.Option.ADD, SubPackageHandling.Option.IGNORE));
+
+        final List<JcrPackage> sortable = new LinkedList<>();
+        try {
+            for (PackageId packageId : subpacks) {
+                sortable.add(manager.open(packageId));
+            }
+            Fun.<List<JcrPackage>>resultNothing1(DependencyUtil::sortPackages).apply(sortable);
+            for (JcrPackage sorted : sortable) {
+                final PackageId sortedId = sorted.getPackage().getId();
+                final SubPackageHandling.Option option = subPackageHandling.getOption(sortedId);
+                if (installableOptions.contains(option)) {
+                    installSequence.add(sortedId);
+                }
+            }
+        } finally {
+            sortable.forEach(JcrPackage::close);
+        }
+        return installSequence;
     }
 
     static Consumer<ProgressCheck>
