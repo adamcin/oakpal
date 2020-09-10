@@ -143,7 +143,7 @@ public class OakMachineCaliperTest {
                 .build()
                 .scanPackage(grandTourPackage);
 
-        assertEquals("expect identified packages in set", new HashSet<>(installOrderFull),
-                identifiedPackageIds.stream().map(PackageId::getName).collect(Collectors.toSet()));
+        assertEquals("expect identified packages in set", installOrderFull,
+                identifiedPackageIds.stream().map(PackageId::getName).collect(Collectors.toList()));
     }
 }

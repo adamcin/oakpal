@@ -26,6 +26,8 @@ import net.adamcin.oakpal.core.ErrorListener;
 import org.apache.felix.cm.file.ConfigurationHandler;
 import org.apache.felix.cm.json.Configurations;
 import org.apache.jackrabbit.commons.JcrUtils;
+import org.apache.jackrabbit.vault.packaging.CyclicDependencyException;
+import org.apache.jackrabbit.vault.packaging.DependencyUtil;
 import org.apache.jackrabbit.vault.packaging.JcrPackage;
 import org.apache.jackrabbit.vault.packaging.JcrPackageManager;
 import org.apache.jackrabbit.vault.packaging.PackageId;
@@ -48,6 +50,7 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 import java.lang.reflect.Array;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Dictionary;
 import java.util.Enumeration;
@@ -58,16 +61,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
-import java.util.Queue;
 import java.util.function.Function;
 
+import static net.adamcin.oakpal.api.Fun.inferTest1;
 import static net.adamcin.oakpal.api.Fun.result0;
 import static net.adamcin.oakpal.api.Fun.result1;
+import static net.adamcin.oakpal.api.Fun.toEntry;
 
 /**
  * Noop implementation of a SlingSimulator.
  */
 public final class DefaultSlingSimulator implements SlingSimulatorBackend, SlingSimulator {
+
     public static SlingSimulatorBackend instance() {
         return new DefaultSlingSimulator();
     }
@@ -77,7 +82,7 @@ public final class DefaultSlingSimulator implements SlingSimulatorBackend, Sling
 
     private ErrorListener errorListener;
 
-    private final Queue<SlingInstallable> installables = new LinkedList<>();
+    private final LinkedList<SlingInstallable> installables = new LinkedList<>();
 
     @Override
     public void startedScan() {
@@ -137,6 +142,12 @@ public final class DefaultSlingSimulator implements SlingSimulatorBackend, Sling
         }
     }
 
+    void internalAddInstallable(final @NotNull SlingInstallable installable) {
+        installables.removeIf(registered ->
+                installable.getJcrPath().equals(registered.getJcrPath()));
+        installables.add(installable);
+    }
+
     @Override
     public @Nullable SlingInstallable addInstallableNode(final @NotNull PackageId parentPackageId,
                                                          final @NotNull Node node) {
@@ -151,9 +162,61 @@ public final class DefaultSlingSimulator implements SlingSimulatorBackend, Sling
                 .toOptional().flatMap(Function.identity())
                 .orElse(null);
         if (installable != null) {
-            installables.add(installable);
+            internalAddInstallable(installable);
+        }
+        if (installable instanceof EmbeddedPackageInstallable) {
+            Fun.resultNothing1(DefaultSlingSimulator::shufflePackagesByDependency).apply(this);
         }
         return installable;
+    }
+
+    LinkedList<SlingInstallable> getInstallables() {
+        return installables;
+    }
+
+    void shufflePackagesByDependency() throws RepositoryException, CyclicDependencyException, IOException {
+        final Map<PackageId, EmbeddedPackageInstallable> originalLookup = getInstallables().stream()
+                .filter(EmbeddedPackageInstallable.class::isInstance)
+                .map(EmbeddedPackageInstallable.class::cast)
+                .map(inst -> toEntry(inst.getEmbeddedId(), inst))
+                .collect(Fun.entriesToMapOfType(LinkedHashMap::new, Fun.keepFirstMerger()));
+
+        final List<PackageId> originalOrder = new ArrayList<>(originalLookup.keySet());
+        final List<PackageId> sortedOrder = new ArrayList<>();
+
+        final List<JcrPackage> closeable = new LinkedList<>();
+        final List<VaultPackage> sortable = new LinkedList<>();
+        try {
+            for (PackageId key : originalOrder) {
+                final JcrPackage jcrPack = packageManager.open(session.getNode(originalLookup.get(key).getJcrPath()),
+                        true);
+                closeable.add(jcrPack);
+                sortable.add(jcrPack.getPackage());
+            }
+            DependencyUtil.sort(sortable);
+            for (VaultPackage pack : sortable) {
+                sortedOrder.add(pack.getId());
+            }
+        } finally {
+            closeable.forEach(Fun.toVoid1(Fun.resultNothing1(JcrPackage::close)));
+        }
+
+        if (sortedOrder.size() == originalOrder.size() && !originalOrder.equals(sortedOrder)) {
+            for (int i = 0; i < originalOrder.size(); i++) {
+                if (!originalOrder.get(i).equals(sortedOrder.get(i))) {
+                    for (PackageId key : sortedOrder.subList(i, sortedOrder.size())) {
+                        final EmbeddedPackageInstallable installable = originalLookup.get(key);
+                        if (getInstallables().removeIf(inferTest1(EmbeddedPackageInstallable.class::isInstance)
+                                .and(registered ->
+                                        key.equals(((EmbeddedPackageInstallable) registered).getEmbeddedId())))) {
+
+                            internalAddInstallable(installable);
+                        }
+                    }
+                    break;
+                }
+            }
+        }
     }
 
     static final String SLING_NS = "http://sling.apache.org/jcr/sling/1.0";
