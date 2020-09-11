@@ -166,6 +166,7 @@
                                     <artifact>org.apache.sling:org.apache.sling.installer.core</artifact>
                                     <includes>
                                         <include>org/apache/sling/installer/api/InstallableResource*</include>
+                                        <include>org/apache/felix/cm/file/ConfigurationHandler*</include>
                                     </includes>
                                 </filter>
                                 <filter>
