@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](http://keepachangelog.com)
 
 ## [Unreleased]
 
+## [2.2.1] - 2020-09-11
+
+### Added
+
+- Duplicated OakMachineCaliperTest as an IT to re-run end-to-end test against shaded jar
+
+### Fixed
+
+- Added missing shade include for felix.cm.file.ConfigurationHandler.
+
 ## [2.2.0] - 2020-09-09
 
 ### Added
