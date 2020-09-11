@@ -14,11 +14,14 @@
  * limitations under the License.
  */
 
-package net.adamcin.oakpal.core;
+package net.adamcin.oakpal.it;
 
 import net.adamcin.oakpal.api.EmbeddedPackageInstallable;
+import net.adamcin.oakpal.api.OsgiConfigInstallable;
 import net.adamcin.oakpal.api.ProgressCheck;
+import net.adamcin.oakpal.api.SlingInstallable;
 import net.adamcin.oakpal.api.Violation;
+import net.adamcin.oakpal.core.OakpalPlan;
 import net.adamcin.oakpal.core.checks.SlingJcrInstaller;
 import net.adamcin.oakpal.core.sling.DefaultSlingSimulator;
 import net.adamcin.oakpal.testing.TestPackageUtil;
@@ -26,6 +29,8 @@ import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.junit.Before;
 import org.junit.Test;
 
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -36,14 +41,20 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static net.adamcin.oakpal.api.JavaxJson.obj;
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+/**
+ * Run end-to-end caliper tests using pre-shaded jar.
+ */
 public class OakMachineCaliperTest {
 
     private File grandTourPackage = TestPackageUtil.getCaliperPackage();
@@ -213,5 +224,82 @@ public class OakMachineCaliperTest {
         assertTrue(String.format(message + ": expect %s contains after %s", elements, after), indexAfter >= 0);
         assertTrue(String.format(message + ": expect in %s, before %s prior to after %s", elements, before, after),
                 indexBefore < indexAfter);
+    }
+
+    @Test
+    public void testCfgJsonIsParsed() throws Exception {
+        final CompletableFuture<OsgiConfigInstallable> installableLatch = new CompletableFuture<>();
+
+        final ProgressCheck check = new ProgressCheck() {
+            @Override
+            public void beforeSlingInstall(final PackageId scanPackageId,
+                                           final SlingInstallable slingInstallable,
+                                           final Session inspectSession) throws RepositoryException {
+                if (slingInstallable instanceof OsgiConfigInstallable) {
+                    OsgiConfigInstallable installable = (OsgiConfigInstallable) slingInstallable;
+                    if ("net.adamcin.oakpal.example.NotAJcrResourceResolverFactoryImpl".equals(
+                            installable.getServicePid())) {
+                        installableLatch.complete(installable);
+                    }
+                }
+            }
+
+            @Override
+            public Collection<Violation> getReportedViolations() {
+                return Collections.emptyList();
+            }
+        };
+
+        OakpalPlan.fromJson(obj().get())
+                .toOakMachineBuilder(null, getClass().getClassLoader())
+                .withProgressCheck(check, new SlingJcrInstaller().newInstance(obj().get()))
+                .withSlingSimulator(DefaultSlingSimulator.instance())
+                .withSubpackageSilencer((sub, parent) -> true)
+                .build()
+                .scanPackage(grandTourPackage);
+
+        OsgiConfigInstallable installable = installableLatch.getNow(null);
+        assertNotNull("expect osgi config installable is captured", installable);
+
+        final Map<String, Object> expectProps = new HashMap<>();
+        expectProps.put("resource.resolver.searchpath", new String[]{"/apps", "/libs"});
+        expectProps.put("resource.resolver.map.location", "/etc/map");
+        expectProps.put("resource.resolver.providerhandling.paranoid", false);
+        expectProps.put("resource.resolver.enable.vanitypath", true);
+        expectProps.put("resource.resolver.vanitypath.maxEntries", -1L);
+        expectProps.put("resource.resolver.log.closing", false);
+        expectProps.put("resource.resolver.vanitypath.maxEntries.startup", true);
+        expectProps.put("resource.resolver.vanity.precedence", false);
+        expectProps.put("resource.resolver.vanitypath.blacklist", new String[]{"/content/usergenerated"});
+        expectProps.put("resource.resolver.vanitypath.whitelist", new String[]{"/apps/", "/libs/", "/content/"});
+        expectProps.put("resource.resolver.manglenamespaces", true);
+        expectProps.put("resource.resolver.default.vanity.redirect.status", 302L);
+        expectProps.put("resource.resolver.optimize.alias.resolution", true);
+        expectProps.put("installation.hint", "config");
+        expectProps.put("resource.resolver.allowDirect", true);
+        expectProps.put("resource.resolver.required.providers",
+                new String[]{"org.apache.sling.jcr.resource.internal.helper.jcr.JcrResourceProviderFactory"});
+        expectProps.put("resource.resolver.virtual", new String[]{"/:/"});
+        expectProps.put("resource.resolver.mapping", new String[]{
+                "/etc/designs/www/images/>/images/",
+                "/etc/designs/www/fonts/>/fonts/",
+                "/-/"
+        });
+
+        checkExpectedProperties(expectProps, installable.getProperties());
+    }
+
+    void checkExpectedProperties(final Map<String, Object> expectProps, final Map<String, Object> props) {
+        assertEquals("expect same keys", expectProps.keySet(), props.keySet());
+        for (Map.Entry<String, Object> entry : expectProps.entrySet()) {
+            Object expectValue = entry.getValue();
+            if (expectValue.getClass().isArray()) {
+                assertArrayEquals("expect equal array for key " + entry.getKey(), (Object[]) expectValue,
+                        (Object[]) props.get(entry.getKey()));
+            } else {
+                assertEquals("expect equal value for key " + entry.getKey(), expectValue,
+                        props.get(entry.getKey()));
+            }
+        }
     }
 }

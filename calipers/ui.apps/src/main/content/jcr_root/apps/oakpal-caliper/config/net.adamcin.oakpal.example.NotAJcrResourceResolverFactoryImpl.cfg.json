@@ -1,0 +1,36 @@
+{
+  "resource.resolver.searchpath": [
+    "/apps",
+    "/libs"
+  ],
+  "resource.resolver.manglenamespaces": true,
+  "resource.resolver.allowDirect": true,
+  "resource.resolver.required.providers": [
+    "org.apache.sling.jcr.resource.internal.helper.jcr.JcrResourceProviderFactory"
+  ],
+  "resource.resolver.virtual": [
+    "/:/"
+  ],
+  "resource.resolver.mapping": [
+    "/etc/designs/www/images/>/images/",
+    "/etc/designs/www/fonts/>/fonts/",
+    "/-/"
+  ],
+  "resource.resolver.map.location": "/etc/map",
+  "resource.resolver.default.vanity.redirect.status": 302,
+  "resource.resolver.enable.vanitypath": true,
+  "resource.resolver.vanitypath.maxEntries": -1,
+  "resource.resolver.vanitypath.maxEntries.startup": true,
+  "resource.resolver.optimize.alias.resolution": true,
+  "resource.resolver.vanitypath.whitelist": [
+    "/apps/",
+    "/libs/",
+    "/content/"
+  ],
+  "resource.resolver.vanitypath.blacklist": [
+    "/content/usergenerated"
+  ],
+  "resource.resolver.vanity.precedence": false,
+  "resource.resolver.providerhandling.paranoid": false,
+  "resource.resolver.log.closing": false
+}
