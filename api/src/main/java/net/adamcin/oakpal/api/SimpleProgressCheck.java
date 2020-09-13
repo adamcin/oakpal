@@ -55,7 +55,9 @@ public class SimpleProgressCheck implements ProgressCheck {
     protected ResourceBundle getResourceBundle() throws MissingResourceException {
         if (this.resourceBundle == null) {
             if (getResourceBundleBaseName() != null) {
-                this.resourceBundle = ResourceBundle.getBundle(getResourceBundleBaseName());
+                this.resourceBundle = Fun.<String, ResourceBundle>result1(ResourceBundle::getBundle)
+                        .apply(getResourceBundleBaseName())
+                        .getOrDefault(ResourceBundle.getBundle(SimpleProgressCheck.class.getName()));
             }
         }
         return this.resourceBundle;
