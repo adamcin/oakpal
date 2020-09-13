@@ -87,7 +87,7 @@ import static net.adamcin.oakpal.core.Util.isEmpty;
  * <dd>{@link ProgressCheck#identifySubpackage(PackageId, PackageId)}</dd>
  * <dt>beforeSlingInstall(scanPackageId, slingInstallable, inspectSession)</dt>
  * <dd>{@link ProgressCheck#beforeSlingInstall(PackageId, SlingInstallable, Session)}</dd>
- * <dt>identifyEmbeddedPackage(packageId, parentPackageId, jcrPath)</dt>
+ * <dt>identifyEmbeddedPackage(packageId, parentPackageId, slingInstallable)</dt>
  * <dd>{@link ProgressCheck#identifyEmbeddedPackage(PackageId, PackageId, EmbeddedPackageInstallable)}</dd>
  * <dt>appliedRepoInitScripts(scanPackageId, scripts, slingInstallable, inspectSession)</dt>
  * <dd>{@link ProgressCheck#appliedRepoInitScripts(PackageId, List, SlingInstallable, Session)}</dd>

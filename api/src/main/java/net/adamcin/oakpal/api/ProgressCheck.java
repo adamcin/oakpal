@@ -162,7 +162,7 @@ public interface ProgressCheck extends ScanListener, ViolationReporter {
      * Override this method to accept an {@link SlingSimulator} to request installation of JCR resources like
      * FileVault packages and RepositoryInitializer factory configs, as if running within a Sling repository instance.
      * <p>
-     * Also provied are the set of simulated Sling Run Modes. These are intended to drive construction of JCR path
+     * Also provided are the set of simulated Sling Run Modes. These are intended to drive construction of JCR path
      * patterns to select embedded resources for installation upon receiving a matching
      * {@link ProgressCheck#importedPath(PackageId, String, Node, PathAction)} event, but these run modes may also be
      * used as a global configuration hint for progress checks that support modal behavior outside of their explicit
@@ -210,7 +210,7 @@ public interface ProgressCheck extends ScanListener, ViolationReporter {
 
 
     /**
-     * Provides an opportunity to inspect repository state after installing a resource submitted to the
+     * Provides an opportunity to inspect repository state after installing a RepoInit scripts resource submitted to the
      * {@link SlingSimulator}.
      *
      * @param scanPackageId    the last preinstall or scan package

@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Mark Adamcin
+ * Copyright 2020 Mark Adamcin
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,10 +36,13 @@
  * import org.apache.jackrabbit.vault.packaging.PackageProperties;
  * import org.apache.jackrabbit.vault.fs.config.MetaInf;
  * import java.io.File;
- * import java.util.jar.Manifest
+ * import java.util.jar.Manifest;
  * import javax.jcr.Node;
  * import javax.jcr.Session;
  * import net.adamcin.oakpal.api.PathAction;
+ * import net.adamcin.oakpal.api.SlingSimulator;
+ * import net.adamcin.oakpal.api.SlingInstallable;
+ * import net.adamcin.oakpal.api.EmbeddedPackageInstallable;
  */
 
 /***
@@ -51,6 +54,32 @@ function getCheckName() {
     return "ACME Example Check";
 }
 */
+
+/**
+ * Override this method to accept a SlingSimulator to request installation of JCR resources like
+ * FileVault packages and RepositoryInitializer factory configs, as if running within a Sling repository instance.
+ * <p>
+ * Also provided are the set of simulated Sling Run Modes. These are intended to drive construction of JCR path
+ * patterns to select embedded resources for installation upon receiving a matching
+ * importedPath(PackageId, String, Node, PathAction) event, but these run modes may also be
+ * used as a global configuration hint for progress checks that support modal behavior outside of their explicit
+ * JSON config format. NOTE: this set will always be empty by default, and must be populated in the plan or
+ * overridden at runtime in the execution layer.
+ *
+ * @param slingSimulator    the sling simulator
+ * @param runModes          the simulated sling run modes
+ * @since 2.2.0
+ */
+function simulateSling(slingSimulator /* SlingSimulator */, runModes /* String[] */) {
+
+}
+
+/**
+ * Called once at the beginning of the scan.
+ */
+function startedScan() {
+
+}
 
 /**
  * Called after the package is uploaded to the package manager at the beginning of the scan. Track subsequent
@@ -133,9 +162,62 @@ function afterExtract(packageId /* PackageId */, inspectSession /* Session */) {
 }
 
 /**
- * Called once at the beginning of the scan.
+ * Provides an opportunity to inspect repository state before installing a resource submitted to the
+ * SlingSimulator.
+ *
+ * @param scanPackageId     the last preinstall or scan package
+ * @param slingInstallable  the sling installable
+ * @param inspectSession    session providing access to repository state
+ * @since 2.2.0
  */
-function startedScan() {
+function beforeSlingInstall(scanPackageId /* PackageId */, slingInstallable /* SlingInstallable */,
+                            inspectSession /* Session */) {
+
+}
+
+/**
+ * Called after each embedded package is opened, if it has been submitted to the SlingSimulator. Track
+ * subsequent events using the package ID provided to this method. Conceptually, at least for the purposes of
+ * enforcing acceptance criteria against packaged JCR content, this is analogous to
+ * identifySubpackage(packageId, parentId).
+ *
+ * @param packageId         the embedded package id
+ * @param parentPackageId   the parent packageId
+ * @param slingInstallable  the embedded package slingInstallable that was previously provided to the
+ *                          beforeSlingInstall() event.
+ * @since 2.2.0
+ */
+function identifyEmbeddedPackage(packageId /* PackageId */, parentPackageId /* PackageId */,
+                                 slingInstallable /* EmbeddedPackageInstallable */) {
+
+}
+
+/**
+ * Provides an opportunity to inspect repository state after installing a RepoInit scripts resource submitted to the
+ * SlingSimulator.
+ *
+ * @param scanPackageId     the last preinstall or scan package
+ * @param scripts           the repoinit scripts that were applied
+ * @param slingInstallable  the associated SlingInstallable identifying the source JCR event that provided
+ *                          the repo init scripts
+ * @param inspectSession    session providing access to repository state
+ * @since 2.2.0
+ */
+function appliedRepoInitScripts(scanPackageId /* PackageId */, scripts /* String[] */,
+                                slingInstallable /* SlingInstallable */, inspectSession /* Session */) {
+
+}
+
+/**
+ * Provides an opportunity to inspect repository state after complete installation (including its content,
+ * subpackages, and Sling installable paths) of a package explicitly listed for scanning. This method is NOT called
+ * for any of its subpackages or embedded packages.
+ *
+ * @param scanPackageId     the scanned package id
+ * @param inspectSession    session providing access to repository state
+ * @since 2.2.0
+ */
+function afterScanPackage(scanPackageId /* PackageId */, inspectSession /* Session */) {
 
 }
 
