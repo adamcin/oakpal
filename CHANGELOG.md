@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com)
 
 ## [Unreleased]
 
+### Fixed
+
+- issue #59 provide a default, empty resource bundle for a SimpleProgressCheck extension when a bundle cannot be found for the returned resource bundle name.
+
 ## [2.2.1] - 2020-09-11
 
 ### Added
