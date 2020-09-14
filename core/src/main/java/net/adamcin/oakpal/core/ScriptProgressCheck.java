@@ -434,6 +434,12 @@ public final class ScriptProgressCheck implements ProgressCheck {
     }
 
     public static ProgressCheckFactory createScriptCheckFactory(final @NotNull URL scriptUrl) throws Exception {
+        return createClassLoaderScriptCheckFactory(scriptUrl, null);
+    }
+
+    // TODO make public in 2.3.0
+    static ProgressCheckFactory createClassLoaderScriptCheckFactory(final @NotNull URL scriptUrl,
+                                                                    final @Nullable ClassLoader classLoader) throws Exception {
         final int lastPeriod = scriptUrl.getPath().lastIndexOf(".");
         final String ext;
         if (lastPeriod < 0 || lastPeriod + 1 >= scriptUrl.getPath().length()) {
@@ -441,7 +447,7 @@ public final class ScriptProgressCheck implements ProgressCheck {
         } else {
             ext = scriptUrl.getPath().substring(lastPeriod + 1);
         }
-        ScriptEngine engine = new ScriptEngineManager().getEngineByExtension(ext);
+        ScriptEngine engine = new ScriptEngineManager(classLoader).getEngineByExtension(ext);
         if (engine == null) {
             throw new UnregisteredScriptEngineNameException(ext,
                     "Failed to find a ScriptEngine for URL extension: " + scriptUrl.toString());
@@ -473,7 +479,16 @@ public final class ScriptProgressCheck implements ProgressCheck {
     public static ProgressCheckFactory createScriptCheckFactory(final @NotNull String engineName,
                                                                 final @NotNull URL scriptUrl)
             throws UnregisteredScriptEngineNameException {
-        final ScriptEngine engine = new ScriptEngineManager().getEngineByName(engineName);
+        return createClassLoaderScriptCheckFactory(engineName, scriptUrl, Util.getDefaultClassLoader());
+    }
+
+    // TODO make public in 2.3.0
+    @SuppressWarnings("WeakerAccess")
+    static ProgressCheckFactory createClassLoaderScriptCheckFactory(final @NotNull String engineName,
+                                                                    final @NotNull URL scriptUrl,
+                                                                    final @Nullable ClassLoader classLoader)
+            throws UnregisteredScriptEngineNameException {
+        final ScriptEngine engine = new ScriptEngineManager(classLoader).getEngineByName(engineName);
         if (engine == null) {
             throw new UnregisteredScriptEngineNameException(engineName);
         }
@@ -490,11 +505,20 @@ public final class ScriptProgressCheck implements ProgressCheck {
     public static ProgressCheckFactory createInlineScriptCheckFactory(final @NotNull String inlineScript,
                                                                       final @Nullable String inlineEngine)
             throws UnregisteredScriptEngineNameException {
+        return createClassLoaderInlineScriptCheckFactory(inlineScript, inlineEngine, Util.getDefaultClassLoader());
+    }
+
+    // TODO make public in 2.3.0
+    @SuppressWarnings("WeakerAccess")
+    static ProgressCheckFactory createClassLoaderInlineScriptCheckFactory(final @NotNull String inlineScript,
+                                                                          final @Nullable String inlineEngine,
+                                                                          final @Nullable ClassLoader classLoader)
+            throws UnregisteredScriptEngineNameException {
         final ScriptEngine engine;
         if (isEmpty(inlineEngine)) {
-            engine = new ScriptEngineManager().getEngineByExtension(DEFAULT_SCRIPT_ENGINE_EXTENSION);
+            engine = new ScriptEngineManager(classLoader).getEngineByExtension(DEFAULT_SCRIPT_ENGINE_EXTENSION);
         } else {
-            engine = new ScriptEngineManager().getEngineByName(inlineEngine);
+            engine = new ScriptEngineManager(classLoader).getEngineByName(inlineEngine);
         }
         if (engine == null) {
             throw new UnregisteredScriptEngineNameException(inlineEngine);

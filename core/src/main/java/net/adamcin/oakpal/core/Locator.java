@@ -93,7 +93,7 @@ public final class Locator {
             } catch (ClassNotFoundException e) {
                 final URL resourceUrl = classLoader.getResource(impl);
                 if (resourceUrl != null) {
-                    return ScriptProgressCheck.createScriptCheckFactory(resourceUrl)
+                    return ScriptProgressCheck.createClassLoaderScriptCheckFactory(resourceUrl, classLoader)
                             .newInstance(config == null ? JsonValue.EMPTY_JSON_OBJECT : config);
                 } else {
                     throw e;
@@ -102,7 +102,7 @@ public final class Locator {
         } else {
             final URL resourceUrl = classLoader.getResource(impl);
             if (resourceUrl != null) {
-                return ScriptProgressCheck.createScriptCheckFactory(resourceUrl)
+                return ScriptProgressCheck.createClassLoaderScriptCheckFactory(resourceUrl, classLoader)
                         .newInstance(config == null ? JsonValue.EMPTY_JSON_OBJECT : config);
             } else {
                 throw new Exception("Failed to find class path resource by name: " + impl);
@@ -153,7 +153,8 @@ public final class Locator {
                     progressCheck = Locator.loadProgressCheck(checkSpec.getImpl(), checkSpec.getConfig(), checkLoader);
                 } else {
                     progressCheck = ScriptProgressCheck
-                            .createInlineScriptCheckFactory(checkSpec.getInlineScript(), checkSpec.getInlineEngine())
+                            .createClassLoaderInlineScriptCheckFactory(checkSpec.getInlineScript(), checkSpec.getInlineEngine(),
+                                    checkLoader)
                             .newInstance(checkSpec.getConfig());
                 }
                 if (checkSpec.getName() != null && !checkSpec.getName().isEmpty()) {

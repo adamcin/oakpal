@@ -6,11 +6,13 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import net.adamcin.oakpal.api.Fun;
 import org.apache.maven.artifact.Artifact;
@@ -67,9 +69,10 @@ public interface MojoWithRepositoryParams extends MojoWithCommonParams {
                 ? dependency -> "test".equals(dependency.getScope())
                 : dependency -> !"test".equals(dependency.getScope());
 
+        final Set<String> desiredDepTypes = Stream.of("jar", "pom").collect(Collectors.toSet());
         getProject().ifPresent(project ->
                 unresolvedDependencies.addAll(project.getDependencies().stream()
-                        .filter(dependency -> "jar".equals(dependency.getType()))
+                        .filter(dependency -> desiredDepTypes.contains(dependency.getType()))
                         .filter(scopeFilter)
                         .collect(Collectors.toList()))
         );
