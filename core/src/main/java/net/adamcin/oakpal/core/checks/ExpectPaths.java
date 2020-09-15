@@ -23,6 +23,7 @@ import net.adamcin.oakpal.api.Rule;
 import net.adamcin.oakpal.api.Rules;
 import net.adamcin.oakpal.api.Severity;
 import net.adamcin.oakpal.api.SimpleProgressCheckFactoryCheck;
+import net.adamcin.oakpal.api.SlingInstallable;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.jetbrains.annotations.NotNull;
 import org.osgi.annotation.versioning.ProviderType;
@@ -31,10 +32,13 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.json.JsonObject;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static net.adamcin.oakpal.api.JavaxJson.arrayOrEmpty;
 import static net.adamcin.oakpal.api.JavaxJson.optArray;
@@ -125,6 +129,7 @@ public final class ExpectPaths implements ProgressCheckFactory {
         final Severity severity;
         final Map<String, List<PackageId>> expectedViolators = new LinkedHashMap<>();
         final Map<String, List<PackageId>> notExpectedViolators = new LinkedHashMap<>();
+        final List<PackageId> currentScanExtractedPackages = new ArrayList<>();
 
         Check(final @NotNull List<String> expectedPaths,
               final @NotNull List<String> notExpectedPaths,
@@ -156,19 +161,54 @@ public final class ExpectPaths implements ProgressCheckFactory {
             return Rules.lastMatch(afterPackageIdRules, packageId.toString()).isInclude();
         }
 
+        void blameViolatorsForMissedExpectations(final @NotNull Collection<PackageId> possibleViolators,
+                                                 final @NotNull Session inspectSession) throws RepositoryException {
+            for (final String expectedPath : expectedPaths) {
+                // only look for sling violators of an expected path if a violation for said path has not already
+                // been collected.
+                final List<PackageId> violators = getViolatorListForExpectedPath(expectedViolators, expectedPath);
+                if (violators.isEmpty() && !inspectSession.itemExists(expectedPath)) {
+                    violators.addAll(possibleViolators);
+                }
+            }
+            for (final String notExpectedPath : notExpectedPaths) {
+                // only look for sling violators of an unexpected path if a violation for said path has not already
+                // been collected.
+                final List<PackageId> violators = getViolatorListForExpectedPath(notExpectedViolators, notExpectedPath);
+                if (violators.isEmpty() && inspectSession.itemExists(notExpectedPath)) {
+                    violators.addAll(possibleViolators);
+                }
+            }
+        }
+
         @Override
         public void afterExtract(final PackageId packageId, final Session inspectSession) throws RepositoryException {
             if (shouldExpectAfterExtract(packageId)) {
-                for (final String expectedPath : expectedPaths) {
-                    if (!inspectSession.itemExists(expectedPath)) {
-                        getViolatorListForExpectedPath(expectedViolators, expectedPath).add(packageId);
-                    }
-                }
-                for (final String notExpectedPath : notExpectedPaths) {
-                    if (inspectSession.itemExists(notExpectedPath)) {
-                        getViolatorListForExpectedPath(notExpectedViolators, notExpectedPath).add(packageId);
-                    }
-                }
+                blameViolatorsForMissedExpectations(Collections.singleton(packageId), inspectSession);
+            }
+        }
+
+        @Override
+        public void beforeSlingInstall(final PackageId scanPackageId, final SlingInstallable slingInstallable,
+                                       final Session inspectSession) throws RepositoryException {
+            if (shouldExpectAfterExtract(slingInstallable.getParentId())) {
+                currentScanExtractedPackages.add(slingInstallable.getParentId());
+            }
+        }
+
+        @Override
+        public void afterScanPackage(final PackageId scanPackageId,
+                                     final Session inspectSession) throws RepositoryException {
+            // collect matching packages extracted during the scan
+            final List<PackageId> potentialSlingViolators = currentScanExtractedPackages.stream()
+                    .filter(this::shouldExpectAfterExtract)
+                    .collect(Collectors.toList());
+            // clear the list before any exceptions are thrown
+            currentScanExtractedPackages.clear();
+            // only check after scanning a package if a matching packageId has been extracted during this package scan.
+            if (!potentialSlingViolators.isEmpty()) {
+                blameViolatorsForMissedExpectations(Stream.concat(Stream.of(scanPackageId),
+                        potentialSlingViolators.stream()).collect(Collectors.toSet()), inspectSession);
             }
         }
 

@@ -156,6 +156,6 @@ public class ExpectPathsTest {
         check.finishedScan();
         Collection<Violation> violations = check.getReportedViolations();
         assertEquals("expect one violation", 1, violations.stream().count());
-        assertEquals("expect two packageIds (same tho)", 2, violations.stream().findFirst().get().getPackages().size());
+        assertEquals("expect one packageId", 1, violations.stream().findFirst().get().getPackages().size());
     }
 }

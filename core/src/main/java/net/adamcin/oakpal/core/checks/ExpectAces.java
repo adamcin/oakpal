@@ -25,6 +25,7 @@ import net.adamcin.oakpal.api.Rule;
 import net.adamcin.oakpal.api.Rules;
 import net.adamcin.oakpal.api.Severity;
 import net.adamcin.oakpal.api.SimpleProgressCheckFactoryCheck;
+import net.adamcin.oakpal.api.SlingInstallable;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
@@ -43,6 +44,7 @@ import javax.jcr.security.Privilege;
 import javax.json.JsonObject;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -281,6 +283,7 @@ public final class ExpectAces implements ProgressCheckFactory {
         final List<AceCriteria> notExpectedAces;
         final Map<AceCriteria, List<PackageId>> expectedViolators = new LinkedHashMap<>();
         final Map<AceCriteria, List<PackageId>> notExpectedViolators = new LinkedHashMap<>();
+        final List<PackageId> currentScanExtractedPackages = new ArrayList<>();
         final List<Rule> afterPackageIdRules;
         final Severity severity;
 
@@ -318,34 +321,70 @@ public final class ExpectAces implements ProgressCheckFactory {
             return violatorsMap.get(criteria);
         }
 
+        void blameViolatorsForMissedExpectations(final @NotNull Collection<PackageId> possibleViolators,
+                                                 final @NotNull Session inspectSession) throws RepositoryException {
+            final JackrabbitAccessControlManager aclManager =
+                    (JackrabbitAccessControlManager) inspectSession.getAccessControlManager();
+            final Map<String, List<AceCriteria>> expectedsByPath = groupCriteriaByPath(expectedAces);
+            final Map<String, List<AceCriteria>> notExpectedsByPath = groupCriteriaByPath(notExpectedAces);
+            final Set<String> allPaths = new LinkedHashSet<>(expectedsByPath.keySet());
+            allPaths.addAll(notExpectedsByPath.keySet());
+            for (String path : allPaths) {
+                final JackrabbitAccessControlList[] policiesAtPath =
+                        // provide null path for rep:repoPolicy evaluation
+                        (path.isEmpty() ? Stream.of(aclManager.getPolicies((String) null))
+                                : (inspectSession.nodeExists(path) ? Stream.of(aclManager.getPolicies(path))
+                                : Stream.empty()))
+                                .filter(JackrabbitAccessControlList.class::isInstance)
+                                .map(JackrabbitAccessControlList.class::cast)
+                                .toArray(JackrabbitAccessControlList[]::new);
+                for (AceCriteria criteria : expectedsByPath.getOrDefault(path, Collections.emptyList())) {
+                    // only look for sling violators of an expected ace criteria if a violation for said criteria
+                    // has not already been collected.
+                    final List<PackageId> violators = getViolatorListForExpectedCriteria(expectedViolators, criteria);
+                    if (violators.isEmpty() && Stream.of(policiesAtPath).noneMatch(criteria::satisfiedBy)) {
+                        violators.addAll(possibleViolators);
+                    }
+                }
+                for (AceCriteria criteria : notExpectedsByPath.getOrDefault(path, Collections.emptyList())) {
+                    // only look for sling violators of an unexpected path if a violation for said path has not already
+                    // been collected.
+                    final List<PackageId> violators = getViolatorListForExpectedCriteria(notExpectedViolators, criteria);
+                    if (violators.isEmpty() && Stream.of(policiesAtPath).anyMatch(criteria::satisfiedBy)) {
+                        violators.addAll(possibleViolators);
+                    }
+                }
+            }
+        }
+
         @Override
         public void afterExtract(final PackageId packageId, final Session inspectSession) throws RepositoryException {
             if (shouldExpectAfterExtract(packageId)) {
-                final JackrabbitAccessControlManager aclManager = (JackrabbitAccessControlManager) inspectSession.getAccessControlManager();
-                final Map<String, List<AceCriteria>> expectedsByPath = groupCriteriaByPath(expectedAces);
-                final Map<String, List<AceCriteria>> notExpectedsByPath = groupCriteriaByPath(notExpectedAces);
-                final Set<String> allPaths = new LinkedHashSet<>(expectedsByPath.keySet());
-                allPaths.addAll(notExpectedsByPath.keySet());
-                for (String path : allPaths) {
-                    final JackrabbitAccessControlList[] policiesAtPath =
-                            // provide null path for rep:repoPolicy evaluation
-                            (path.isEmpty() ? Stream.of(aclManager.getPolicies((String) null))
-                                    : (inspectSession.nodeExists(path) ? Stream.of(aclManager.getPolicies(path))
-                                    : Stream.empty()))
-                                    .filter(JackrabbitAccessControlList.class::isInstance)
-                                    .map(JackrabbitAccessControlList.class::cast)
-                                    .toArray(JackrabbitAccessControlList[]::new);
-                    for (AceCriteria criteria : expectedsByPath.getOrDefault(path, Collections.emptyList())) {
-                        if (Stream.of(policiesAtPath).noneMatch(criteria::satisfiedBy)) {
-                            getViolatorListForExpectedCriteria(expectedViolators, criteria).add(packageId);
-                        }
-                    }
-                    for (AceCriteria criteria : notExpectedsByPath.getOrDefault(path, Collections.emptyList())) {
-                        if (Stream.of(policiesAtPath).anyMatch(criteria::satisfiedBy)) {
-                            getViolatorListForExpectedCriteria(notExpectedViolators, criteria).add(packageId);
-                        }
-                    }
-                }
+                blameViolatorsForMissedExpectations(Collections.singleton(packageId), inspectSession);
+            }
+        }
+
+        @Override
+        public void beforeSlingInstall(final PackageId scanPackageId, final SlingInstallable slingInstallable,
+                                       final Session inspectSession) throws RepositoryException {
+            if (shouldExpectAfterExtract(slingInstallable.getParentId())) {
+                currentScanExtractedPackages.add(slingInstallable.getParentId());
+            }
+        }
+
+        @Override
+        public void afterScanPackage(final PackageId scanPackageId, final Session inspectSession)
+                throws RepositoryException {
+            // collect matching packages extracted during the scan
+            final List<PackageId> potentialSlingViolators = currentScanExtractedPackages.stream()
+                    .filter(this::shouldExpectAfterExtract)
+                    .collect(Collectors.toList());
+            // clear the list before any exceptions are thrown
+            currentScanExtractedPackages.clear();
+            // only check after scanning a package if a matching packageId has been extracted during this package scan.
+            if (!potentialSlingViolators.isEmpty()) {
+                blameViolatorsForMissedExpectations(Stream.concat(Stream.of(scanPackageId),
+                        potentialSlingViolators.stream()).collect(Collectors.toSet()), inspectSession);
             }
         }
 
