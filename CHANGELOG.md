@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com)
 ### Fixed
 
 - issue #59 provide a default, empty resource bundle for a SimpleProgressCheck extension when a bundle cannot be found for the returned resource bundle name.
+- issue #77 added pom-type-transitive dependency resolution to oakpal-maven-plugin to fix support for groovy-all pom dependency
 
 ## [2.2.1] - 2020-09-11
 
