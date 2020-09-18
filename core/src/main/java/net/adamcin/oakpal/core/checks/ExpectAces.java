@@ -16,6 +16,7 @@
 
 package net.adamcin.oakpal.core.checks;
 
+import net.adamcin.oakpal.api.EmbeddedPackageInstallable;
 import net.adamcin.oakpal.api.Fun;
 import net.adamcin.oakpal.api.JavaxJson;
 import net.adamcin.oakpal.api.ProgressCheck;
@@ -42,6 +43,7 @@ import javax.jcr.Value;
 import javax.jcr.security.AccessControlEntry;
 import javax.jcr.security.Privilege;
 import javax.json.JsonObject;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -233,8 +235,11 @@ public final class ExpectAces implements ProgressCheckFactory {
         final List<AceCriteria> notExpectedAces = parseAceCriteria(config, precedingPrincipals, keys().notExpectedAces());
         final Severity severity = Severity.valueOf(
                 config.getString(keys().severity(), DEFAULT_SEVERITY.name()).toUpperCase());
+        // TODO 2.3.0 export to JsonKeys interface
+        final boolean ignoreNestedPackages = config.getBoolean("ignoreNestedPackages", false);
         return new Check(expectedAces, notExpectedAces,
-                Rules.fromJsonArray(JavaxJson.arrayOrEmpty(config, keys().afterPackageIdRules())), severity);
+                Rules.fromJsonArray(JavaxJson.arrayOrEmpty(config, keys().afterPackageIdRules())),
+                ignoreNestedPackages, severity);
     }
 
     static boolean isPrincipalSpec(final @NotNull String spec) {
@@ -281,36 +286,36 @@ public final class ExpectAces implements ProgressCheckFactory {
     static final class Check extends SimpleProgressCheckFactoryCheck<ExpectAces> {
         final List<AceCriteria> expectedAces;
         final List<AceCriteria> notExpectedAces;
+        final PackageGraph graph = new PackageGraph();
         final Map<AceCriteria, List<PackageId>> expectedViolators = new LinkedHashMap<>();
         final Map<AceCriteria, List<PackageId>> notExpectedViolators = new LinkedHashMap<>();
-        final List<PackageId> currentScanExtractedPackages = new ArrayList<>();
         final List<Rule> afterPackageIdRules;
+        final boolean ignoreNestedPackages;
         final Severity severity;
 
         Check(final @NotNull List<AceCriteria> expectedAces,
               final @NotNull List<AceCriteria> notExpectedAces,
               final @NotNull List<Rule> afterPackageIdRules,
+              final boolean ignoreNestedPackages,
               final @NotNull Severity severity) {
             super(ExpectAces.class);
             this.expectedAces = expectedAces;
             this.notExpectedAces = notExpectedAces;
             this.afterPackageIdRules = afterPackageIdRules;
+            this.ignoreNestedPackages = ignoreNestedPackages;
             this.severity = severity;
         }
 
         @Override
         public void startedScan() {
             super.startedScan();
+            graph.startedScan();
             expectedViolators.clear();
             notExpectedViolators.clear();
         }
 
         static Map<String, List<AceCriteria>> groupCriteriaByPath(final @NotNull List<AceCriteria> criteriaList) {
             return criteriaList.stream().collect(Collectors.groupingBy(AceCriteria::getPath));
-        }
-
-        boolean shouldExpectAfterExtract(final @NotNull PackageId packageId) {
-            return Rules.lastMatch(afterPackageIdRules, packageId.toString()).isInclude();
         }
 
         static List<PackageId> getViolatorListForExpectedCriteria(final @NotNull Map<AceCriteria, List<PackageId>> violatorsMap,
@@ -321,6 +326,45 @@ public final class ExpectAces implements ProgressCheckFactory {
             return violatorsMap.get(criteria);
         }
 
+        boolean shouldExpectAfterExtract(final @NotNull PackageId packageId) {
+            return (graph.isRoot(packageId) || !ignoreNestedPackages)
+                    && Rules.lastMatch(afterPackageIdRules, packageId.toString()).isInclude();
+        }
+
+        /**
+         * Exposed for testing.
+         *
+         * @return the package graph
+         */
+        PackageGraph getGraph() {
+            return graph;
+        }
+
+        @Override
+        public void identifyPackage(final PackageId packageId, final File file) {
+            graph.identifyPackage(packageId, file);
+        }
+
+        @Override
+        public void identifySubpackage(final PackageId packageId, final PackageId parentId) {
+            graph.identifySubpackage(packageId, parentId);
+        }
+
+        @Override
+        public void identifyEmbeddedPackage(final PackageId packageId, final PackageId parentId, final EmbeddedPackageInstallable slingInstallable) {
+            graph.identifyEmbeddedPackage(packageId, parentId, slingInstallable);
+        }
+
+        /**
+         * Perform the logic to validate expectations against current state using the provided {@code inspectSession}.
+         * Any new violations detected for a particular set of path criteria will be blamed on the collection of
+         * packageIds provided by the {@code possibleViolators} argument.
+         *
+         * @param possibleViolators the collection of possible violator packages with influence over the current
+         *                          repository state
+         * @param inspectSession    the JCR session to inspect for conformance to configured expectations
+         * @throws RepositoryException if JCR error occurs during validation
+         */
         void blameViolatorsForMissedExpectations(final @NotNull Collection<PackageId> possibleViolators,
                                                  final @NotNull Session inspectSession) throws RepositoryException {
             final JackrabbitAccessControlManager aclManager =
@@ -344,6 +388,8 @@ public final class ExpectAces implements ProgressCheckFactory {
                     final List<PackageId> violators = getViolatorListForExpectedCriteria(expectedViolators, criteria);
                     if (violators.isEmpty() && Stream.of(policiesAtPath).noneMatch(criteria::satisfiedBy)) {
                         violators.addAll(possibleViolators);
+                    } else if (!violators.isEmpty() && Stream.of(policiesAtPath).anyMatch(criteria::satisfiedBy)) {
+                        violators.removeAll(possibleViolators);
                     }
                 }
                 for (AceCriteria criteria : notExpectedsByPath.getOrDefault(path, Collections.emptyList())) {
@@ -352,42 +398,68 @@ public final class ExpectAces implements ProgressCheckFactory {
                     final List<PackageId> violators = getViolatorListForExpectedCriteria(notExpectedViolators, criteria);
                     if (violators.isEmpty() && Stream.of(policiesAtPath).anyMatch(criteria::satisfiedBy)) {
                         violators.addAll(possibleViolators);
+                    } else if (!violators.isEmpty() && Stream.of(policiesAtPath).noneMatch(criteria::satisfiedBy)) {
+                        violators.removeAll(possibleViolators);
                     }
                 }
             }
         }
 
+        /**
+         * Validate expectations immediately after extracting a package whose ID matches the
+         * {@code config.afterPackageIdRules}.
+         *
+         * @param packageId      the current package
+         * @param inspectSession session providing access to repository state
+         * @throws RepositoryException if a JCR error occurs during validation of expectations
+         */
         @Override
         public void afterExtract(final PackageId packageId, final Session inspectSession) throws RepositoryException {
             if (shouldExpectAfterExtract(packageId)) {
-                blameViolatorsForMissedExpectations(Collections.singleton(packageId), inspectSession);
+                blameViolatorsForMissedExpectations(graph.getSelfAndAncestors(packageId), inspectSession);
             }
         }
 
+        /**
+         * Validate expectations immediately after applying repo init scripts.
+         *
+         * @param scanPackageId    the last preinstall or scan package
+         * @param scripts          the repoinit scripts that were applied
+         * @param slingInstallable the associated {@link SlingInstallable} identifying the source JCR event that provided
+         *                         the repo init scripts
+         * @param inspectSession   session providing access to repository state
+         * @throws RepositoryException if an error occurs while validating expectations
+         */
         @Override
-        public void beforeSlingInstall(final PackageId scanPackageId, final SlingInstallable slingInstallable,
-                                       final Session inspectSession) throws RepositoryException {
+        public void appliedRepoInitScripts(final PackageId scanPackageId, final List<String> scripts,
+                                           final SlingInstallable slingInstallable, final Session inspectSession)
+                throws RepositoryException {
             if (shouldExpectAfterExtract(slingInstallable.getParentId())) {
-                currentScanExtractedPackages.add(slingInstallable.getParentId());
+                blameViolatorsForMissedExpectations(graph.getSelfAndAncestors(slingInstallable.getParentId()),
+                        inspectSession);
             }
         }
 
+        /**
+         * If configured to {@code ignoreNestedPackages}, this handler will evaluate the expectations after
+         * the package scan in case any violations with a transitive relationship to
+         * a packageId matching the {@code config.afterPackageIdRules} can be detected.
+         *
+         * @param scanPackageId  the scanned package id
+         * @param inspectSession session providing access to repository state
+         * @throws RepositoryException if an error occurs while validating expectations
+         */
         @Override
         public void afterScanPackage(final PackageId scanPackageId, final Session inspectSession)
                 throws RepositoryException {
-            // collect matching packages extracted during the scan
-            final List<PackageId> potentialSlingViolators = currentScanExtractedPackages.stream()
-                    .filter(this::shouldExpectAfterExtract)
-                    .collect(Collectors.toList());
-            // clear the list before any exceptions are thrown
-            currentScanExtractedPackages.clear();
-            // only check after scanning a package if a matching packageId has been extracted during this package scan.
-            if (!potentialSlingViolators.isEmpty()) {
-                blameViolatorsForMissedExpectations(Stream.concat(Stream.of(scanPackageId),
-                        potentialSlingViolators.stream()).collect(Collectors.toSet()), inspectSession);
+            if (ignoreNestedPackages && shouldExpectAfterExtract(scanPackageId)) {
+                blameViolatorsForMissedExpectations(graph.getSelfAndDescendants(scanPackageId), inspectSession);
             }
         }
 
+        /**
+         * Report all violations collected during the scan.
+         */
         @Override
         public void finishedScan() {
             for (Map.Entry<AceCriteria, List<PackageId>> violatorsEntry : expectedViolators.entrySet()) {

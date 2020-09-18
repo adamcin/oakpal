@@ -16,17 +16,24 @@
 
 package net.adamcin.oakpal.core.checks;
 
+import net.adamcin.oakpal.api.EmbeddedPackageInstallable;
+import net.adamcin.oakpal.api.Fun;
 import net.adamcin.oakpal.api.Result;
 import net.adamcin.oakpal.api.Rule;
 import net.adamcin.oakpal.api.RuleType;
 import net.adamcin.oakpal.api.Severity;
+import net.adamcin.oakpal.api.SlingInstallable;
+import net.adamcin.oakpal.api.Violation;
 import net.adamcin.oakpal.core.JsonCnd;
 import net.adamcin.oakpal.core.OakMachine;
+import net.adamcin.oakpal.core.OakpalPlan;
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitWorkspace;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
+import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.spi.commons.conversion.DefaultNamePathResolver;
@@ -41,26 +48,39 @@ import org.junit.Test;
 import javax.jcr.Node;
 import javax.jcr.Session;
 import javax.jcr.Value;
+import javax.jcr.nodetype.NodeType;
 import javax.jcr.security.AccessControlEntry;
+import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.AccessControlPolicyIterator;
 import javax.jcr.security.Privilege;
 import javax.json.JsonObject;
 import java.security.Principal;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
+import java.util.Spliterator;
+import java.util.Spliterators;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import static net.adamcin.oakpal.api.Fun.compose1;
+import static net.adamcin.oakpal.api.Fun.composeTest1;
+import static net.adamcin.oakpal.api.Fun.uncheck0;
 import static net.adamcin.oakpal.api.Fun.uncheck1;
+import static net.adamcin.oakpal.api.Fun.uncheckVoid1;
 import static net.adamcin.oakpal.api.JavaxJson.arr;
 import static net.adamcin.oakpal.api.JavaxJson.key;
 import static net.adamcin.oakpal.api.JavaxJson.obj;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -268,6 +288,508 @@ public class ExpectAcesTest {
         assertFalse("expect false", check2.shouldExpectAfterExtract(PackageId.fromString("adamcin:test:1.0")));
         assertTrue("expect true", check2.shouldExpectAfterExtract(PackageId.fromString("my_packages:test:1.0")));
     }
+
+
+    @Test
+    public void testPackageGraph() throws Exception {
+        final PackageId container1 = PackageId.fromString("container1");
+        final PackageId cont1sub1 = PackageId.fromString("cont1sub1");
+        final PackageId cont1emb1 = PackageId.fromString("cont1emb1");
+        final EmbeddedPackageInstallable installable1 = new EmbeddedPackageInstallable(container1, "", cont1emb1);
+        final PackageId container2 = PackageId.fromString("container2");
+        final PackageId cont2sub1 = PackageId.fromString("cont2sub1");
+        final PackageId cont2emb1 = PackageId.fromString("cont2emb1");
+        final EmbeddedPackageInstallable installable2 = new EmbeddedPackageInstallable(container2, "", cont2emb1);
+        final Set<PackageId> scan1 = Stream.of(container1, cont1sub1, cont1emb1).collect(Collectors.toSet());
+        final Set<PackageId> scan2 = Stream.of(container2, cont2sub1, cont2emb1).collect(Collectors.toSet());
+
+        ExpectAces.Check check = checkFor(obj().get());
+        PackageGraph graph = check.getGraph();
+        for (PackageId id : scan1) {
+            assertFalse("expect not identified " + id, graph.isIdentified(id));
+        }
+        for (PackageId id : scan2) {
+            assertFalse("expect not identified " + id, graph.isIdentified(id));
+        }
+        check.identifyPackage(container1, null);
+        assertTrue("expected identified " + container1, graph.isIdentified(container1));
+        assertTrue("expect root " + container1, graph.isRoot(container1));
+        assertFalse("expect not identified " + cont1sub1, graph.isIdentified(cont1sub1));
+        assertTrue("expect root " + cont1sub1, graph.isRoot(cont1sub1));
+        check.identifySubpackage(cont1sub1, container1);
+        assertTrue("expected identified " + cont1sub1, graph.isIdentified(cont1sub1));
+        assertTrue("expect root " + container1, graph.isRoot(container1));
+        assertFalse("expect not root " + cont1sub1, graph.isRoot(cont1sub1));
+        assertFalse("expect not identified " + cont1emb1, graph.isIdentified(cont1emb1));
+        check.identifyEmbeddedPackage(cont1emb1, container1, installable1);
+        assertTrue("expected identified " + cont1emb1, graph.isIdentified(cont1emb1));
+        assertTrue("expect root " + container1, graph.isRoot(container1));
+        assertFalse("expect not root " + cont1sub1, graph.isRoot(cont1sub1));
+        assertFalse("expect not root " + cont1emb1, graph.isRoot(cont1sub1));
+        assertEquals("expect equal to scan", scan1, new HashSet<>(graph.getSelfAndDescendants(container1)));
+
+        for (PackageId id : scan2) {
+            assertFalse("expect not identified " + id, graph.isIdentified(id));
+        }
+        check.identifyPackage(container2, null);
+        assertTrue("expected identified " + container2, graph.isIdentified(container2));
+        assertTrue("expect root " + container2, graph.isRoot(container2));
+        assertFalse("expect not identified " + cont2sub1, graph.isIdentified(cont2sub1));
+        assertTrue("expect root " + cont2sub1, graph.isRoot(cont2sub1));
+        check.identifySubpackage(cont2sub1, container2);
+        assertTrue("expected identified " + cont2sub1, graph.isIdentified(cont2sub1));
+        assertTrue("expect root " + container2, graph.isRoot(container2));
+        assertFalse("expect not root " + cont2sub1, graph.isRoot(cont2sub1));
+        assertFalse("expect not identified " + cont2emb1, graph.isIdentified(cont2emb1));
+        check.identifyEmbeddedPackage(cont2emb1, container2, installable2);
+        assertTrue("expected identified " + cont2emb1, graph.isIdentified(cont2emb1));
+        assertTrue("expect root " + container2, graph.isRoot(container2));
+        assertFalse("expect not root " + cont2sub1, graph.isRoot(cont2sub1));
+        assertFalse("expect not root " + cont2emb1, graph.isRoot(cont2sub1));
+
+        assertEquals("expect equal to scan", scan1, new HashSet<>(graph.getSelfAndDescendants(container1)));
+        assertEquals("expect equal to scan", scan2, new HashSet<>(graph.getSelfAndDescendants(container2)));
+    }
+
+    @Test
+    public void testSuppressAfterExtractViolationIfExpectationSatisfiedAfterScanPackage() throws Exception {
+        final PackageId fooId = PackageId.fromString("some");
+        final PackageId barEmbedId = PackageId.fromString("other");
+        final EmbeddedPackageInstallable installable = new EmbeddedPackageInstallable(fooId, "", barEmbedId);
+        ExpectAces.Check check = checkFor(obj()
+                .key(ExpectAces.keys().principal(), "nouser")
+                .key("ignoreNestedPackages", true)
+                .key(ExpectAces.keys().expectedAces(), arr()
+                        .val("type=allow;path=/foo1;privileges=jcr:read")
+                        .val("type=allow;path=/foo1;privileges=rep:write")
+                )
+                .key(ExpectAces.keys().notExpectedAces(), arr()
+                        .val("type=allow;path=/foo2;privileges=jcr:read")
+                        .val("type=allow;path=/foo2;privileges=rep:write")
+                        // foo3 is not created. a non-existent path should satisfy not-expected aces
+                        .val("type=allow;path=/foo3;privileges=rep:write")
+                )
+                .get());
+
+        final Principal principal = new PrincipalImpl("nouser");
+        new OakMachine.Builder().build().adminInitAndInspect(session -> {
+            final JackrabbitAccessControlManager accessControlManager =
+                    (JackrabbitAccessControlManager) session.getAccessControlManager();
+            final PrivilegeManager privilegeManager = ((JackrabbitWorkspace) session.getWorkspace()).getPrivilegeManager();
+            final Privilege jcrRead = privilegeManager.getPrivilege("jcr:read");
+
+            final Node foo1 = session.getRootNode().addNode("foo1", resolver.getJCRName(NameConstants.NT_FOLDER));
+            foo1.addMixin("rep:AccessControllable");
+            final Node foo2 = session.getRootNode().addNode("foo2", resolver.getJCRName(NameConstants.NT_FOLDER));
+            foo2.addMixin("rep:AccessControllable");
+            session.save();
+
+            for (String path : new String[]{"/foo1", "/foo2"}) {
+                for (AccessControlPolicyIterator policyIt = accessControlManager.getApplicablePolicies(path); policyIt.hasNext(); ) {
+                    AccessControlPolicy policy = policyIt.nextAccessControlPolicy();
+                    if (policy instanceof JackrabbitAccessControlList) {
+                        JackrabbitAccessControlList acl = (JackrabbitAccessControlList) policy;
+                        acl.addEntry(principal, new Privilege[]{jcrRead}, true);
+                        accessControlManager.setPolicy(path, acl);
+                    }
+                }
+            }
+            check.startedScan();
+            check.identifyPackage(fooId, null);
+            check.afterExtract(fooId, session);
+            check.beforeSlingInstall(fooId, installable, session);
+            check.identifyEmbeddedPackage(barEmbedId, fooId, installable);
+            check.afterExtract(barEmbedId, session);
+            check.afterScanPackage(fooId, session);
+            check.finishedScan();
+        });
+
+        Assert.assertEquals("expected violation count", 1, check.getReportedViolations().stream().filter(viol -> viol.getDescription().startsWith("expected: ")).count());
+        Assert.assertEquals("expected violated spec ends with rep:write", 1,
+                check.getReportedViolations().stream()
+                        .filter(viol -> viol.getDescription().startsWith("expected: ")
+                                && viol.getDescription().endsWith("rep:write")).count());
+        Assert.assertEquals("unexpected violation count", 1, check.getReportedViolations().stream().filter(viol -> viol.getDescription().startsWith("unexpected: ")).count());
+        Assert.assertEquals("unexpected violated spec ends with jcr:read", 1,
+                check.getReportedViolations().stream()
+                        .filter(viol -> viol.getDescription().startsWith("unexpected: ")
+                                && viol.getDescription().endsWith("jcr:read")).count());
+
+        // run again, but this time
+        new OakMachine.Builder().build().adminInitAndInspect(session -> {
+            final JackrabbitAccessControlManager accessControlManager =
+                    (JackrabbitAccessControlManager) session.getAccessControlManager();
+            final PrivilegeManager privilegeManager = ((JackrabbitWorkspace) session.getWorkspace()).getPrivilegeManager();
+            final Privilege jcrRead = privilegeManager.getPrivilege("jcr:read");
+
+            final Node foo1 = session.getRootNode().addNode("foo1", resolver.getJCRName(NameConstants.NT_FOLDER));
+            foo1.addMixin("rep:AccessControllable");
+            final Node foo2 = session.getRootNode().addNode("foo2", resolver.getJCRName(NameConstants.NT_FOLDER));
+            foo2.addMixin("rep:AccessControllable");
+            session.save();
+
+            for (String path : new String[]{"/foo1", "/foo2"}) {
+                for (AccessControlPolicyIterator policyIt = accessControlManager.getApplicablePolicies(path); policyIt.hasNext(); ) {
+                    AccessControlPolicy policy = policyIt.nextAccessControlPolicy();
+                    if (policy instanceof JackrabbitAccessControlList) {
+                        JackrabbitAccessControlList acl = (JackrabbitAccessControlList) policy;
+                        acl.addEntry(principal, new Privilege[]{jcrRead}, true);
+                        accessControlManager.setPolicy(path, acl);
+                    }
+                }
+            }
+            check.startedScan();
+            check.identifyPackage(fooId, null);
+            check.afterExtract(fooId, session);
+            check.beforeSlingInstall(fooId, installable, session);
+            check.identifyEmbeddedPackage(barEmbedId, fooId, installable);
+            foo2.remove();
+            check.afterExtract(barEmbedId, session);
+            check.afterScanPackage(fooId, session);
+            check.finishedScan();
+        });
+
+        Assert.assertEquals("expected violation count", 1, check.getReportedViolations().stream().filter(viol -> viol.getDescription().startsWith("expected: ")).count());
+        Assert.assertEquals("expected violated spec ends with rep:write", 1,
+                check.getReportedViolations().stream()
+                        .filter(viol -> viol.getDescription().startsWith("expected: ")
+                                && viol.getDescription().endsWith("rep:write")).count());
+        Assert.assertEquals("no unexpected violations", 0,
+                check.getReportedViolations().stream()
+                        .filter(viol -> viol.getDescription().startsWith("unexpected: ")).count());
+    }
+
+    @SuppressWarnings("unchecked")
+    public static Stream<JackrabbitAccessControlList> streamAcls(final @NotNull AccessControlPolicyIterator policyIterator) {
+        return StreamSupport
+                .stream(Spliterators.spliteratorUnknownSize(policyIterator, Spliterator.ORDERED), false)
+                .filter(JackrabbitAccessControlList.class::isInstance)
+                .map(JackrabbitAccessControlList.class::cast);
+    }
+
+    public static Stream<JackrabbitAccessControlList> streamAcls(final @NotNull AccessControlPolicy[] policies) {
+        return Stream.of(policies)
+                .filter(JackrabbitAccessControlList.class::isInstance)
+                .map(JackrabbitAccessControlList.class::cast);
+    }
+
+    public static void resetAcl(final @NotNull Node node, final @NotNull AclResetterCallback callback) throws Exception {
+        final Session session = node.getSession();
+        final PrivilegeManager privilegeManager = ((JackrabbitWorkspace) session.getWorkspace()).getPrivilegeManager();
+
+        final JackrabbitAccessControlManager accessControlManager =
+                (JackrabbitAccessControlManager) session.getAccessControlManager();
+
+        final String nodePath = node.getPath();
+
+        if (!node.isNodeType("rep:AccessControllable")) {
+            node.addMixin("rep:AccessControllable");
+        }
+
+        JackrabbitAccessControlList acl = streamAcls(accessControlManager.getPolicies(nodePath))
+                .findFirst()
+                .orElseGet(uncheck0(() -> streamAcls(accessControlManager.getApplicablePolicies(nodePath)).findFirst().get()));
+
+        callback.tryAccept(acl, privilegeManager);
+        accessControlManager.setPolicy(nodePath, acl);
+        session.save();
+    }
+
+    @FunctionalInterface
+    interface AclResetterCallback extends Fun.ThrowingBiConsumer<JackrabbitAccessControlList, PrivilegeManager> {
+
+    }
+
+    @Test
+    public void testSuppressAfterExtractViolationIfExpectationSatisfiedAfterScanPackage_multipleViolators() throws Exception {
+        final String foo1 = "/foo1";
+        final String foo2 = "/foo2";
+
+        final PackageId container = PackageId.fromString("container");
+        final PackageId embed1 = PackageId.fromString("embed1");
+        SlingInstallable installable1 = mock(SlingInstallable.class);
+        when(installable1.getParentId()).thenReturn(embed1);
+        EmbeddedPackageInstallable epInstallable1 = new EmbeddedPackageInstallable(container, "", embed1);
+        final PackageId embed2 = PackageId.fromString("embed2");
+        SlingInstallable installable2 = mock(SlingInstallable.class);
+        when(installable2.getParentId()).thenReturn(embed2);
+        EmbeddedPackageInstallable epInstallable2 = new EmbeddedPackageInstallable(container, "", embed2);
+        final PackageId embed3 = PackageId.fromString("embed3");
+        SlingInstallable installable3 = mock(SlingInstallable.class);
+        when(installable3.getParentId()).thenReturn(embed3);
+        EmbeddedPackageInstallable epInstallable3 = new EmbeddedPackageInstallable(container, "", embed3);
+
+        final Principal principal = new PrincipalImpl("nouser");
+        final List<String> repoInits = Arrays.asList(
+                "create service user nouser",
+                "create path (nt:folder) /foo1",
+                "set ACL on /foo1",
+                "  allow jcr:read for nouser",
+                "end",
+                "create path (nt:folder) /foo2",
+                "set ACL on /foo2",
+                "  allow jcr:read for nouser",
+                "end"
+        );
+
+        final ExpectAces.Check check1 = checkFor(obj()
+                .key(ExpectAces.keys().principal(), "nouser")
+                .key(ExpectAces.keys().expectedAces(), arr()
+                        .val("type=allow;path=/foo1;privileges=jcr:read")
+                        .val("type=allow;path=/foo1;privileges=rep:write")
+                )
+                .get());
+        new OakpalPlan.Builder(null, null)
+                .withRepoInits(repoInits)
+                .build().toOakMachineBuilder(null, getClass().getClassLoader()).build()
+                .adminInitAndInspect(session -> {
+
+                    check1.startedScan();
+                    check1.identifyPackage(container, null);
+                    check1.afterExtract(container, session);
+                    check1.beforeSlingInstall(container, epInstallable1, session);
+                    check1.identifyEmbeddedPackage(embed1, container, epInstallable1);
+                    check1.afterExtract(embed1, session);
+                    check1.beforeSlingInstall(container, epInstallable2, session);
+                    check1.identifyEmbeddedPackage(embed2, container, epInstallable2);
+                    check1.afterExtract(embed2, session);
+                    check1.beforeSlingInstall(container, epInstallable3, session);
+                    check1.identifyEmbeddedPackage(embed3, container, epInstallable3);
+                    check1.afterExtract(embed3, session);
+                    check1.beforeSlingInstall(container, installable1, session);
+                    check1.beforeSlingInstall(container, installable2, session);
+                    check1.beforeSlingInstall(container, installable3, session);
+                    check1.afterScanPackage(container, session);
+                    check1.finishedScan();
+                });
+
+        Assert.assertEquals("expected violation count", 1,
+                check1.getReportedViolations().stream()
+                        .filter(viol -> viol.getDescription().startsWith("expected: ")).count());
+        Assert.assertEquals("expected violated spec ends with rep:write", 1,
+                check1.getReportedViolations().stream()
+                        .filter(viol -> viol.getDescription().startsWith("expected: ")
+                                && viol.getDescription().contains("/foo1")
+                                && viol.getDescription().endsWith("rep:write")).count());
+        Assert.assertEquals("no unexpected violations", 0,
+                check1.getReportedViolations().stream()
+                        .filter(viol -> viol.getDescription().startsWith("unexpected: ")).count());
+        final Violation exViolation1 = check1.getReportedViolations().stream().findFirst().get();
+        assertEquals("expected violators",
+                Stream.of(container).collect(Collectors.toSet()),
+                new HashSet<>(exViolation1.getPackages()));
+
+        new OakpalPlan.Builder(null, null)
+                .withRepoInits(repoInits)
+                .build().toOakMachineBuilder(null, getClass().getClassLoader()).build()
+                .adminInitAndInspect(session -> {
+                    check1.startedScan();
+                    check1.identifyPackage(container, null);
+                    check1.afterExtract(container, session);
+                    check1.beforeSlingInstall(container, epInstallable1, session);
+                    check1.identifyEmbeddedPackage(embed1, container, epInstallable1);
+                    resetAcl(session.getNode(foo1), (acl, privMan) -> {
+                        Stream.of(acl.getAccessControlEntries())
+                                .filter(composeTest1(AccessControlEntry::getPrincipal, principal::equals))
+                                .forEachOrdered(uncheckVoid1(acl::removeAccessControlEntry));
+                        acl.addEntry(principal, new Privilege[]{privMan.getPrivilege("rep:write")}, true);
+                    });
+                    check1.afterExtract(embed1, session);
+                    check1.beforeSlingInstall(container, epInstallable2, session);
+                    check1.identifyEmbeddedPackage(embed2, container, epInstallable2);
+                    check1.afterExtract(embed2, session);
+                    check1.beforeSlingInstall(container, epInstallable3, session);
+                    check1.identifyEmbeddedPackage(embed3, container, epInstallable3);
+                    check1.afterExtract(embed3, session);
+                    check1.beforeSlingInstall(container, installable1, session);
+                    check1.beforeSlingInstall(container, installable2, session);
+                    check1.beforeSlingInstall(container, installable3, session);
+                    check1.afterScanPackage(container, session);
+                    check1.finishedScan();
+                });
+
+        Assert.assertEquals("expected violation count", 1,
+                check1.getReportedViolations().stream()
+                        .filter(viol -> viol.getDescription().startsWith("expected: ")).count());
+        Assert.assertEquals("expected violated spec ends with jcr:read", 1,
+                check1.getReportedViolations().stream()
+                        .filter(viol -> viol.getDescription().startsWith("expected: ")
+                                && viol.getDescription().contains("/foo1")
+                                && viol.getDescription().endsWith("jcr:read")).count());
+        Assert.assertEquals("no unexpected violations", 0,
+                check1.getReportedViolations().stream()
+                        .filter(viol -> viol.getDescription().startsWith("unexpected: ")).count());
+        final Violation exViolation2 = check1.getReportedViolations().stream().findFirst().get();
+        assertEquals("expected violators",
+                Stream.of(embed1, container).collect(Collectors.toSet()),
+                new HashSet<>(exViolation2.getPackages()));
+
+        final ExpectAces.Check check2 = checkFor(obj()
+                .key(ExpectAces.keys().principal(), "nouser")
+                .key(ExpectAces.keys().notExpectedAces(), arr()
+                        .val("type=allow;path=/foo2;privileges=jcr:read")
+                        .val("type=allow;path=/foo2;privileges=rep:write")
+                        // foo3 is not created. a non-existent path should satisfy not-expected aces
+                        .val("type=allow;path=/foo3;privileges=rep:write")
+                )
+                .get());
+        new OakpalPlan.Builder(null, null)
+                .withRepoInits(repoInits)
+                .build().toOakMachineBuilder(null, getClass().getClassLoader()).build()
+                .adminInitAndInspect(session -> {
+                    check2.startedScan();
+                    check2.identifyPackage(container, null);
+                    check2.afterExtract(container, session);
+                    check2.beforeSlingInstall(embed1, epInstallable1, session);
+                    check2.identifyEmbeddedPackage(embed1, container, epInstallable1);
+                    check2.afterExtract(embed1, session);
+                    check2.beforeSlingInstall(embed2, epInstallable2, session);
+                    check2.identifyEmbeddedPackage(embed2, container, epInstallable2);
+                    check2.afterExtract(embed2, session);
+                    check2.beforeSlingInstall(embed3, epInstallable3, session);
+                    check2.identifyEmbeddedPackage(embed3, container, epInstallable3);
+                    check2.afterExtract(embed3, session);
+                    check2.beforeSlingInstall(container, installable1, session);
+                    check2.beforeSlingInstall(container, installable2, session);
+                    check2.beforeSlingInstall(container, installable3, session);
+                    check2.afterScanPackage(container, session);
+                    check2.finishedScan();
+                });
+
+        Assert.assertEquals("unexpected violation count", 1,
+                check2.getReportedViolations().stream()
+                        .filter(viol -> viol.getDescription().startsWith("unexpected: ")).count());
+        Assert.assertEquals("unexpected violated spec ends with jcr:read", 1,
+                check2.getReportedViolations().stream()
+                        .filter(viol -> viol.getDescription().startsWith("unexpected: ")
+                                && viol.getDescription().contains("/foo2")
+                                && viol.getDescription().endsWith("jcr:read")).count());
+        Assert.assertEquals("no expected violations", 0,
+                check2.getReportedViolations().stream()
+                        .filter(viol -> viol.getDescription().startsWith("expected: ")).count());
+        final Violation unViolation1 = check2.getReportedViolations().stream().findFirst().get();
+        assertEquals("expected violators",
+                Stream.of(container).collect(Collectors.toSet()),
+                new HashSet<>(unViolation1.getPackages()));
+
+        new OakpalPlan.Builder(null, null)
+                .withRepoInits(repoInits)
+                .build().toOakMachineBuilder(null, getClass().getClassLoader()).build()
+                .adminInitAndInspect(session -> {
+                    check2.startedScan();
+                    check2.identifyPackage(container, null);
+                    resetAcl(session.getNode(foo2), (acl, priv) -> {
+                        Stream.of(acl.getAccessControlEntries())
+                                .forEachOrdered(uncheckVoid1(acl::removeAccessControlEntry));
+                    });
+                    check2.afterExtract(container, session);
+                    check2.beforeSlingInstall(embed1, epInstallable1, session);
+                    check2.identifyEmbeddedPackage(embed1, container, epInstallable1);
+                    resetAcl(session.getNode(foo2), (acl, priv) -> {
+                        acl.addEntry(principal, Stream.of("rep:write")
+                                .map(uncheck1(priv::getPrivilege)).toArray(Privilege[]::new), true);
+                    });
+                    check2.afterExtract(embed1, session);
+                    check2.beforeSlingInstall(embed2, epInstallable2, session);
+                    check2.identifyEmbeddedPackage(embed2, container, epInstallable2);
+                    check2.afterExtract(embed2, session);
+                    check2.beforeSlingInstall(embed3, epInstallable3, session);
+                    check2.identifyEmbeddedPackage(embed3, container, epInstallable3);
+                    session.getNode(foo2).remove();
+                    check2.afterExtract(embed3, session);
+                    check2.beforeSlingInstall(container, installable1, session);
+                    check2.beforeSlingInstall(container, installable2, session);
+                    Node node3 = JcrUtils.getOrCreateByPath("/foo3", "nt:folder", session);
+                    resetAcl(node3, (acl, priv) -> {
+                        acl.addEntry(principal, new Privilege[]{priv.getPrivilege("rep:write")}, true);
+                    });
+                    check2.appliedRepoInitScripts(container, Collections.emptyList(), installable2, session);
+                    check2.beforeSlingInstall(container, installable3, session);
+                    check2.afterScanPackage(container, session);
+                    check2.finishedScan();
+                });
+
+
+        assertEquals("expect 2 unexpected violations", 2, check2.getReportedViolations().size());
+        final Collection<Violation> unViolations = check2.getReportedViolations();
+        assertTrue("all start with unexpected " + unViolations, unViolations.stream()
+                .allMatch(vio -> vio.getDescription().startsWith("unexpected: ")));
+        assertEquals("one contains /foo2: " + unViolations, 1, unViolations.stream()
+                .filter(vio -> vio.getDescription().contains("/foo2")).count());
+        assertEquals("one contains /foo3: " + unViolations, 1, unViolations.stream()
+                .filter(vio -> vio.getDescription().contains("/foo3")).count());
+        assertEquals("expected violators of /foo2",
+                Stream.of(embed1).collect(Collectors.toSet()), unViolations.stream()
+                        .filter(vio -> vio.getDescription().contains("/foo2"))
+                        .flatMap(Fun.compose1(Violation::getPackages, Collection::stream))
+                        .collect(Collectors.toSet()));
+        assertEquals("expected violators of /foo3",
+                Stream.of(embed2, container).collect(Collectors.toSet()), unViolations.stream()
+                        .filter(vio -> vio.getDescription().contains("/foo3"))
+                        .flatMap(Fun.compose1(Violation::getPackages, Collection::stream))
+                        .collect(Collectors.toSet()));
+
+    }
+
+    @Test
+    public void testBeforeSlingInstallAndAfterScanPackage() throws Exception {
+        ExpectAces.Check check = checkFor(obj()
+                .key(ExpectAces.keys().principal(), "nouser")
+                .key(ExpectAces.keys().expectedAces(), arr()
+                        .val("type=allow;path=/foo1;privileges=jcr:read")
+                        .val("type=allow;path=/foo1;privileges=rep:write")
+                )
+                .key(ExpectAces.keys().notExpectedAces(), arr()
+                        .val("type=allow;path=/foo2;privileges=jcr:read")
+                        .val("type=allow;path=/foo2;privileges=rep:write")
+                        // foo3 is not created. a non-existent path should satisfy not-expected aces
+                        .val("type=allow;path=/foo3;privileges=rep:write")
+                )
+                .get());
+
+        final Principal principal = new PrincipalImpl("nouser");
+        new OakMachine.Builder().build().adminInitAndInspect(session -> {
+            final JackrabbitAccessControlManager accessControlManager =
+                    (JackrabbitAccessControlManager) session.getAccessControlManager();
+            final PrivilegeManager privilegeManager = ((JackrabbitWorkspace) session.getWorkspace()).getPrivilegeManager();
+            final Privilege jcrRead = privilegeManager.getPrivilege("jcr:read");
+
+            final Node foo1 = session.getRootNode().addNode("foo1", resolver.getJCRName(NameConstants.NT_FOLDER));
+            foo1.addMixin("rep:AccessControllable");
+            final Node foo2 = session.getRootNode().addNode("foo2", resolver.getJCRName(NameConstants.NT_FOLDER));
+            foo2.addMixin("rep:AccessControllable");
+            session.save();
+
+            for (String path : new String[]{"/foo1", "/foo2"}) {
+                for (AccessControlPolicyIterator policyIt = accessControlManager.getApplicablePolicies(path); policyIt.hasNext(); ) {
+                    AccessControlPolicy policy = policyIt.nextAccessControlPolicy();
+                    if (policy instanceof JackrabbitAccessControlList) {
+                        JackrabbitAccessControlList acl = (JackrabbitAccessControlList) policy;
+                        acl.addEntry(principal, new Privilege[]{jcrRead}, true);
+                        accessControlManager.setPolicy(path, acl);
+                    }
+                }
+            }
+
+            check.afterExtract(PackageId.fromString("foo"), session);
+            check.startedScan();
+            check.afterExtract(PackageId.fromString("foo"), session);
+            check.afterExtract(PackageId.fromString("foo"), session);
+            check.finishedScan();
+        });
+
+        Assert.assertEquals("expected violation count", 1, check.getReportedViolations().stream().filter(viol -> viol.getDescription().startsWith("expected: ")).count());
+        Assert.assertEquals("expected violated spec ends with rep:write", 1,
+                check.getReportedViolations().stream()
+                        .filter(viol -> viol.getDescription().startsWith("expected: ")
+                                && viol.getDescription().endsWith("rep:write")).count());
+        Assert.assertEquals("unexpected violation count", 1, check.getReportedViolations().stream().filter(viol -> viol.getDescription().startsWith("unexpected: ")).count());
+        Assert.assertEquals("unexpected violated spec ends with jcr:read", 1,
+                check.getReportedViolations().stream()
+                        .filter(viol -> viol.getDescription().startsWith("unexpected: ")
+                                && viol.getDescription().endsWith("jcr:read")).count());
+    }
+
 
     @Test
     public void testAceCriteria_parse() throws Exception {
