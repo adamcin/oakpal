@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com)
 
 ## [Unreleased]
 
+### Changed
+
+- issue #79 refactored ExpectPaths and ExpectAces checks to account for delayed SlingInstallable effects.
+
 ### Fixed
 
 - issue #59 provide a default, empty resource bundle for a SimpleProgressCheck extension when a bundle cannot be found for the returned resource bundle name.
