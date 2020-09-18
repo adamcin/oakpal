@@ -90,6 +90,9 @@ import static net.adamcin.oakpal.api.Fun.zipKeysWithValueFunc;
  * <dt>{@code afterPackageIdRules}</dt>
  * <dd>({@code Rule[]}) An optional list of patterns describing the scope of package IDs that should trigger evaluation
  * of ACLs after extraction. By default, the expectations will be evaluated after every package is installed.</dd>
+ * <dt>{@code ignoreNestedPackages}</dt>
+ * <dd>(since 2.2.2) By default, expectations are evaluated for all packages matching the {@code afterPackageIdRules}. Set this to
+ * true to only evaluate after extracting and again after scanning a matching root package.</dd>
  * <dt>{@code severity}</dt>
  * <dd>By default, the severity of violations created by this check is MAJOR, but can be set to MINOR or SEVERE.</dd>
  * </dl>
@@ -365,8 +368,8 @@ public final class ExpectAces implements ProgressCheckFactory {
          * @param inspectSession    the JCR session to inspect for conformance to configured expectations
          * @throws RepositoryException if JCR error occurs during validation
          */
-        void blameViolatorsForMissedExpectations(final @NotNull Collection<PackageId> possibleViolators,
-                                                 final @NotNull Session inspectSession) throws RepositoryException {
+        void validateExpectations(final @NotNull Collection<PackageId> possibleViolators,
+                                  final @NotNull Session inspectSession) throws RepositoryException {
             final JackrabbitAccessControlManager aclManager =
                     (JackrabbitAccessControlManager) inspectSession.getAccessControlManager();
             final Map<String, List<AceCriteria>> expectedsByPath = groupCriteriaByPath(expectedAces);
@@ -416,7 +419,7 @@ public final class ExpectAces implements ProgressCheckFactory {
         @Override
         public void afterExtract(final PackageId packageId, final Session inspectSession) throws RepositoryException {
             if (shouldExpectAfterExtract(packageId)) {
-                blameViolatorsForMissedExpectations(graph.getSelfAndAncestors(packageId), inspectSession);
+                validateExpectations(graph.getSelfAndAncestors(packageId), inspectSession);
             }
         }
 
@@ -435,7 +438,7 @@ public final class ExpectAces implements ProgressCheckFactory {
                                            final SlingInstallable slingInstallable, final Session inspectSession)
                 throws RepositoryException {
             if (shouldExpectAfterExtract(slingInstallable.getParentId())) {
-                blameViolatorsForMissedExpectations(graph.getSelfAndAncestors(slingInstallable.getParentId()),
+                validateExpectations(graph.getSelfAndAncestors(slingInstallable.getParentId()),
                         inspectSession);
             }
         }
@@ -453,7 +456,7 @@ public final class ExpectAces implements ProgressCheckFactory {
         public void afterScanPackage(final PackageId scanPackageId, final Session inspectSession)
                 throws RepositoryException {
             if (ignoreNestedPackages && shouldExpectAfterExtract(scanPackageId)) {
-                blameViolatorsForMissedExpectations(graph.getSelfAndDescendants(scanPackageId), inspectSession);
+                validateExpectations(graph.getSelfAndDescendants(scanPackageId), inspectSession);
             }
         }
 
