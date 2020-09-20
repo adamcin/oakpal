@@ -989,9 +989,11 @@ public final class OakMachine {
                 for (final String repoInitScript : initScripts.getScripts()) {
                     try (Reader reader = new StringReader(repoInitScript)) {
                         repoInitProcessor.apply(admin, reader);
+                        admin.save();
                     } catch (final Exception e) {
                         getErrorListener().onSlingRepoInitScriptsError(e, initScripts.getScripts(),
                                 repoInitScript, installable);
+                        Fun.<Session>uncheckVoid1(session -> session.refresh(false)).accept(admin);
                     }
                 }
                 propagateCheckPackageEvent(preInstall, installable.getParentId(),
