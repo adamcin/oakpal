@@ -439,20 +439,24 @@ public final class InitStage {
                     }
                 }));
 
-        repoInitUrls.stream().forEachOrdered(repoinitUrl -> {
+        repoInitUrls.stream().forEachOrdered(uncheckVoid1(repoinitUrl -> {
             try (final InputStream repoinitInput = repoinitUrl.openStream();
                  final Reader repoinitReader = new InputStreamReader(repoinitInput, StandardCharsets.UTF_8)) {
                 repoInitProcessor.apply(admin, repoinitReader);
+                admin.save();
             } catch (Exception e) {
                 errorListener.onRepoInitUrlError(e, repoinitUrl);
+                admin.refresh(false);
             }
-        });
+        }));
 
         if (!repoInits.isEmpty()) {
             try (Reader repoinitReader = new StringReader(String.join("\n", repoInits))) {
                 repoInitProcessor.apply(admin, repoinitReader);
+                admin.save();
             } catch (Exception e) {
                 errorListener.onRepoInitInlineError(e, repoInits);
+                admin.refresh(false);
             }
         }
     }
