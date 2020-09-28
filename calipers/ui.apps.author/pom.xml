@@ -21,7 +21,7 @@
     <parent>
         <groupId>net.adamcin.oakpal</groupId>
         <artifactId>oakpal-calipers</artifactId>
-        <version>2.2.2-SNAPSHOT</version>
+        <version>2.2.2</version>
     </parent>
 
     <artifactId>oakpal-caliper.ui.apps.author</artifactId>
@@ -36,7 +36,7 @@
         <url>https://github.com/adamcin/oakpal</url>
         <developerConnection>scm:git:git@github.com:adamcin/oakpal.git</developerConnection>
         <connection>scm:git://github.com/adamcin/oakpal.git</connection>
-        <tag>HEAD</tag>
+        <tag>v2.2.2</tag>
     </scm>
 
     <!-- ====================================================================== -->
@@ -81,13 +81,13 @@
         <dependency>
             <groupId>net.adamcin.oakpal</groupId>
             <artifactId>oakpal-caliper.ui.apps</artifactId>
-            <version>2.2.2-SNAPSHOT</version>
+            <version>2.2.2</version>
             <type>zip</type>
         </dependency>
         <dependency>
             <groupId>net.adamcin.oakpal</groupId>
             <artifactId>oakpal-caliper.ui.apps.structure</artifactId>
-            <version>2.2.2-SNAPSHOT</version>
+            <version>2.2.2</version>
             <type>zip</type>
         </dependency>
     </dependencies>
