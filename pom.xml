@@ -70,40 +70,25 @@
     <properties>
         <encoding>UTF-8</encoding>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>
-        <slf4j.version>1.7.21</slf4j.version>
+        <maven.compiler.source>11</maven.compiler.source>
+        <maven.compiler.target>11</maven.compiler.target>
+        <slf4j.version>1.7.36</slf4j.version>
         <!-- the filevault and jackrabbit versions should be kept in sync -->
         <!-- see org.apache.jackrabbit.vault:parent for referenced jackrabbit.version property -->
-        <vault-api.version>3.4.4</vault-api.version>
-        <jackrabbit.version>2.20.0</jackrabbit.version>
+        <vault-api.version>3.7.2</vault-api.version>
+        <jackrabbit.version>2.20.13</jackrabbit.version>
         <!-- it is probably a good habit to stay at the latest even (not odd) minor release version of oak,
         So if latest version is 1.9.x try to stay at 1.8.max -->
-        <oak.version>1.26.0</oak.version>
+        <oak.version>1.58.0</oak.version>
         <!-- override this to set debugForkedProcess for oakpal-maven-plugin -->
         <debug.oakpal-maven-plugin />
-        <vault.test-packages.src>vault-core/src/test/resources/test-packages</vault.test-packages.src>
+        <vault.test-packages.src>vault-core-it/vault-core-integration-tests/src/main/resources/test-packages</vault.test-packages.src>
     </properties>
 
     <issueManagement>
         <system>github</system>
         <url>https://github.com/adamcin/oakpal/issues/</url>
     </issueManagement>
-
-    <developers>
-        <developer>
-            <id>madamcin</id>
-            <name>Mark Adamcin</name>
-            <email>adamcin@gmail.com</email>
-            <url>http://adamcin.net</url>
-            <organization>Bounteous</organization>
-            <organizationUrl>https://www.bounteous.com</organizationUrl>
-            <roles>
-                <role>architect</role>
-                <role>developer</role>
-            </roles>
-        </developer>
-    </developers>
 
     <licenses>
         <license>
@@ -182,7 +167,7 @@
                 </plugin>
                 <plugin>
                     <artifactId>maven-compiler-plugin</artifactId>
-                    <version>2.3.1</version>
+                    <version>3.11.0</version>
                     <configuration>
                         <source>${maven.compiler.source}</source>
                         <target>${maven.compiler.target}</target>
@@ -196,12 +181,12 @@
                 <plugin>
                     <groupId>biz.aQute.bnd</groupId>
                     <artifactId>bnd-maven-plugin</artifactId>
-                    <version>4.1.0</version>
+                    <version>6.4.0</version>
                 </plugin>
                 <plugin>
                     <groupId>biz.aQute.bnd</groupId>
                     <artifactId>bnd-baseline-maven-plugin</artifactId>
-                    <version>4.1.0</version>
+                    <version>6.4.0</version>
                     <configuration>
                         <failOnMissing>false</failOnMissing>
                     </configuration>
@@ -210,6 +195,11 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-surefire-plugin</artifactId>
                     <version>2.22.1</version>
+                    <configuration>
+                        <systemPropertyVariables>
+                            <polyglot.engine.WarnInterpreterOnly>false</polyglot.engine.WarnInterpreterOnly>
+                        </systemPropertyVariables>
+                    </configuration>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -392,7 +382,7 @@
                     <plugin>
                         <groupId>com.ragedunicorn.tools.maven</groupId>
                         <artifactId>github-release-maven-plugin</artifactId>
-                        <version>1.0.1</version>
+                        <version>1.0.6</version>
                         <inherited>false</inherited>
                         <executions>
                             <execution>
@@ -490,12 +480,12 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-project-info-reports-plugin</artifactId>
-                <version>3.0.0</version>
+                <version>3.4.5</version>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
-                <version>3.1.0</version>
+                <version>3.5.0</version>
             </plugin>
         </plugins>
     </reporting>
@@ -637,12 +627,23 @@
                 <artifactId>slf4j-api</artifactId>
                 <version>${slf4j.version}</version>
             </dependency>
+            <dependency>
+                <groupId>org.graalvm.js</groupId>
+                <artifactId>js-scriptengine</artifactId>
+                <version>23.0.1</version>
+            </dependency>
+            <dependency>
+                <groupId>org.graalvm.js</groupId>
+                <artifactId>js</artifactId>
+                <version>23.0.1</version>
+                <scope>runtime</scope>
+            </dependency>
 
             <!-- unit test dependencies -->
             <dependency>
                 <groupId>org.mockito</groupId>
                 <artifactId>mockito-core</artifactId>
-                <version>3.3.3</version>
+                <version>4.6.1</version>
                 <scope>test</scope>
             </dependency>
             <dependency>

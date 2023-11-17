@@ -102,7 +102,7 @@ import static net.adamcin.oakpal.core.repoinit.DefaultRepoInitFactory.newDefault
  * Entry point for OakPAL Acceptance Library. See {@link ProgressCheck} for the event listener interface.
  */
 public final class OakMachine {
-    public static final String NS_URI_OAKPAL = "oakpaltmp";
+    public static final String NS_URI_OAKPAL = "http://adamcin.net/oakpaltmp";
     public static final String NS_PREFIX_OAKPAL = "oakpaltmp";
     public static final String LN_UNDECLARED = "Undeclared";
     public static final String NT_UNDECLARED = "{" + NS_URI_OAKPAL + "}" + LN_UNDECLARED;
@@ -1175,10 +1175,10 @@ public final class OakMachine {
     }
 
     public static Packaging newOakpalPackagingService() {
-        return new DefaultPackagingService();
+        return DefaultPackagingService.newInstance(DefaultPackagingService.class.getClassLoader());
     }
 
     public static Packaging newOakpalPackagingService(final @NotNull ClassLoader classLoader) {
-        return new DefaultPackagingService(classLoader);
+        return DefaultPackagingService.newInstance(classLoader);
     }
 }

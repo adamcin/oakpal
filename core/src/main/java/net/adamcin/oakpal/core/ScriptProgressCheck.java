@@ -17,6 +17,7 @@
 package net.adamcin.oakpal.core;
 
 import net.adamcin.oakpal.api.EmbeddedPackageInstallable;
+import net.adamcin.oakpal.api.Fun;
 import net.adamcin.oakpal.api.JavaxJson;
 import net.adamcin.oakpal.api.PathAction;
 import net.adamcin.oakpal.api.ProgressCheck;
@@ -44,17 +45,19 @@ import javax.script.ScriptContext;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
-import javax.script.SimpleBindings;
-import javax.script.SimpleScriptContext;
 import java.io.File;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.Reader;
+import java.io.StringReader;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.ResourceBundle;
 import java.util.Set;
 import java.util.jar.Manifest;
@@ -119,6 +122,8 @@ public final class ScriptProgressCheck implements ProgressCheck {
     public static final String INVOKE_ON_AFTER_SCAN_PACKAGE = "afterScanPackage";
     public static final String INVOKE_ON_FINISHED_SCAN = "finishedScan";
     public static final String INVOKE_GET_CHECK_NAME = "getCheckName";
+    private static final String GRAAL_JS_PROXY_OBJECT_CLASS = "org.graalvm.polyglot.proxy.ProxyObject";
+    private static final String GRAAL_JS_PROXY_OBJECT_METHOD_FROM_MAP = "fromMap";
 
     private final Invocable script;
     private final ScriptHelper helper;
@@ -371,73 +376,77 @@ public final class ScriptProgressCheck implements ProgressCheck {
      */
     static class ScriptProgressCheckFactory implements ProgressCheckFactory {
 
-        private final ScriptEngine engine;
+        private final Fun.ThrowingSupplier<ScriptEngine> engineSupplier;
         private final URL scriptUrl;
 
-        private ScriptProgressCheckFactory(final @NotNull ScriptEngine engine, final @NotNull URL scriptUrl) {
-            this.engine = engine;
+        private ScriptProgressCheckFactory(final @NotNull Fun.ThrowingSupplier<ScriptEngine> engineSupplier,
+                                           final @NotNull URL scriptUrl) {
+            this.engineSupplier = engineSupplier;
             this.scriptUrl = scriptUrl;
         }
 
         ScriptEngine getEngine() {
-            return engine;
+            return Fun.uncheck0(engineSupplier).get();
         }
 
         @Override
         public ProgressCheck newInstance(final JsonObject config) throws Exception {
-            try (InputStream is = scriptUrl.openStream()) {
-                Bindings scriptBindings = new SimpleBindings();
-                if (config != null) {
-                    scriptBindings.put(BINDING_CHECK_CONFIG, JavaxJson.unwrapObject(config));
-                } else {
-                    scriptBindings.put(BINDING_CHECK_CONFIG, Collections.<String, Object>emptyMap());
-                }
-                final ScriptHelper helper = new ScriptHelper();
-                scriptBindings.put(BINDING_SCRIPT_HELPER, helper);
-                engine.setContext(contextWithBindings(scriptBindings));
-                engine.eval(new InputStreamReader(is, StandardCharsets.UTF_8));
-                return new ScriptProgressCheck((Invocable) engine, helper, scriptUrl);
+            final ScriptEngine engine = engineSupplier.tryGet();
+            try (InputStream is = scriptUrl.openStream();
+                 Reader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
+                return internalNewInstance(engine, reader, scriptUrl, config);
             }
         }
     }
 
-    private static ScriptContext contextWithBindings(final Bindings bindings) {
-        ScriptContext context = new SimpleScriptContext();
-        context.setBindings(bindings, ScriptContext.ENGINE_SCOPE);
+    private static void initContext(ScriptContext context) {
         context.setWriter(context.getErrorWriter());
-        return context;
+    }
+
+    private static ScriptProgressCheck internalNewInstance(@NotNull ScriptEngine engine,
+                                                           @NotNull Reader reader,
+                                                           URL scriptUrl,
+                                                           JsonObject config) throws Exception {
+        final Bindings scriptBindings = engine.getBindings(ScriptContext.ENGINE_SCOPE);
+        final Map<String, Object> configMap = Optional.ofNullable(config)
+                .map(JavaxJson::unwrapObject).orElse(Collections.emptyMap());
+        Object value = wrapForGraalIfNecessary(engine, configMap);
+        scriptBindings.put(BINDING_CHECK_CONFIG, value);
+        final ScriptHelper helper = new ScriptHelper();
+        scriptBindings.put(BINDING_SCRIPT_HELPER, helper);
+        initContext(engine.getContext());
+        engine.eval(reader);
+        return new ScriptProgressCheck((Invocable) engine, helper, scriptUrl);
+    }
+
+    private static Object wrapForGraalIfNecessary(@NotNull ScriptEngine engine, @NotNull Map<String, Object> configMap) throws Exception {
+        return ("Graal.js".equals(engine.getFactory().getEngineName()))
+                ? Class.forName(GRAAL_JS_PROXY_OBJECT_CLASS).getMethod(GRAAL_JS_PROXY_OBJECT_METHOD_FROM_MAP, Map.class).invoke(null, configMap) : configMap;
     }
 
     private static class InlineScriptProgressCheckFactory implements ProgressCheckFactory {
-        private ScriptEngine engine;
+        private Fun.ThrowingSupplier<ScriptEngine> engineSupplier;
         private final String source;
 
-        private InlineScriptProgressCheckFactory(final @NotNull ScriptEngine engine, final @NotNull String source) {
-            this.engine = engine;
+        private InlineScriptProgressCheckFactory(final @NotNull Fun.ThrowingSupplier<ScriptEngine> engineSupplier,
+                                                 final @NotNull String source) {
+            this.engineSupplier = engineSupplier;
             this.source = source;
         }
 
         @Override
         public ProgressCheck newInstance(final JsonObject config) throws Exception {
-            Bindings scriptBindings = new SimpleBindings();
-            if (config != null) {
-                scriptBindings.put(BINDING_CHECK_CONFIG, JavaxJson.unwrapObject(config));
-            } else {
-                scriptBindings.put(BINDING_CHECK_CONFIG, Collections.<String, Object>emptyMap());
+            final ScriptEngine engine = engineSupplier.tryGet();
+            try (Reader reader = new StringReader(this.source)) {
+                return internalNewInstance(engine, reader, null, config);
             }
-            final ScriptHelper helper = new ScriptHelper();
-            scriptBindings.put(BINDING_SCRIPT_HELPER, helper);
-            engine.setContext(contextWithBindings(scriptBindings));
-            engine.eval(this.source);
-            return new ScriptProgressCheck((Invocable) engine, helper, null);
         }
     }
 
     public static ProgressCheckFactory createScriptCheckFactory(final @NotNull URL scriptUrl) throws Exception {
-        return createClassLoaderScriptCheckFactory(scriptUrl, null);
+        return createClassLoaderScriptCheckFactory(scriptUrl, Util.getDefaultClassLoader());
     }
 
-    // TODO make public in 2.3.0
     static ProgressCheckFactory createClassLoaderScriptCheckFactory(final @NotNull URL scriptUrl,
                                                                     final @Nullable ClassLoader classLoader) throws Exception {
         final int lastPeriod = scriptUrl.getPath().lastIndexOf(".");
@@ -447,12 +456,26 @@ public final class ScriptProgressCheck implements ProgressCheck {
         } else {
             ext = scriptUrl.getPath().substring(lastPeriod + 1);
         }
-        ScriptEngine engine = new ScriptEngineManager(classLoader).getEngineByExtension(ext);
-        if (engine == null) {
-            throw new UnregisteredScriptEngineNameException(ext,
-                    "Failed to find a ScriptEngine for URL extension: " + scriptUrl.toString());
-        }
-        return createScriptCheckFactory(engine, scriptUrl);
+        final Fun.ThrowingSupplier<ScriptEngine> engineSupplier = () -> {
+            final ScriptEngineManager scriptEngineManager = new ScriptEngineManager(classLoader);
+            final ScriptEngine engine;
+            if (DEFAULT_SCRIPT_ENGINE_EXTENSION.equals(ext)) {
+                // engine = new GraalJSEngineFactory().getScriptEngine();
+                engine = scriptEngineManager.getEngineByExtension(ext);
+                final Bindings scriptBindings = engine.getBindings(ScriptContext.ENGINE_SCOPE);
+                scriptBindings.put("polyglot.js.nashorn-compat", true);
+                scriptBindings.put("polyglot.engine.WarnInterpreterOnly", false);
+            } else {
+                engine = scriptEngineManager.getEngineByExtension(ext);
+            }
+            if (engine == null) {
+                throw new UnregisteredScriptEngineNameException(ext,
+                        "Failed to find a ScriptEngine for URL extension: " + ext + " - " + scriptUrl);
+            }
+            return engine;
+        };
+
+        return new ScriptProgressCheckFactory(engineSupplier, scriptUrl);
     }
 
     @SuppressWarnings("WeakerAccess")
@@ -482,7 +505,6 @@ public final class ScriptProgressCheck implements ProgressCheck {
         return createClassLoaderScriptCheckFactory(engineName, scriptUrl, Util.getDefaultClassLoader());
     }
 
-    // TODO make public in 2.3.0
     @SuppressWarnings("WeakerAccess")
     static ProgressCheckFactory createClassLoaderScriptCheckFactory(final @NotNull String engineName,
                                                                     final @NotNull URL scriptUrl,
@@ -498,32 +520,36 @@ public final class ScriptProgressCheck implements ProgressCheck {
     @SuppressWarnings("WeakerAccess")
     public static ProgressCheckFactory createScriptCheckFactory(final @NotNull ScriptEngine engine,
                                                                 final @NotNull URL scriptUrl) {
-        return new ScriptProgressCheckFactory(engine, scriptUrl);
+        return new ScriptProgressCheckFactory(() -> engine, scriptUrl);
     }
 
     @SuppressWarnings("WeakerAccess")
     public static ProgressCheckFactory createInlineScriptCheckFactory(final @NotNull String inlineScript,
-                                                                      final @Nullable String inlineEngine)
-            throws UnregisteredScriptEngineNameException {
+                                                                      final @Nullable String inlineEngine) {
         return createClassLoaderInlineScriptCheckFactory(inlineScript, inlineEngine, Util.getDefaultClassLoader());
     }
 
-    // TODO make public in 2.3.0
     @SuppressWarnings("WeakerAccess")
     static ProgressCheckFactory createClassLoaderInlineScriptCheckFactory(final @NotNull String inlineScript,
                                                                           final @Nullable String inlineEngine,
-                                                                          final @Nullable ClassLoader classLoader)
-            throws UnregisteredScriptEngineNameException {
-        final ScriptEngine engine;
-        if (isEmpty(inlineEngine)) {
-            engine = new ScriptEngineManager(classLoader).getEngineByExtension(DEFAULT_SCRIPT_ENGINE_EXTENSION);
-        } else {
-            engine = new ScriptEngineManager(classLoader).getEngineByName(inlineEngine);
-        }
-        if (engine == null) {
-            throw new UnregisteredScriptEngineNameException(inlineEngine);
-        }
+                                                                          final @Nullable ClassLoader classLoader) {
 
-        return new InlineScriptProgressCheckFactory(engine, inlineScript);
+        final Fun.ThrowingSupplier<ScriptEngine> engineSupplier = () -> {
+            final ScriptEngine engine;
+            if (isEmpty(inlineEngine)) {
+                engine = new ScriptEngineManager(classLoader).getEngineByExtension(DEFAULT_SCRIPT_ENGINE_EXTENSION);
+                final Bindings scriptBindings = engine.getBindings(ScriptContext.ENGINE_SCOPE);
+                scriptBindings.put("polyglot.js.nashorn-compat", true);
+                scriptBindings.put("polyglot.engine.WarnInterpreterOnly", false);
+            } else {
+                engine = new ScriptEngineManager(classLoader).getEngineByName(inlineEngine);
+            }
+            if (engine == null) {
+                throw new UnregisteredScriptEngineNameException(inlineEngine);
+            }
+            return engine;
+        };
+
+        return new InlineScriptProgressCheckFactory(engineSupplier, inlineScript);
     }
 }

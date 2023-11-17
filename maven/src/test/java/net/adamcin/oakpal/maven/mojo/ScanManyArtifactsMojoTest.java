@@ -17,7 +17,6 @@
 package net.adamcin.oakpal.maven.mojo;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.derby.iapi.services.io.FileUtil;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.execution.MavenExecutionRequest;
 import org.apache.maven.execution.MavenSession;
@@ -32,7 +31,6 @@ import java.util.Collections;
 import java.util.List;
 
 import static org.junit.Assert.*;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 

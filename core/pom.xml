@@ -22,6 +22,7 @@
         <groupId>net.adamcin.oakpal</groupId>
         <artifactId>oakpal</artifactId>
         <version>2.2.3-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
     </parent>
 
     <artifactId>oakpal-core</artifactId>
@@ -124,7 +125,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
-                <version>3.2.1</version>
+                <version>3.5.0</version>
                 <executions>
                     <execution>
                         <phase>package</phase>
@@ -168,6 +169,12 @@
                                         <include>org/apache/sling/installer/api/InstallableResource*</include>
                                         <include>org/apache/felix/cm/file/ConfigurationHandler*</include>
                                     </includes>
+                                </filter>
+                                <filter>
+                                    <artifact>org.apache.felix:org.apache.felix.cm.json</artifact>
+                                    <excludes>
+                                        <exclude>META-INF/MANIFEST.MF</exclude>
+                                    </excludes>
                                 </filter>
                                 <filter>
                                     <artifact>org.apache.felix:org.apache.felix.converter</artifact>
@@ -322,6 +329,17 @@
             <scope>compile</scope>
         </dependency>
 
+        <dependency>
+            <groupId>org.graalvm.js</groupId>
+            <artifactId>js-scriptengine</artifactId>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.graalvm.js</groupId>
+            <artifactId>js</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
         <!-- testing -->
         <dependency>
             <groupId>junit</groupId>
@@ -360,6 +378,16 @@
             <artifactId>junit-addons</artifactId>
             <version>1.4</version>
             <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <artifactId>xercesImpl</artifactId>
+                    <groupId>xerces</groupId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>xmlParserAPIs</artifactId>
+                    <groupId>xerces</groupId>
+                </exclusion>
+            </exclusions>
         </dependency>
     </dependencies>
 </project>

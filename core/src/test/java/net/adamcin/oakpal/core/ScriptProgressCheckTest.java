@@ -21,7 +21,6 @@ import net.adamcin.oakpal.api.PathAction;
 import net.adamcin.oakpal.api.ProgressCheck;
 import net.adamcin.oakpal.api.ProgressCheckFactory;
 import net.adamcin.oakpal.api.SlingInstallable;
-import net.adamcin.oakpal.core.sling.SlingRepoInitScripts;
 import net.adamcin.oakpal.api.Severity;
 import net.adamcin.oakpal.api.Violation;
 import org.apache.jackrabbit.vault.fs.config.MetaInf;
@@ -78,17 +77,19 @@ public class ScriptProgressCheckTest {
         assertEquals("checkJs filename", ScriptProgressCheck.FILENAME_INLINE_SCRIPT, checkJs.getCheckName());
 
         final ProgressCheckFactory checkConfigFactory = ScriptProgressCheck
-                .createInlineScriptCheckFactory("function getCheckName() { return config.checkNameForTest; }", "js");
+                .createInlineScriptCheckFactory("var config; function getCheckName() { return config.checkNameForTest; }", "js");
 
         assertEquals("checkConfig filename when null config",
                 ScriptProgressCheck.FILENAME_INLINE_SCRIPT, checkConfigFactory.newInstance(null).getCheckName());
-        assertEquals("checkConfig foobar when null config",
+
+        assertEquals("checkConfig foobar when not-null config",
                 "foobar", checkConfigFactory.newInstance(key("checkNameForTest", "foobar").get()).getCheckName());
     }
 
     @Test(expected = ScriptProgressCheck.UnregisteredScriptEngineNameException.class)
     public void testCreateInlineScriptCheckFactory_unregisteredEngine() throws Exception {
-        ScriptProgressCheck.createInlineScriptCheckFactory("", "foobar");
+        ProgressCheckFactory checkFactory = ScriptProgressCheck.createInlineScriptCheckFactory("", "foobar");
+        checkFactory.newInstance(null);
     }
 
     @Test
@@ -188,7 +189,8 @@ public class ScriptProgressCheckTest {
 
     @Test(expected = ScriptProgressCheck.UnregisteredScriptEngineNameException.class)
     public void testCreateScriptCheckFactory_unregisteredEngine_byURL() throws Exception {
-        ScriptProgressCheck.createScriptCheckFactory(new File(srcDir, "bogus_script.foobar").toURI().toURL());
+        ProgressCheckFactory checkFactory = ScriptProgressCheck.createScriptCheckFactory(new File(srcDir, "bogus_script.foobar").toURI().toURL());
+        checkFactory.newInstance(null);
     }
 
     @Test
