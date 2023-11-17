@@ -29,13 +29,14 @@ import org.slf4j.LoggerFactory;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
+import java.lang.reflect.Proxy;
 
 /**
  * ClassLoader proxy for {@link PackagingService}, to side step the deprecated
  * {@link PackagingService#getPackageManager(Session)} method to avoid the nasty stack trace.
  * See recommendation here: https://issues.apache.org/jira/browse/JCRVLT-285
  */
-final class DefaultPackagingService implements Packaging {
+final class DefaultPackagingService {
     private static final Logger LOGGER = LoggerFactory.getLogger(DefaultPackagingService.class);
     private static final String JCR_PACK_MAN_IMPL_CLASS = "org.apache.jackrabbit.vault.packaging.impl.JcrPackageManagerImpl";
 
@@ -69,12 +70,10 @@ final class DefaultPackagingService implements Packaging {
         }
     }
 
-    @Override
     public PackageManager getPackageManager() {
         return PackagingService.getPackageManager();
     }
 
-    @Override
     public JcrPackageManager getPackageManager(final Session session) {
         if (jcrPackageManagerClazz != null) {
             try {
@@ -87,13 +86,29 @@ final class DefaultPackagingService implements Packaging {
         return PackagingService.getPackageManager(session);
     }
 
-    @Override
     public JcrPackageDefinition createPackageDefinition(final Node defNode) {
         return PackagingService.createPackageDefinition(defNode);
     }
 
-    @Override
     public JcrPackage open(final Node node, final boolean allowInvalid) throws RepositoryException {
         return PackagingService.open(node, allowInvalid);
+    }
+
+    static Packaging newInstance(final @NotNull ClassLoader classLoader) {
+        final DefaultPackagingService instance = new DefaultPackagingService(classLoader);
+        return (Packaging) Proxy.newProxyInstance(classLoader, new Class<?>[]{Packaging.class},
+                (proxy, method, args) -> {
+                    if ("getPackageManager".equals(method.getName()) && (args == null || args.length == 0)) {
+                        return instance.getPackageManager();
+                    } else if ("getPackageManager".equals(method.getName()) && args[0] instanceof Session) {
+                        return instance.getPackageManager((Session) args[0]);
+                    } else if ("createPackageDefinition".equals(method.getName()) && args[0] instanceof Node) {
+                        return instance.createPackageDefinition((Node) args[0]);
+                    } else if ("open".equals(method.getName()) && args[0] instanceof Node && args[1] instanceof Boolean) {
+                        return instance.open((Node) args[0], (Boolean) args[1]);
+                    } else {
+                        throw new UnsupportedOperationException("method not implemented: " + method);
+                    }
+                });
     }
 }

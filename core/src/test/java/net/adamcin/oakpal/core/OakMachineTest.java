@@ -17,16 +17,15 @@
 package net.adamcin.oakpal.core;
 
 import junitx.util.PrivateAccessor;
+import net.adamcin.oakpal.api.EmbeddedPackageInstallable;
 import net.adamcin.oakpal.api.Fun;
 import net.adamcin.oakpal.api.OsgiConfigInstallable;
 import net.adamcin.oakpal.api.PathAction;
 import net.adamcin.oakpal.api.ProgressCheck;
 import net.adamcin.oakpal.api.SilenceableCheck;
 import net.adamcin.oakpal.api.SimpleProgressCheck;
-import net.adamcin.oakpal.api.EmbeddedPackageInstallable;
-import net.adamcin.oakpal.api.Violation;
-import net.adamcin.oakpal.core.sling.SlingRepoInitScripts;
 import net.adamcin.oakpal.api.SlingInstallable;
+import net.adamcin.oakpal.core.sling.SlingRepoInitScripts;
 import net.adamcin.oakpal.core.sling.SlingSimulatorBackend;
 import net.adamcin.oakpal.testing.TestPackageUtil;
 import org.apache.commons.io.FileUtils;
@@ -55,6 +54,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.quality.Strictness;
 
 import javax.jcr.Binary;
 import javax.jcr.NamespaceRegistry;
@@ -65,6 +65,8 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.InputStream;
 import java.io.Reader;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -74,12 +76,10 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
-import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
@@ -96,12 +96,10 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.anyBoolean;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
@@ -162,8 +160,26 @@ public class OakMachineTest {
     @Test
     public void testBuildWithPackagingService() throws Exception {
         final File testPackage = TestPackageUtil.prepareTestPackage("null-dependency-test.zip");
-        assertTrue("no errors", builder().withPackagingService(new PackagingImpl()).build()
-                .scanPackage(testPackage).get(0).getViolations().isEmpty());
+        PackagingImpl packagingService = new PackagingImpl();
+        Optional<Class<?>> configType = Stream.of(PackagingImpl.class.getClasses())
+                .filter(type -> type.isAnnotation() && type.getSimpleName().endsWith("Config"))
+                .findFirst();
+        if (configType.isPresent()) {
+            try {
+                Class<?> type = configType.get();
+                Method activate = PackagingImpl.class.getDeclaredMethod("activate", type);
+                activate.setAccessible(true);
+                Object config = Proxy.newProxyInstance(PackagingImpl.class.getClassLoader(), new Class<?>[]{type},
+                        (proxy, method, args) -> {
+                            return method.getDefaultValue();
+                        });
+                activate.invoke(packagingService, config);
+            } catch (NoSuchMethodException e) {
+                throw new RuntimeException(e);
+            }
+            assertTrue("no errors", builder().withPackagingService(new PackagingImpl()).build()
+                    .scanPackage(testPackage).get(0).getViolations().isEmpty());
+        }
     }
 
     @Test
@@ -171,9 +187,9 @@ public class OakMachineTest {
         InitStage stage = new InitStage.Builder().withNs("foo", "http://foo.com").build();
         builder().withInitStage(stage).withInitStage((InitStage[]) null).withInitStages(null)
                 .build().initAndInspect(session -> {
-            assertEquals("expect namespace uri",
-                    session.getNamespaceURI("foo"), "http://foo.com");
-        });
+                    assertEquals("expect namespace uri",
+                            session.getNamespaceURI("foo"), "http://foo.com");
+                });
     }
 
     @Test
@@ -194,9 +210,9 @@ public class OakMachineTest {
         builder().withErrorListener(null).withErrorListener(errorListener)
                 .withInitStage(new InitStage.Builder().withNs("jcr", "http://foo.com").build())
                 .build().initAndInspect(session -> {
-            assertEquals("jcr namespace is mapped correctly",
-                    NamespaceRegistry.NAMESPACE_JCR, session.getNamespaceURI("jcr"));
-        });
+                    assertEquals("jcr namespace is mapped correctly",
+                            NamespaceRegistry.NAMESPACE_JCR, session.getNamespaceURI("jcr"));
+                });
         assertEquals("latch entry equals", toEntry("jcr", "http://foo.com"), latch.getNow(toEntry("", "")));
     }
 
@@ -207,8 +223,8 @@ public class OakMachineTest {
         builder().withPreInstallPackage((File[]) null)
                 .withPreInstallPackage(testPackage)
                 .build().initAndInspect(session -> {
-            assertTrue("path should exist", session.nodeExists("/tmp/foo/bar"));
-        });
+                    assertTrue("path should exist", session.nodeExists("/tmp/foo/bar"));
+                });
     }
 
     @SuppressWarnings("deprecation")
@@ -218,8 +234,8 @@ public class OakMachineTest {
         builder().withPreInstallPackages(null)
                 .withPreInstallPackages(Collections.singletonList(testPackage))
                 .build().initAndInspect(session -> {
-            assertTrue("path should exist", session.nodeExists("/tmp/foo/bar"));
-        });
+                    assertTrue("path should exist", session.nodeExists("/tmp/foo/bar"));
+                });
     }
 
     @Test
@@ -265,8 +281,8 @@ public class OakMachineTest {
                 .withPreInstallUrl(testPackage.toURI().toURL(), badInstallHookPackage.toURI().toURL())
                 .withInstallHookProcessorFactory(() -> processor)
                 .build().initAndInspect(session -> {
-            assertTrue("path should exist", session.nodeExists("/tmp/foo/bar"));
-        });
+                    assertTrue("path should exist", session.nodeExists("/tmp/foo/bar"));
+                });
     }
 
     @Test
@@ -284,9 +300,9 @@ public class OakMachineTest {
                 .withPreInstallUrl(testPackage.toURI().toURL(), badInstallHookPackage.toURI().toURL())
                 .withInstallHookProcessorFactory(() -> processor)
                 .build().initAndInspect(session -> {
-            assertTrue("path should exist", session.nodeExists("/tmp/foo/bar"));
-            assertTrue("hook processor was called", latch.getNow(false));
-        });
+                    assertTrue("path should exist", session.nodeExists("/tmp/foo/bar"));
+                    assertTrue("hook processor was called", latch.getNow(false));
+                });
     }
 
     @Test
@@ -304,9 +320,9 @@ public class OakMachineTest {
                 .withInstallHookProcessorFactory(() -> processor)
                 .withInstallHookClassLoader(hookClassLoader)
                 .build().initAndInspect(session -> {
-            assertTrue("path should exist", session.nodeExists("/tmp/foo/bar"));
-            assertTrue("hook processor was called with specific class loader", latch.getNow(false));
-        });
+                    assertTrue("path should exist", session.nodeExists("/tmp/foo/bar"));
+                    assertTrue("hook processor was called with specific class loader", latch.getNow(false));
+                });
     }
 
     @Test
@@ -353,7 +369,7 @@ public class OakMachineTest {
     @Test
     public void testBuildAndScanWithInstallHookPolicySkip() throws Exception {
         final File testPackage = TestPackageUtil.prepareTestPackage("tmp_foo_bar.zip");
-        InstallHookProcessor processor = mock(InstallHookProcessor.class, withSettings().lenient());
+        InstallHookProcessor processor = mock(InstallHookProcessor.class, withSettings().strictness(Strictness.LENIENT));
 
         doThrow(new PackageException("shouldn't be thrown")).when(processor)
                 .registerHooks(any(Archive.class), any(ClassLoader.class));
@@ -535,8 +551,8 @@ public class OakMachineTest {
         final ProgressCheck check = mock(ProgressCheck.class);
         final ErrorListener errorListener = mock(ErrorListener.class);
         doThrow(RuntimeException.class).when(check).identifyPackage(
-                any(PackageId.class),
-                any(File.class)
+                nullable(PackageId.class),
+                nullable(File.class)
         );
         final CompletableFuture<Exception> eLatch = new CompletableFuture<>();
         final CompletableFuture<ProgressCheck> handlerLatch = new CompletableFuture<>();
@@ -548,7 +564,8 @@ public class OakMachineTest {
             return true;
         }).when(errorListener).onListenerException(any(Exception.class), any(ProgressCheck.class), any(PackageId.class));
         builder().withProgressCheck(check).withErrorListener(errorListener).build().scanPackage(testPackage);
-        assertTrue("error is of type", eLatch.getNow(null) instanceof RuntimeException);
+        Exception eThrown = eLatch.getNow(null);
+        assertTrue("error is of type RuntimeException: " + eThrown, eThrown instanceof RuntimeException);
         assertSame("same check", check, handlerLatch.getNow(null));
         assertEquals("package id is",
                 PackageId.fromString("my_packages:tmp_foo_bar"), idLatch.getNow(null));
@@ -582,8 +599,8 @@ public class OakMachineTest {
     @Test
     public void testScanOnListenerExceptionFromIdentifySubpackage_silencedTho() throws Exception {
         final File testPackage = TestPackageUtil.prepareTestPackage("subsubtest.zip");
-        final ProgressCheck check = mock(ProgressCheck.class, withSettings().lenient());
-        final ErrorListener errorListener = mock(ErrorListener.class, withSettings().lenient());
+        final ProgressCheck check = mock(ProgressCheck.class, withSettings().strictness(Strictness.LENIENT));
+        final ErrorListener errorListener = mock(ErrorListener.class, withSettings().strictness(Strictness.LENIENT));
         doThrow(RuntimeException.class).when(check).identifySubpackage(
                 any(PackageId.class),
                 any(PackageId.class)
@@ -1001,7 +1018,7 @@ public class OakMachineTest {
         final Session session = mock(Session.class);
         doThrow(RepositoryException.class).when(session).refresh(false);
         // the manager mock will only be accessed on a failure, so we need to be lenient with unused stubs checking
-        final JcrPackageManager manager = mock(JcrPackageManager.class, withSettings().lenient());
+        final JcrPackageManager manager = mock(JcrPackageManager.class, withSettings().strictness(Strictness.LENIENT));
         // if the method reaches the manager.upload() call, we have failed to discard our session changes
         // so we throw a NullPointerException since that is not expected for this test, and not caught by the
         // upload try block
@@ -1016,7 +1033,7 @@ public class OakMachineTest {
         final Session session = mock(Session.class);
         doThrow(RepositoryException.class).when(session).refresh(false);
         // the manager mock will only be accessed on a failure, so we need to be lenient with unused stubs checking
-        final JcrPackageManager manager = mock(JcrPackageManager.class, withSettings().lenient());
+        final JcrPackageManager manager = mock(JcrPackageManager.class, withSettings().strictness(Strictness.LENIENT));
         // if the method reaches the manager.upload() call, we have failed to discard our session changes
         // so we throw a NullPointerException since that is not expected for this test, and not caught by the
         // upload try block

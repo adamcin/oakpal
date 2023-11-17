@@ -22,6 +22,7 @@
         <groupId>net.adamcin.oakpal</groupId>
         <artifactId>oakpal-calipers</artifactId>
         <version>2.2.3-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
     </parent>
 
     <artifactId>oakpal-caliper.ui.content</artifactId>

@@ -25,6 +25,7 @@ import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.AttributesImpl;
 
+import javax.jcr.NamespaceException;
 import javax.jcr.NamespaceRegistry;
 import java.io.File;
 import java.util.Collections;
@@ -118,14 +119,22 @@ public class FileVaultNameFinderTest {
         return finder().new Handler();
     }
 
-    @Test(expected = SAXException.class)
+    @Test(expected = NamespaceException.class)
     public void testHandler_setMapping_nullPrefix() throws Exception {
-        handler().setMapping(null, "http://foo.com");
+        try {
+            handler().setMapping(null, "http://foo.com");
+        } catch (Exception e) {
+            throw (Exception) e.getCause();
+        }
     }
 
-    @Test(expected = SAXException.class)
+    @Test(expected = NamespaceException.class)
     public void testHandler_startPrefixMapping_nullUri() throws Exception {
-        handler().setMapping("nt", null);
+        try {
+            handler().setMapping("nt", null);
+        } catch (Exception e) {
+            throw (Exception) e.getCause();
+        }
     }
 
     @Test
@@ -207,26 +216,4 @@ public class FileVaultNameFinderTest {
         handler.endPrefixMapping("foo");
     }
 
-    @Test(expected = SAXException.class)
-    public void testHandler_createNode() throws Exception {
-        final AttributesImpl attributes = new AttributesImpl();
-        attributes.addAttribute(NamespaceRegistry.NAMESPACE_JCR, "primaryType", "jcr:primaryType", "CDATA", "nt:folder");
-        handler().createNode("name", "label", attributes);
-    }
-
-    @Test
-    public void testHandler_startElement_notDocViewReturnsSuccessfully() throws Exception {
-        FileVaultNameFinder.Handler handler = handler();
-        handler.isDocView = false;
-        handler.startElement(null, null, null, null);
-    }
-
-    @Test
-    public void testHandler_nameFromLabel() {
-        assertEquals("foo name is", "foo", handler().nameFromLabel("foo"));
-        assertEquals("'' name is", "", handler().nameFromLabel(""));
-        assertEquals("foo[] name is", "foo", handler().nameFromLabel("foo[]"));
-        assertEquals("foo[0] name is", "foo", handler().nameFromLabel("foo[0]"));
-        assertEquals("foo[anystringofchars] name is", "foo", handler().nameFromLabel("foo[anystringofchars]"));
-    }
 }

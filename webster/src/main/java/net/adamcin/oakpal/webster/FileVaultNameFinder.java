@@ -17,8 +17,8 @@
 package net.adamcin.oakpal.webster;
 
 import net.adamcin.oakpal.api.Fun;
-import net.adamcin.oakpal.core.JsonCnd;
 import net.adamcin.oakpal.api.Result;
+import net.adamcin.oakpal.core.JsonCnd;
 import org.apache.jackrabbit.spi.Name;
 import org.apache.jackrabbit.spi.PrivilegeDefinition;
 import org.apache.jackrabbit.spi.QNodeTypeDefinition;
@@ -26,33 +26,30 @@ import org.apache.jackrabbit.spi.commons.conversion.DefaultNamePathResolver;
 import org.apache.jackrabbit.spi.commons.conversion.NamePathResolver;
 import org.apache.jackrabbit.spi.commons.namespace.NamespaceMapping;
 import org.apache.jackrabbit.spi.commons.namespace.NamespaceResolver;
-import org.apache.jackrabbit.util.ISO9075;
 import org.apache.jackrabbit.vault.fs.api.VaultInputSource;
 import org.apache.jackrabbit.vault.fs.io.Archive;
+import org.apache.jackrabbit.vault.fs.io.DocViewParser;
+import org.apache.jackrabbit.vault.fs.io.DocViewParserHandler;
 import org.apache.jackrabbit.vault.fs.spi.CNDReader;
 import org.apache.jackrabbit.vault.fs.spi.NodeTypeSet;
 import org.apache.jackrabbit.vault.fs.spi.PrivilegeDefinitions;
 import org.apache.jackrabbit.vault.fs.spi.ServiceProviderFactory;
-import org.apache.jackrabbit.vault.util.DocViewNode;
-import org.apache.jackrabbit.vault.util.DocViewProperty;
+import org.apache.jackrabbit.vault.util.DocViewNode2;
+import org.apache.jackrabbit.vault.util.DocViewProperty2;
 import org.apache.jackrabbit.vault.util.PlatformNameFormat;
-import org.apache.jackrabbit.vault.util.RejectingEntityDefaultHandler;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.xml.sax.Attributes;
-import org.xml.sax.SAXException;
 
 import javax.jcr.NamespaceException;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.parsers.SAXParser;
-import javax.xml.parsers.SAXParserFactory;
+import javax.jcr.RepositoryException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.Objects;
@@ -60,13 +57,15 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
-import java.util.stream.Stream;
 
 import static javax.jcr.PropertyType.NAME;
 import static javax.jcr.PropertyType.STRING;
 import static javax.jcr.PropertyType.UNDEFINED;
+import static net.adamcin.oakpal.api.Fun.result0;
 import static net.adamcin.oakpal.api.Fun.result1;
+import static net.adamcin.oakpal.api.Fun.toEntry;
 import static net.adamcin.oakpal.api.Fun.uncheckVoid1;
+import static net.adamcin.oakpal.api.Fun.uncheckVoid2;
 import static net.adamcin.oakpal.core.JsonCnd.BUILTIN_MAPPINGS;
 
 public final class FileVaultNameFinder {
@@ -140,7 +139,7 @@ public final class FileVaultNameFinder {
         Archive.Entry rootEntry = archive.getJcrRoot();
 
         if (rootEntry != null) {
-            this.search(archive, rootEntry);
+            this.search(archive, rootEntry, null);
         }
 
         Set<QName> subtracted = new LinkedHashSet<>();
@@ -152,11 +151,12 @@ public final class FileVaultNameFinder {
         return subtracted;
     }
 
-    void search(final Archive archive, final Archive.Entry entry)
+    void search(final Archive archive, final Archive.Entry entry, final Path parentPath)
             throws IOException {
+        final Path currentPath = parentPath == null ? Path.of(entry.getName()) : parentPath.resolve(entry.getName());
         if (entry.isDirectory()) {
             for (Archive.Entry child : entry.getChildren()) {
-                search(archive, child);
+                search(archive, child, currentPath);
             }
         } else {
             String fileName = entry.getName();
@@ -169,7 +169,8 @@ public final class FileVaultNameFinder {
 
             if (".xml".equals(ext)) {
                 Optional.ofNullable(archive.getInputSource(entry))
-                        .ifPresent(uncheckVoid1((this::handleDocView)));
+                        .map(source -> toEntry(source, currentPath))
+                        .ifPresent(Fun.onEntry(uncheckVoid2(this::handleDocView)));
             } else if (".cnd".equals(ext)) {
                 Optional.ofNullable(archive.getInputSource(entry))
                         .ifPresent(uncheckVoid1(is -> {
@@ -186,13 +187,13 @@ public final class FileVaultNameFinder {
         }
     }
 
-    void handleDocView(final @NotNull VaultInputSource source) throws ParserConfigurationException, SAXException, IOException {
-        SAXParserFactory factory = SAXParserFactory.newInstance();
-        factory.setNamespaceAware(true);
-        factory.setFeature("http://xml.org/sax/features/namespace-prefixes", false);
-        SAXParser parser = factory.newSAXParser();
+    void handleDocView(final @NotNull VaultInputSource source, final @NotNull Path filePath) throws DocViewParser.XmlParseException, IOException {
+        DocViewParser parser = new DocViewParser(new NamespaceMapping(BUILTIN_MAPPINGS));
         Handler handler = new Handler();
-        parser.parse(source, handler);
+        Optional<String> rootNodePath = result0(() -> DocViewParser.getDocumentViewXmlRootNodePath(source.getByteStream(), filePath)).get().toOptional();
+        if (rootNodePath.isPresent()) {
+            parser.parse(rootNodePath.get(), source, handler);
+        }
     }
 
     static final class NsStack {
@@ -220,17 +221,14 @@ public final class FileVaultNameFinder {
         }
     }
 
-    final class Handler extends RejectingEntityDefaultHandler implements NamespaceResolver {
+    final class Handler implements DocViewParserHandler, NamespaceResolver {
         boolean expectStartElement = false;
         boolean expectEndPrefixMapping = false;
-        NamespaceMapping mapping = new NamespaceMapping();
+        NamespaceMapping mapping = new NamespaceMapping(BUILTIN_MAPPINGS);
         NsStack mappingStack = new NsStack(mapping, null);
-
         final NamePathResolver npResolver = new DefaultNamePathResolver(this);
-        Boolean isDocView = null;
 
-        @Override
-        public void startPrefixMapping(final @NotNull String prefix, final @NotNull String uri) throws SAXException {
+        public void startPrefixMapping(final @NotNull String prefix, final @NotNull String uri) {
             if (!expectStartElement) {
                 mapping = new NamespaceMapping(mapping);
                 mappingStack = new NsStack(mapping, mappingStack);
@@ -241,7 +239,7 @@ public final class FileVaultNameFinder {
         }
 
         @Override
-        public void endPrefixMapping(final @NotNull String prefix) throws SAXException {
+        public void endPrefixMapping(final @NotNull String prefix) {
             if (expectEndPrefixMapping) {
                 if (mappingStack.next == null) {
                     throw new IllegalStateException("namespace mapping stack is out of sync");
@@ -252,64 +250,39 @@ public final class FileVaultNameFinder {
             }
         }
 
-        final void setMapping(final String prefix, final String uri) throws SAXException {
-            try {
-                mapping.setMapping(prefix, uri);
-            } catch (NamespaceException e) {
-                throw new SAXException(e);
+        void setMapping(final String prefix, final String uri) {
+            uncheckVoid2(mapping::setMapping).accept(prefix, uri);
+        }
+
+        @Override
+        public void startDocViewNode(@NotNull String nodePath, @NotNull DocViewNode2 docViewNode, @NotNull Optional<DocViewNode2> parentDocViewNode, int line, int column) throws IOException, RepositoryException {
+            LOGGER.trace("[Handler#startDocViewNode] nodePath={} docViewNode={} parentDocViewNode={} pos={}:{}", nodePath, docViewNode, parentDocViewNode, line, column);
+            if (docViewNode.getPrimaryType().isPresent()) {
+                Fun.result0(() -> QName.parseQName(mapping, QName.Type.NODETYPE, docViewNode.getPrimaryType().get()))
+                        .get()
+                        .forEach(FileVaultNameFinder.this::addReference);
+            }
+
+            docViewNode.getMixinTypes().stream()
+                    .map(result1(type -> QName.parseQName(mapping, QName.Type.NODETYPE, type)))
+                    .flatMap(Result::stream)
+                    .forEachOrdered(FileVaultNameFinder.this::addReference);
+
+            Optional<DocViewProperty2> privs = docViewNode.getProperty(npResolver.getQName("rep:privileges"));
+            if (privs.isPresent()) {
+                int ptype = privs.get().getType();
+                if (ptype == UNDEFINED || ptype == STRING || ptype == NAME) {
+                    privs.get().getStringValues().stream()
+                            .map(result1(type -> QName.parseQName(mapping, QName.Type.PRIVILEGE, type)))
+                            .flatMap(Result::stream).forEachOrdered(FileVaultNameFinder.this::addReference);
+                }
             }
         }
 
         @Override
-        public void startElement(final String uri, final String localName, final String qName, final Attributes attributes) throws SAXException {
-            expectStartElement = false;
-            LOGGER.trace("[Handler#startElement] uri={} localName={} qName={} attributes={}", uri, localName, qName, attributes);
-            if (isDocView == null) {
-                isDocView = "jcr:root".equals(qName);
-            }
-
-            if (!isDocView) {
-                return;
-            }
-
-            String label = ISO9075.decode(qName);
-            String name = nameFromLabel(label);
-            if (attributes.getLength() > 0) {
-                DocViewNode ni = createNode(name, label, attributes);
-                if (ni.primary != null) {
-                    Fun.result0(() -> QName.parseQName(mapping, QName.Type.NODETYPE, ni.primary)).get()
-                            .forEach(FileVaultNameFinder.this::addReference);
-                }
-                if (ni.mixins != null) {
-                    Stream.of(ni.mixins).map(result1(type -> QName.parseQName(mapping, QName.Type.NODETYPE, type)))
-                            .flatMap(Result::stream).forEachOrdered(FileVaultNameFinder.this::addReference);
-                }
-                if (ni.props.containsKey("rep:privileges")) {
-                    DocViewProperty prop = ni.props.get("rep:privileges");
-                    if (prop.values != null
-                            && (prop.type == UNDEFINED || prop.type == STRING || prop.type == NAME)) {
-                        Stream.of(prop.values).map(result1(type -> QName.parseQName(mapping, QName.Type.PRIVILEGE, type)))
-                                .flatMap(Result::stream).forEachOrdered(FileVaultNameFinder.this::addReference);
-                    }
-                }
-            }
-        }
-
-        String nameFromLabel(final @NotNull String label) {
-            int idx = label.lastIndexOf('[');
-            if (idx > 0) {
-                return label.substring(0, idx);
-            } else {
-                return label;
-            }
-        }
-
-        DocViewNode createNode(final String name, final String label, final Attributes attributes) throws SAXException {
-            try {
-                return new DocViewNode(name, label, attributes, npResolver);
-            } catch (NamespaceException e) {
-                throw new SAXException(e);
-            }
+        public void endDocViewNode(@NotNull String nodePath, @NotNull DocViewNode2 docViewNode,
+                                   @NotNull Optional<DocViewNode2> parentDocViewNode, int line, int column) {
+            /* do nothing */
         }
 
         @Override

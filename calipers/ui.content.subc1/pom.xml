@@ -22,6 +22,7 @@
         <groupId>net.adamcin.oakpal</groupId>
         <artifactId>oakpal-calipers</artifactId>
         <version>2.2.3-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
     </parent>
 
     <artifactId>oakpal-caliper.ui.content.subc1</artifactId>
@@ -52,7 +53,6 @@
                     <group>net.adamcin.oakpal</group>
                     <name>oakpal-caliper.ui.content.subc1</name>
                     <packageType>content</packageType>
-                    <accessControlHandling>merge</accessControlHandling>
                     <properties>
                         <cloudManagerTarget>none</cloudManagerTarget>
                     </properties>
