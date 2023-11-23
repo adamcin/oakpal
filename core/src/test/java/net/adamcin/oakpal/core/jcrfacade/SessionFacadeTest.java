@@ -295,7 +295,7 @@ public class SessionFacadeTest {
         Object target = new Object();
         final String method = "doStuff";
         final Object[] args = new Object[]{new Object()};
-        when(delegate.hasCapability(anyString(), any(), any(Object[].class))).thenReturn(false);
+        when(delegate.hasCapability(anyString(), any(Object.class), any(Object[].class))).thenReturn(false);
         when(delegate.hasCapability(method, target, args)).thenReturn(true);
         assertFalse("should not have capability", facade.hasCapability("", "", new Object[0]));
         assertTrue("should have capability",

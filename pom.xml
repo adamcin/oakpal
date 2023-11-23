@@ -80,6 +80,7 @@
         <!-- it is probably a good habit to stay at the latest even (not odd) minor release version of oak,
         So if latest version is 1.9.x try to stay at 1.8.max -->
         <oak.version>1.58.0</oak.version>
+        <graaljs.version>23.0.1</graaljs.version>
         <!-- override this to set debugForkedProcess for oakpal-maven-plugin -->
         <debug.oakpal-maven-plugin />
         <vault.test-packages.src>vault-core-it/vault-core-integration-tests/src/main/resources/test-packages</vault.test-packages.src>
@@ -624,8 +625,8 @@
             </dependency>
             <dependency>
                 <groupId>biz.aQute.bnd</groupId>
-                <artifactId>bndlib</artifactId>
-                <version>2.1.0</version>
+                <artifactId>biz.aQute.bndlib</artifactId>
+                <version>6.4.1</version>
             </dependency>
             <dependency>
                 <groupId>org.slf4j</groupId>
@@ -635,12 +636,12 @@
             <dependency>
                 <groupId>org.graalvm.js</groupId>
                 <artifactId>js-scriptengine</artifactId>
-                <version>23.0.1</version>
+                <version>${graaljs.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.graalvm.js</groupId>
                 <artifactId>js</artifactId>
-                <version>23.0.1</version>
+                <version>${graaljs.version}</version>
                 <scope>runtime</scope>
             </dependency>
 
@@ -648,7 +649,7 @@
             <dependency>
                 <groupId>org.mockito</groupId>
                 <artifactId>mockito-core</artifactId>
-                <version>4.6.1</version>
+                <version>5.7.0</version>
                 <scope>test</scope>
             </dependency>
             <dependency>

@@ -20,8 +20,8 @@ import net.adamcin.oakpal.api.EmbeddedPackageInstallable;
 import net.adamcin.oakpal.api.PathAction;
 import net.adamcin.oakpal.api.ProgressCheck;
 import net.adamcin.oakpal.api.ProgressCheckFactory;
-import net.adamcin.oakpal.api.SlingInstallable;
 import net.adamcin.oakpal.api.Severity;
+import net.adamcin.oakpal.api.SlingInstallable;
 import net.adamcin.oakpal.api.Violation;
 import org.apache.jackrabbit.vault.fs.config.MetaInf;
 import org.apache.jackrabbit.vault.packaging.PackageId;
@@ -221,7 +221,7 @@ public class ScriptProgressCheckTest {
         final ScriptProgressCheck check = new ScriptProgressCheck(delegate, helper, null);
         final List<Map.Entry<String, Object[]>> argRecord = new ArrayList<>();
         doAnswer(call -> argRecord.add(toEntry(call.getArgument(0), call.getArguments())))
-                .when(delegate).invokeFunction(anyString(), any());
+                .when(delegate).invokeFunction(anyString(), any(Object[].class));
         check.startedScan();
         assertTrue("expect args for startedScan", argRecord.stream()
                 .anyMatch(entry -> "startedScan".equals(entry.getKey()) && entry.getValue().length == 1));
@@ -234,7 +234,7 @@ public class ScriptProgressCheckTest {
         final ScriptProgressCheck check = new ScriptProgressCheck(delegate, helper, null);
         final List<Map.Entry<String, Object[]>> argRecord = new ArrayList<>();
         doAnswer(call -> argRecord.add(toEntry(call.getArgument(0), call.getArguments())))
-                .when(delegate).invokeFunction(anyString(), any());
+                .when(delegate).invokeFunction(anyString(), any(Object[].class));
         check.finishedScan();
         assertTrue("expect args for finishedScan", argRecord.stream()
                 .anyMatch(entry -> "finishedScan".equals(entry.getKey()) && entry.getValue().length == 1));
@@ -248,7 +248,7 @@ public class ScriptProgressCheckTest {
 
         final List<Map.Entry<String, Object[]>> argRecord = new ArrayList<>();
         doAnswer(call -> argRecord.add(toEntry(call.getArgument(0), call.getArguments())))
-                .when(delegate).invokeFunction(anyString(), any());
+                .when(delegate).invokeFunction(anyString(), any(Object[].class));
 
         final PackageId arg1 = PackageId.fromString("my_packages:example:1.0");
         final File arg2 = new File("./foo");
@@ -271,7 +271,7 @@ public class ScriptProgressCheckTest {
 
         final List<Map.Entry<String, Object[]>> argRecord = new ArrayList<>();
         doAnswer(call -> argRecord.add(toEntry(call.getArgument(0), call.getArguments())))
-                .when(delegate).invokeFunction(anyString(), any());
+                .when(delegate).invokeFunction(anyString(), any(Object[].class));
 
         final PackageId arg1 = PackageId.fromString("my_packages:example:1.0");
         final PackageId arg2 = PackageId.fromString("my_packages:other-example:1.0");
@@ -294,7 +294,7 @@ public class ScriptProgressCheckTest {
 
         final List<Map.Entry<String, Object[]>> argRecord = new ArrayList<>();
         doAnswer(call -> argRecord.add(toEntry(call.getArgument(0), call.getArguments())))
-                .when(delegate).invokeFunction(anyString(), any());
+                .when(delegate).invokeFunction(anyString(), any(Object[].class));
 
         final PackageId arg1 = PackageId.fromString("my_packages:example:1.0");
         final PackageId arg2 = PackageId.fromString("my_packages:other-example:1.0");
@@ -320,7 +320,7 @@ public class ScriptProgressCheckTest {
 
         final List<Map.Entry<String, Object[]>> argRecord = new ArrayList<>();
         doAnswer(call -> argRecord.add(toEntry(call.getArgument(0), call.getArguments())))
-                .when(delegate).invokeFunction(anyString(), any());
+                .when(delegate).invokeFunction(anyString(), any(Object[].class));
 
         final PackageId arg1 = PackageId.fromString("my_packages:example:1.0");
         final Manifest arg2 = new Manifest();
@@ -343,7 +343,7 @@ public class ScriptProgressCheckTest {
 
         final List<Map.Entry<String, Object[]>> argRecord = new ArrayList<>();
         doAnswer(call -> argRecord.add(toEntry(call.getArgument(0), call.getArguments())))
-                .when(delegate).invokeFunction(anyString(), any());
+                .when(delegate).invokeFunction(anyString(), any(Object[].class));
 
         final PackageId arg1 = PackageId.fromString("my_packages:example:1.0");
         final Session arg2 = mock(Session.class);
@@ -372,7 +372,7 @@ public class ScriptProgressCheckTest {
 
         final List<Map.Entry<String, Object[]>> argRecord = new ArrayList<>();
         doAnswer(call -> argRecord.add(toEntry(call.getArgument(0), call.getArguments())))
-                .when(delegate).invokeFunction(anyString(), any());
+                .when(delegate).invokeFunction(anyString(), any(Object[].class));
 
         final PackageId arg1 = PackageId.fromString("my_packages:example:1.0");
         final String arg2 = "/correct/path";
@@ -399,7 +399,7 @@ public class ScriptProgressCheckTest {
 
         final List<Map.Entry<String, Object[]>> argRecord = new ArrayList<>();
         doAnswer(call -> argRecord.add(toEntry(call.getArgument(0), call.getArguments())))
-                .when(delegate).invokeFunction(anyString(), any());
+                .when(delegate).invokeFunction(anyString(), any(Object[].class));
 
         final PackageId arg1 = PackageId.fromString("my_packages:example:1.0");
         final SlingInstallable arg2 = mock(SlingInstallable.class);
@@ -425,7 +425,7 @@ public class ScriptProgressCheckTest {
         // argRecord value.length() == 1 + # args to appliedRepoInitScripts
         final List<Map.Entry<String, Object[]>> argRecord = new ArrayList<>();
         doAnswer(call -> argRecord.add(toEntry(call.getArgument(0), call.getArguments())))
-                .when(delegate).invokeFunction(anyString(), any());
+                .when(delegate).invokeFunction(anyString(), any(Object[].class));
 
         final PackageId arg1 = PackageId.fromString("my_packages:example:1.0");
         final List<String> arg2 = Collections.singletonList("one script");
@@ -452,7 +452,7 @@ public class ScriptProgressCheckTest {
 
         final List<Map.Entry<String, Object[]>> argRecord = new ArrayList<>();
         doAnswer(call -> argRecord.add(toEntry(call.getArgument(0), call.getArguments())))
-                .when(delegate).invokeFunction(anyString(), any());
+                .when(delegate).invokeFunction(anyString(), any(Object[].class));
 
         final PackageId arg1 = PackageId.fromString("my_packages:example:1.0");
         final String arg2 = "/correct/path";
@@ -477,7 +477,7 @@ public class ScriptProgressCheckTest {
 
         final List<Map.Entry<String, Object[]>> argRecord = new ArrayList<>();
         doAnswer(call -> argRecord.add(toEntry(call.getArgument(0), call.getArguments())))
-                .when(delegate).invokeFunction(anyString(), any());
+                .when(delegate).invokeFunction(anyString(), any(Object[].class));
 
         final PackageId arg1 = PackageId.fromString("my_packages:example:1.0");
         final Session arg2 = mock(Session.class);

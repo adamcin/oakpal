@@ -460,7 +460,7 @@ public class CommandTest {
         doAnswer(call -> {
             stdOutStack.push(call.getArgument(0));
             return IO.empty;
-        }).when(console).printLine(any());
+        }).when(console).printLine(any(Object.class));
 
         final Stack<Object> fileStack = new Stack<>();
 
