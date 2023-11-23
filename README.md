@@ -1,7 +1,7 @@
 OakPAL: Oak Package Acceptance Library
 ======================================
 
-[![Build Status](https://travis-ci.org/adamcin/oakpal.png)](https://travis-ci.org/adamcin/oakpal)
+[![Java CI with Maven](https://github.com/adamcin/oakpal/actions/workflows/maven.yml/badge.svg)](https://github.com/adamcin/oakpal/actions/workflows/maven.yml)
 [![codecov](https://codecov.io/gh/adamcin/oakpal/graph/badge.svg?token=0ce6bGUcNl)](https://codecov.io/gh/adamcin/oakpal)
 [![Maven Central](https://img.shields.io/maven-central/v/net.adamcin.oakpal/oakpal-core.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22net.adamcin.oakpal%22%20AND%20a:%22oakpal-core%22)
 
