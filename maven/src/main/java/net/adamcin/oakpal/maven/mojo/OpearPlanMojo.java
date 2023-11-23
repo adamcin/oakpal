@@ -19,6 +19,7 @@ import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Exports a plan builder configuration for inclusion in an opear file, using the {@link OpearPackageMojo}.
@@ -63,7 +64,7 @@ public class OpearPlanMojo extends AbstractCommonMojo implements MojoWithPlanPar
     }
 
     @Override
-    public PlanBuilderParams getPlanBuilderParams() {
+    public @NotNull PlanBuilderParams getPlanBuilderParams() {
         return Optional.ofNullable(planParams).orElse(new PlanParams());
     }
 }
