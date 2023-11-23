@@ -61,6 +61,8 @@ import java.util.Optional;
 import java.util.ResourceBundle;
 import java.util.Set;
 import java.util.jar.Manifest;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static net.adamcin.oakpal.core.Util.isEmpty;
 
@@ -124,6 +126,18 @@ public final class ScriptProgressCheck implements ProgressCheck {
     public static final String INVOKE_GET_CHECK_NAME = "getCheckName";
     private static final String GRAAL_JS_PROXY_OBJECT_CLASS = "org.graalvm.polyglot.proxy.ProxyObject";
     private static final String GRAAL_JS_PROXY_OBJECT_METHOD_FROM_MAP = "fromMap";
+
+    private static final String ENGINE_NASHORN = "Nashorn";
+    private static final String ENGINE_GRAALJS = "Graal.js";
+    private static final Set<String> JS_ENGINES = Stream.of(
+                    ENGINE_NASHORN,
+                    ENGINE_GRAALJS,
+                    "JS", "JavaScript", "ECMAScript")
+            .flatMap(name -> Stream.of(name, name.toLowerCase()))
+            .collect(Collectors.toSet());
+    private static final boolean USE_NASHORN =
+            new ScriptEngineManager(ScriptProgressCheck.class.getClassLoader())
+                    .getEngineByName(ENGINE_NASHORN) != null;
 
     private final Invocable script;
     private final ScriptHelper helper;
@@ -420,7 +434,7 @@ public final class ScriptProgressCheck implements ProgressCheck {
     }
 
     private static Object wrapForGraalIfNecessary(@NotNull ScriptEngine engine, @NotNull Map<String, Object> configMap) throws Exception {
-        return ("Graal.js".equals(engine.getFactory().getEngineName()))
+        return (ENGINE_GRAALJS.equals(engine.getFactory().getEngineName()))
                 ? Class.forName(GRAAL_JS_PROXY_OBJECT_CLASS).getMethod(GRAAL_JS_PROXY_OBJECT_METHOD_FROM_MAP, Map.class).invoke(null, configMap) : configMap;
     }
 
@@ -447,6 +461,10 @@ public final class ScriptProgressCheck implements ProgressCheck {
         return createClassLoaderScriptCheckFactory(scriptUrl, Util.getDefaultClassLoader());
     }
 
+    static boolean useJavaScriptEngine(@NotNull String nameOrExt) {
+        return JS_ENGINES.contains(nameOrExt);
+    }
+
     static ProgressCheckFactory createClassLoaderScriptCheckFactory(final @NotNull URL scriptUrl,
                                                                     final @Nullable ClassLoader classLoader) throws Exception {
         final int lastPeriod = scriptUrl.getPath().lastIndexOf(".");
@@ -457,11 +475,10 @@ public final class ScriptProgressCheck implements ProgressCheck {
             ext = scriptUrl.getPath().substring(lastPeriod + 1);
         }
         final Fun.ThrowingSupplier<ScriptEngine> engineSupplier = () -> {
-            final ScriptEngineManager scriptEngineManager = new ScriptEngineManager(classLoader);
+            final ScriptEngineManager scriptEngineManager = getScriptEngineManager(classLoader);
             final ScriptEngine engine;
-            if (DEFAULT_SCRIPT_ENGINE_EXTENSION.equals(ext)) {
-                // engine = new GraalJSEngineFactory().getScriptEngine();
-                engine = scriptEngineManager.getEngineByExtension(ext);
+            if (useJavaScriptEngine(ext)) {
+                engine = getEngineForJavaScript(scriptEngineManager);
                 final Bindings scriptBindings = engine.getBindings(ScriptContext.ENGINE_SCOPE);
                 scriptBindings.put("polyglot.js.nashorn-compat", true);
                 scriptBindings.put("polyglot.engine.WarnInterpreterOnly", false);
@@ -510,11 +527,24 @@ public final class ScriptProgressCheck implements ProgressCheck {
                                                                     final @NotNull URL scriptUrl,
                                                                     final @Nullable ClassLoader classLoader)
             throws UnregisteredScriptEngineNameException {
-        final ScriptEngine engine = new ScriptEngineManager(classLoader).getEngineByName(engineName);
+        final ScriptEngineManager scriptEngineManager = getScriptEngineManager(classLoader);
+        final ScriptEngine engine = useJavaScriptEngine(engineName)
+                ? getEngineForJavaScript(scriptEngineManager)
+                : scriptEngineManager.getEngineByName(engineName);
         if (engine == null) {
             throw new UnregisteredScriptEngineNameException(engineName);
         }
         return createScriptCheckFactory(engine, scriptUrl);
+    }
+
+    static ScriptEngineManager getScriptEngineManager(final @Nullable ClassLoader classLoader) {
+        return new ScriptEngineManager(classLoader);
+    }
+
+    static ScriptEngine getEngineForJavaScript(final @NotNull ScriptEngineManager scriptEngineManager) {
+        return USE_NASHORN
+                ? scriptEngineManager.getEngineByName(ENGINE_NASHORN)
+                : scriptEngineManager.getEngineByName(ENGINE_GRAALJS);
     }
 
     @SuppressWarnings("WeakerAccess")
@@ -537,12 +567,12 @@ public final class ScriptProgressCheck implements ProgressCheck {
         final Fun.ThrowingSupplier<ScriptEngine> engineSupplier = () -> {
             final ScriptEngine engine;
             if (isEmpty(inlineEngine)) {
-                engine = new ScriptEngineManager(classLoader).getEngineByExtension(DEFAULT_SCRIPT_ENGINE_EXTENSION);
+                engine = getEngineForJavaScript(getScriptEngineManager(classLoader));
                 final Bindings scriptBindings = engine.getBindings(ScriptContext.ENGINE_SCOPE);
                 scriptBindings.put("polyglot.js.nashorn-compat", true);
                 scriptBindings.put("polyglot.engine.WarnInterpreterOnly", false);
             } else {
-                engine = new ScriptEngineManager(classLoader).getEngineByName(inlineEngine);
+                engine = getScriptEngineManager(classLoader).getEngineByName(inlineEngine);
             }
             if (engine == null) {
                 throw new UnregisteredScriptEngineNameException(inlineEngine);
