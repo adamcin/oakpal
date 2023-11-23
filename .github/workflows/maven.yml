@@ -76,8 +76,9 @@ jobs:
             if [ "${{github.ref}}" = "refs/heads/master" ] && [ "${{github.event_name}}" = "push" ]; then
               echo "MAVEN_USERNAME=${{ secrets.OSSRH_TOKEN_USER }}" >> $GITHUB_ENV
               echo "MAVEN_PASSWORD=${{ secrets.OSSRH_TOKEN_PASSWORD }}" >> $GITHUB_ENV
-              echo "MVN_GOAL=clean deploy" >> $GITHUB_ENV
-              echo "STEP_NAME_SUFFIX=(Deploys to OSSRH)" >> $GITHUB_ENV
+              echo "MVN_GOAL=clean verify" >> $GITHUB_ENV
+              # echo "MVN_GOAL=clean deploy" >> $GITHUB_ENV
+              # echo "STEP_NAME_SUFFIX=(Deploys to OSSRH)" >> $GITHUB_ENV
             else
               echo "MVN_GOAL=clean verify" >> $GITHUB_ENV
             fi
@@ -104,4 +105,4 @@ jobs:
     - name: Update dependency graph
       uses: advanced-security/maven-dependency-submission-action@v3.0.3
       with:
-        ignore-maven-wrapper: true
+        ignore-maven-wrapper: false
