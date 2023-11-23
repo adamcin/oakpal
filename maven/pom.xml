@@ -42,10 +42,7 @@
     </scm>
 
     <properties>
-        <maven.version>3.2.5</maven.version>
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>
-        <encoding>UTF-8</encoding>
+        <maven.version>3.8.1</maven.version>
     </properties>
 
     <prerequisites>
@@ -139,7 +136,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-project-info-reports-plugin</artifactId>
-                <version>3.0.0</version>
+                <version>3.4.5</version>
             </plugin>
         </plugins>
     </reporting>
