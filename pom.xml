@@ -408,50 +408,6 @@
             </build>
         </profile>
         <profile>
-            <id>jdk21-enable-dynamic-agent-argLine-absent</id>
-            <activation>
-                <jdk>[21,)</jdk>
-                <property>
-                    <name>!argLine</name>
-                </property>
-            </activation>
-            <build>
-                <pluginManagement>
-                    <plugins>
-                        <plugin>
-                            <groupId>org.apache.maven.plugins</groupId>
-                            <artifactId>maven-surefire-plugin</artifactId>
-                            <configuration>
-                                <argLine>-XX:+EnableDynamicAgentLoading</argLine>
-                            </configuration>
-                        </plugin>
-                    </plugins>
-                </pluginManagement>
-            </build>
-        </profile>
-        <profile>
-            <id>jdk21-enable-dynamic-agent-argLine-present</id>
-            <activation>
-                <jdk>[21,)</jdk>
-                <property>
-                    <name>argLine</name>
-                </property>
-            </activation>
-            <build>
-                <pluginManagement>
-                    <plugins>
-                        <plugin>
-                            <groupId>org.apache.maven.plugins</groupId>
-                            <artifactId>maven-surefire-plugin</artifactId>
-                            <configuration>
-                                <argLine>${argLine} -XX:+EnableDynamicAgentLoading</argLine>
-                            </configuration>
-                        </plugin>
-                    </plugins>
-                </pluginManagement>
-            </build>
-        </profile>
-        <profile>
             <id>coverage</id>
             <build>
                 <plugins>
