@@ -197,6 +197,7 @@
                     <artifactId>maven-surefire-plugin</artifactId>
                     <version>2.22.1</version>
                     <configuration>
+                        <argLine>${argLine} -XX:+EnableDynamicAgentLoading</argLine>
                         <systemPropertyVariables>
                             <polyglot.engine.WarnInterpreterOnly>false</polyglot.engine.WarnInterpreterOnly>
                         </systemPropertyVariables>
@@ -243,9 +244,10 @@
                 <plugin>
                     <groupId>org.jacoco</groupId>
                     <artifactId>jacoco-maven-plugin</artifactId>
-                    <version>0.8.2</version>
+                    <version>0.8.10</version>
                     <configuration>
                         <excludes>
+                            <!-- exclude these classes because they have moved to oakpal-api -->
                             <exclude>net/adamcin/oakpal/core/Fun.class</exclude>
                             <exclude>net/adamcin/oakpal/core/JavaxJson.class</exclude>
                             <exclude>net/adamcin/oakpal/core/ProgressCheck.class</exclude>
@@ -256,11 +258,6 @@
                             <exclude>net/adamcin/oakpal/core/checks/Rule*</exclude>
                         </excludes>
                     </configuration>
-                </plugin>
-                <plugin>
-                    <groupId>org.eluder.coveralls</groupId>
-                    <artifactId>coveralls-maven-plugin</artifactId>
-                    <version>4.3.0</version>
                 </plugin>
             </plugins>
         </pluginManagement>
