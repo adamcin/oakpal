@@ -43,10 +43,10 @@ public enum Severity {
      */
     SEVERE(0);
 
-    private final int ordinal;
+    private final int ignorability;
 
-    Severity(int ordinal) {
-        this.ordinal = ordinal;
+    Severity(int ignorability) {
+        this.ignorability = ignorability;
     }
 
     /**
@@ -65,7 +65,7 @@ public enum Severity {
     }
 
     public boolean isLessSevereThan(Severity other) {
-        return this.ordinal > other.ordinal;
+        return this.ignorability > other.ignorability;
     }
 
     public Predicate<Severity> meetsMinimumSeverity() {
