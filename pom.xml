@@ -70,8 +70,7 @@
     <properties>
         <encoding>UTF-8</encoding>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.source>11</maven.compiler.source>
-        <maven.compiler.target>11</maven.compiler.target>
+        <maven.compiler.release>11</maven.compiler.release>
         <slf4j.version>1.7.36</slf4j.version>
         <!-- the filevault and jackrabbit versions should be kept in sync -->
         <!-- see org.apache.jackrabbit.vault:parent for referenced jackrabbit.version property -->
@@ -169,10 +168,7 @@
                 <plugin>
                     <artifactId>maven-compiler-plugin</artifactId>
                     <version>3.11.0</version>
-                    <configuration>
-                        <source>${maven.compiler.source}</source>
-                        <target>${maven.compiler.target}</target>
-                    </configuration>
+                    <!-- use maven.compiler.release property to govern release -->
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
