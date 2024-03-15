@@ -70,8 +70,7 @@
     <properties>
         <encoding>UTF-8</encoding>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.source>11</maven.compiler.source>
-        <maven.compiler.target>11</maven.compiler.target>
+        <maven.compiler.release>11</maven.compiler.release>
         <slf4j.version>1.7.36</slf4j.version>
         <!-- the filevault and jackrabbit versions should be kept in sync -->
         <!-- see org.apache.jackrabbit.vault:parent for referenced jackrabbit.version property -->
@@ -79,8 +78,8 @@
         <jackrabbit.version>2.20.13</jackrabbit.version>
         <!-- it is probably a good habit to stay at the latest even (not odd) minor release version of oak,
         So if latest version is 1.9.x try to stay at 1.8.max -->
-        <oak.version>1.58.0</oak.version>
-        <graaljs.version>23.0.1</graaljs.version>
+        <oak.version>1.60.0</oak.version>
+        <graaljs.version>23.0.3</graaljs.version>
         <!-- override this to set debugForkedProcess for oakpal-maven-plugin -->
         <debug.oakpal-maven-plugin />
         <vault.test-packages.src>vault-core-it/vault-core-integration-tests/src/main/resources/test-packages</vault.test-packages.src>
@@ -169,10 +168,7 @@
                 <plugin>
                     <artifactId>maven-compiler-plugin</artifactId>
                     <version>3.11.0</version>
-                    <configuration>
-                        <source>${maven.compiler.source}</source>
-                        <target>${maven.compiler.target}</target>
-                    </configuration>
+                    <!-- use maven.compiler.release property to govern release -->
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -272,14 +268,22 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-release-plugin</artifactId>
-                <version>2.5.3</version>
+                <version>3.0.1</version>
                 <configuration>
                     <autoVersionSubmodules>true</autoVersionSubmodules>
                     <useReleaseProfile>false</useReleaseProfile>
                     <releaseProfiles>release</releaseProfiles>
                     <tagNameFormat>v@{project.version}</tagNameFormat>
                     <goals>deploy</goals>
+                    <projectVersionPolicyId>OddEvenVersionPolicy</projectVersionPolicyId>
                 </configuration>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.apache.maven.release</groupId>
+                        <artifactId>maven-release-oddeven-policy</artifactId>
+                        <version>3.0.1</version>
+                    </dependency>
+                </dependencies>
             </plugin>
             <plugin>
                 <groupId>org.sonatype.plugins</groupId>
