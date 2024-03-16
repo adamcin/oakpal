@@ -83,6 +83,7 @@
         <!-- override this to set debugForkedProcess for oakpal-maven-plugin -->
         <debug.oakpal-maven-plugin />
         <vault.test-packages.src>vault-core-it/vault-core-integration-tests/src/main/resources/test-packages</vault.test-packages.src>
+        <gpg.keyname>OSSRH SIGNING KEY</gpg.keyname>
     </properties>
 
     <issueManagement>
@@ -377,6 +378,14 @@
                                 <goals>
                                     <goal>sign</goal>
                                 </goals>
+                                <configuration>
+                                    <keyname>${gpg.keyname}</keyname>
+                                    <passphraseServerId>${gpg.keyname}</passphraseServerId>
+                                    <gpgArguments>
+                                        <arg>--pinentry-mode</arg>
+                                        <arg>loopback</arg>
+                                    </gpgArguments>
+                                </configuration>
                             </execution>
                         </executions>
                     </plugin>
