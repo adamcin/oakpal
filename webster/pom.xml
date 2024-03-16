@@ -186,6 +186,18 @@
         <dependency>
             <groupId>org.apache.jackrabbit</groupId>
             <artifactId>oak-run-commons</artifactId>
+            <exclusions>
+                <exclusion>
+                    <!-- excluding for potential vulnerabilities -->
+                    <groupId>org.apache.jackrabbit</groupId>
+                    <artifactId>oak-blob-cloud</artifactId>
+                </exclusion>
+                <exclusion>
+                    <!-- excluding for potential vulnerabilities -->
+                    <groupId>org.apache.jackrabbit</groupId>
+                    <artifactId>oak-segment-aws</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.apache.jackrabbit</groupId>
