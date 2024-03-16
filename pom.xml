@@ -91,6 +91,15 @@
         <url>https://github.com/adamcin/oakpal/issues/</url>
     </issueManagement>
 
+    <developers>
+        <developer>
+            <name>Mark Adamcin</name>
+            <email>adamcin@gmail.com</email>
+            <organization>Adobe</organization>
+            <organizationUrl>https://www.adobe.com</organizationUrl>
+        </developer>
+    </developers>
+
     <licenses>
         <license>
             <name>Apache License, Version 2.0</name>
