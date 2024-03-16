@@ -235,7 +235,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-gpg-plugin</artifactId>
-                    <version>1.6</version>
+                    <version>3.1.0</version>
                 </plugin>
                 <plugin>
                     <groupId>org.jacoco</groupId>
@@ -253,6 +253,26 @@
                             <exclude>net/adamcin/oakpal/core/Violation*</exclude>
                             <exclude>net/adamcin/oakpal/core/checks/Rule*</exclude>
                         </excludes>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>com.ragedunicorn.tools.maven</groupId>
+                    <artifactId>github-release-maven-plugin</artifactId>
+                    <version>1.0.7</version>
+                    <configuration>
+                        <draft>true</draft>
+                        <owner>adamcin</owner>
+                        <repository>oakpal</repository>
+                        <server>github-release-oauth</server>
+                        <tagName>v${project.version}</tagName>
+                        <assets>
+                            <asset>cli/target/oakpal-cli-${project.version}-dist.zip</asset>
+                            <asset>cli/target/oakpal-cli-${project.version}-dist.zip.md5</asset>
+                            <asset>cli/target/oakpal-cli-${project.version}-dist.zip.sha1</asset>
+                            <asset>cli/target/oakpal-cli-${project.version}-dist.tar.gz</asset>
+                            <asset>cli/target/oakpal-cli-${project.version}-dist.tar.gz.md5</asset>
+                            <asset>cli/target/oakpal-cli-${project.version}-dist.tar.gz.sha1</asset>
+                        </assets>
                     </configuration>
                 </plugin>
             </plugins>
@@ -392,7 +412,6 @@
                     <plugin>
                         <groupId>com.ragedunicorn.tools.maven</groupId>
                         <artifactId>github-release-maven-plugin</artifactId>
-                        <version>1.0.6</version>
                         <inherited>false</inherited>
                         <executions>
                             <execution>
@@ -401,18 +420,7 @@
                                     <goal>github-release</goal>
                                 </goals>
                                 <configuration>
-                                    <owner>adamcin</owner>
-                                    <repository>oakpal</repository>
-                                    <server>github-release-oauth</server>
-                                    <tagName>v${project.version}</tagName>
-                                    <assets>
-                                        <asset>cli/target/oakpal-cli-${project.version}-dist.zip</asset>
-                                        <asset>cli/target/oakpal-cli-${project.version}-dist.zip.md5</asset>
-                                        <asset>cli/target/oakpal-cli-${project.version}-dist.zip.sha1</asset>
-                                        <asset>cli/target/oakpal-cli-${project.version}-dist.tar.gz</asset>
-                                        <asset>cli/target/oakpal-cli-${project.version}-dist.tar.gz.md5</asset>
-                                        <asset>cli/target/oakpal-cli-${project.version}-dist.tar.gz.sha1</asset>
-                                    </assets>
+                                    <draft>false</draft>
                                 </configuration>
                             </execution>
                         </executions>
