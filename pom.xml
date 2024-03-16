@@ -259,6 +259,7 @@
                     <groupId>com.ragedunicorn.tools.maven</groupId>
                     <artifactId>github-release-maven-plugin</artifactId>
                     <version>1.0.7</version>
+                    <inherited>false</inherited>
                     <configuration>
                         <draft>true</draft>
                         <owner>adamcin</owner>
@@ -266,12 +267,7 @@
                         <server>github-release-oauth</server>
                         <tagName>v${project.version}</tagName>
                         <assets>
-                            <asset>cli/target/oakpal-cli-${project.version}-dist.zip</asset>
-                            <asset>cli/target/oakpal-cli-${project.version}-dist.zip.md5</asset>
-                            <asset>cli/target/oakpal-cli-${project.version}-dist.zip.sha1</asset>
-                            <asset>cli/target/oakpal-cli-${project.version}-dist.tar.gz</asset>
-                            <asset>cli/target/oakpal-cli-${project.version}-dist.tar.gz.md5</asset>
-                            <asset>cli/target/oakpal-cli-${project.version}-dist.tar.gz.sha1</asset>
+                            <asset>CHANGELOG.md</asset>
                         </assets>
                     </configuration>
                 </plugin>
@@ -421,6 +417,14 @@
                                 </goals>
                                 <configuration>
                                     <draft>false</draft>
+                                    <assets>
+                                        <asset>cli/target/oakpal-cli-${project.version}-dist.zip</asset>
+                                        <asset>cli/target/oakpal-cli-${project.version}-dist.zip.md5</asset>
+                                        <asset>cli/target/oakpal-cli-${project.version}-dist.zip.sha1</asset>
+                                        <asset>cli/target/oakpal-cli-${project.version}-dist.tar.gz</asset>
+                                        <asset>cli/target/oakpal-cli-${project.version}-dist.tar.gz.md5</asset>
+                                        <asset>cli/target/oakpal-cli-${project.version}-dist.tar.gz.sha1</asset>
+                                    </assets>
                                 </configuration>
                             </execution>
                         </executions>

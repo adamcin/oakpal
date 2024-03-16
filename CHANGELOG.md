@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com)
 
+## [2.3.0] - 2024-03-16
+
+### Changed
+
+- Upgraded JDK minimum release to 11 and ensured support for JS checks in java 17 and 21 using graaljs engine.
+
+### Fixed
+
+- issue #100 renamed `ordinal` private field in `Severity` to avoid conflict/confusion with Java Enum `ordinal()` accessor.
+
 ## [2.2.2] - 2020-09-28
 
 ### Changed
